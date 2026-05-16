@@ -16,7 +16,7 @@ cross-refs:
 
 # 技能与 Buff 系统
 
-> **v3.1（2026-05-14）变更**：因塔升级改造为科技树（[30-tower-tech-tree](./22-tower-tech-tree.md)），本文档同步：
+> **v3.1（2026-05-14）变更**：因塔升级改造为技能树（[22-skill-tree-overview](./22-skill-tree-overview.md) + [22a-skill-tree-tower](./22a-skill-tree-tower.md)），本文档同步：
 > - §2.2「塔被动技能（L3 解锁）」**整段删除**，原表移至 [archive/deprecated-l3-passives.md](../archive/deprecated-l3-passives.md)；塔被动统一由科技树节点提供
 > - §3.3 预定义 Buff 表新增 v3.1 Buff 行：贯穿（pierce）/ 传染（infect）/ 电荷（capacitor）/ 灼烧扩展 / 能量丹概率
 > - §6「v3.1 塔科技树新增机制」：贯穿、传染跳跃、闪电塔全屏技、激光塔蓄能聚焦的机制详述
@@ -52,7 +52,7 @@ cross-refs:
 
 ### 2.2 塔被动技能
 
-> 🛑 v3.1 起塔被动技能不再由 "L3 解锁" 提供，统一由[科技树节点](./22-tower-tech-tree.md#4-各塔科技树详细设计)定义。原 L3 被动设计的历史快照见 [archive/deprecated-l3-passives.md](../archive/deprecated-l3-passives.md)。
+> 🛑 v3.1 起塔被动技能不再由 "L3 解锁" 提供，统一由[技能树节点](./22a-skill-tree-tower.md)（v3.4 22a 详设）定义。原 L3 被动设计的历史快照见 [archive/deprecated-l3-passives.md](../archive/deprecated-l3-passives.md)。
 
 ### 2.3 Boss技能
 
@@ -240,7 +240,7 @@ type SpellEffect =
 
 ## 6. v3.1 塔科技树新增机制（追加）
 
-> 本节为 [30-tower-tech-tree](./22-tower-tech-tree.md) 中各塔终点节点的机制详述，作为 21-MDA 数值表的语义补充。所有具体数值占位以 21-MDA 为准。
+> 本节为 [22a-skill-tree-tower](./22a-skill-tree-tower.md) 中各塔技能树终点节点的机制详述（v3.4 路径 × 3 节点），作为 21-MDA 数值表的语义补充。所有具体数值占位以 21-MDA 为准。
 
 ### 6.1 贯穿（pierce） — 战术炮塔（炮塔路径 2 终点）
 
@@ -373,12 +373,12 @@ type SpellEffect =
 
 ### 7.2 与科技树的关系
 
-科技树（[30](./22-tower-tech-tree.md)）决定塔的**形态与能力上限**（永久），instanceLevel 决定塔的**数值强度**（临时）。两者正交，互不干扰：
+技能树（[22a](./22a-skill-tree-tower.md)）决定本 Run 内塔的**形态与能力**（Run 结束清零），instanceLevel 决定塔的**数值强度**（临时）。两者正交，互不干扰：
 
 | 维度 | 决定者 | 持久性 | 关内可变 |
 |------|--------|--------|----------|
-| 塔形态 / 路径 | 关外科技树 | 永久 | ❌ 不可切换 |
-| 节点解锁数 | 关外科技树（碎片消费） | 永久 | ❌ 不可解锁 |
+| 塔形态 / 路径 | 本 Run 技能树 | 本 Run 临时 | ❌ 不可切换 |
+| 节点解锁数 | 本 Run 技能树（SP 消费） | 本 Run 临时，Run 结束清零 | ❌ 不可解锁 |
 | instanceLevel（数值层数） | 法术卡 | 仅本局 | ✅ 可叠加 |
 
 ### 7.3 数值规范
