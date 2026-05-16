@@ -4,7 +4,7 @@ import { RuleEngine, LIFECYCLE_EVENTS, type LifecycleEvent, type RuleHandler } f
 import { createTowerWorld } from '../World.js';
 
 describe('LIFECYCLE_EVENTS', () => {
-  it('exposes the 9 canonical lifecycle event names (frozen by Wave 1 contract)', () => {
+  it('exposes the canonical lifecycle event names', () => {
     expect(LIFECYCLE_EVENTS).toEqual([
       'onCreate',
       'onDeath',
@@ -15,6 +15,7 @@ describe('LIFECYCLE_EVENTS', () => {
       'onDestroy',
       'onEnter',
       'onLeave',
+      'onSkillUnlock',
     ]);
   });
 });

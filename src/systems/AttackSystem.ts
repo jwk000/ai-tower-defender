@@ -30,10 +30,9 @@ export function createAttackSystem(): System {
         const range = Attack.range[attacker]!;
         const rangeSq = range * range;
         const myTeam = Faction.team[attacker]!;
+        const maxTargets = 1 + (Attack.extraTargets[attacker] ?? 0);
 
-        let bestTarget = -1;
-        let bestDistSq = Number.POSITIVE_INFINITY;
-
+        const inRange: Array<{ eid: number; distSq: number }> = [];
         for (let j = 0; j < candidates.length; j += 1) {
           const cand = candidates[j]!;
           if (cand === attacker) continue;
@@ -44,21 +43,24 @@ export function createAttackSystem(): System {
           const dy = Position.y[cand]! - ay;
           const distSq = dx * dx + dy * dy;
           if (distSq > rangeSq) continue;
-          if (distSq < bestDistSq) {
-            bestDistSq = distSq;
-            bestTarget = cand;
-          }
+          inRange.push({ eid: cand, distSq });
         }
 
-        if (bestTarget < 0) continue;
+        if (inRange.length === 0) continue;
 
+        inRange.sort((a, b) => a.distSq - b.distSq);
+        const hitCount = Math.min(maxTargets, inRange.length);
         const speed = Attack.projectileSpeed[attacker]! || DEFAULT_PROJECTILE_SPEED;
-        spawnProjectile(world, {
-          sourceEid: attacker,
-          targetEid: bestTarget,
-          damage: Attack.damage[attacker]!,
-          speed,
-        });
+
+        for (let t = 0; t < hitCount; t += 1) {
+          spawnProjectile(world, {
+            sourceEid: attacker,
+            targetEid: inRange[t]!.eid,
+            damage: Attack.damage[attacker]!,
+            speed,
+          });
+        }
+
         Attack.cooldownLeft[attacker] = Attack.cooldown[attacker]!;
       }
     },

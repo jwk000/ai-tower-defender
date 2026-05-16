@@ -3,7 +3,7 @@ import { Container } from 'pixi.js';
 import { Game } from './core/Game.js';
 import { LevelState } from './core/LevelState.js';
 import { RunController } from './core/RunController.js';
-import { Crystal, Projectile, UnitTag } from './core/components.js';
+import { Attack, Crystal, Projectile, UnitCategory, UnitTag } from './core/components.js';
 import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
@@ -215,6 +215,20 @@ async function bootstrap(): Promise<void> {
       runStats.goldEarned += amount;
     }
     runStats.enemiesKilled += 1;
+  });
+
+  game.ruleEngine.registerHandler('boost_attack_speed', (eid, params) => {
+    const multiplier = typeof params?.multiplier === 'number' ? params.multiplier : 1;
+    if (multiplier > 0 && hasComponent(game.world, Attack, eid)) {
+      Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
+    }
+  });
+
+  game.ruleEngine.registerHandler('add_extra_target', (eid, params) => {
+    const count = typeof params?.count === 'number' ? params.count : 0;
+    if (count > 0 && hasComponent(game.world, Attack, eid)) {
+      Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
+    }
   });
 
   const noopHandlers = [
@@ -445,7 +459,10 @@ async function bootstrap(): Promise<void> {
     const row = Math.floor(intent.targetY / CELL_SIZE);
     const snapX = col * CELL_SIZE + CELL_SIZE / 2;
     const snapY = row * CELL_SIZE + CELL_SIZE / 2;
-    cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
+    const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
+    if (newEid !== null && hasComponent(game.world, Attack, newEid)) {
+      applyPurchasedSkillsToTower(newEid);
+    }
     handSystem.playCard(intent.slot);
     deckSystem.discard(intent.cardId);
     handSystem.drawTo(deckSystem);
@@ -556,6 +573,37 @@ async function bootstrap(): Promise<void> {
     }
   });
 
+  const towerQuery = defineQuery([UnitTag, Attack]);
+
+  function applySkillEffectToExistingTowers(effect: { type: string; [k: string]: unknown }): void {
+    for (const eid of towerQuery(game.world)) {
+      if (UnitTag.category[eid] !== UnitCategory.Tower) continue;
+      if (effect.type === 'boost_attack_speed') {
+        const multiplier = typeof effect.multiplier === 'number' ? effect.multiplier : 1;
+        if (multiplier > 0) Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
+      } else if (effect.type === 'add_extra_target') {
+        const count = typeof effect.count === 'number' ? effect.count : 0;
+        if (count > 0) Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
+      }
+    }
+  }
+
+  function applyPurchasedSkillsToTower(eid: number): void {
+    const config = arrowTowerSkillTree;
+    for (const nodeId of runManager.skillTreeState) {
+      const node = config.nodes.find((n) => n.id === nodeId);
+      if (!node) continue;
+      const effect = node.effect as { type: string; [k: string]: unknown };
+      if (effect.type === 'boost_attack_speed') {
+        const multiplier = typeof effect.multiplier === 'number' ? effect.multiplier : 1;
+        if (multiplier > 0) Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
+      } else if (effect.type === 'add_extra_target') {
+        const count = typeof effect.count === 'number' ? effect.count : 0;
+        if (count > 0) Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
+      }
+    }
+  }
+
   const skillTreePanel = new SkillTreePanel();
   skillTreePanel.setHandler((intent: SkillTreeIntent) => {
     if (intent.kind === 'unlock') {
@@ -563,6 +611,7 @@ async function bootstrap(): Promise<void> {
         const spCost = runManager.sp - intent.result.newSp;
         if (spCost > 0) runManager.spendSp(spCost);
         runManager.unlockSkillNode(intent.result.nodeId);
+        applySkillEffectToExistingTowers(intent.result.effect as { type: string; [k: string]: unknown });
         skillTreeRenderer.refresh({ config: arrowTowerSkillTree, sp: runManager.sp, purchased: runManager.skillTreeState });
       }
     } else if (intent.kind === 'exit') {

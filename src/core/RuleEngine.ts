@@ -10,6 +10,7 @@ export const LIFECYCLE_EVENTS = [
   'onDestroy',
   'onEnter',
   'onLeave',
+  'onSkillUnlock',
 ] as const;
 
 export type LifecycleEvent = (typeof LIFECYCLE_EVENTS)[number];

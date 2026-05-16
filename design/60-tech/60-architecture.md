@@ -541,5 +541,7 @@ Phase F:        █████████████████████�
 <!-- CODEGEN:systems:END -->
 
 <!-- CODEGEN:handlers:START -->
+- add_extra_target
+- boost_attack_speed
 - drop_gold
 <!-- CODEGEN:handlers:END -->

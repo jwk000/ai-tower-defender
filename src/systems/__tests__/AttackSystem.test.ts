@@ -190,4 +190,31 @@ describe('AttackSystem (projectile-based)', () => {
 
     expect(Health.current[alive]).toBe(90);
   });
+
+  it('hits 2 targets simultaneously when extraTargets=1', () => {
+    const game = setupGame();
+    const tower = spawnTower(game, 100, 100, { damage: 10, range: 500, cooldown: 1 });
+    Attack.extraTargets[tower] = 1;
+    const near = spawnEnemy(game, 130, 100, 100);
+    const mid = spawnEnemy(game, 200, 100, 100);
+    const far = spawnEnemy(game, 400, 100, 100);
+
+    tickUntilProjectileHits(game);
+
+    expect(Health.current[near]).toBe(90);
+    expect(Health.current[mid]).toBe(90);
+    expect(Health.current[far]).toBe(100);
+  });
+
+  it('hits only 1 target when extraTargets=0 (default)', () => {
+    const game = setupGame();
+    const tower = spawnTower(game, 100, 100, { damage: 10, range: 500, cooldown: 1 });
+    const near = spawnEnemy(game, 130, 100, 100);
+    const mid = spawnEnemy(game, 200, 100, 100);
+
+    tickUntilProjectileHits(game);
+
+    expect(Health.current[near]).toBe(90);
+    expect(Health.current[mid]).toBe(100);
+  });
 });

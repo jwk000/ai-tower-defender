@@ -67,6 +67,7 @@ export const Attack = defineComponent({
   cooldown: Types.f32,
   cooldownLeft: Types.f32,
   projectileSpeed: Types.f32,
+  extraTargets: Types.ui8,
 });
 
 export const Projectile = defineComponent({
