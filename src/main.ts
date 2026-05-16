@@ -74,7 +74,7 @@ const VIEWPORT_WIDTH = GRID_COLS * CELL_SIZE;
 const VIEWPORT_HEIGHT = GRID_ROWS * CELL_SIZE;
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
-const DEFAULT_DECK_SIZE = 5;
+const DEFAULT_DECK_SIZE = 12; // S2 替换：卡组 12 张（per 10-roguelike-loop §2.3）
 const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 1;
 const ENERGY_MAX = 10;
@@ -140,7 +140,7 @@ async function bootstrap(): Promise<void> {
   }
 
   let deckSystem = new DeckSystem({ pool: cardConfigs.map((c) => c.id), deckSize: DEFAULT_DECK_SIZE, rng: Math.random });
-  const handSystem = new HandSystem({ maxSize: 3 });
+  const handSystem = new HandSystem({ maxSize: 4 });
   let energySystem = new EnergySystem({
     regenPerSecond: ENERGY_REGEN_PER_SECOND,
     max: ENERGY_MAX,
