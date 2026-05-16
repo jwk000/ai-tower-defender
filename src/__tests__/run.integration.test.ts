@@ -317,6 +317,35 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.crystalHpMax).toBe(0);
     expect(scenes.mainMenu.visible).toBe(true);
   });
+
+  it('starts the next battle after inter-level close and preserves crystal HP across levels', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 8, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const levelState = new LevelState();
+    levelState.reset(2);
+    const onLevelStart = vi.fn();
+    const controller = new RunController({ game, runManager, scenes, levelState, onLevelStart });
+
+    controller.startRun();
+    runManager.damageCrystal(6);
+    expect(runManager.crystalHp).toBe(14);
+
+    controller.completeCurrentLevel();
+    expect(runManager.phase).toBe(RunPhase.InterLevel);
+    controller.pickInterLevel('shop');
+    expect(runManager.phase).toBe(RunPhase.Shop);
+
+    controller.closeShop();
+
+    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(runManager.currentLevel).toBe(2);
+    expect(runManager.crystalHp).toBe(14);
+    expect(onLevelStart).toHaveBeenCalledTimes(1);
+    expect(onLevelStart).toHaveBeenCalledWith(2);
+    expect(scenes.battle.visible).toBe(true);
+    expect(scenes.shop.visible).toBe(false);
+  });
 });
 
 describe('WaveSystem integration: schedule, spawn cadence, phase transitions', () => {
@@ -879,4 +908,3 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(runManager.currentLevel).toBe(2);
   });
 });
-

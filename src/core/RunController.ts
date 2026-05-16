@@ -20,6 +20,7 @@ export interface RunControllerConfig {
   readonly scenes: RunSceneContainers;
   readonly waveSystem?: WaveSystem;
   readonly levelState?: LevelState;
+  readonly onLevelStart?: (levelNumber: number) => void;
 }
 
 /**
@@ -45,6 +46,7 @@ export class RunController {
   private readonly scenes: RunSceneContainers;
   private readonly waveSystem: WaveSystem | undefined;
   private readonly levelState: LevelState | undefined;
+  private readonly onLevelStart: ((levelNumber: number) => void) | undefined;
 
   constructor(config: RunControllerConfig) {
     this.game = config.game;
@@ -52,6 +54,7 @@ export class RunController {
     this.scenes = config.scenes;
     this.waveSystem = config.waveSystem;
     this.levelState = config.levelState;
+    this.onLevelStart = config.onLevelStart;
     this.syncSceneVisibility();
   }
 
@@ -86,16 +89,19 @@ export class RunController {
 
   closeShop(): void {
     this.runManager.closeShop();
+    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 
   closeMystic(): void {
     this.runManager.closeMystic();
+    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 
   closeSkillTree(): void {
     this.runManager.closeSkillTree();
+    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 
@@ -117,6 +123,12 @@ export class RunController {
     this.levelState.waveIndex = this.waveSystem.currentWaveIndex;
     const wp = this.waveSystem.currentPhase;
     this.levelState.phase = wp === 'completed' ? 'victory' : wp;
+  }
+
+  private notifyLevelStart(): void {
+    const levelNumber = this.runManager.currentLevel;
+    if (levelNumber <= 1) return;
+    this.onLevelStart?.(levelNumber);
   }
 
   private syncSceneVisibility(): void {

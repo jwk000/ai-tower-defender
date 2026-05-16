@@ -1,7 +1,10 @@
+import { defineQuery, hasComponent } from 'bitecs';
 import { Container } from 'pixi.js';
 import { Game } from './core/Game.js';
 import { LevelState } from './core/LevelState.js';
 import { RunController } from './core/RunController.js';
+import { Crystal, Projectile, UnitTag } from './core/components.js';
+import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
   InterLevelRenderer,
@@ -45,6 +48,7 @@ import { HandSystem } from './unit-system/HandSystem.js';
 import { RunManager } from './unit-system/RunManager.js';
 import {
   loadCardConfigsForLevel,
+  type LevelConfig,
   loadUnitConfigsForLevel,
   parseLevelConfig,
 } from './config/loader.js';
@@ -52,6 +56,13 @@ import type { HandCard, HandState } from './ui/HandPanel.js';
 import type { RunState } from './ui/HUD.js';
 
 import level01Yaml from './config/levels/level-01.yaml?raw';
+import level02Yaml from './config/levels/level-02.yaml?raw';
+import level03Yaml from './config/levels/level-03.yaml?raw';
+import level04Yaml from './config/levels/level-04.yaml?raw';
+import level05Yaml from './config/levels/level-05.yaml?raw';
+import level06Yaml from './config/levels/level-06.yaml?raw';
+import level07Yaml from './config/levels/level-07.yaml?raw';
+import level08Yaml from './config/levels/level-08.yaml?raw';
 import enemiesYaml from './config/units/enemies.yaml?raw';
 import towerUnitsYaml from './config/units/towers.yaml?raw';
 import towerCardsYaml from './config/cards/towers.yaml?raw';
@@ -62,6 +73,11 @@ const CELL_SIZE = 64;
 const VIEWPORT_WIDTH = GRID_COLS * CELL_SIZE;
 const VIEWPORT_HEIGHT = GRID_ROWS * CELL_SIZE;
 const WAVE_COMPLETE_GOLD = 20;
+const TOTAL_RUN_LEVELS = 8;
+const DEFAULT_DECK_SIZE = 5;
+const DEFAULT_STARTING_ENERGY = 3;
+const ENERGY_REGEN_PER_SECOND = 1;
+const ENERGY_MAX = 10;
 
 async function bootstrap(): Promise<void> {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -69,6 +85,16 @@ async function bootstrap(): Promise<void> {
     throw new Error('Canvas element #game-canvas not found in index.html');
   }
 
+  const levelYamlByNumber = new Map<number, string>([
+    [1, level01Yaml],
+    [2, level02Yaml],
+    [3, level03Yaml],
+    [4, level04Yaml],
+    [5, level05Yaml],
+    [6, level06Yaml],
+    [7, level07Yaml],
+    [8, level08Yaml],
+  ]);
   const level = parseLevelConfig(level01Yaml);
   const unitYamlFiles = new Map<string, string>([
     ['units/enemies.yaml', enemiesYaml],
@@ -113,39 +139,22 @@ async function bootstrap(): Promise<void> {
     cardRegistry.registerCard(card);
   }
 
-  const cardIds = cardConfigs.map((c) => c.id);
-  const deckSystem = new DeckSystem({ pool: cardIds, deckSize: 5, rng: Math.random });
+  let deckSystem = new DeckSystem({ pool: cardConfigs.map((c) => c.id), deckSize: DEFAULT_DECK_SIZE, rng: Math.random });
   const handSystem = new HandSystem({ maxSize: 3 });
-  const energySystem = new EnergySystem({
-    regenPerSecond: 1,
-    max: 10,
-    startWith: level.startingEnergy ?? 3,
+  let energySystem = new EnergySystem({
+    regenPerSecond: ENERGY_REGEN_PER_SECOND,
+    max: ENERGY_MAX,
+    startWith: level.startingEnergy ?? DEFAULT_STARTING_ENERGY,
   });
   const cardSpawnSystem = new CardSpawnSystem(cardRegistry);
 
   const levelState = new LevelState();
   levelState.reset(level.waves.length);
 
-  const waveConfigs: WaveConfig[] = level.waves.map((w) => ({
-    waveNumber: w.waveNumber,
-    spawnDelayMs: w.startDelay * 1000,
-    groups: w.groups.map((g) => ({
-      enemyId: g.enemyId,
-      count: g.count,
-      intervalMs: g.interval * 1000,
-    })),
-  }));
-
-  const spawnConfigs: SpawnConfig[] = level.spawns.map((s) => ({
-    id: s.id,
-    x: s.x,
-    y: s.y,
-  }));
-
   const game = new Game();
 
   const runManager = new RunManager({
-    totalLevels: 1,
+    totalLevels: TOTAL_RUN_LEVELS,
     initialGold: level.startingGold ?? 200,
   });
 
@@ -179,30 +188,152 @@ async function bootstrap(): Promise<void> {
   }
 
   let runController!: RunController;
-  const waveSystem: WaveSystem = createWaveSystem({
-    waves: waveConfigs,
-    spawns: spawnConfigs,
-    unitConfigs,
-    onWaveComplete: () => {
-      runManager.addGold(WAVE_COMPLETE_GOLD);
+  const unitQuery = defineQuery([UnitTag]);
+  const projectileQuery = defineQuery([Projectile]);
+
+  function buildWaveConfigs(levelConfig: LevelConfig): WaveConfig[] {
+    return levelConfig.waves.map((w) => ({
+      waveNumber: w.waveNumber,
+      spawnDelayMs: w.startDelay * 1000,
+      groups: w.groups.map((g) => ({
+        enemyId: g.enemyId,
+        count: g.count,
+        intervalMs: g.interval * 1000,
+      })),
+    }));
+  }
+
+  function buildSpawnConfigs(levelConfig: LevelConfig): SpawnConfig[] {
+    return levelConfig.spawns.map((s) => ({
+      id: s.id,
+      x: s.x,
+      y: s.y,
+    }));
+  }
+
+  function loadLevelAssets(levelNumber: number) {
+    const levelYaml = levelYamlByNumber.get(levelNumber);
+    if (!levelYaml) {
+      throw new Error(`[bootstrap] missing level YAML for level ${levelNumber}`);
+    }
+    const levelConfig = parseLevelConfig(levelYaml);
+    const nextUnitConfigs = loadUnitConfigsForLevel(levelConfig, unitYamlFiles);
+    const nextCardConfigs = loadCardConfigsForLevel(levelConfig, cardYamlFiles);
+    for (const unit of nextUnitConfigs.values()) {
+      cardRegistry.registerUnit(unit);
+    }
+    for (const card of nextCardConfigs) {
+      if (!cardRegistry.getCard(card.id)) {
+        cardRegistry.registerCard(card);
+      }
+    }
+    return {
+      levelConfig,
+      nextUnitConfigs,
+      nextCardConfigs,
+    };
+  }
+
+  function createWaveRuntime(levelConfig: LevelConfig, nextUnitConfigs: typeof unitConfigs): WaveSystem {
+    return createWaveSystem({
+      waves: buildWaveConfigs(levelConfig),
+      spawns: buildSpawnConfigs(levelConfig),
+      unitConfigs: nextUnitConfigs,
+      onWaveComplete: () => {
+        runManager.addGold(WAVE_COMPLETE_GOLD);
+      },
+      onAllWavesComplete: () => {
+        runController.completeCurrentLevel();
+      },
+    });
+  }
+
+  function createMovementRuntime(levelConfig: LevelConfig): System {
+    return createMovementSystem({
+      path: levelConfig.path,
+      onEnemyReachedEnd: () => {
+        runManager.damageCrystal(1);
+        if (runManager.crystalHp <= 0) {
+          runController.failCurrentRun();
+        }
+      },
+    });
+  }
+
+  function clearBattleEntities(): void {
+    const toDestroy = new Set<number>();
+    for (const eid of unitQuery(game.world)) {
+      if (hasComponent(game.world, Crystal, eid)) continue;
+      toDestroy.add(eid);
+    }
+    for (const eid of projectileQuery(game.world)) {
+      toDestroy.add(eid);
+    }
+    for (const eid of toDestroy) {
+      game.world.ruleEngine.clearRules(eid);
+      game.world.destroyEntity(eid);
+    }
+    game.world.flushDeferred();
+  }
+
+  let activeWaveSystem: WaveSystem = createWaveRuntime(level, unitConfigs);
+  let activeMovementSystem: System = createMovementRuntime(level);
+  const waveSystem: WaveSystem = {
+    name: 'WaveSystemHost',
+    phase: 'gameplay',
+    get currentWaveIndex(): number {
+      return activeWaveSystem.currentWaveIndex;
     },
-    onAllWavesComplete: () => {
-      runController.completeCurrentLevel();
+    get currentPhase() {
+      return activeWaveSystem.currentPhase;
     },
-  });
+    aliveEnemyCount(world) {
+      return activeWaveSystem.aliveEnemyCount(world);
+    },
+    start(): void {
+      activeWaveSystem.start();
+    },
+    update(world, dt): void {
+      activeWaveSystem.update(world, dt);
+    },
+  };
+  const movementSystem: System = {
+    name: 'MovementSystemHost',
+    phase: 'gameplay',
+    update(world, dt): void {
+      activeMovementSystem.update(world, dt);
+    },
+  };
+
+  function loadLevel(levelNumber: number): void {
+    const { levelConfig, nextUnitConfigs, nextCardConfigs } = loadLevelAssets(levelNumber);
+    clearBattleEntities();
+    activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
+    activeMovementSystem = createMovementRuntime(levelConfig);
+    levelState.reset(levelConfig.waves.length);
+    deckSystem = new DeckSystem({
+      pool: nextCardConfigs.map((card) => card.id),
+      deckSize: DEFAULT_DECK_SIZE,
+      rng: Math.random,
+    });
+    handSystem.clear();
+    handSystem.drawTo(deckSystem);
+    energySystem = new EnergySystem({
+      regenPerSecond: ENERGY_REGEN_PER_SECOND,
+      max: ENERGY_MAX,
+      startWith: levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY,
+    });
+    devHooks['__td'] = {
+      ...(devHooks['__td'] as Record<string, unknown> | undefined),
+      deckSystem,
+      energySystem,
+    };
+  }
 
   const entityRenderer = new EntityRenderer(renderer.entityLayer);
 
   game.pipeline.register(waveSystem);
-  game.pipeline.register(createMovementSystem({
-    path: level.path,
-    onEnemyReachedEnd: () => {
-      runManager.damageCrystal(1);
-      if (runManager.crystalHp <= 0) {
-        runController.failCurrentRun();
-      }
-    },
-  }));
+  game.pipeline.register(movementSystem);
   game.pipeline.register(createAttackSystem());
   game.pipeline.register(createProjectileSystem());
   game.pipeline.register(createCrystalSystem());
@@ -224,6 +355,10 @@ async function bootstrap(): Promise<void> {
     },
     waveSystem,
     levelState,
+    onLevelStart: (levelNumber: number) => {
+      loadLevel(levelNumber);
+      waveSystem.start();
+    },
   });
 
   const handPanel = new HandPanel({
@@ -247,9 +382,7 @@ async function bootstrap(): Promise<void> {
   mainMenu.setHandler((action: MainMenuAction) => {
     if (action === 'start-run') {
       runController.startRun();
-      handSystem.clear();
-      handSystem.drawTo(deckSystem);
-      energySystem.reset();
+      loadLevel(1);
       waveSystem.start();
       runStats.enemiesKilled = 0;
       runStats.goldEarned = 0;
@@ -458,7 +591,7 @@ async function bootstrap(): Promise<void> {
       sparkAwarded,
       stats: {
         levelsCleared,
-        totalLevels: 1,
+        totalLevels: TOTAL_RUN_LEVELS,
         enemiesKilled: runStats.enemiesKilled,
         goldEarned: runStats.goldEarned,
         crystalHpRemaining: runManager.crystalHp,
