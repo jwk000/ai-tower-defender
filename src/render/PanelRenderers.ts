@@ -29,6 +29,7 @@ import {
   type LevelMapPanel,
   type LevelMapState,
 } from '../ui/LevelMapPanel.js';
+import type { DeckViewPanel, DeckViewState } from '../ui/DeckViewPanel.js';
 
 export interface PanelRendererConfig {
   readonly container: Container;
@@ -688,10 +689,12 @@ export class LevelMapRenderer {
   private readonly pathGraphics: Graphics;
   private readonly nodesGraphics: Graphics;
   private readonly challengeGraphics: Graphics;
+  private readonly viewDeckGraphics: Graphics;
   private readonly hudText: Text;
   private readonly goldText: Text;
   private readonly crystalText: Text;
   private readonly challengeText: Text;
+  private readonly viewDeckText: Text;
   private readonly nodeLabelTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
@@ -708,13 +711,16 @@ export class LevelMapRenderer {
     this.pathGraphics = new Graphics();
     this.nodesGraphics = new Graphics();
     this.challengeGraphics = new Graphics();
+    this.viewDeckGraphics = new Graphics();
     this.hudText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
     this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 20 } });
     this.crystalText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 20 } });
     this.challengeText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
     this.challengeText.anchor.set(0.5, 0.5);
+    this.viewDeckText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 16, align: 'center' } });
+    this.viewDeckText.anchor.set(0.5, 0.5);
 
-    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText);
+    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.viewDeckGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText, this.viewDeckText);
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
@@ -795,5 +801,131 @@ export class LevelMapRenderer {
     this.challengeGraphics.rect(btn.x, btn.y, btn.width, btn.height).stroke({ width: 2, color: BUTTON_BORDER });
     this.challengeText.text = btn.label;
     this.challengeText.position.set(btn.x + btn.width / 2, btn.y + btn.height / 2);
+
+    this.viewDeckGraphics.clear();
+    const vdb = layout.viewDeckBtn;
+    this.viewDeckGraphics.roundRect(vdb.x, vdb.y, vdb.width, vdb.height, 8).fill({ color: 0x1a237e, alpha: 0.92 });
+    this.viewDeckGraphics.roundRect(vdb.x, vdb.y, vdb.width, vdb.height, 8).stroke({ width: 2, color: 0x7986cb });
+    this.viewDeckText.text = vdb.label;
+    this.viewDeckText.position.set(vdb.x + vdb.width / 2, vdb.y + vdb.height / 2);
+  }
+}
+
+export class DeckViewRenderer {
+  private readonly container: Container;
+  private readonly bg: Graphics;
+  private readonly cardGraphics: Graphics;
+  private readonly titleText: Text;
+  private readonly closeText: Text;
+  private readonly cardLabels: Text[] = [];
+  private viewportWidth: number;
+  private viewportHeight: number;
+  private readonly panel: DeckViewPanel;
+  private state: DeckViewState | null = null;
+
+  private readonly CLOSE_BTN = { x: 0, y: 0, w: 100, h: 38 };
+
+  constructor(config: PanelRendererConfig, panel: DeckViewPanel) {
+    this.container = config.container;
+    this.viewportWidth = config.viewportWidth;
+    this.viewportHeight = config.viewportHeight;
+    this.panel = panel;
+
+    this.bg = new Graphics();
+    this.cardGraphics = new Graphics();
+    this.titleText = new Text({ text: '📚 本局卡组', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
+    this.closeText = new Text({ text: '✕ 关闭', style: { fill: TEXT_PRIMARY, fontSize: 15 } });
+    this.closeText.anchor.set(0.5, 0.5);
+
+    this.container.addChild(this.bg, this.cardGraphics, this.titleText, this.closeText);
+    this.container.eventMode = 'static';
+    this.container.hitArea = { contains: () => true };
+    this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+
+    this.updateCloseBtnPos();
+  }
+
+  private updateCloseBtnPos(): void {
+    this.CLOSE_BTN.x = this.viewportWidth - 120;
+    this.CLOSE_BTN.y = 16;
+  }
+
+  private isCloseBtnHit(px: number, py: number): boolean {
+    const b = this.CLOSE_BTN;
+    return px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h;
+  }
+
+  private onPointerDown(e: FederatedPointerEvent): void {
+    const local = this.container.toLocal(e.global);
+    if (this.isCloseBtnHit(local.x, local.y)) {
+      this.panel.trigger('close');
+    }
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    this.updateCloseBtnPos();
+    if (this.state) this.render();
+  }
+
+  refresh(state: DeckViewState): void {
+    this.state = state;
+    this.panel.refresh(state);
+    this.render();
+  }
+
+  private render(): void {
+    if (!this.state) return;
+    const vw = this.viewportWidth;
+    const vh = this.viewportHeight;
+
+    this.bg.clear();
+    this.bg.rect(0, 0, vw, vh).fill({ color: 0x0d1b2a, alpha: 0.96 });
+
+    this.titleText.position.set(30, 20);
+
+    const b = this.CLOSE_BTN;
+    this.cardGraphics.clear();
+    this.cardGraphics.roundRect(b.x, b.y, b.w, b.h, 6).fill({ color: 0x5d1a1a, alpha: 0.92 });
+    this.cardGraphics.roundRect(b.x, b.y, b.w, b.h, 6).stroke({ width: 2, color: 0xff5252 });
+    this.closeText.position.set(b.x + b.w / 2, b.y + b.h / 2);
+
+    const cards = this.state.cardIds;
+    const CARD_W = 140;
+    const CARD_H = 56;
+    const COLS = Math.max(1, Math.floor((vw - 60) / (CARD_W + 12)));
+    const startX = 30;
+    const startY = 80;
+
+    while (this.cardLabels.length < cards.length) {
+      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13 } });
+      this.container.addChild(lbl);
+      this.cardLabels.push(lbl);
+    }
+    for (let i = cards.length; i < this.cardLabels.length; i++) {
+      this.cardLabels[i]!.text = '';
+    }
+
+    const counts = new Map<string, number>();
+    for (const id of cards) counts.set(id, (counts.get(id) ?? 0) + 1);
+    const unique = [...counts.entries()];
+
+    for (let i = unique.length; i < this.cardLabels.length; i++) {
+      this.cardLabels[i]!.text = '';
+    }
+
+    for (let i = 0; i < unique.length; i++) {
+      const [cardId, count] = unique[i]!;
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const cx = startX + col * (CARD_W + 12);
+      const cy = startY + row * (CARD_H + 10);
+      this.cardGraphics.roundRect(cx, cy, CARD_W, CARD_H, 6).fill({ color: BUTTON_ENABLED, alpha: 0.92 });
+      this.cardGraphics.roundRect(cx, cy, CARD_W, CARD_H, 6).stroke({ width: 2, color: BUTTON_BORDER });
+      const lbl = this.cardLabels[i]!;
+      lbl.text = count > 1 ? `${cardId}\n×${count}` : cardId;
+      lbl.position.set(cx + 8, cy + 8);
+    }
   }
 }

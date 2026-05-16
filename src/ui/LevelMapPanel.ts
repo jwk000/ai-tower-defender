@@ -14,9 +14,18 @@ export interface LevelNodeRect extends LevelNode {
   readonly label: string;
 }
 
+export interface LevelMapBtnRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly label: string;
+}
+
 export interface LevelMapLayout {
   readonly nodes: readonly LevelNodeRect[];
-  readonly challengeBtn: { readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly label: string };
+  readonly challengeBtn: LevelMapBtnRect;
+  readonly viewDeckBtn: LevelMapBtnRect;
   readonly hudLabel: string;
   readonly goldLabel: string;
   readonly crystalLabel: string;
@@ -35,6 +44,8 @@ const NODE_H = 72;
 const NODE_GAP = 60;
 const CHALLENGE_BTN_W = 260;
 const CHALLENGE_BTN_H = 56;
+const VIEW_DECK_BTN_W = 180;
+const VIEW_DECK_BTN_H = 44;
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
   const nodes: LevelNode[] = [];
@@ -71,24 +82,30 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
   const btnX = currentNode ? currentNode.x + (NODE_W - CHALLENGE_BTN_W) / 2 : (viewportWidth - CHALLENGE_BTN_W) / 2;
   const btnY = nodeY + NODE_H + 40;
 
+  const viewDeckBtnX = 30;
+  const viewDeckBtnY = viewportHeight - VIEW_DECK_BTN_H - 20;
+
   return {
     nodes: nodeRects,
     challengeBtn: { x: btnX, y: btnY, width: CHALLENGE_BTN_W, height: CHALLENGE_BTN_H, label: `挑战关卡 ${state.currentLevelIdx}` },
+    viewDeckBtn: { x: viewDeckBtnX, y: viewDeckBtnY, width: VIEW_DECK_BTN_W, height: VIEW_DECK_BTN_H, label: '📚 查看卡组' },
     hudLabel: '⚔ 长征路线',
     goldLabel: `金币 ${state.gold}`,
     crystalLabel: `💎 ${state.crystalHp}/${state.crystalHpMax}`,
   };
 }
 
-export function hitTestLevelMap(layout: LevelMapLayout, px: number, py: number): 'challenge' | null {
-  const btn = layout.challengeBtn;
-  if (px >= btn.x && px <= btn.x + btn.width && py >= btn.y && py <= btn.y + btn.height) {
-    return 'challenge';
-  }
+function hitRect(rect: LevelMapBtnRect, px: number, py: number): boolean {
+  return px >= rect.x && px <= rect.x + rect.width && py >= rect.y && py <= rect.y + rect.height;
+}
+
+export function hitTestLevelMap(layout: LevelMapLayout, px: number, py: number): LevelMapAction | null {
+  if (hitRect(layout.challengeBtn, px, py)) return 'challenge';
+  if (hitRect(layout.viewDeckBtn, px, py)) return 'view-deck';
   return null;
 }
 
-export type LevelMapAction = 'challenge';
+export type LevelMapAction = 'challenge' | 'view-deck';
 export type LevelMapHandler = (action: LevelMapAction) => void;
 
 export class LevelMapPanel {

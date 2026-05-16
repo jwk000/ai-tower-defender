@@ -7,6 +7,7 @@ import { Attack, Crystal, Projectile, UnitCategory, UnitTag } from './core/compo
 import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
+  DeckViewRenderer,
   InterLevelRenderer,
   LevelMapRenderer,
   MainMenuRenderer,
@@ -24,6 +25,7 @@ import {
   type InterLevelOffer,
 } from './ui/InterLevelPanel.js';
 import { LevelMapPanel } from './ui/LevelMapPanel.js';
+import { DeckViewPanel } from './ui/DeckViewPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
 import { SkillTreePanel, type SkillTreeIntent, ARROW_TOWER_SKILL_TREE } from './ui/SkillTreePanel.js';
@@ -144,6 +146,7 @@ async function bootstrap(): Promise<void> {
   const mysticContainer = new Container();
   const skillTreeContainer = new Container();
   const runResultContainer = new Container();
+  const deckViewContainer = new Container();
   renderer.uiLayer.addChild(
     mainMenuContainer,
     levelMapContainer,
@@ -153,6 +156,7 @@ async function bootstrap(): Promise<void> {
     mysticContainer,
     skillTreeContainer,
     runResultContainer,
+    deckViewContainer,
   );
 
   const cardRegistry = new CardRegistry();
@@ -441,6 +445,9 @@ async function bootstrap(): Promise<void> {
     onExitBattle: () => {
       runController.failCurrentRun();
     },
+    onDebugVictory: () => {
+      runController.completeCurrentLevel();
+    },
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
     worldToScreen: (wx, wy) => renderer.worldToScreen(wx, wy),
   });
@@ -510,6 +517,14 @@ async function bootstrap(): Promise<void> {
   let mysticRenderer!: MysticRenderer;
   let skillTreeRenderer!: SkillTreeRenderer;
   let levelMapRenderer!: LevelMapRenderer;
+  let deckViewRenderer!: DeckViewRenderer;
+
+  const deckViewPanel = new DeckViewPanel();
+  deckViewPanel.setHandler((action) => {
+    if (action === 'close') {
+      deckViewContainer.visible = false;
+    }
+  });
 
   const interLevelPanel = new InterLevelPanel();
   interLevelPanel.setHandler((intent: InterLevelIntent) => {
@@ -698,11 +713,19 @@ async function bootstrap(): Promise<void> {
           savedAt: Date.now(),
         });
       }
+    } else if (action === 'view-deck') {
+      deckViewRenderer.refresh({ cardIds: deckSystem.previewDrawPile() });
+      deckViewContainer.visible = true;
     }
   });
   levelMapRenderer = new LevelMapRenderer(
     { container: levelMapContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     levelMapPanel,
+  );
+  deckViewContainer.visible = false;
+  deckViewRenderer = new DeckViewRenderer(
+    { container: deckViewContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
+    deckViewPanel,
   );
 
   const interLevelRenderer = new InterLevelRenderer(

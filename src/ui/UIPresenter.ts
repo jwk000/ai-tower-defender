@@ -15,6 +15,7 @@ export interface UIPresenterConfig {
   readonly handPanel?: HandPanel;
   readonly cardRegistry?: CardRegistry;
   readonly onExitBattle?: () => void;
+  readonly onDebugVictory?: () => void;
   readonly screenToWorld?: (sx: number, sy: number) => { x: number; y: number };
   readonly worldToScreen?: (wx: number, wy: number) => { x: number; y: number };
 }
@@ -51,10 +52,13 @@ export class UIPresenter {
   private readonly slotLabels: Text[] = [];
   private readonly exitBtnGraphics: Graphics;
   private readonly exitBtnText: Text;
+  private readonly debugVictoryGraphics: Graphics;
+  private readonly debugVictoryText: Text;
 
   private readonly handPanel: HandPanel | null;
   private readonly cardRegistry: CardRegistry | null;
   private readonly onExitBattle: (() => void) | null;
+  private readonly onDebugVictory: (() => void) | null;
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
@@ -64,6 +68,7 @@ export class UIPresenter {
   private ghostCell: Graphics | null = null;
 
   private readonly EXIT_BTN = { x: 0, y: 0, w: 140, h: 40 } as { x: number; y: number; w: number; h: number };
+  private readonly DEBUG_VICTORY_BTN = { x: 0, y: 0, w: 140, h: 40 } as { x: number; y: number; w: number; h: number };
 
   constructor(config: UIPresenterConfig) {
     this.battleContainer = config.battleContainer;
@@ -72,12 +77,15 @@ export class UIPresenter {
     this.handPanel = config.handPanel ?? null;
     this.cardRegistry = config.cardRegistry ?? null;
     this.onExitBattle = config.onExitBattle ?? null;
+    this.onDebugVictory = config.onDebugVictory ?? null;
     this.cellSize = config.cellSize ?? 64;
     this.screenToWorld = config.screenToWorld ?? ((sx, sy) => ({ x: sx, y: sy }));
     this.worldToScreen = config.worldToScreen ?? ((wx, wy) => ({ x: wx, y: wy }));
 
     this.EXIT_BTN.x = this.viewportWidth - 148;
     this.EXIT_BTN.y = 8;
+    this.DEBUG_VICTORY_BTN.x = this.viewportWidth - 148;
+    this.DEBUG_VICTORY_BTN.y = 56;
 
     this.hudContainer = new Container();
     this.handContainer = new Container();
@@ -101,8 +109,12 @@ export class UIPresenter {
     this.exitBtnGraphics = new Graphics();
     this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15 } });
     this.exitBtnText.anchor.set(0.5, 0.5);
-    this.hudContainer.addChild(this.exitBtnGraphics, this.exitBtnText);
+    this.debugVictoryGraphics = new Graphics();
+    this.debugVictoryText = new Text({ text: '⚡ 直接胜利', style: { fill: 0xffffff, fontSize: 15 } });
+    this.debugVictoryText.anchor.set(0.5, 0.5);
+    this.hudContainer.addChild(this.exitBtnGraphics, this.exitBtnText, this.debugVictoryGraphics, this.debugVictoryText);
     this.drawExitButton();
+    this.drawDebugVictoryButton();
 
     this.bindHandEvents();
   }
@@ -115,8 +127,21 @@ export class UIPresenter {
     this.exitBtnText.position.set(b.x + b.w / 2, b.y + b.h / 2);
   }
 
+  private drawDebugVictoryButton(): void {
+    const b = this.DEBUG_VICTORY_BTN;
+    this.debugVictoryGraphics.clear();
+    this.debugVictoryGraphics.rect(b.x, b.y, b.w, b.h).fill({ color: 0x1a3d1a, alpha: 0.92 });
+    this.debugVictoryGraphics.rect(b.x, b.y, b.w, b.h).stroke({ width: 2, color: 0x69f0ae });
+    this.debugVictoryText.position.set(b.x + b.w / 2, b.y + b.h / 2);
+  }
+
   private isExitBtnHit(x: number, y: number): boolean {
     const b = this.EXIT_BTN;
+    return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+  }
+
+  private isDebugVictoryBtnHit(x: number, y: number): boolean {
+    const b = this.DEBUG_VICTORY_BTN;
     return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
   }
 
@@ -179,6 +204,10 @@ export class UIPresenter {
       this.onExitBattle?.();
       return;
     }
+    if (this.isDebugVictoryBtnHit(local.x, local.y)) {
+      this.onDebugVictory?.();
+      return;
+    }
     const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
     const slot = hitTestHandSlot(layout, local.x, local.y);
     this.dragSlot = slot;
@@ -234,8 +263,11 @@ export class UIPresenter {
     this.viewportHeight = vh;
     this.EXIT_BTN.x = vw - 148;
     this.EXIT_BTN.y = 8;
+    this.DEBUG_VICTORY_BTN.x = vw - 148;
+    this.DEBUG_VICTORY_BTN.y = 56;
     this.energyText.position.set(12, vh - 24);
     this.drawExitButton();
+    this.drawDebugVictoryButton();
   }
 
   present(frame: UIFrame): void {
