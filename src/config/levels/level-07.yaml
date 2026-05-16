@@ -315,13 +315,10 @@ available:
   towers:
     - arrow
     - cannon
-    - frost
+    - ice
     - lightning
-    - flame
-    - poison
-    - lightning_storm
-    - sniper
-    - virus
+    - laser
+    - bat
   units:
     - swordsman
     - archer

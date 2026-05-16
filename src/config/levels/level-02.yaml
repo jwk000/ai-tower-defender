@@ -311,7 +311,10 @@ available:
   towers:
     - arrow
     - cannon
-    - frost
+    - ice
+    - lightning
+    - laser
+    - bat
   units:
     - swordsman
     - archer
