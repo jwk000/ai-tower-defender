@@ -52,6 +52,14 @@ export class EnergySystem {
     return true;
   }
 
+  addEnergy(amount: number): void {
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new Error(`[EnergySystem] addEnergy requires non-negative finite amount, got ${amount}`);
+    }
+    const next = this._current + amount;
+    this._current = next > this._max ? this._max : next;
+  }
+
   reset(): void {
     this._current = this.startWith;
   }

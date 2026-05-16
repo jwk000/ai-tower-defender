@@ -32,6 +32,7 @@ export interface WaveSystemConfig {
   readonly spawns: readonly SpawnConfig[];
   readonly unitConfigs: ReadonlyMap<string, UnitConfig>;
   readonly waveBreakMs?: number;
+  readonly onWaveStart?: (waveIndex: number) => void;
   readonly onWaveComplete?: (waveIndex: number) => void;
   readonly onAllWavesComplete?: () => void;
   readonly spawn?: (world: TowerWorld, config: UnitConfig, at: SpawnPosition) => number;
@@ -168,6 +169,7 @@ export function createWaveSystem(cfg: WaveSystemConfig): WaveSystem {
         if (runtime.timer >= wave.spawnDelayMs) {
           runtime.timer = 0;
           phase = 'battle';
+          cfg.onWaveStart?.(waveIndex);
         } else {
           return;
         }

@@ -93,7 +93,8 @@ const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const DEFAULT_DECK_SIZE = 12; // S2 替换：卡组 12 张（per 10-roguelike-loop §2.3）
 const DEFAULT_STARTING_ENERGY = 3;
-const ENERGY_REGEN_PER_SECOND = 1;
+const ENERGY_REGEN_PER_SECOND = 0;
+const ENERGY_RESTORE_PER_WAVE = 5;
 const ENERGY_MAX = 10;
 
 async function bootstrap(): Promise<void> {
@@ -280,6 +281,9 @@ async function bootstrap(): Promise<void> {
       waves: buildWaveConfigs(levelConfig),
       spawns: buildSpawnConfigs(levelConfig),
       unitConfigs: nextUnitConfigs,
+      onWaveStart: () => {
+        energySystem.addEnergy(ENERGY_RESTORE_PER_WAVE);
+      },
       onWaveComplete: () => {
         runManager.addGold(WAVE_COMPLETE_GOLD);
       },
