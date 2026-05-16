@@ -63,6 +63,24 @@ arrow_tower:
         critChance: 0.15
         critMultiplier: 2.0
 
+  skillTree:
+    unitId: arrow_tower
+    nodes:
+      - id: arrow_tower.boost_attack_speed
+        label: Quick Draw
+        description: "Attack speed +30%"
+        costSP: 2
+        effect:
+          type: boost_attack_speed
+          multiplier: 1.3
+      - id: arrow_tower.add_extra_target
+        label: Multi-Shot
+        description: "Hit one extra target"
+        costSP: 3
+        effect:
+          type: add_extra_target
+          count: 1
+
 ---
 # 炮塔 — AOE溅射攻击塔
 cannon_tower:

@@ -464,6 +464,40 @@ export function parseMysticEventConfig(yamlText: string): MysticEventConfig {
   return MysticEventDocSchema.parse(doc);
 }
 
+const SkillEffectSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('boost_attack_speed'), multiplier: z.number() }),
+  z.object({ type: z.literal('add_extra_target'), count: z.number().int() }),
+]);
+
+const SkillNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  costSP: z.number().int().nonnegative(),
+  effect: SkillEffectSchema,
+});
+
+const SkillTreeConfigSchema = z.object({
+  unitId: z.string(),
+  nodes: z.array(SkillNodeSchema),
+});
+
+export type SkillTreeConfigFromYaml = z.infer<typeof SkillTreeConfigSchema>;
+
+export function parseSkillTreeFromUnitYaml(unitId: string, yamlText: string): SkillTreeConfigFromYaml | null {
+  const docs = yaml.loadAll(yamlText);
+  for (const doc of docs) {
+    if (!doc || typeof doc !== 'object') continue;
+    const record = doc as Record<string, unknown>;
+    const unitEntry = record[unitId] as Record<string, unknown> | undefined;
+    if (!unitEntry || typeof unitEntry !== 'object') continue;
+    const raw = (unitEntry as Record<string, unknown>)['skillTree'];
+    if (!raw) continue;
+    return SkillTreeConfigSchema.parse(raw);
+  }
+  return null;
+}
+
 function orderPath(
   edges: Array<{ from: string; to: string }>,
   startId: string,

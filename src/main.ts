@@ -53,6 +53,7 @@ import {
   parseLevelConfig,
   parseMysticEventConfig,
   type MysticEventConfig,
+  parseSkillTreeFromUnitYaml,
 } from './config/loader.js';
 import type { HandCard, HandState } from './ui/HandPanel.js';
 import type { RunState } from './ui/HUD.js';
@@ -121,6 +122,7 @@ async function bootstrap(): Promise<void> {
   ]);
   const unitConfigs = loadUnitConfigsForLevel(level, unitYamlFiles);
   const cardConfigs = loadCardConfigsForLevel(level, cardYamlFiles);
+  const arrowTowerSkillTree = parseSkillTreeFromUnitYaml('arrow_tower', towerUnitsYaml) ?? ARROW_TOWER_SKILL_TREE;
 
   const renderer = new Renderer({
     canvas,
@@ -458,7 +460,7 @@ async function bootstrap(): Promise<void> {
     } else if (intent.node === 'mystic') {
       mysticRenderer.refresh(pickMysticEvent());
     } else if (intent.node === 'skilltree') {
-      skillTreeRenderer.refresh({ config: ARROW_TOWER_SKILL_TREE, sp: runManager.sp, purchased: runManager.skillTreeState });
+      skillTreeRenderer.refresh({ config: arrowTowerSkillTree, sp: runManager.sp, purchased: runManager.skillTreeState });
     }
   });
 
@@ -557,7 +559,7 @@ async function bootstrap(): Promise<void> {
         const spCost = runManager.sp - intent.result.newSp;
         if (spCost > 0) runManager.spendSp(spCost);
         runManager.unlockSkillNode(intent.result.nodeId);
-        skillTreeRenderer.refresh({ config: ARROW_TOWER_SKILL_TREE, sp: runManager.sp, purchased: runManager.skillTreeState });
+        skillTreeRenderer.refresh({ config: arrowTowerSkillTree, sp: runManager.sp, purchased: runManager.skillTreeState });
       }
     } else if (intent.kind === 'exit') {
       runController.closeSkillTree();
