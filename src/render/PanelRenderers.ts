@@ -690,11 +690,13 @@ export class LevelMapRenderer {
   private readonly nodesGraphics: Graphics;
   private readonly challengeGraphics: Graphics;
   private readonly viewDeckGraphics: Graphics;
+  private readonly backBtnGraphics: Graphics;
   private readonly hudText: Text;
   private readonly goldText: Text;
   private readonly crystalText: Text;
   private readonly challengeText: Text;
   private readonly viewDeckText: Text;
+  private readonly backBtnText: Text;
   private readonly nodeLabelTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
@@ -712,6 +714,7 @@ export class LevelMapRenderer {
     this.nodesGraphics = new Graphics();
     this.challengeGraphics = new Graphics();
     this.viewDeckGraphics = new Graphics();
+    this.backBtnGraphics = new Graphics();
     this.hudText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
     this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 20 } });
     this.crystalText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 20 } });
@@ -719,8 +722,10 @@ export class LevelMapRenderer {
     this.challengeText.anchor.set(0.5, 0.5);
     this.viewDeckText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 16, align: 'center' } });
     this.viewDeckText.anchor.set(0.5, 0.5);
+    this.backBtnText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 16, align: 'center' } });
+    this.backBtnText.anchor.set(0.5, 0.5);
 
-    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.viewDeckGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText, this.viewDeckText);
+    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.viewDeckGraphics, this.backBtnGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText, this.viewDeckText, this.backBtnText);
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
@@ -808,6 +813,13 @@ export class LevelMapRenderer {
     this.viewDeckGraphics.roundRect(vdb.x, vdb.y, vdb.width, vdb.height, 8).stroke({ width: 2, color: 0x7986cb });
     this.viewDeckText.text = vdb.label;
     this.viewDeckText.position.set(vdb.x + vdb.width / 2, vdb.y + vdb.height / 2);
+
+    this.backBtnGraphics.clear();
+    const bb = layout.backBtn;
+    this.backBtnGraphics.roundRect(bb.x, bb.y, bb.width, bb.height, 8).fill({ color: 0x37474f, alpha: 0.92 });
+    this.backBtnGraphics.roundRect(bb.x, bb.y, bb.width, bb.height, 8).stroke({ width: 2, color: 0x78909c });
+    this.backBtnText.text = bb.label;
+    this.backBtnText.position.set(bb.x + bb.width / 2, bb.y + bb.height / 2);
   }
 }
 

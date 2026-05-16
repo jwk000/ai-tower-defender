@@ -41,7 +41,8 @@ export interface RunManagerConfig {
  *   Mystic    → closeMystic()    → LevelMap (level++)
  *   SkillTree → closeSkillTree() → LevelMap (level++)
  *   InterLevel → returnToLevelMap() → LevelMap (level++，跳过选项)
- *   Result → resetToIdle() → Idle (清零 level/outcome，但保留累计统计)
+  *   Result → resetToIdle() → Idle (清零 level/outcome，但保留累计统计)
+  *   LevelMap → resetToIdle() → Idle (放弃当前 Run 回主菜单)
  *
  * Run 级持久资源（v3.4 三资源轴中的金币 + SP；能量是单关瞬时，归 Game/LevelState）：
  *   gold / sp / crystalHp / crystalHpMax —— 跨关延续，Run 结束清零
@@ -241,7 +242,7 @@ export class RunManager {
   }
 
   resetToIdle(): void {
-    if (this._phase !== RunPhase.Result) {
+    if (this._phase !== RunPhase.Result && this._phase !== RunPhase.LevelMap) {
       throw new Error(`[RunManager] illegal transition: resetToIdle from ${this._phase}`);
     }
     this._phase = RunPhase.Idle;

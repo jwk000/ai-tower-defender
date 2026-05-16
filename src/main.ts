@@ -718,6 +718,8 @@ async function bootstrap(): Promise<void> {
     } else if (action === 'view-deck') {
       deckViewRenderer.refresh({ cardIds: deckSystem.previewDrawPile() });
       deckViewContainer.visible = true;
+    } else if (action === 'back-to-menu') {
+      runController.returnToMainMenu();
     }
   });
   levelMapRenderer = new LevelMapRenderer(

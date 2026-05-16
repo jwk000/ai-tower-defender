@@ -26,6 +26,7 @@ export interface LevelMapLayout {
   readonly nodes: readonly LevelNodeRect[];
   readonly challengeBtn: LevelMapBtnRect;
   readonly viewDeckBtn: LevelMapBtnRect;
+  readonly backBtn: LevelMapBtnRect;
   readonly hudLabel: string;
   readonly goldLabel: string;
   readonly crystalLabel: string;
@@ -46,6 +47,8 @@ const CHALLENGE_BTN_W = 260;
 const CHALLENGE_BTN_H = 56;
 const VIEW_DECK_BTN_W = 180;
 const VIEW_DECK_BTN_H = 44;
+const BACK_BTN_W = 140;
+const BACK_BTN_H = 44;
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
   const nodes: LevelNode[] = [];
@@ -85,10 +88,14 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
   const viewDeckBtnX = 30;
   const viewDeckBtnY = viewportHeight - VIEW_DECK_BTN_H - 20;
 
+  const backBtnX = viewportWidth - BACK_BTN_W - 30;
+  const backBtnY = viewportHeight - BACK_BTN_H - 20;
+
   return {
     nodes: nodeRects,
     challengeBtn: { x: btnX, y: btnY, width: CHALLENGE_BTN_W, height: CHALLENGE_BTN_H, label: `挑战关卡 ${state.currentLevelIdx}` },
     viewDeckBtn: { x: viewDeckBtnX, y: viewDeckBtnY, width: VIEW_DECK_BTN_W, height: VIEW_DECK_BTN_H, label: '📚 查看卡组' },
+    backBtn: { x: backBtnX, y: backBtnY, width: BACK_BTN_W, height: BACK_BTN_H, label: '← 返回主菜单' },
     hudLabel: '⚔ 长征路线',
     goldLabel: `金币 ${state.gold}`,
     crystalLabel: `💎 ${state.crystalHp}/${state.crystalHpMax}`,
@@ -102,10 +109,11 @@ function hitRect(rect: LevelMapBtnRect, px: number, py: number): boolean {
 export function hitTestLevelMap(layout: LevelMapLayout, px: number, py: number): LevelMapAction | null {
   if (hitRect(layout.challengeBtn, px, py)) return 'challenge';
   if (hitRect(layout.viewDeckBtn, px, py)) return 'view-deck';
+  if (hitRect(layout.backBtn, px, py)) return 'back-to-menu';
   return null;
 }
 
-export type LevelMapAction = 'challenge' | 'view-deck';
+export type LevelMapAction = 'challenge' | 'view-deck' | 'back-to-menu';
 export type LevelMapHandler = (action: LevelMapAction) => void;
 
 export class LevelMapPanel {
