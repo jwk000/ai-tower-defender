@@ -116,6 +116,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     const energy = new EnergySystem({ regenPerSecond: 1, max: 10, startWith: 0 });
 
     run.startRun();
+    run.enterBattle();
     hand.drawTo(deck);
     expect(hand.size).toBe(4);
     expect(run.phase).toBe(RunPhase.Battle);
@@ -180,6 +181,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     const energy = new EnergySystem({ regenPerSecond: 1, max: 10, startWith: 5 });
 
     run.startRun();
+    run.enterBattle();
     hand.drawTo(deck);
     energy.spend(3);
     econ.addGold(50);
@@ -204,6 +206,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(econ.sp).toBe(0);
 
     run.startRun();
+    run.enterBattle();
     expect(run.phase).toBe(RunPhase.Battle);
     expect(run.currentLevel).toBe(1);
   });
@@ -213,6 +216,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
   function makeScenes() {
     return {
       mainMenu: { visible: false },
+      levelMap: { visible: false },
       battle: { visible: false },
       interLevel: { visible: false },
       shop: { visible: false },
@@ -254,8 +258,14 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(scenes.runResult.visible).toBe(false);
 
     controller.startRun();
-    expect(controller.phase).toBe(RunPhase.Battle);
+    expect(controller.phase).toBe(RunPhase.LevelMap);
     expect(scenes.mainMenu.visible).toBe(false);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+
+    controller.enterBattle();
+    expect(controller.phase).toBe(RunPhase.Battle);
+    expect(scenes.levelMap.visible).toBe(false);
     expect(scenes.battle.visible).toBe(true);
 
     waveSystem.start();
@@ -302,6 +312,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.gold).toBe(200);
     expect(runManager.crystalHp).toBe(20);
 
+    controller.enterBattle();
     controller.failCurrentRun();
     expect(controller.phase).toBe(RunPhase.Result);
     expect(runManager.outcome).toBe('defeat');
@@ -328,6 +339,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     const controller = new RunController({ game, runManager, scenes, levelState, onLevelStart });
 
     controller.startRun();
+    controller.enterBattle();
     runManager.damageCrystal(6);
     expect(runManager.crystalHp).toBe(14);
 
@@ -519,6 +531,7 @@ describe('Wave 7.D — HUD.phase real-switching via LevelState', () => {
     levelState.reset(waves.length);
     const scenes = {
       mainMenu: { visible: false },
+      levelMap: { visible: false },
       battle: { visible: false },
       interLevel: { visible: false },
       shop: { visible: false },
@@ -544,6 +557,7 @@ describe('Wave 7.D — HUD.phase real-switching via LevelState', () => {
 
     runController = new RunController({ game, runManager, scenes, waveSystem, levelState });
     runController.startRun();
+    runController.enterBattle();
     waveSystem.start();
 
     const phaseLog: string[] = [];
@@ -774,6 +788,7 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
   function makeScenes() {
     return {
       mainMenu: { visible: false },
+      levelMap: { visible: false },
       battle: { visible: false },
       interLevel: { visible: false },
       shop: { visible: false },
@@ -790,6 +805,7 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const controller = new RunController({ game, runManager, scenes });
 
     controller.startRun();
+    controller.enterBattle();
     runManager.completeLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
 
@@ -836,6 +852,7 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const controller = new RunController({ game, runManager, scenes });
 
     controller.startRun();
+    controller.enterBattle();
     runManager.completeLevel();
     controller.pickInterLevel('mystic');
     expect(runManager.phase).toBe(RunPhase.Mystic);
@@ -878,6 +895,7 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const controller = new RunController({ game, runManager, scenes });
 
     controller.startRun();
+    controller.enterBattle();
     runManager.grantSp(5);
     runManager.completeLevel();
     controller.pickInterLevel('skilltree');

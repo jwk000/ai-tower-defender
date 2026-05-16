@@ -8,6 +8,7 @@ import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
   InterLevelRenderer,
+  LevelMapRenderer,
   MainMenuRenderer,
   RunResultRenderer,
   ShopRenderer,
@@ -22,6 +23,7 @@ import {
   type InterLevelIntent,
   type InterLevelOffer,
 } from './ui/InterLevelPanel.js';
+import { LevelMapPanel } from './ui/LevelMapPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
 import { SkillTreePanel, type SkillTreeIntent, ARROW_TOWER_SKILL_TREE } from './ui/SkillTreePanel.js';
@@ -135,6 +137,7 @@ async function bootstrap(): Promise<void> {
   await renderer.init();
 
   const mainMenuContainer = new Container();
+  const levelMapContainer = new Container();
   const battleContainer = new Container();
   const interLevelContainer = new Container();
   const shopContainer = new Container();
@@ -143,6 +146,7 @@ async function bootstrap(): Promise<void> {
   const runResultContainer = new Container();
   renderer.uiLayer.addChild(
     mainMenuContainer,
+    levelMapContainer,
     battleContainer,
     interLevelContainer,
     shopContainer,
@@ -406,6 +410,7 @@ async function bootstrap(): Promise<void> {
     runManager,
     scenes: {
       mainMenu: mainMenuContainer,
+      levelMap: levelMapContainer,
       battle: battleContainer,
       interLevel: interLevelContainer,
       shop: shopContainer,
@@ -444,17 +449,16 @@ async function bootstrap(): Promise<void> {
     SaveSystem.clearOngoingRun();
     runController.startRun();
     loadLevel(1);
-    waveSystem.start();
     runStats.enemiesKilled = 0;
     runStats.goldEarned = 0;
-    runStats.runStartMs = performance.now();
+    runStats.runStartMs = 0;
     runStats.runEndMs = 0;
-    SaveSystem.saveOngoingRun({
-      currentLevelIdx: 1,
+    levelMapRenderer.refresh({
+      totalLevels: TOTAL_RUN_LEVELS,
+      currentLevelIdx: runManager.currentLevel,
       gold: runManager.gold,
-      skillPoints: runManager.sp,
       crystalHp: runManager.crystalHp,
-      savedAt: Date.now(),
+      crystalHpMax: runManager.crystalHpMax,
     });
   }
 
@@ -467,11 +471,17 @@ async function bootstrap(): Promise<void> {
       if (!saved) return;
       runController.startRun();
       loadLevel(saved.currentLevelIdx);
-      waveSystem.start();
       runStats.enemiesKilled = 0;
       runStats.goldEarned = 0;
       runStats.runStartMs = performance.now() - (Date.now() - saved.savedAt);
       runStats.runEndMs = 0;
+      levelMapRenderer.refresh({
+        totalLevels: TOTAL_RUN_LEVELS,
+        currentLevelIdx: runManager.currentLevel,
+        gold: runManager.gold,
+        crystalHp: runManager.crystalHp,
+        crystalHpMax: runManager.crystalHpMax,
+      });
     } else if (action === 'quit') {
       window.close();
     }
@@ -499,6 +509,7 @@ async function bootstrap(): Promise<void> {
   let shopRenderer!: ShopRenderer;
   let mysticRenderer!: MysticRenderer;
   let skillTreeRenderer!: SkillTreeRenderer;
+  let levelMapRenderer!: LevelMapRenderer;
 
   const interLevelPanel = new InterLevelPanel();
   interLevelPanel.setHandler((intent: InterLevelIntent) => {
@@ -666,6 +677,29 @@ async function bootstrap(): Promise<void> {
     mainMenu,
     { hasSavedRun: false },
   );
+
+  const levelMapPanel = new LevelMapPanel();
+  levelMapPanel.setHandler((action) => {
+    if (action === 'challenge') {
+      runController.enterBattle();
+      waveSystem.start();
+      if (runStats.runStartMs === 0) {
+        runStats.runStartMs = performance.now();
+        SaveSystem.saveOngoingRun({
+          currentLevelIdx: runManager.currentLevel,
+          gold: runManager.gold,
+          skillPoints: runManager.sp,
+          crystalHp: runManager.crystalHp,
+          savedAt: Date.now(),
+        });
+      }
+    }
+  });
+  levelMapRenderer = new LevelMapRenderer(
+    { container: levelMapContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
+    levelMapPanel,
+  );
+
   const interLevelRenderer = new InterLevelRenderer(
     { container: interLevelContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     interLevelPanel,
@@ -697,9 +731,11 @@ async function bootstrap(): Promise<void> {
     shopPanel,
     mysticPanel,
     skillTreePanel,
+    levelMapPanel,
     runController,
     waveSystem,
     mainMenuRenderer,
+    levelMapRenderer,
     interLevelRenderer,
     runResultRenderer,
     shopRenderer,
@@ -770,6 +806,7 @@ async function bootstrap(): Promise<void> {
     renderer.resize(vw, vh);
     handPanel.resize(vw, vh);
     mainMenuRenderer.resize(vw, vh);
+    levelMapRenderer.resize(vw, vh);
     interLevelRenderer.resize(vw, vh);
     runResultRenderer.resize(vw, vh);
     shopRenderer.resize(vw, vh);
@@ -791,7 +828,15 @@ async function bootstrap(): Promise<void> {
 
     const phase = runController.phase;
     if (phase !== prevPhase) {
-      if (phase === 'InterLevel') {
+      if (phase === 'LevelMap') {
+        levelMapRenderer.refresh({
+          totalLevels: TOTAL_RUN_LEVELS,
+          currentLevelIdx: runManager.currentLevel,
+          gold: runManager.gold,
+          crystalHp: runManager.crystalHp,
+          crystalHpMax: runManager.crystalHpMax,
+        });
+      } else if (phase === 'InterLevel') {
         interLevelRenderer.refresh({
           nextLevel: runManager.currentLevel + 1,
           offers: buildInterLevelOffers(),

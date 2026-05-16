@@ -97,6 +97,7 @@ describe('Wave 4 content integration: YAML -> full Run with combat', () => {
     const energy = new EnergySystem({ regenPerSecond: 1, max: 10, startWith: 0 });
 
     run.startRun();
+    run.enterBattle();
     expect(run.phase).toBe(RunPhase.Battle);
 
     const crystalEid = game.world.addEntity();

@@ -6,6 +6,7 @@ import { RunPhase } from '../unit-system/RunManager.js';
 
 export interface RunSceneContainers {
   readonly mainMenu: { visible: boolean };
+  readonly levelMap: { visible: boolean };
   readonly battle: { visible: boolean };
   readonly interLevel: { visible: boolean };
   readonly shop: { visible: boolean };
@@ -74,6 +75,11 @@ export class RunController {
     this.syncSceneVisibility();
   }
 
+  enterBattle(): void {
+    this.runManager.enterBattle();
+    this.syncSceneVisibility();
+  }
+
   completeCurrentLevel(): void {
     this.runManager.completeLevel();
     if (this.levelState) {
@@ -134,6 +140,7 @@ export class RunController {
   private syncSceneVisibility(): void {
     const p = this.runManager.phase;
     this.scenes.mainMenu.visible = p === RunPhase.Idle;
+    this.scenes.levelMap.visible = p === RunPhase.LevelMap;
     this.scenes.battle.visible = p === RunPhase.Battle;
     this.scenes.interLevel.visible = p === RunPhase.InterLevel;
     this.scenes.shop.visible = p === RunPhase.Shop;

@@ -1,5 +1,6 @@
 export const RunPhase = {
   Idle: 'Idle',
+  LevelMap: 'LevelMap',
   Battle: 'Battle',
   InterLevel: 'InterLevel',
   Shop: 'Shop',
@@ -158,13 +159,27 @@ export class RunManager {
     if (this._phase !== RunPhase.Idle) {
       throw new Error(`[RunManager] illegal transition: startRun from ${this._phase}`);
     }
-    this._phase = RunPhase.Battle;
+    this._phase = RunPhase.LevelMap;
     this._currentLevel = 1;
     this._outcome = null;
     this._gold = this.initialGold;
     this._sp = 0;
     this._crystalHp = this.initialCrystalHp;
     this._crystalHpMax = this.initialCrystalHp;
+  }
+
+  enterBattle(): void {
+    if (this._phase !== RunPhase.LevelMap) {
+      throw new Error(`[RunManager] illegal transition: enterBattle from ${this._phase}`);
+    }
+    this._phase = RunPhase.Battle;
+  }
+
+  returnToLevelMap(): void {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: returnToLevelMap from ${this._phase}`);
+    }
+    this._phase = RunPhase.LevelMap;
   }
 
   completeLevel(): void {

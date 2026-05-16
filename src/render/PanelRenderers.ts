@@ -23,6 +23,12 @@ import type { ShopPanel, ShopState } from '../ui/ShopPanel.js';
 import type { MysticEventConfig } from '../config/loader.js';
 import type { MysticPanel } from '../ui/MysticPanel.js';
 import { layoutSkillTree, type SkillTreePanel, type SkillTreeState } from '../ui/SkillTreePanel.js';
+import {
+  hitTestLevelMap,
+  layoutLevelMap,
+  type LevelMapPanel,
+  type LevelMapState,
+} from '../ui/LevelMapPanel.js';
 
 export interface PanelRendererConfig {
   readonly container: Container;
@@ -667,5 +673,127 @@ export class SkillTreeRenderer {
     this.nodesGraphics.rect(cb.x, cb.y, cb.w, cb.h).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
     this.nodesGraphics.rect(cb.x, cb.y, cb.w, cb.h).stroke({ width: 2, color: BUTTON_BORDER });
     this.closeText.position.set(cb.x + cb.w / 2, cb.y + cb.h / 2);
+  }
+}
+
+const NODE_COMPLETED = 0x1b5e20;
+const NODE_CURRENT = 0x1565c0;
+const NODE_LOCKED_COLOR = 0x37474f;
+const PATH_DONE = 0x4caf50;
+const PATH_FUTURE = 0x455a64;
+
+export class LevelMapRenderer {
+  private readonly container: Container;
+  private readonly bg: Graphics;
+  private readonly pathGraphics: Graphics;
+  private readonly nodesGraphics: Graphics;
+  private readonly challengeGraphics: Graphics;
+  private readonly hudText: Text;
+  private readonly goldText: Text;
+  private readonly crystalText: Text;
+  private readonly challengeText: Text;
+  private readonly nodeLabelTexts: Text[] = [];
+  private viewportWidth: number;
+  private viewportHeight: number;
+  private readonly panel: LevelMapPanel;
+  private state: LevelMapState | null = null;
+
+  constructor(config: PanelRendererConfig, panel: LevelMapPanel) {
+    this.container = config.container;
+    this.viewportWidth = config.viewportWidth;
+    this.viewportHeight = config.viewportHeight;
+    this.panel = panel;
+
+    this.bg = new Graphics();
+    this.pathGraphics = new Graphics();
+    this.nodesGraphics = new Graphics();
+    this.challengeGraphics = new Graphics();
+    this.hudText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
+    this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 20 } });
+    this.crystalText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 20 } });
+    this.challengeText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
+    this.challengeText.anchor.set(0.5, 0.5);
+
+    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText);
+    this.container.eventMode = 'static';
+    this.container.hitArea = { contains: () => true };
+    this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.state) this.render();
+  }
+
+  refresh(state: LevelMapState): void {
+    this.state = state;
+    this.panel.refresh(state);
+    this.render();
+  }
+
+  private onPointerDown(e: FederatedPointerEvent): void {
+    if (!this.state) return;
+    const layout = layoutLevelMap(this.state, this.viewportWidth, this.viewportHeight);
+    const local = this.container.toLocal(e.global);
+    const action = hitTestLevelMap(layout, local.x, local.y);
+    if (action) this.panel.trigger(action);
+  }
+
+  private render(): void {
+    if (!this.state) return;
+    const layout = layoutLevelMap(this.state, this.viewportWidth, this.viewportHeight);
+
+    this.bg.clear();
+    this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: 0x0d1b2a, alpha: 1 });
+
+    this.hudText.text = layout.hudLabel;
+    this.hudText.position.set(30, 18);
+    this.crystalText.text = layout.crystalLabel;
+    this.crystalText.position.set(this.viewportWidth / 2 - 120, 18);
+    this.goldText.text = layout.goldLabel;
+    this.goldText.position.set(this.viewportWidth / 2 + 40, 18);
+
+    this.pathGraphics.clear();
+    for (let i = 0; i < layout.nodes.length - 1; i += 1) {
+      const a = layout.nodes[i]!;
+      const b = layout.nodes[i + 1]!;
+      const ax = a.x + a.width;
+      const ay = a.y + a.height / 2;
+      const bx = b.x;
+      const by = b.y + b.height / 2;
+      const isDone = a.status === 'completed';
+      this.pathGraphics.moveTo(ax, ay).lineTo(bx, by).stroke({ width: 4, color: isDone ? PATH_DONE : PATH_FUTURE });
+    }
+
+    this.nodesGraphics.clear();
+    while (this.nodeLabelTexts.length < layout.nodes.length) {
+      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 14, fontWeight: 'bold', align: 'center' } });
+      lbl.anchor.set(0.5, 0.5);
+      this.container.addChild(lbl);
+      this.nodeLabelTexts.push(lbl);
+    }
+    for (let i = layout.nodes.length; i < this.nodeLabelTexts.length; i += 1) {
+      this.nodeLabelTexts[i]!.text = '';
+    }
+    for (let i = 0; i < layout.nodes.length; i += 1) {
+      const n = layout.nodes[i]!;
+      const fill = n.status === 'completed' ? NODE_COMPLETED : n.status === 'current' ? NODE_CURRENT : NODE_LOCKED_COLOR;
+      const border = n.status === 'completed' ? 0x69f0ae : n.status === 'current' ? 0x90caf9 : PATH_FUTURE;
+      const radius = n.isBoss ? 0 : 8;
+      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, radius).fill({ color: fill, alpha: 0.95 });
+      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, radius).stroke({ width: n.status === 'current' ? 3 : 2, color: border });
+      const lbl = this.nodeLabelTexts[i]!;
+      lbl.text = n.status === 'completed' ? `✓ ${n.label}` : n.label;
+      lbl.style.fill = n.status === 'locked' ? TEXT_DIM : TEXT_PRIMARY;
+      lbl.position.set(n.x + n.width / 2, n.y + n.height / 2);
+    }
+
+    this.challengeGraphics.clear();
+    const btn = layout.challengeBtn;
+    this.challengeGraphics.rect(btn.x, btn.y, btn.width, btn.height).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
+    this.challengeGraphics.rect(btn.x, btn.y, btn.width, btn.height).stroke({ width: 2, color: BUTTON_BORDER });
+    this.challengeText.text = btn.label;
+    this.challengeText.position.set(btn.x + btn.width / 2, btn.y + btn.height / 2);
   }
 }

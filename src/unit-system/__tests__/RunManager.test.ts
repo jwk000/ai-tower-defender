@@ -13,11 +13,18 @@ describe('RunManager state machine', () => {
     expect(run.currentLevel).toBe(0);
   });
 
-  it('startRun transitions Idle -> Battle and sets level to 1', () => {
+  it('startRun transitions Idle -> LevelMap and sets level to 1', () => {
     const run = makeManager();
     run.startRun();
-    expect(run.phase).toBe(RunPhase.Battle);
+    expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(1);
+  });
+
+  it('enterBattle transitions LevelMap -> Battle', () => {
+    const run = makeManager();
+    run.startRun();
+    run.enterBattle();
+    expect(run.phase).toBe(RunPhase.Battle);
   });
 
   it('rejects startRun when not in Idle', () => {
@@ -29,6 +36,7 @@ describe('RunManager state machine', () => {
   it('completeLevel from Battle with more levels remaining transitions to InterLevel', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     expect(run.phase).toBe(RunPhase.InterLevel);
     expect(run.currentLevel).toBe(1);
@@ -37,6 +45,7 @@ describe('RunManager state machine', () => {
   it('completeLevel from Battle on final level transitions to Result with Victory outcome', () => {
     const run = makeManager(1);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     expect(run.phase).toBe(RunPhase.Result);
     expect(run.outcome).toBe('victory');
@@ -45,6 +54,7 @@ describe('RunManager state machine', () => {
   it('pickInterLevelChoice("shop") transitions InterLevel -> Shop without advancing level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('shop');
     expect(run.phase).toBe(RunPhase.Shop);
@@ -54,6 +64,7 @@ describe('RunManager state machine', () => {
   it('pickInterLevelChoice("mystic") transitions InterLevel -> Mystic without advancing level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('mystic');
     expect(run.phase).toBe(RunPhase.Mystic);
@@ -63,6 +74,7 @@ describe('RunManager state machine', () => {
   it('pickInterLevelChoice("skilltree") transitions InterLevel -> SkillTree without advancing level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('skilltree');
     expect(run.phase).toBe(RunPhase.SkillTree);
@@ -72,6 +84,7 @@ describe('RunManager state machine', () => {
   it('closeShop transitions Shop -> Battle and advances level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('shop');
     run.closeShop();
@@ -82,6 +95,7 @@ describe('RunManager state machine', () => {
   it('closeMystic transitions Mystic -> Battle and advances level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('mystic');
     run.closeMystic();
@@ -92,6 +106,7 @@ describe('RunManager state machine', () => {
   it('closeSkillTree transitions SkillTree -> Battle and advances level', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('skilltree');
     run.closeSkillTree();
@@ -120,6 +135,7 @@ describe('RunManager state machine', () => {
   it('failRun from Battle transitions to Result with Defeat outcome', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.failRun();
     expect(run.phase).toBe(RunPhase.Result);
     expect(run.outcome).toBe('defeat');
@@ -139,6 +155,7 @@ describe('RunManager state machine', () => {
   it('rejects pickInterLevelChoice with unknown choice value', () => {
     const run = makeManager(3);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     expect(() => run.pickInterLevelChoice('teleport' as unknown as 'shop')).toThrow(/unknown choice/i);
   });
@@ -146,6 +163,7 @@ describe('RunManager state machine', () => {
   it('resetToIdle from Result returns to Idle and clears level/outcome', () => {
     const run = makeManager(1);
     run.startRun();
+    run.enterBattle();
     run.completeLevel();
     expect(run.phase).toBe(RunPhase.Result);
     run.resetToIdle();
