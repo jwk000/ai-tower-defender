@@ -51,6 +51,8 @@ import {
   type LevelConfig,
   loadUnitConfigsForLevel,
   parseLevelConfig,
+  parseMysticEventConfig,
+  type MysticEventConfig,
 } from './config/loader.js';
 import type { HandCard, HandState } from './ui/HandPanel.js';
 import type { RunState } from './ui/HUD.js';
@@ -66,6 +68,20 @@ import level08Yaml from './config/levels/level-08.yaml?raw';
 import enemiesYaml from './config/units/enemies.yaml?raw';
 import towerUnitsYaml from './config/units/towers.yaml?raw';
 import towerCardsYaml from './config/cards/towers.yaml?raw';
+import mysticAncientAltarYaml from './config/mystic-events/ancient_altar.yaml?raw';
+import mysticHealingSpringYaml from './config/mystic-events/healing_spring.yaml?raw';
+import mysticWanderingMerchantYaml from './config/mystic-events/wandering_merchant.yaml?raw';
+import mysticMysteriousChestYaml from './config/mystic-events/mysterious_chest.yaml?raw';
+import mysticForgeYaml from './config/mystic-events/forge.yaml?raw';
+import mysticPactOfBloodYaml from './config/mystic-events/pact_of_blood.yaml?raw';
+import mysticArcaneLibraryYaml from './config/mystic-events/arcane_library.yaml?raw';
+import mysticWolvesNestYaml from './config/mystic-events/wolves_nest.yaml?raw';
+import mysticDivineBlessingYaml from './config/mystic-events/divine_blessing.yaml?raw';
+import mysticCursedIdolYaml from './config/mystic-events/cursed_idol.yaml?raw';
+import mysticShadowDealerYaml from './config/mystic-events/shadow_dealer.yaml?raw';
+import mysticManaWellYaml from './config/mystic-events/mana_well.yaml?raw';
+import mysticTravelerCampYaml from './config/mystic-events/traveler_camp.yaml?raw';
+import mysticForgottenShrineYaml from './config/mystic-events/forgotten_shrine.yaml?raw';
 
 const GRID_COLS = 21;
 const GRID_ROWS = 9;
@@ -137,6 +153,29 @@ async function bootstrap(): Promise<void> {
   }
   for (const card of cardConfigs) {
     cardRegistry.registerCard(card);
+  }
+
+  // D2: 14 事件池（S9 替换）
+  const MYSTIC_EVENT_POOL: MysticEventConfig[] = [
+    mysticAncientAltarYaml,
+    mysticHealingSpringYaml,
+    mysticWanderingMerchantYaml,
+    mysticMysteriousChestYaml,
+    mysticForgeYaml,
+    mysticPactOfBloodYaml,
+    mysticArcaneLibraryYaml,
+    mysticWolvesNestYaml,
+    mysticDivineBlessingYaml,
+    mysticCursedIdolYaml,
+    mysticShadowDealerYaml,
+    mysticManaWellYaml,
+    mysticTravelerCampYaml,
+    mysticForgottenShrineYaml,
+  ].map(parseMysticEventConfig);
+
+  function pickMysticEvent(): MysticEventConfig {
+    const idx = Math.floor(Math.random() * MYSTIC_EVENT_POOL.length);
+    return MYSTIC_EVENT_POOL[idx]!;
   }
 
   let deckSystem = new DeckSystem({ pool: cardConfigs.map((c) => c.id), deckSize: DEFAULT_DECK_SIZE, rng: Math.random });
@@ -417,7 +456,7 @@ async function bootstrap(): Promise<void> {
     if (intent.node === 'shop') {
       shopRenderer.refresh(buildShopState());
     } else if (intent.node === 'mystic') {
-      mysticRenderer.refresh(MVP_MYSTIC_EVENT);
+      mysticRenderer.refresh(pickMysticEvent());
     } else if (intent.node === 'skilltree') {
       skillTreeRenderer.refresh({ config: ARROW_TOWER_SKILL_TREE, sp: runManager.sp, purchased: runManager.skillTreeState });
     }
@@ -450,23 +489,35 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  // MVP-SIMPLIFICATION: 秘境固定 1 事件「获得 10 金币」+ 退出，完整事件池见 design/50-mda
-  const MVP_MYSTIC_EVENT = {
-    id: 'mvp_gold_reward',
-    title: '神秘馈赠',
-    description: '古老的石碑散发着微光……获得 10 枚金币。',
-    choices: [
-      { id: 'take_gold', label: '拾取金币 (+10G)', effects: [{ type: 'add_gold', amount: 10 }] },
-    ],
-  };
-
   const mysticPanel = new MysticPanel();
   mysticPanel.setHandler((intent: MysticIntent) => {
     if (intent.kind === 'resolve') {
       for (const effect of intent.effects) {
-        const goldEffect = effect as unknown as { type: string; amount?: number };
-        if (goldEffect.type === 'add_gold' && typeof goldEffect.amount === 'number') {
-          runManager.addGold(goldEffect.amount);
+        const e = effect as unknown as { type: string; amount?: number; percent?: number; successChance?: number; goldAmount?: number; spAmount?: number; damageAmount?: number };
+        switch (e.type) {
+          case 'grant_gold': runManager.addGold(e.amount ?? 0); break;
+          case 'grant_sp': runManager.grantSp(e.amount ?? 0); break;
+          case 'spend_gold': runManager.spendGold(Math.min(e.amount ?? 0, runManager.gold)); break;
+          case 'heal_crystal': runManager.healCrystal(e.amount ?? 0); break;
+          case 'deal_crystal_damage': runManager.damageCrystal(e.amount ?? 0); break;
+          case 'spend_gold_percent': runManager.spendGold(Math.floor(runManager.gold * ((e.percent ?? 0) / 100))); break;
+          case 'grant_gold_or_damage':
+            if (Math.random() < (e.successChance ?? 0.7)) {
+              runManager.addGold(e.goldAmount ?? 0);
+              runManager.grantSp(e.spAmount ?? 0);
+            } else {
+              runManager.damageCrystal(e.damageAmount ?? 0);
+            }
+            break;
+          case 'grant_sp_tiered': {
+            const tiers = (effect as unknown as { tiers: Array<{ minLevel: number; maxLevel: number; amount: number }> }).tiers ?? [];
+            const lvl = runManager.currentLevel;
+            const tier = tiers.find((t) => lvl >= t.minLevel && lvl <= t.maxLevel);
+            if (tier) runManager.grantSp(tier.amount);
+            break;
+          }
+          default:
+            break;
         }
       }
       runController.closeMystic();

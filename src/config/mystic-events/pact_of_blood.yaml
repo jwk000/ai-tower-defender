@@ -1,0 +1,17 @@
+id: pact_of_blood
+title: 鲜血契约 ⚠️
+description: 黑暗祭司提出契约：以血肉换取本 Run 所有单位的攻击力暴涨。
+choices:
+  - id: accept
+    label: 接受契约（ATK+30% / 能量上限 -1 两关）
+    effects:
+      - type: buff_all_atk_percent
+        amount: 30
+      - type: reduce_energy_cap_temp
+        amount: 1
+        durationLevels: 2
+  - id: refuse
+    label: 拒绝（+50G）
+    effects:
+      - type: grant_gold
+        amount: 50

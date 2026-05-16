@@ -1,0 +1,14 @@
+id: forge
+title: 卡组熔炉
+description: 一座神秘熔炉，可以将本 Run 卡组中的一张卡精炼强化。
+choices:
+  - id: upgrade
+    label: 升级 1 张卡 (-50G)
+    effects:
+      - type: spend_gold
+        amount: 50
+      - type: upgrade_random_card
+        count: 1
+  - id: leave
+    label: 离开（零代价）
+    effects: []

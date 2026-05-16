@@ -1,0 +1,15 @@
+id: mana_well
+title: 法力涌泉
+description: 涌泉散发着浓郁的法力，能短暂提升施法能力。
+choices:
+  - id: drink
+    label: 饮用（本关能量上限+1 / -100G）
+    effects:
+      - type: energy_cap_temp
+        amount: 1
+        durationLevels: 1
+      - type: spend_gold
+        amount: 100
+  - id: leave
+    label: 离开（零代价）
+    effects: []

@@ -1,0 +1,15 @@
+id: mysterious_chest
+title: 神秘宝箱
+description: 一个未知魔法封印的宝箱，70% 是金币，30% 是陷阱。
+choices:
+  - id: open
+    label: 开启（70% +150G+10SP / 30% -80HP）
+    effects:
+      - type: grant_gold_or_damage
+        goldAmount: 150
+        spAmount: 10
+        damageAmount: 80
+        successChance: 0.7
+  - id: leave
+    label: 离开（零代价）
+    effects: []

@@ -1,0 +1,14 @@
+id: divine_blessing
+title: 神圣祝福
+description: 神圣光辉沐浴水晶，但需要献上财富作为信仰证明。
+choices:
+  - id: accept
+    label: 接受祝福（+300 HP / 失去30%金币）
+    effects:
+      - type: heal_crystal
+        amount: 300
+      - type: spend_gold_percent
+        percent: 30
+  - id: refuse
+    label: 拒绝（零代价）
+    effects: []

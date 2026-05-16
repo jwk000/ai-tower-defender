@@ -1,0 +1,15 @@
+id: traveler_camp
+title: 旅人营地
+description: 一群旅人围在篝火边，乐意分享旅途中获得的智慧。（SP 按关卡分档：关1-3 +5SP，关4-6 +15SP，关7-8 +30SP）
+choices:
+  - id: join
+    label: 加入（按关卡分档 +SP）
+    effects:
+      - type: grant_sp_tiered
+        tiers:
+          - { minLevel: 1, maxLevel: 3, amount: 5 }
+          - { minLevel: 4, maxLevel: 6, amount: 15 }
+          - { minLevel: 7, maxLevel: 9, amount: 30 }
+  - id: leave
+    label: 离开（零代价）
+    effects: []

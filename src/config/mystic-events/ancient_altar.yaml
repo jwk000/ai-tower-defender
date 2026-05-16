@@ -1,0 +1,21 @@
+id: ancient_altar
+title: 远古祭坛
+description: 一座古老的祭坛矗立在路径中央，传说触碰它能获得力量，但需付出代价。
+choices:
+  - id: touch_crystal
+    label: 触碰水晶 (+15 SP / -100 HP)
+    effects:
+      - type: grant_sp
+        amount: 15
+      - type: deal_crystal_damage
+        amount: 100
+  - id: offer_gold
+    label: 献祭金币 (+200 HP / -100G)
+    effects:
+      - type: heal_crystal
+        amount: 200
+      - type: spend_gold
+        amount: 100
+  - id: leave
+    label: 离开（零代价）
+    effects: []

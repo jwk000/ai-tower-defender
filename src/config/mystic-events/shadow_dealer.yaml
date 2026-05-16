@@ -1,0 +1,14 @@
+id: shadow_dealer
+title: 影子商人 ⚠️
+description: 黑市商人提供高价 SP，但需要付出"灵魂的一部分"——本 Run 卡组中的一张随机卡。
+choices:
+  - id: deal
+    label: 交易（+30 SP / 失去 1 张卡）
+    effects:
+      - type: grant_sp
+        amount: 30
+      - type: remove_random_card
+        count: 1
+  - id: leave
+    label: 离开（零代价）
+    effects: []

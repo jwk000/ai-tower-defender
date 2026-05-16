@@ -1,0 +1,14 @@
+id: wandering_merchant
+title: 流浪商人
+description: 神秘商人推车而来，提供单位卡折扣销售。
+choices:
+  - id: buy_card
+    label: 折扣购卡 (+1 arrow_tower_card / -60G)
+    effects:
+      - type: grant_card
+        cardId: arrow_tower_card
+      - type: spend_gold
+        amount: 60
+  - id: leave
+    label: 离开（零代价）
+    effects: []

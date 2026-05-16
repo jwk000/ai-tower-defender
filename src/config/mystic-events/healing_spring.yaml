@@ -1,0 +1,14 @@
+id: healing_spring
+title: 治疗泉水 ⚠️
+description: 清澈泉水散发疗愈光辉，但传说泉水会"消化"踏入者最珍视的回忆。
+choices:
+  - id: immerse
+    label: 浸入 (+250 HP / 失去 1 张卡)
+    effects:
+      - type: heal_crystal
+        amount: 250
+      - type: remove_random_card
+        count: 1
+  - id: leave
+    label: 离开（零代价）
+    effects: []

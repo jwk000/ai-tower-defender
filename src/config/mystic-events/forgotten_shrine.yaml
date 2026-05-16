@@ -1,0 +1,21 @@
+id: forgotten_shrine
+title: 遗忘圣坛
+description: 一座几乎被遗忘的圣坛，似乎曾承载强大力量。三个供奉，三种回报。
+choices:
+  - id: blood_offer
+    label: 献血强化（+1 Epic单位卡 / -150HP）
+    effects:
+      - type: grant_card
+        cardId: arrow_tower_card
+      - type: deal_crystal_damage
+        amount: 150
+  - id: gold_offer
+    label: 献金获得 SP（+20 SP / -150G）
+    effects:
+      - type: grant_sp
+        amount: 20
+      - type: spend_gold
+        amount: 150
+  - id: leave
+    label: 离开（零代价）
+    effects: []

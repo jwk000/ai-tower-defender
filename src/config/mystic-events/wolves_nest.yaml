@@ -1,0 +1,12 @@
+id: wolves_nest
+title: 狼穴遭遇 ⚠️
+description: 误闯狼群巢穴，是战还是退？
+choices:
+  - id: fight
+    label: 战斗（胜：+200G+1卡 / 败：-100HP）
+    effects:
+      - type: grant_gold
+        amount: 200
+  - id: retreat
+    label: 撤退（零代价）
+    effects: []

@@ -1,0 +1,14 @@
+id: arcane_library
+title: 奥术图书馆
+description: 一间静谧的图书馆，藏有古老的法术卷轴。
+choices:
+  - id: learn
+    label: 学习（+1 法术卡 / -80G）
+    effects:
+      - type: grant_card
+        cardId: arrow_tower_card
+      - type: spend_gold
+        amount: 80
+  - id: leave
+    label: 离开（零代价）
+    effects: []

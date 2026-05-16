@@ -1,0 +1,14 @@
+id: cursed_idol
+title: 诅咒神像 ⚠️
+description: 神像散发着诡异光辉，传说亵渎它能获得不义之财。
+choices:
+  - id: loot
+    label: 摸金（+200G / 下关敌人 HP+20%）
+    effects:
+      - type: grant_gold
+        amount: 200
+      - type: next_level_enemy_hp_percent
+        amount: 20
+  - id: leave
+    label: 离开（零代价）
+    effects: []

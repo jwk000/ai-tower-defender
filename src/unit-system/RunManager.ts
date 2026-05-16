@@ -149,6 +149,11 @@ export class RunManager {
     this._crystalHp = Math.max(0, this._crystalHp - amount);
   }
 
+  healCrystal(amount: number): void {
+    if (amount < 0) throw new Error(`[RunManager] healCrystal requires non-negative amount, got ${amount}`);
+    this._crystalHp = Math.min(this._crystalHpMax, this._crystalHp + amount);
+  }
+
   startRun(): void {
     if (this._phase !== RunPhase.Idle) {
       throw new Error(`[RunManager] illegal transition: startRun from ${this._phase}`);
