@@ -407,11 +407,10 @@ available:
   units:
     - swordsman
     - archer
-    - knight
-    - mage
-    - priest
-    - paladin
+    - shield_guard
     - engineer
+    - priest
+    - assassin
 weather:
   pool:
     - smog

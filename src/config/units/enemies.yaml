@@ -1015,8 +1015,8 @@ e_glacier_titan:
 e_temple_guard:
   id: e_temple_guard
   name: 神庙守卫
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -1065,8 +1065,8 @@ e_temple_guard:
 e_jungle_zealot:
   id: e_jungle_zealot
   name: 丛林狂热者
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -1113,8 +1113,8 @@ e_jungle_zealot:
 e_temple_priest:
   id: e_temple_priest
   name: 神庙祭司
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1169,8 +1169,8 @@ e_temple_priest:
 e_revival_idol:
   id: e_revival_idol
   name: 复活神像
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1225,8 +1225,8 @@ e_revival_idol:
 e_petrify_oracle:
   id: e_petrify_oracle
   name: 石化先知
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1283,8 +1283,8 @@ e_petrify_oracle:
 e_stone_colossus:
   id: e_stone_colossus
   name: 石巨像
-  category: enemy
-  faction: temple
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L3
   isBoss: true
@@ -1361,8 +1361,8 @@ e_stone_colossus:
 e_corsair_pikeman:
   id: e_corsair_pikeman
   name: 海盗长枪兵
-  category: enemy
-  faction: corsair
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -1409,8 +1409,8 @@ e_corsair_pikeman:
 e_dock_brawler:
   id: e_dock_brawler
   name: 码头打手
-  category: enemy
-  faction: corsair
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -1457,8 +1457,8 @@ e_dock_brawler:
 e_brine_charger:
   id: e_brine_charger
   name: 咸水冲撞兵
-  category: enemy
-  faction: corsair
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1508,8 +1508,8 @@ e_brine_charger:
 e_kraken_tendril:
   id: e_kraken_tendril
   name: 海妖触手
-  category: enemy
-  faction: corsair
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1566,8 +1566,8 @@ e_kraken_tendril:
 e_tide_warlord:
   id: e_tide_warlord
   name: 潮汐战领
-  category: enemy
-  faction: corsair
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L3
   isBoss: true
@@ -1647,8 +1647,8 @@ e_tide_warlord:
 e_clockwork_grunt:
   id: e_clockwork_grunt
   name: 发条小兵
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -1695,8 +1695,8 @@ e_clockwork_grunt:
 e_steam_lancer:
   id: e_steam_lancer
   name: 蒸汽长矛兵
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1746,8 +1746,8 @@ e_steam_lancer:
 e_hammergrub_drone:
   id: e_hammergrub_drone
   name: 反建筑工蜂
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1797,8 +1797,8 @@ e_hammergrub_drone:
 e_minecart_juggernaut:
   id: e_minecart_juggernaut
   name: 矿车撞锤
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1849,8 +1849,8 @@ e_minecart_juggernaut:
 e_repair_bot:
   id: e_repair_bot
   name: 修理机器人
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -1905,8 +1905,8 @@ e_repair_bot:
 e_steel_artisan:
   id: e_steel_artisan
   name: 钢铁巨匠
-  category: enemy
-  faction: cogforge
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L3
   isBoss: true
@@ -1987,8 +1987,8 @@ e_steel_artisan:
 e_sporeling:
   id: e_sporeling
   name: 孢子幼体
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -2041,8 +2041,8 @@ e_sporeling:
 e_myco_charger:
   id: e_myco_charger
   name: 菌丝感染体
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -2092,8 +2092,8 @@ e_myco_charger:
 e_warped_witch:
   id: e_warped_witch
   name: 扭曲女巫
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -2156,8 +2156,8 @@ e_warped_witch:
 e_brood_mother:
   id: e_brood_mother
   name: 菌母蘑菇
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -2208,8 +2208,8 @@ e_brood_mother:
 e_blight_spitter:
   id: e_blight_spitter
   name: 腐疫吐液者
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -2262,8 +2262,8 @@ e_blight_spitter:
 e_mycelial_core:
   id: e_mycelial_core
   name: 菌核之母
-  category: enemy
-  faction: fungal
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L3
   isBoss: true
@@ -2354,8 +2354,8 @@ e_mycelial_core:
 e_void_blinker:
   id: e_void_blinker
   name: 虚空闪烁者
-  category: enemy
-  faction: void
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -2416,8 +2416,8 @@ e_void_blinker:
 e_void_thrall:
   id: e_void_thrall
   name: 虚空奴仆
-  category: enemy
-  faction: void
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L1
 
@@ -2468,8 +2468,8 @@ e_void_thrall:
 e_eye_of_collapse:
   id: e_eye_of_collapse
   name: 摧塔之眼
-  category: enemy
-  faction: void
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L3
 
@@ -2529,8 +2529,8 @@ e_eye_of_collapse:
 e_cursed_avenger:
   id: e_cursed_avenger
   name: 诅咒复仇者
-  category: enemy
-  faction: void
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L2
 
@@ -2587,8 +2587,8 @@ e_cursed_avenger:
 e_old_one_warden:
   id: e_old_one_warden
   name: 旧日支配者
-  category: enemy
-  faction: void
+  category: Enemy
+  faction: Enemy
   layer: ground
   tier: L4
   isBoss: true

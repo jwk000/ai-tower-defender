@@ -316,7 +316,7 @@ available:
   units:
     - swordsman
     - archer
-    - knight
+    - shield_guard
 weather:
   pool:
     - blizzard

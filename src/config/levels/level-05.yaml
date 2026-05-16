@@ -343,8 +343,8 @@ available:
   units:
     - swordsman
     - archer
-    - knight
-    - mage
+    - shield_guard
+    - engineer
     - priest
 weather:
   pool:
