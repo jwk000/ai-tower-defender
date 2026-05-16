@@ -205,7 +205,7 @@ const PathNodeSchema = z
     id: z.string(),
     row: z.number().int().nonnegative(),
     col: z.number().int().nonnegative(),
-    role: z.enum(['spawn', 'crystal_anchor', 'waypoint']).optional(),
+    role: z.enum(['spawn', 'crystal_anchor', 'waypoint', 'merge']).optional(),
     spawnId: z.string().optional(),
   })
   .passthrough();

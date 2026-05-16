@@ -363,6 +363,39 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(onLevelStart).toHaveBeenCalledWith(2);
     expect(scenes.battle.visible).toBe(true);
   });
+
+  it('debug victory on level 1 → InterLevel → skip → LevelMap → enterBattle triggers onLevelStart(2)', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 8, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const levelState = new LevelState();
+    levelState.reset(3);
+    const onLevelStart = vi.fn();
+    const controller = new RunController({ game, runManager, scenes, levelState, onLevelStart });
+
+    controller.startRun();
+    controller.enterBattle();
+    expect(controller.phase).toBe(RunPhase.Battle);
+    expect(runManager.currentLevel).toBe(1);
+
+    controller.completeCurrentLevel();
+    expect(controller.phase).toBe(RunPhase.InterLevel);
+    expect(runManager.currentLevel).toBe(1);
+    expect(scenes.interLevel.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+
+    controller.returnToLevelMap();
+    expect(controller.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(2);
+    expect(scenes.levelMap.visible).toBe(true);
+
+    controller.enterBattle();
+    expect(controller.phase).toBe(RunPhase.Battle);
+    expect(scenes.battle.visible).toBe(true);
+    expect(scenes.levelMap.visible).toBe(false);
+    expect(onLevelStart).toHaveBeenCalledTimes(1);
+    expect(onLevelStart).toHaveBeenCalledWith(2);
+  });
 });
 
 describe('WaveSystem integration: schedule, spawn cadence, phase transitions', () => {

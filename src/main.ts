@@ -73,6 +73,7 @@ import level07Yaml from './config/levels/level-07.yaml?raw';
 import level08Yaml from './config/levels/level-08.yaml?raw';
 import enemiesYaml from './config/units/enemies.yaml?raw';
 import towerUnitsYaml from './config/units/towers.yaml?raw';
+import soldiersYaml from './config/units/soldiers.yaml?raw';
 import towerCardsYaml from './config/cards/towers.yaml?raw';
 import mysticAncientAltarYaml from './config/mystic-events/ancient_altar.yaml?raw';
 import mysticHealingSpringYaml from './config/mystic-events/healing_spring.yaml?raw';
@@ -122,6 +123,7 @@ async function bootstrap(): Promise<void> {
   const unitYamlFiles = new Map<string, string>([
     ['units/enemies.yaml', enemiesYaml],
     ['units/towers.yaml', towerUnitsYaml],
+    ['units/soldiers.yaml', soldiersYaml],
   ]);
   const cardYamlFiles = new Map<string, string>([
     ['cards/towers.yaml', towerCardsYaml],
