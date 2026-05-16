@@ -145,6 +145,8 @@
 | [46-audio](./40-presentation/46-audio.md) | stable | 63 个音效（含卡牌/关间/商店/秘境/碎片新增 24 个） |
 | [47-level-map-ui](./40-presentation/47-level-map-ui.md) | ⭐ authoritative · v3.3 + v3.4 audit | **关卡路线图 UI 权威**：Mario 风格 9 节点 + 三状态切换 + 关后 3 选 1（商店/秘境/跳过） + 终战特例 + ESC 退出 Run 确认（v3.4 已删除火花碎片显示） |
 | [48-shop-redesign-v34](./40-presentation/48-shop-redesign-v34.md) | ⭐ authoritative · **v3.4 新增** | **v3.4 商店 + 技能点资源权威**：两栏 UI / 8 槽（前 4 单位 + 后 4 功能）/ shop_item CardType 拓展 / 4 种功能卡 / RunManager 锁定 |
+| [49-main-menu](./40-presentation/49-main-menu.md) | ⭐ authoritative · **2026-05-16 新增** | **游戏主界面（主菜单）UI 权威**：精简 3 按钮（新的征程/继续游戏/离开游戏）+ 界面跳转逻辑 + 丢弃存档确认弹窗 + 存档同步规则；对应 [40-ui-ux §11](./40-presentation/40-ui-ux.md) |
+| [50-run-result](./40-presentation/50-run-result.md) | ⭐ authoritative · **2026-05-16 新增** | **Run 结算界面 UI 权威**：胜利/失败面板 + 战绩统计字段 + 「返回主菜单」/「立即新征程」按钮行为 + 存档清零时序；对应 [40-ui-ux §10](./40-presentation/40-ui-ux.md) |
 
 ### `50-data-numerical/` — 数值
 

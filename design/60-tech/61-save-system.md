@@ -65,12 +65,39 @@ interface SaveData {
   // ========== 设置 ==========
   settings: PlayerSettings;
 
+  // ========== 进行中 Run 存档（2026-05-16 恢复）==========
+  // ✅ ongoingRun 已恢复（2026-05-16 决策：支持「继续游戏」功能，放弃 v3.4 单 Run 闭环中断限制）
+  // 详见 §4 进行中 Run 存档（OngoingRun）
+  ongoingRun: OngoingRun | null;   // null = 无进行中 Run
+
   // ========== v3.0 已删除字段（不再出现于 SaveData）==========
   // ❌ sparkShards           — v3.4 火花碎片彻底废弃
   // ❌ cardCollection         — v3.4 所有卡开局即解锁（卡池从配置层 src/config/cards/*.yaml 读取）
   // ❌ permanentUpgrades      — v3.4 无关外永久升级（升级转本 Run 技能树）
-  // ❌ ongoingRun             — v3.4 Run 不可中断保存（v3.4-INV-04）
   // ❌ RunHistory.totalSparkShardsEarned — v3.4 无碎片资源
+}
+
+// ============================================================
+// 进行中 Run 存档（2026-05-16 恢复）
+// ============================================================
+interface OngoingRun {
+  // Run 进度
+  currentLevelIdx: number;      // 当前关卡序号（1-9，9 = 终战）
+  
+  // 三资源状态
+  gold: number;                  // 当前金币余额
+  skillPoints: number;           // 当前技能点余额（SP）
+  crystalHp: number;             // 水晶当前 HP
+  crystalHpMax: number;          // 水晶最大 HP（通常 1000）
+  
+  // 卡组状态
+  deckCardIds: string[];         // 当前 Run 卡组（有序列表）
+  
+  // 技能树已解锁节点
+  skillTreeState: string[];      // 已解锁节点 ID 列表
+  
+  // 时间戳（用于"最近中断时间"显示）
+  savedAt: number;               // Unix ms
 }
 
 // ============================================================
