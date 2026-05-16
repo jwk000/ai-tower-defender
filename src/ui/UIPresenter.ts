@@ -15,6 +15,8 @@ export interface UIPresenterConfig {
   readonly handPanel?: HandPanel;
   readonly cardRegistry?: CardRegistry;
   readonly onExitBattle?: () => void;
+  readonly screenToWorld?: (sx: number, sy: number) => { x: number; y: number };
+  readonly worldToScreen?: (wx: number, wy: number) => { x: number; y: number };
 }
 
 export interface UIFrame {
@@ -35,8 +37,8 @@ export interface UIFrame {
  */
 export class UIPresenter {
   private readonly battleContainer: Container;
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
 
   private readonly hudContainer: Container;
   private readonly handContainer: Container;
@@ -54,6 +56,8 @@ export class UIPresenter {
   private readonly cardRegistry: CardRegistry | null;
   private readonly onExitBattle: (() => void) | null;
   private readonly cellSize: number;
+  private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
+  private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
   private lastHandState: HandState = { cards: [], energy: 0 };
   private dragSlot: number | null = null;
   private ghostCard: Graphics | null = null;
@@ -69,6 +73,8 @@ export class UIPresenter {
     this.cardRegistry = config.cardRegistry ?? null;
     this.onExitBattle = config.onExitBattle ?? null;
     this.cellSize = config.cellSize ?? 64;
+    this.screenToWorld = config.screenToWorld ?? ((sx, sy) => ({ x: sx, y: sy }));
+    this.worldToScreen = config.worldToScreen ?? ((wx, wy) => ({ x: wx, y: wy }));
 
     this.EXIT_BTN.x = this.viewportWidth - 148;
     this.EXIT_BTN.y = 8;
@@ -190,10 +196,15 @@ export class UIPresenter {
     const handZoneTop = this.viewportHeight - 160;
     if (local.y < handZoneTop) {
       const cs = this.cellSize;
-      const col = Math.floor(local.x / cs);
-      const row = Math.floor(local.y / cs);
-      const cellX = col * cs;
-      const cellY = row * cs;
+      const worldPos = this.screenToWorld(local.x, local.y);
+      const col = Math.floor(worldPos.x / cs);
+      const row = Math.floor(worldPos.y / cs);
+      const cellTopLeft = this.worldToScreen(col * cs, row * cs);
+      const cellBottomRight = this.worldToScreen((col + 1) * cs, (row + 1) * cs);
+      const cellX = cellTopLeft.x;
+      const cellY = cellTopLeft.y;
+      const cellW = cellBottomRight.x - cellTopLeft.x;
+      const cellH = cellBottomRight.y - cellTopLeft.y;
       if (!this.ghostCell) {
         const g = new Graphics();
         g.eventMode = 'none';
@@ -201,8 +212,8 @@ export class UIPresenter {
         this.ghostCell = g;
       }
       this.ghostCell.clear();
-      this.ghostCell.rect(cellX, cellY, cs, cs).fill({ color: 0x00e676, alpha: 0.25 });
-      this.ghostCell.rect(cellX, cellY, cs, cs).stroke({ width: 2, color: 0x00e676, alpha: 0.85 });
+      this.ghostCell.rect(cellX, cellY, cellW, cellH).fill({ color: 0x00e676, alpha: 0.25 });
+      this.ghostCell.rect(cellX, cellY, cellW, cellH).stroke({ width: 2, color: 0x00e676, alpha: 0.85 });
     } else {
       if (this.ghostCell) {
         this.ghostCell.clear();
@@ -216,6 +227,15 @@ export class UIPresenter {
     const slot = this.dragSlot;
     this.clearDrag();
     this.handPanel.trigger(slot, local.x, local.y);
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    this.EXIT_BTN.x = vw - 148;
+    this.EXIT_BTN.y = 8;
+    this.energyText.position.set(12, vh - 24);
+    this.drawExitButton();
   }
 
   present(frame: UIFrame): void {

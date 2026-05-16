@@ -14,7 +14,7 @@ import {
   type InterLevelState,
 } from '../ui/InterLevelPanel.js';
 import {
-  hitTestRunResultFooter,
+  hitTestRunResultButton,
   projectRunResult,
   type RunResultPanel,
   type RunResultState,
@@ -45,8 +45,8 @@ export class MainMenuRenderer {
   private readonly buttonsGraphics: Graphics;
   private readonly titleText: Text;
   private readonly buttonLabels: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly menu: MainMenu;
   private state: MainMenuState = { hasSavedRun: false };
 
@@ -71,6 +71,12 @@ export class MainMenuRenderer {
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
 
+    this.render();
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
     this.render();
   }
 
@@ -126,8 +132,8 @@ export class InterLevelRenderer {
   private readonly headerText: Text;
   private readonly cardTitleTexts: Text[] = [];
   private readonly cardDescTexts: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly panel: InterLevelPanel;
   private state: InterLevelState | null = null;
 
@@ -150,6 +156,12 @@ export class InterLevelRenderer {
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.state) this.render();
   }
 
   refresh(state: InterLevelState): void {
@@ -204,12 +216,12 @@ export class InterLevelRenderer {
 export class RunResultRenderer {
   private readonly container: Container;
   private readonly bg: Graphics;
-  private readonly footerGraphics: Graphics;
+  private readonly btnsGraphics: Graphics;
   private readonly headerText: Text;
-  private readonly footerText: Text;
   private readonly lineTexts: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private readonly btnLabelTexts: Text[] = [];
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly panel: RunResultPanel;
   private state: RunResultState | null = null;
 
@@ -220,23 +232,24 @@ export class RunResultRenderer {
     this.panel = panel;
 
     this.bg = new Graphics();
-    this.footerGraphics = new Graphics();
+    this.btnsGraphics = new Graphics();
     this.headerText = new Text({
       text: '',
       style: { fill: TEXT_PRIMARY, fontSize: 48, fontWeight: 'bold', align: 'center' },
     });
     this.headerText.anchor.set(0.5, 0.5);
-    this.footerText = new Text({
-      text: '',
-      style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' },
-    });
-    this.footerText.anchor.set(0.5, 0.5);
 
-    this.container.addChild(this.bg, this.headerText, this.footerGraphics, this.footerText);
+    this.container.addChild(this.bg, this.headerText, this.btnsGraphics);
 
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.state) this.render();
   }
 
   refresh(state: RunResultState): void {
@@ -249,7 +262,8 @@ export class RunResultRenderer {
     if (!this.state) return;
     const layout = projectRunResult(this.state, this.viewportWidth, this.viewportHeight);
     const local = this.container.toLocal(e.global);
-    if (hitTestRunResultFooter(layout, local.x, local.y)) this.panel.trigger();
+    const btnId = hitTestRunResultButton(layout, local.x, local.y);
+    if (btnId) this.panel.trigger(btnId);
   }
 
   private render(): void {
@@ -280,12 +294,21 @@ export class RunResultRenderer {
       t.position.set(lineX, lineStartY + i * lineGap);
     }
 
-    this.footerGraphics.clear();
-    const f = layout.footer;
-    this.footerGraphics.rect(f.x, f.y, f.width, f.height).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
-    this.footerGraphics.rect(f.x, f.y, f.width, f.height).stroke({ width: 2, color: BUTTON_BORDER });
-    this.footerText.text = f.label;
-    this.footerText.position.set(f.x + f.width / 2, f.y + f.height / 2);
+    this.btnsGraphics.clear();
+    while (this.btnLabelTexts.length < layout.buttons.length) {
+      const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
+      t.anchor.set(0.5, 0.5);
+      this.container.addChild(t);
+      this.btnLabelTexts.push(t);
+    }
+    for (let i = 0; i < layout.buttons.length; i += 1) {
+      const b = layout.buttons[i]!;
+      this.btnsGraphics.rect(b.x, b.y, b.width, b.height).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
+      this.btnsGraphics.rect(b.x, b.y, b.width, b.height).stroke({ width: 2, color: BUTTON_BORDER });
+      const lbl = this.btnLabelTexts[i]!;
+      lbl.text = b.label;
+      lbl.position.set(b.x + b.width / 2, b.y + b.height / 2);
+    }
   }
 }
 
@@ -304,8 +327,8 @@ export class ShopRenderer {
   private readonly closeText: Text;
   private readonly itemLabelTexts: Text[] = [];
   private readonly itemCostTexts: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly panel: ShopPanel;
   private state: ShopState | null = null;
 
@@ -328,6 +351,12 @@ export class ShopRenderer {
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.state) this.render();
   }
 
   refresh(state: ShopState): void {
@@ -420,8 +449,8 @@ export class MysticRenderer {
   private readonly closeText: Text;
   private readonly choiceLabelTexts: Text[] = [];
   private readonly choiceEffectTexts: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly panel: MysticPanel;
   private event: MysticEventConfig | null = null;
 
@@ -444,6 +473,12 @@ export class MysticRenderer {
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.event) this.render();
   }
 
   refresh(event: MysticEventConfig): void {
@@ -532,8 +567,8 @@ export class SkillTreeRenderer {
   private readonly nodeLabelTexts: Text[] = [];
   private readonly nodeDescTexts: Text[] = [];
   private readonly nodeCostTexts: Text[] = [];
-  private readonly viewportWidth: number;
-  private readonly viewportHeight: number;
+  private viewportWidth: number;
+  private viewportHeight: number;
   private readonly panel: SkillTreePanel;
   private state: SkillTreeState | null = null;
 
@@ -556,6 +591,12 @@ export class SkillTreeRenderer {
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+  }
+
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+    if (this.state) this.render();
   }
 
   refresh(state: SkillTreeState): void {

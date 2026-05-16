@@ -14,11 +14,17 @@ describe('buildMainMenu', () => {
     expect(buttons.find((b) => b.action === 'continue-run')!.enabled).toBe(true);
   });
 
-  it('always enables start-run, open-cards, open-settings, quit', () => {
+  it('always enables start-run and quit', () => {
     const buttons = buildMainMenu({ hasSavedRun: false });
-    for (const action of ['start-run', 'open-cards', 'open-settings', 'quit'] as const) {
+    for (const action of ['start-run', 'quit'] as const) {
       expect(buttons.find((b) => b.action === action)!.enabled).toBe(true);
     }
+  });
+
+  it('has exactly 3 buttons', () => {
+    const buttons = buildMainMenu({ hasSavedRun: false });
+    expect(buttons.length).toBe(3);
+    expect(buttons.map((b) => b.action)).toEqual(['start-run', 'continue-run', 'quit']);
   });
 });
 
@@ -54,13 +60,13 @@ describe('MainMenu class wrapper', () => {
   });
 });
 
-describe('layoutMainMenu + hitTestMainMenu (Wave 8.2 Pixi 事件链)', () => {
+describe('layoutMainMenu + hitTestMainMenu', () => {
   const VW = 1344;
   const VH = 576;
 
-  it('layout 中心对齐 5 个按钮，宽度 320，间距 16，可命中 start-run', () => {
+  it('layout 中心对齐 3 个按钮，宽度 320，间距 16，可命中 start-run', () => {
     const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
-    expect(layout.buttons.length).toBe(5);
+    expect(layout.buttons.length).toBe(3);
     for (const b of layout.buttons) {
       expect(b.width).toBe(320);
       expect(b.height).toBe(56);

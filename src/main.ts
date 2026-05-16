@@ -46,6 +46,7 @@ import { DeckSystem } from './unit-system/DeckSystem.js';
 import { EnergySystem } from './unit-system/EnergySystem.js';
 import { HandSystem } from './unit-system/HandSystem.js';
 import { RunManager } from './unit-system/RunManager.js';
+import { SaveSystem } from './core/SaveSystem.js';
 import {
   loadCardConfigsForLevel,
   type LevelConfig,
@@ -87,8 +88,8 @@ import mysticForgottenShrineYaml from './config/mystic-events/forgotten_shrine.y
 const GRID_COLS = 21;
 const GRID_ROWS = 9;
 const CELL_SIZE = 64;
-const VIEWPORT_WIDTH = GRID_COLS * CELL_SIZE;
-const VIEWPORT_HEIGHT = GRID_ROWS * CELL_SIZE;
+const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
+const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const DEFAULT_DECK_SIZE = 12; // S2 替换：卡组 12 张（per 10-roguelike-loop §2.3）
@@ -127,8 +128,8 @@ async function bootstrap(): Promise<void> {
 
   const renderer = new Renderer({
     canvas,
-    worldWidth: VIEWPORT_WIDTH,
-    worldHeight: VIEWPORT_HEIGHT,
+    worldWidth: WORLD_WIDTH,
+    worldHeight: WORLD_HEIGHT,
     cellSize: CELL_SIZE,
   });
   await renderer.init();
@@ -421,32 +422,58 @@ async function bootstrap(): Promise<void> {
   });
 
   const handPanel = new HandPanel({
-    viewportWidth: VIEWPORT_WIDTH,
-    viewportHeight: VIEWPORT_HEIGHT,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
   });
 
   const presenter = new UIPresenter({
     battleContainer,
-    viewportWidth: VIEWPORT_WIDTH,
-    viewportHeight: VIEWPORT_HEIGHT,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
     cellSize: CELL_SIZE,
     handPanel,
     cardRegistry,
     onExitBattle: () => {
       runController.failCurrentRun();
     },
+    screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
+    worldToScreen: (wx, wy) => renderer.worldToScreen(wx, wy),
   });
 
-  const mainMenu = new MainMenu({ hasSavedRun: false });
+  function startNewRun(): void {
+    SaveSystem.clearOngoingRun();
+    runController.startRun();
+    loadLevel(1);
+    waveSystem.start();
+    runStats.enemiesKilled = 0;
+    runStats.goldEarned = 0;
+    runStats.runStartMs = performance.now();
+    runStats.runEndMs = 0;
+    SaveSystem.saveOngoingRun({
+      currentLevelIdx: 1,
+      gold: runManager.gold,
+      skillPoints: runManager.sp,
+      crystalHp: runManager.crystalHp,
+      savedAt: Date.now(),
+    });
+  }
+
+  const mainMenu = new MainMenu({ hasSavedRun: SaveSystem.hasOngoingRun() });
   mainMenu.setHandler((action: MainMenuAction) => {
     if (action === 'start-run') {
+      startNewRun();
+    } else if (action === 'continue-run') {
+      const saved = SaveSystem.loadOngoingRun();
+      if (!saved) return;
       runController.startRun();
-      loadLevel(1);
+      loadLevel(saved.currentLevelIdx);
       waveSystem.start();
       runStats.enemiesKilled = 0;
       runStats.goldEarned = 0;
-      runStats.runStartMs = performance.now();
+      runStats.runStartMs = performance.now() - (Date.now() - saved.savedAt);
       runStats.runEndMs = 0;
+    } else if (action === 'quit') {
+      window.close();
     }
   });
 
@@ -455,8 +482,9 @@ async function bootstrap(): Promise<void> {
     const card = cardRegistry.getCard(intent.cardId);
     if (!card) return;
     if (!energySystem.spend(card.energyCost)) return;
-    const col = Math.floor(intent.targetX / CELL_SIZE);
-    const row = Math.floor(intent.targetY / CELL_SIZE);
+    const worldPos = renderer.screenToWorld(intent.targetX, intent.targetY);
+    const col = Math.floor(worldPos.x / CELL_SIZE);
+    const row = Math.floor(worldPos.y / CELL_SIZE);
     const snapX = col * CELL_SIZE + CELL_SIZE / 2;
     const snapY = row * CELL_SIZE + CELL_SIZE / 2;
     const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
@@ -620,37 +648,43 @@ async function bootstrap(): Promise<void> {
   });
 
   const runResultPanel = new RunResultPanel({
-    viewportWidth: VIEWPORT_WIDTH,
-    viewportHeight: VIEWPORT_HEIGHT,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
   });
-  runResultPanel.setHandler(() => {
-    runController.returnToMainMenu();
+  runResultPanel.setHandler((action) => {
+    SaveSystem.clearOngoingRun();
+    if (action === 'return-menu') {
+      runController.returnToMainMenu();
+    } else if (action === 'start-new-run') {
+      runController.returnToMainMenu();
+      startNewRun();
+    }
   });
 
   const mainMenuRenderer = new MainMenuRenderer(
-    { container: mainMenuContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: mainMenuContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     mainMenu,
     { hasSavedRun: false },
   );
   const interLevelRenderer = new InterLevelRenderer(
-    { container: interLevelContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: interLevelContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     interLevelPanel,
   );
   const runResultRenderer = new RunResultRenderer(
-    { container: runResultContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: runResultContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     runResultPanel,
   );
 
   shopRenderer = new ShopRenderer(
-    { container: shopContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: shopContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     shopPanel,
   );
   mysticRenderer = new MysticRenderer(
-    { container: mysticContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: mysticContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     mysticPanel,
   );
   skillTreeRenderer = new SkillTreeRenderer(
-    { container: skillTreeContainer, viewportWidth: VIEWPORT_WIDTH, viewportHeight: VIEWPORT_HEIGHT },
+    { container: skillTreeContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     skillTreePanel,
   );
 
@@ -730,6 +764,21 @@ async function bootstrap(): Promise<void> {
     };
   }
 
+  function onWindowResize(): void {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    renderer.resize(vw, vh);
+    handPanel.resize(vw, vh);
+    mainMenuRenderer.resize(vw, vh);
+    interLevelRenderer.resize(vw, vh);
+    runResultRenderer.resize(vw, vh);
+    shopRenderer.resize(vw, vh);
+    mysticRenderer.resize(vw, vh);
+    skillTreeRenderer.resize(vw, vh);
+    presenter.resize(vw, vh);
+  }
+  window.addEventListener('resize', onWindowResize);
+
   let lastTime = performance.now();
   let prevPhase: typeof runController.phase = runController.phase;
   renderer.app.ticker.add(() => {
@@ -751,7 +800,7 @@ async function bootstrap(): Promise<void> {
         if (runStats.runEndMs === 0) runStats.runEndMs = now;
         runResultRenderer.refresh(buildRunResultState());
       } else if (phase === 'Idle') {
-        mainMenuRenderer.refresh({ hasSavedRun: false });
+        mainMenuRenderer.refresh({ hasSavedRun: SaveSystem.hasOngoingRun() });
       }
       prevPhase = phase;
     }

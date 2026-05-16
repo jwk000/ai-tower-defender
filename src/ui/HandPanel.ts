@@ -92,6 +92,11 @@ export class HandPanel {
     if (opts.viewportHeight) this.viewportHeight = opts.viewportHeight;
   }
 
+  resize(vw: number, vh: number): void {
+    this.viewportWidth = vw;
+    this.viewportHeight = vh;
+  }
+
   setHandler(handler: HandPanelHandler): void {
     this.handler = handler;
   }

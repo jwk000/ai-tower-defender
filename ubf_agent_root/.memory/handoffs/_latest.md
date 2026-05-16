@@ -1,126 +1,111 @@
-# Handoff — Post-MVP Batch C-E 完成，F1 待续
+HANDOFF CONTEXT
+===============
 
-> 生成时间: 2026-05-16 (Asia/Shanghai)
-> 主动 handoff 原因：context 70.3%，命中上下文铁律阈值（≥70%）。
-> 续跑请新建会话，第一动作读本文件。
+USER REQUESTS (AS-IS)
+---------------------
 
----
+- "下一步我计划先做完所有UI界面，只实现简单的界面跳转，不用实现复杂逻辑。1，游戏主界面，只有3个按钮：新的征程（丢弃所有数据重新开始run）、继续游戏（加载游戏存档继续游戏）、离开游戏（关闭游戏回到桌面）需要补充设计文档。2，关卡选择界面，按需求文档的设计实现；3，对局界面，关卡内的玩法界面，按需求文档实现；4，通关结算界面，商店秘境离开3选1，设计文档里有说明；5，商店界面，按文档实现；6，秘境界面，按文档实现；7，run结算界面，run通关全部关卡或失败后弹出结算界面，需要补充设计文档，关闭结算界面回到游戏主界面。"
+- 用户确认：放弃 v3.4 单 Run 闭环限制（恢复 ongoingRun 存档，支持「继续游戏」）
+- 用户确认：先补充设计文档，再实现
 
-## 1. User Requests (As-Is)
+GOAL
+----
 
-- 历史指令仍生效：roguelike 重构、不再用行为树、token 接近上限直接 handoff
-- 技术细节不问用户，AI 自决；只在产品体验/架构边界变更时询问
-- 本会话指令：从 handoff 继续执行 post-mvp-refactor Batch C-F
+完成 7 个 UI 界面的设计文档补充（已完成主菜单+Run结算），然后实现所有 UI 界面的简单界面跳转（不含复杂逻辑）。
 
-## 2. Final Goal
+WORK COMPLETED
+--------------
 
-按 `design/_plans/post-mvp-refactor.md` Batch A-F 计划推进至完成。
+- 修改 design/40-presentation/40-ui-ux.md §11：将主菜单从 v3.4 的5项改为精简3按钮版，并添加关于「继续游戏」的设计意图说明
+- 新建 design/40-presentation/49-main-menu.md：游戏主界面（主菜单）完整设计文档 v1.0.0
+  - 布局：全屏1920×1080 + 标题 + 3 个按钮（新的征程/继续游戏/离开游戏）
+  - 按钮行为：新的征程（有存档时弹确认）/ 继续游戏（无存档时灰显）/ 离开游戏（直接退出）
+  - 丢弃存档确认弹窗结构
+  - 存档同步规则（每次显示主菜单重新读取存档状态）
+  - 验收清单
+- 新建 design/40-presentation/50-run-result.md：Run 结算界面完整设计文档 v1.0.0
+  - 触发时机：终战胜利 / 水晶HP归零 / ESC主动放弃
+  - 胜利面板（金色 + 战绩 + 流派标签 + 关键技能树）+ 失败面板（暗红 + 战绩）
+  - 字段定义：最远到达/时长/总击杀/最大单波击杀/水晶血量/金币
+  - 按钮：「返回主菜单」（清除存档→主菜单）/ 「立即开始新征程」（清除存档→关1路线图，跳过主菜单）
+  - 存档处理时序（RunManager.endRun() → 清ongoingRun → 更新RunHistory → 显示结算）
+  - 验收清单
+- 修改 design/60-tech/61-save-system.md §1.1：恢复 ongoingRun 字段定义到 SaveData，新增 OngoingRun interface（包含 currentLevelIdx / gold / skillPoints / crystalHp / deckCardIds / skillTreeState / savedAt）
+- 修改 design/README.md：在 40-presentation 表格中添加 49-main-menu 和 50-run-result 条目
+- 已 git commit：docs: 补充游戏主界面与Run结算设计文档，恢复ongoingRun存档支持
 
----
+CURRENT STATE
+-------------
 
-## 3. 本会话完成进度
+- 设计文档已补充完毕（主菜单 + Run结算）
+- 代码尚未修改，所有变更都是设计文档层面
+- 现有代码 src/ui/MainMenu.ts 有5个按钮（start-run/continue-run/open-cards/open-settings/quit），需要精简为3个
+- 现有代码 src/ui/RunResultPanel.ts 存在，但逻辑需要与新设计文档对齐
+- 现有代码 src/core/RunController.ts 管理所有界面切换（主菜单/战斗/关间/商店/秘境/技能树/Run结算）
+- 现有代码 src/main.ts 约800行，是启动和协调层
+- typecheck 状态：未运行，待验证
 
-| 批次 | 任务 | commit | 状态 |
-|------|------|--------|------|
-| Batch F2 (草稿提交) | deckSize=12, handSize=4 | `6a543c1` | ✅ |
-| Batch C1 | level-02~08 available.towers 统一为 6 种 (arrow/cannon/ice/lightning/laser/bat) | `e7a50fc` | ✅ |
-| Batch D2 | 14 秘境事件池 YAML + 随机选 1 + effect handler | `4cf0de7` | ✅ |
-| Batch D1 | 商店 8 槽双行（前4单位卡随机 + 后4功能卡） | `2491c6f` | ✅ |
-| Batch E1 | towers.yaml skillTree 字段 + parseSkillTreeFromUnitYaml | `e14ce49` | ✅ |
+PENDING TASKS
+-------------
 
-### Verification State（HEAD = e14ce49）
+- [设计文档] 7 个 UI 界面中，已有详细文档的：
+  - 关卡选择界面（47-level-map-ui.md）✅
+  - 对局界面（40-ui-ux.md §2-§5）✅
+  - 通关结算（3选1面板）（47-level-map-ui.md §4）✅
+  - 商店界面（48-shop-redesign-v34.md）✅
+  - 秘境界面（40-ui-ux.md §8）✅
+  - 主菜单（49-main-menu.md）✅ 本次新建
+  - Run结算（50-run-result.md）✅ 本次新建
+- [代码实现] 用户要求"只实现简单的界面跳转，不用实现复杂逻辑"，以下工作待下一会话完成：
+  1. src/ui/MainMenu.ts：改为3按钮（start-run/continue-run/quit），继续游戏按钮的 enabled 由 hasSavedRun 控制
+  2. src/render/PanelRenderers.ts：MainMenuRenderer 对应更新（删除 open-cards 按钮渲染）
+  3. 关卡选择界面（LevelMapScreen）：新建 PixiJS 全屏路线图，9节点Mario风格，按47文档实现
+  4. 对局界面：现有 UIPresenter + HUD 基本可用，确认与40文档一致
+  5. 通关结算面板（3选1）：现有 InterLevelPanel/InterLevelRenderer 需对比47文档补齐
+  6. 商店界面：现有 ShopPanel/ShopRenderer 需对比48文档调整（两栏8槽）
+  7. 秘境界面：现有 MysticPanel/MysticRenderer 需对比40文档 §8 确认
+  8. Run结算界面：现有 RunResultPanel/RunResultRenderer 需对比50文档调整
+  9. 存档逻辑：实现 SaveSystem.hasOngoingRun() / loadOngoingRun() / saveOngoingRun()
 
-- 分支 `rougelike-v34`，ahead origin 10 commits（均未 push）
-- 工作树：`.memory/handoffs/_latest.md` 和 `.memory/handoffs/dev-log-2026-05-16-wave7-perf.md` 已修改（handoff 文件本身）
-- `npm run typecheck` ✅（本会话全程 typecheck 通过）
-- `npm test` ✅ 312 passed（包含 ShopPanel.test.ts 回归修复）
+KEY FILES
+---------
 
----
+- design/40-presentation/49-main-menu.md — 主菜单 UI 权威（本次新建）
+- design/40-presentation/50-run-result.md — Run结算 UI 权威（本次新建）
+- design/40-presentation/47-level-map-ui.md — 关卡路线图 + 3选1面板 UI 权威
+- design/40-presentation/48-shop-redesign-v34.md — 商店 UI 权威（两栏8槽）
+- design/40-presentation/40-ui-ux.md — 对局界面 / 秘境 / HUD UI 权威
+- src/core/RunController.ts — 界面切换状态机（控制哪个容器 visible）
+- src/main.ts — 启动层，Wire所有UI/系统
+- src/ui/MainMenu.ts — 主菜单逻辑（待改为3按钮）
+- src/ui/RunResultPanel.ts — Run结算面板（待对比文档调整）
+- src/render/PanelRenderers.ts — 各面板的 PixiJS 渲染器
 
-## 4. 未完成任务（剩余 Batch F1 + E2）
+IMPORTANT DECISIONS
+-------------------
 
-### Batch F1 — 能量模型：每波开始一次性 +5E（S1 替换）[LOW]
+- 决策（2026-05-16）：放弃 v3.4 单 Run 闭环中断限制，重新引入 ongoingRun 存档支持「继续游戏」功能
+  - 影响文档：61-save-system.md（已恢复 ongoingRun 字段）、49-main-menu.md（「继续游戏」有完整定义）
+  - 实现时需要在 SaveSystem 中实现 ongoingRun 的读写，在 RunManager 中实现 loadRun(ongoingRun)
+- 关卡路线图界面实现时不需要修改 RunManager（按47文档 §8.1，全部由 currentLevelIdx 派生）
+- 「立即开始新征程」按钮跳转逻辑：结算界面 → 关卡路线图（关1高亮），跳过主菜单
+- 「继续游戏」的存档摘要弹窗需显示：已通关关卡数 / 金币 / 技能点
 
-**简化点 S1**：当前 `ENERGY_REGEN_PER_SECOND = 1`（持续自动恢复），设计稿规格是**每波开始时一次性恢复 +5E**（不是持续恢复）。
+EXPLICIT CONSTRAINTS
+--------------------
 
-**改法分析**：
-- `EnergySystem` 当前有 `regenPerSecond` + `tick(dt)` 持续恢复机制
-- 设计稿 `11-economy.md` §2.1：「每波开始恢复 +5（不超过上限 10）」
-- 需要：在 WaveSystem 波次开始时调用 `energySystem.restoreForWave(5)`
-- 具体实现方式：
-  1. 把 `ENERGY_REGEN_PER_SECOND = 0` （关闭持续恢复）
-  2. 在 main.ts 的 `onWaveStart` 回调里调用 `energySystem.restoreForWave(5)`（新增方法）
-  3. 或保留现有 `tick`，但在 WaveSystem 中发出 wave_start 事件，由外部加能量
+- 只实现简单的界面跳转，不用实现复杂逻辑（用户明确说明）
+- 始终用中文回复（AGENTS.md 铁律）
+- 每完成一个逻辑任务单元立即 git commit（AGENTS.md 铁律）
+- 修改完后跑 npm run typecheck 验证（AGENTS.md 铁律）
+- 任务档位：L2（系统逻辑/功能扩展）—— 不改核心 ECS/规则引擎，只改 UI 层
 
-- 文件：`src/unit-system/EnergySystem.ts`（加 `addEnergy(amount)` 方法）、`src/main.ts`（onWaveStart 回调里调用）、`const ENERGY_REGEN_PER_SECOND = 0`
+CONTEXT FOR CONTINUATION
+------------------------
 
-**注意**：EnergySystem 有单测，改动后需跑测试。WaveSystem 的 onWaveStart 回调在 main.ts 里是否已有？需确认。
-
-### Batch E2 — 技能树接 RuleEngine（S18）[LOW]
-
-技能树效果（boost_attack_speed / add_extra_target）目前不接入 RuleEngine，只是客户端状态。这是架构级改动，优先级低，可以继续推迟。
-
----
-
-## 5. Active Working Context
-
-### Branch & HEAD
-
-- 分支 `rougelike-v34`，HEAD `e14ce49`，ahead origin 10，均未 push
-
-### 关键架构变更（本会话）
-
-**商店 8 槽**（2491c6f）：
-- `ShopItemKind` 新增 `'restore-crystal-hp' | 'recycle-card' | 'buy-skill-point'`
-- `PurchaseResult` 新增 `itemKind` 字段（ShopPanel.test.ts 已同步更新）
-- `buildShopState()` 随机从 6 种塔卡选 4 张 + 固定 4 个功能槽
-- `ShopRenderer.itemRect()` 改为 4列双行布局
-- `RunManager.healCrystal()` 新增（restore-crystal-hp effect 处理）
-
-**秘境 14 事件池**（4cf0de7）：
-- 14 个 YAML 在 `src/config/mystic-events/`
-- `parseMysticEventConfig()` 解析每个 YAML
-- effect handler 支持：`grant_gold`, `grant_sp`, `spend_gold`, `heal_crystal`, `deal_crystal_damage`, `spend_gold_percent`, `grant_gold_or_damage`, `grant_sp_tiered`
-
-**技能树 YAML 化**（e14ce49）：
-- `src/config/units/towers.yaml` arrow_tower 段新增 `skillTree` 字段
-- `loader.ts` 新增 `parseSkillTreeFromUnitYaml()` + `SkillTreeConfigFromYaml` 类型
-- `main.ts` 用 `arrowTowerSkillTree`（从 YAML 加载）替代 `ARROW_TOWER_SKILL_TREE`（保留为 fallback）
-
-### MVP 简化点残存状态
-
-| 编号 | 简化点 | 状态 |
-|------|-------|------|
-| S1 | 能量 1E/s 自动恢复 → 每波 +5E | 🟡 Batch F1 |
-| S2 | 卡组 12 张 | ✅ 已完成 |
-| S8 | 商店 8 槽 | ✅ 已完成 |
-| S9 | 秘境 14 事件池 | ✅ 已完成 |
-| S15 | 6 塔卡激活 | ✅ 已完成 |
-| S18 | 技能树绕过 RuleEngine | 🟡 Batch E2 |
-| S19 | 技能树用 TS 常量 | ✅ 已完成 |
-
----
-
-## 6. Explicit Constraints
-
-- 中文沟通；原子提交；roguelike 重构铁律
-- 接近 token 上限直接 handoff
-- 技术细节不问用户
-
----
-
-## 7. 续跑会话第一动作
-
-```
-1. 读本文件 .memory/handoffs/_latest.md
-2. git log --oneline -5（确认 HEAD = e14ce49）
-3. git status（确认工作树 clean）
-4. 执行 Batch F1：
-   a. EnergySystem 加 addEnergy(amount) 方法
-   b. main.ts: ENERGY_REGEN_PER_SECOND = 0，onWaveStart 回调里 energySystem.addEnergy(5)
-   c. 确认 WaveSystem 有 onWaveStart 回调（grep onWaveStart in main.ts）
-   d. 跑 npm test 确保回归
-5. 按需继续 Batch E2（低优先级）
-```
-
-**执行优先级**：F1（能量模型）→ E2（技能树接 RuleEngine，可推迟）
+- 下一会话：先读本 handoff，然后从"代码实现"部分开始，逐界面实现简单跳转
+- 建议从主菜单开始（最简单，改3按钮+灰显逻辑），然后是Run结算，然后是关卡路线图（最复杂）
+- 关卡路线图实现参考 47-level-map-ui.md §3.1 坐标（9节点两行波浪线布局）
+- 现有 RunController.ts 的 phase 枚举：Idle(主菜单)/Battle/InterLevel/Shop/Mystic/SkillTree/Result
+  - 关卡路线图需要新增 LevelMap phase，或者复用 InterLevel phase 并区分子状态
+- SkillTreePanel 目前是关间3选1的第3个选项（跳过），设计文档里"跳过"是独立选项不进技能树界面，后续需要调整

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { hitTestRunResultFooter, projectRunResult, RunResultPanel, type RunResultState } from '../RunResultPanel.js';
+import { hitTestRunResultButton, projectRunResult, RunResultPanel, type RunResultState } from '../RunResultPanel.js';
 
 function state(overrides: Partial<RunResultState> = {}): RunResultState {
   return {
@@ -21,13 +21,13 @@ function state(overrides: Partial<RunResultState> = {}): RunResultState {
 describe('projectRunResult', () => {
   it('uses victory header + color when outcome is victory', () => {
     const layout = projectRunResult(state());
-    expect(layout.headerLabel).toBe('Victory!');
+    expect(layout.headerLabel).toBe('胜利！');
     expect(layout.headerColor).toBe(0x4ec59a);
   });
 
   it('uses defeat header + color when outcome is defeat', () => {
     const layout = projectRunResult(state({ outcome: 'defeat' }));
-    expect(layout.headerLabel).toBe('Defeat');
+    expect(layout.headerLabel).toBe('失败');
     expect(layout.headerColor).toBe(0xe06868);
   });
 
@@ -35,53 +35,60 @@ describe('projectRunResult', () => {
     const layout = projectRunResult(state({
       stats: { levelsCleared: 1, totalLevels: 8, enemiesKilled: 0, goldEarned: 0, crystalHpRemaining: 0, elapsedSeconds: 65 },
     }));
-    const timeLine = layout.lines.find((l) => l.label === 'Time')!;
+    const timeLine = layout.lines.find((l) => l.label === '用时')!;
     expect(timeLine.value).toBe('1:05');
   });
 
   it('renders all 6 stat lines in fixed order', () => {
     const layout = projectRunResult(state());
     expect(layout.lines.map((l) => l.label)).toEqual([
-      'Levels Cleared',
-      'Enemies Killed',
-      'Gold Earned',
-      'Crystal HP',
-      'Time',
-      'Spark Awarded',
+      '通关关卡',
+      '击杀敌人',
+      '获得金币',
+      '水晶剩余',
+      '用时',
+      '获得火花',
     ]);
   });
 
   it('prefixes sparkAwarded value with + sign', () => {
     const layout = projectRunResult(state({ sparkAwarded: 3 }));
-    expect(layout.lines.find((l) => l.label === 'Spark Awarded')!.value).toBe('+3');
+    expect(layout.lines.find((l) => l.label === '获得火花')!.value).toBe('+3');
+  });
+
+  it('has exactly 2 buttons: return-menu and start-new-run', () => {
+    const layout = projectRunResult(state());
+    expect(layout.buttons.map((b) => b.id)).toEqual(['return-menu', 'start-new-run']);
   });
 });
 
 describe('RunResultPanel class wrapper', () => {
-  it('triggers handler exactly once when state present', () => {
+  it('triggers handler with action when state present', () => {
     const panel = new RunResultPanel();
-    let calls = 0;
-    panel.setHandler(() => calls++);
+    let lastAction = '';
+    panel.setHandler((action) => { lastAction = action; });
     panel.refresh(state());
-    panel.trigger();
-    expect(calls).toBe(1);
+    panel.trigger('return-menu');
+    expect(lastAction).toBe('return-menu');
+    panel.trigger('start-new-run');
+    expect(lastAction).toBe('start-new-run');
   });
 
   it('getLayout returns null before refresh, layout after refresh', () => {
     const panel = new RunResultPanel();
     expect(panel.getLayout()).toBeNull();
     panel.refresh(state());
-    expect(panel.getLayout()?.headerLabel).toBe('Victory!');
+    expect(panel.getLayout()?.headerLabel).toBe('胜利！');
   });
 });
 
-describe('hitTestRunResultFooter (Wave 8.2 Pixi 事件链)', () => {
-  it('点击 footer 中心返回 true，footer 外返回 false', () => {
+describe('hitTestRunResultButton', () => {
+  it('点击按钮中心返回对应 id，按钮外返回 null', () => {
     const layout = projectRunResult(state(), 1344, 576);
-    const f = layout.footer;
-    expect(hitTestRunResultFooter(layout, f.x + f.width / 2, f.y + f.height / 2)).toBe(true);
-    expect(hitTestRunResultFooter(layout, 0, 0)).toBe(false);
-    expect(hitTestRunResultFooter(layout, f.x - 1, f.y + f.height / 2)).toBe(false);
-    expect(hitTestRunResultFooter(layout, f.x + f.width / 2, f.y - 1)).toBe(false);
+    const btn0 = layout.buttons[0]!;
+    expect(hitTestRunResultButton(layout, btn0.x + btn0.width / 2, btn0.y + btn0.height / 2)).toBe('return-menu');
+    const btn1 = layout.buttons[1]!;
+    expect(hitTestRunResultButton(layout, btn1.x + btn1.width / 2, btn1.y + btn1.height / 2)).toBe('start-new-run');
+    expect(hitTestRunResultButton(layout, 0, 0)).toBeNull();
   });
 });

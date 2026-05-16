@@ -1,4 +1,4 @@
-export type MainMenuAction = 'start-run' | 'continue-run' | 'open-cards' | 'open-settings' | 'quit';
+export type MainMenuAction = 'start-run' | 'continue-run' | 'quit';
 
 export interface MainMenuState {
   readonly hasSavedRun: boolean;
@@ -12,11 +12,9 @@ export interface MainMenuButton {
 
 export function buildMainMenu(state: MainMenuState): readonly MainMenuButton[] {
   return [
-    { action: 'start-run', label: 'New Run', enabled: true },
-    { action: 'continue-run', label: 'Continue', enabled: state.hasSavedRun },
-    { action: 'open-cards', label: 'Card Pool', enabled: true },
-    { action: 'open-settings', label: 'Settings', enabled: true },
-    { action: 'quit', label: 'Quit', enabled: true },
+    { action: 'start-run', label: '新的征程', enabled: true },
+    { action: 'continue-run', label: '继续游戏', enabled: state.hasSavedRun },
+    { action: 'quit', label: '离开游戏', enabled: true },
   ];
 }
 
