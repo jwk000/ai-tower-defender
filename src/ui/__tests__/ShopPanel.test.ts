@@ -18,13 +18,13 @@ function state(overrides: Partial<ShopState> = {}): ShopState {
 describe('attemptPurchase', () => {
   it('buys a unit card: deducts gold, grants card, leaves sp unchanged', () => {
     expect(attemptPurchase(state(), 'card_arrow')).toEqual({
-      kind: 'success', newGold: 50, newSp: 5, grantsCardId: 'arrow_tower', itemId: 'card_arrow',
+      kind: 'success', newGold: 50, newSp: 5, grantsCardId: 'arrow_tower', itemKind: 'unit-card', itemId: 'card_arrow',
     });
   });
 
   it('redeems sp pack: deducts gold, grants sp, no card', () => {
     expect(attemptPurchase(state(), 'sp_pack')).toEqual({
-      kind: 'success', newGold: 70, newSp: 7, grantsCardId: undefined, itemId: 'sp_pack',
+      kind: 'success', newGold: 70, newSp: 7, grantsCardId: undefined, itemKind: 'sp-exchange', itemId: 'sp_pack',
     });
   });
 

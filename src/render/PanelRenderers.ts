@@ -343,13 +343,17 @@ export class ShopRenderer {
   }
 
   private itemRect(index: number) {
-    const itemW = 280;
-    const itemH = 140;
-    const gap = 40;
-    const count = this.state?.items.length ?? 0;
-    const totalW = count * itemW + Math.max(0, count - 1) * gap;
+    const itemW = 240;
+    const itemH = 120;
+    const colGap = 16;
+    const rowGap = 20;
+    const cols = 4;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const totalW = cols * itemW + (cols - 1) * colGap;
     const startX = (this.viewportWidth - totalW) / 2;
-    return { x: startX + index * (itemW + gap), y: (this.viewportHeight - itemH) / 2, w: itemW, h: itemH };
+    const startY = 150;
+    return { x: startX + col * (itemW + colGap), y: startY + row * (itemH + rowGap), w: itemW, h: itemH };
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {

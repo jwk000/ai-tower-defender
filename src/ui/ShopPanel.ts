@@ -1,5 +1,4 @@
-// MVP-SIMPLIFICATION: Shop 仅 2 槽（grunt_card 30G + sp-exchange 50G→1SP），完整商店见 design/50-mda/50-mda.md §13
-export type ShopItemKind = 'unit-card' | 'sp-exchange';
+export type ShopItemKind = 'unit-card' | 'sp-exchange' | 'restore-crystal-hp' | 'recycle-card' | 'buy-skill-point';
 
 export interface ShopItem {
   readonly id: string;
@@ -8,6 +7,7 @@ export interface ShopItem {
   readonly costGold: number;
   readonly grantsSP?: number;
   readonly grantsCardId?: string;
+  readonly healCrystalPercent?: number;
   readonly stock: number;
 }
 
@@ -18,7 +18,7 @@ export interface ShopState {
 }
 
 export type PurchaseResult =
-  | { readonly kind: 'success'; readonly newGold: number; readonly newSp: number; readonly grantsCardId?: string; readonly itemId: string }
+  | { readonly kind: 'success'; readonly newGold: number; readonly newSp: number; readonly grantsCardId?: string; readonly itemKind: ShopItemKind; readonly itemId: string }
   | { readonly kind: 'rejected'; readonly reason: 'no-such-item' | 'out-of-stock' | 'insufficient-gold' };
 
 export function attemptPurchase(state: ShopState, itemId: string): PurchaseResult {
@@ -31,6 +31,7 @@ export function attemptPurchase(state: ShopState, itemId: string): PurchaseResul
     newGold: state.gold - item.costGold,
     newSp: state.sp + (item.grantsSP ?? 0),
     grantsCardId: item.grantsCardId,
+    itemKind: item.kind,
     itemId,
   };
 }

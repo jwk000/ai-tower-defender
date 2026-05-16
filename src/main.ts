@@ -462,15 +462,35 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  // MVP-SIMPLIFICATION: 商店固定 2 槽（grunt_card 30G + sp-exchange 50G→1SP），完整随机商店见 design/50-mda
+  const SHOP_UNIT_CARDS = [
+    { id: 'arrow_tower_card', label: '箭塔卡', costGold: 30 },
+    { id: 'cannon_tower_card', label: '炮塔卡', costGold: 60 },
+    { id: 'ice_tower_card', label: '冰塔卡', costGold: 60 },
+    { id: 'lightning_tower_card', label: '电塔卡', costGold: 120 },
+    { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
+    { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },
+  ];
+
   function buildShopState(): ShopState {
+    const shuffled = [...SHOP_UNIT_CARDS].sort(() => Math.random() - 0.5);
+    const unitSlots = shuffled.slice(0, 4).map((c) => ({
+      id: c.id,
+      kind: 'unit-card' as const,
+      label: c.label,
+      costGold: c.costGold,
+      grantsCardId: c.id,
+      stock: 1,
+    }));
+    const funcSlots = [
+      { id: 'restore_crystal', kind: 'restore-crystal-hp' as const, label: '水晶恢复 (50%)', costGold: 100, stock: 1 },
+      { id: 'recycle_card', kind: 'recycle-card' as const, label: '卡牌回收', costGold: 50, stock: 1 },
+      { id: 'buy_sp', kind: 'buy-skill-point' as const, label: '技能点 ×1', costGold: 80, grantsSP: 1, stock: 3 },
+      { id: 'sp_exchange', kind: 'sp-exchange' as const, label: 'SP 兑换 (50G→1SP)', costGold: 50, grantsSP: 1, stock: 3 },
+    ];
     return {
       gold: runManager.gold,
       sp: runManager.sp,
-      items: [
-        { id: 'grunt_card', kind: 'unit-card', label: 'Grunt Card', costGold: 30, grantsCardId: 'grunt_card', stock: 2 },
-        { id: 'sp_exchange', kind: 'sp-exchange', label: 'SP Exchange (50G→1SP)', costGold: 50, grantsSP: 1, stock: 3 },
-      ],
+      items: [...unitSlots, ...funcSlots],
     };
   }
 
@@ -482,6 +502,10 @@ async function bootstrap(): Promise<void> {
         if (goldCost > 0) runManager.spendGold(goldCost);
         const spGain = intent.result.newSp - runManager.sp;
         if (spGain > 0) runManager.grantSp(spGain);
+        if (intent.result.itemKind === 'restore-crystal-hp') {
+          const toRecover = Math.floor((runManager.crystalHpMax - runManager.crystalHp) * 0.5);
+          if (toRecover > 0) runManager.healCrystal(toRecover);
+        }
         shopRenderer.refresh(buildShopState());
       }
     } else if (intent.kind === 'close') {
