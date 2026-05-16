@@ -904,7 +904,7 @@ private aggroTable: Map<number, { targetId: number; expireTime: number; totalDam
 
 | v3.0/v3.1 关键变更 | 本文档影响 | 当前状态 |
 |---|---|---|
-| 三资源（能量/金币/碎片）替换金币/人口/能量 | §12 已加 v3.1 TODO 标记：旧版关内金币升级机制已废弃 | 🔶 |
+| 三资源（能量/金币/技能点）v3.4 轴 | §12 已加 v3.1 TODO 标记：旧版关内金币升级机制已废弃 | 🔶 |
 | 工具栏部署 → 手牌区出卡 | §12 已加 v3.1 TODO：士兵从工具栏部署改为手牌区拖卡 | 🔶 |
 | 塔升级 L1-L5 → 关外科技树 | §12 已加 v3.1 TODO：士兵 path 科技树设计延后，等塔科技树（[60-tech/22-tower-tech-tree.md](../20-units/22-tower-tech-tree.md)）落地后参照重设计 | 🔶 |
 | 毒藤塔/弩炮塔废弃 | 无相关条目 | ✅ |

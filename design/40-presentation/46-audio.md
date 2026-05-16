@@ -398,7 +398,7 @@ cross-refs:
 
 ## 十五、v3.0 卡牌与 Roguelike 系统音效（追加）
 
-> 根据 [25-card-roguelike-refactor](../10-gameplay/10-roguelike-loop.md) 方案，v3.0 新增卡牌系统、关间节点、商店、秘境、火花碎片等界面，需补充对应音效。
+> 根据 [25-card-roguelike-refactor](../10-gameplay/10-roguelike-loop.md) 方案，v3.0 新增卡牌系统、关间节点、商店、秘境等界面，需补充对应音效。
 >
 > 本节追加 **18 个 v3.0 新 SfxKey**，与现有 39 个并列，总计 **57 个 SfxKey**。
 
@@ -447,14 +447,15 @@ cross-refs:
 | `mystic_choice_bad` | 触发负向效果（-卡/-HP） | 下沉不祥音 + 心跳 | 高 |
 | `mystic_event_close` | 事件关闭 | 帷幕落下 + 风声 | 低 |
 
-### 15.6 火花碎片与 meta 音效（4 个）
+### 15.6 ~~火花碎片与 meta 音效~~（v3.4 已废弃）
+
+> 🛑 **v3.4 删除**：`shard_earn` / `card_unlock`（卡池解锁）/ `card_upgrade_meta` / `permanent_upgrade` 共 4 个 SfxKey 随火花碎片机制整体废弃。v3.4 所有卡开局即解锁，无 meta 音效。
+
+### 15.6a 技能点 SP 音效（1 个，v3.4 新增）
 
 | SfxKey | 触发时机 | 风格 | 优先级 |
 |--------|---------|------|--------|
-| `shard_earn` | Run 结束发放碎片 | 钻石撞击 + 多层叮叮 | 高 |
-| `card_unlock` | 卡池解锁新卡 | 高扬胜利和弦 + 解锁"咔嚓" | 极高 |
-| `card_upgrade_meta` | 卡池升级卡片成功 | 能量注入 + 上扬铃声 | 高 |
-| `permanent_upgrade` | 永久升级解锁 | 庄严升级和弦 + 长尾混响 | 高 |
+| `sp_gain` | 获得技能点（关卡通关/秘境奖励） | 轻盈上扬音 + 水晶清鸣 | 中 |
 
 ### 15.6a 水晶机制音效（3 个，v3.0 新增）
 
@@ -477,7 +478,7 @@ cross-refs:
 | 关间节点 | 3 |
 | 商店 | 3 |
 | 秘境事件 | 4 |
-| 火花碎片与 meta | 4 |
+| ~~火花碎片与 meta~~ | ~~4~~ → v3.4 废弃，改为 SP 音效 1 个 |
 | 水晶机制 | 3 |
 | **合计新增** | **27** |
 | **+ v1.1 现有** | **39** |

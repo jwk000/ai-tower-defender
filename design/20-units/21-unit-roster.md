@@ -173,7 +173,7 @@ cross-refs:
 | `path.nodes[]` | array | 路径节点（线性解锁顺序） |
 | `node.id` | string | 节点主键（如 `arrow_double`） |
 | `node.name` | string | 节点形态名（如「双重箭塔」），关内塔实际显示 |
-| `node.shardCost` | int | 解锁该节点的火花碎片成本（数值在 21-MDA） |
+| `node.spCost` | int | 解锁该节点的技能点 SP 成本（数值在 50-mda §17） |
 | `node.effects[]` | array | 该节点新增/覆盖的能力，引用 RuleHandler |
 
 ---
@@ -564,7 +564,7 @@ interface StructureLevel {
 | Legendary | 5 | 战略塔 + 终极法术 |
 | **总计** | **43** | 满足"开局抽 12 张"的足够多样性 + 三类新单位扩容 |
 
-> 开服默认解锁 6-8 张 Common 卡（详见 [13-save-system §1.2 默认初始状态](../60-tech/61-save-system.md)），其余通过火花碎片解锁。
+> v3.4：**所有 43 张卡开局即解锁**（详见 [10-roguelike-loop §11 不变式 v3.4-INV-04](../10-gameplay/10-roguelike-loop.md)）。
 
 ### 7.4 卡牌配置统一格式
 
