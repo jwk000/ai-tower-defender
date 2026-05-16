@@ -77,6 +77,12 @@ export class RunController {
 
   enterBattle(): void {
     this.runManager.enterBattle();
+    this.notifyLevelStart();
+    this.syncSceneVisibility();
+  }
+
+  returnToLevelMap(): void {
+    this.runManager.returnToLevelMap();
     this.syncSceneVisibility();
   }
 
@@ -95,19 +101,16 @@ export class RunController {
 
   closeShop(): void {
     this.runManager.closeShop();
-    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 
   closeMystic(): void {
     this.runManager.closeMystic();
-    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 
   closeSkillTree(): void {
     this.runManager.closeSkillTree();
-    this.notifyLevelStart();
     this.syncSceneVisibility();
   }
 

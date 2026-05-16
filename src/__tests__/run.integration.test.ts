@@ -350,13 +350,18 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
 
     controller.closeShop();
 
-    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
     expect(runManager.crystalHp).toBe(14);
+    expect(onLevelStart).toHaveBeenCalledTimes(0);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.shop.visible).toBe(false);
+
+    controller.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
     expect(onLevelStart).toHaveBeenCalledTimes(1);
     expect(onLevelStart).toHaveBeenCalledWith(2);
     expect(scenes.battle.visible).toBe(true);
-    expect(scenes.shop.visible).toBe(false);
   });
 });
 
@@ -840,9 +845,13 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(runManager.gold).toBe(goldBefore - 30);
 
     shopPanel.triggerClose();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(runManager.currentLevel).toBe(2);
+
+    controller.enterBattle();
     expect(runManager.phase).toBe(RunPhase.Battle);
     expect(scenes.battle.visible).toBe(true);
-    expect(runManager.currentLevel).toBe(2);
   });
 
   it('mystic: 选 mystic → 进 Mystic 相位 → 选事件 → gold 增加 → closeMystic → Battle', () => {
@@ -884,8 +893,11 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const goldBefore = runManager.gold;
     mysticPanel.triggerChoice('take_gold');
     expect(runManager.gold).toBe(goldBefore + 10);
-    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
+
+    controller.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
   });
 
   it('skilltree: 选 skilltree → 进 SkillTree 相位 → 解锁节点 → sp 减少 → closeSkillTree → Battle', () => {
@@ -922,7 +934,32 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(runManager.hasSkillNode(nodeId)).toBe(true);
 
     skillTreePanel.triggerExit();
-    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
+
+    controller.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
+  });
+
+  it('skip: 选 skip → InterLevel 直接回 LevelMap → level++', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 2, initialGold: 100 });
+    const scenes = makeScenes();
+    const controller = new RunController({ game, runManager, scenes });
+
+    controller.startRun();
+    controller.enterBattle();
+    runManager.completeLevel();
+    expect(runManager.phase).toBe(RunPhase.InterLevel);
+
+    controller.returnToLevelMap();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(2);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.interLevel.visible).toBe(false);
+
+    controller.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(scenes.battle.visible).toBe(true);
   });
 });

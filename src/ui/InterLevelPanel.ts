@@ -1,4 +1,4 @@
-export type InterLevelNodeKind = 'shop' | 'mystic' | 'skilltree';
+export type InterLevelNodeKind = 'shop' | 'mystic' | 'skilltree' | 'skip';
 
 export interface InterLevelOffer {
   readonly id: string;
@@ -13,12 +13,14 @@ export interface InterLevelState {
 }
 
 export type InterLevelIntent =
-  | { readonly kind: 'enter-node'; readonly offerId: string; readonly node: InterLevelNodeKind }
+  | { readonly kind: 'enter-node'; readonly offerId: string; readonly node: Exclude<InterLevelNodeKind, 'skip'> }
+  | { readonly kind: 'skip' }
   | { readonly kind: 'invalid'; readonly reason: 'no-such-offer' };
 
 export function resolveInterLevelChoice(state: InterLevelState, offerId: string): InterLevelIntent {
   const offer = state.offers.find((o) => o.id === offerId);
   if (!offer) return { kind: 'invalid', reason: 'no-such-offer' };
+  if (offer.kind === 'skip') return { kind: 'skip' };
   return { kind: 'enter-node', offerId, node: offer.kind };
 }
 

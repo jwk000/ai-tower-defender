@@ -513,6 +513,11 @@ async function bootstrap(): Promise<void> {
 
   const interLevelPanel = new InterLevelPanel();
   interLevelPanel.setHandler((intent: InterLevelIntent) => {
+    if (intent.kind === 'skip') {
+      // 跳过：直接回路线图，level++ 由 returnToLevelMap() 内部完成
+      runController.returnToLevelMap();
+      return;
+    }
     if (intent.kind !== 'enter-node') return;
     runController.pickInterLevel(intent.node);
     if (intent.node === 'shop') {
@@ -772,7 +777,7 @@ async function bootstrap(): Promise<void> {
     return [
       { id: 'shop-offer', kind: 'shop', title: '商店', description: pick(SHOP_DESCS) },
       { id: 'mystic-offer', kind: 'mystic', title: '神秘事件', description: pick(MYSTIC_DESCS) },
-      { id: 'skilltree-offer', kind: 'skilltree', title: '跳过', description: pick(SKILLTREE_DESCS) },
+      { id: 'skip-offer', kind: 'skip', title: '跳过', description: pick(SKILLTREE_DESCS) },
     ];
   }
 

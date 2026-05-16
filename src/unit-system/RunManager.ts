@@ -37,9 +37,10 @@ export interface RunManagerConfig {
  *   InterLevel → pickInterLevelChoice('shop')      → Shop      (level 不动)
  *   InterLevel → pickInterLevelChoice('mystic')    → Mystic    (level 不动)
  *   InterLevel → pickInterLevelChoice('skilltree') → SkillTree (level 不动)
- *   Shop      → closeShop()      → Battle (level++)
- *   Mystic    → closeMystic()    → Battle (level++)
- *   SkillTree → closeSkillTree() → Battle (level++)
+ *   Shop      → closeShop()      → LevelMap (level++)
+ *   Mystic    → closeMystic()    → LevelMap (level++)
+ *   SkillTree → closeSkillTree() → LevelMap (level++)
+ *   InterLevel → returnToLevelMap() → LevelMap (level++，跳过选项)
  *   Result → resetToIdle() → Idle (清零 level/outcome，但保留累计统计)
  *
  * Run 级持久资源（v3.4 三资源轴中的金币 + SP；能量是单关瞬时，归 Game/LevelState）：
@@ -179,6 +180,7 @@ export class RunManager {
     if (this._phase !== RunPhase.InterLevel) {
       throw new Error(`[RunManager] illegal transition: returnToLevelMap from ${this._phase}`);
     }
+    this._currentLevel += 1;
     this._phase = RunPhase.LevelMap;
   }
 
@@ -210,24 +212,24 @@ export class RunManager {
     if (this._phase !== RunPhase.Shop) {
       throw new Error(`[RunManager] illegal transition: closeShop from ${this._phase}`);
     }
-    this._phase = RunPhase.Battle;
     this._currentLevel += 1;
+    this._phase = RunPhase.LevelMap;
   }
 
   closeMystic(): void {
     if (this._phase !== RunPhase.Mystic) {
       throw new Error(`[RunManager] illegal transition: closeMystic from ${this._phase}`);
     }
-    this._phase = RunPhase.Battle;
     this._currentLevel += 1;
+    this._phase = RunPhase.LevelMap;
   }
 
   closeSkillTree(): void {
     if (this._phase !== RunPhase.SkillTree) {
       throw new Error(`[RunManager] illegal transition: closeSkillTree from ${this._phase}`);
     }
-    this._phase = RunPhase.Battle;
     this._currentLevel += 1;
+    this._phase = RunPhase.LevelMap;
   }
 
   failRun(): void {

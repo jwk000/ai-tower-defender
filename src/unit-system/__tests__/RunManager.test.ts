@@ -81,37 +81,54 @@ describe('RunManager state machine', () => {
     expect(run.currentLevel).toBe(1);
   });
 
-  it('closeShop transitions Shop -> Battle and advances level', () => {
+  it('closeShop transitions Shop -> LevelMap and advances level', () => {
     const run = makeManager(3);
     run.startRun();
     run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('shop');
     run.closeShop();
-    expect(run.phase).toBe(RunPhase.Battle);
+    expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(2);
   });
 
-  it('closeMystic transitions Mystic -> Battle and advances level', () => {
+  it('closeMystic transitions Mystic -> LevelMap and advances level', () => {
     const run = makeManager(3);
     run.startRun();
     run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('mystic');
     run.closeMystic();
-    expect(run.phase).toBe(RunPhase.Battle);
+    expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(2);
   });
 
-  it('closeSkillTree transitions SkillTree -> Battle and advances level', () => {
+  it('closeSkillTree transitions SkillTree -> LevelMap and advances level', () => {
     const run = makeManager(3);
     run.startRun();
     run.enterBattle();
     run.completeLevel();
     run.pickInterLevelChoice('skilltree');
     run.closeSkillTree();
-    expect(run.phase).toBe(RunPhase.Battle);
+    expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(2);
+  });
+
+  it('returnToLevelMap transitions InterLevel -> LevelMap and advances level (skip path)', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    expect(run.phase).toBe(RunPhase.InterLevel);
+    run.returnToLevelMap();
+    expect(run.phase).toBe(RunPhase.LevelMap);
+    expect(run.currentLevel).toBe(2);
+  });
+
+  it('rejects returnToLevelMap when not in InterLevel', () => {
+    const run = makeManager(3);
+    run.startRun();
+    expect(() => run.returnToLevelMap()).toThrow(/illegal transition/i);
   });
 
   it('rejects closeShop when not in Shop', () => {
