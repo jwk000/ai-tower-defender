@@ -53,6 +53,15 @@ export class DeckSystem {
     this.buildDeck();
   }
 
+  snapshot(): { drawPile: string[]; discardPile: string[] } {
+    return { drawPile: [...this.drawPile], discardPile: [...this.discardPile] };
+  }
+
+  restoreFrom(snap: { drawPile: string[]; discardPile: string[] }): void {
+    this.drawPile = [...snap.drawPile];
+    this.discardPile = [...snap.discardPile];
+  }
+
   private buildDeck(): void {
     this.drawPile = [];
     for (let i = 0; i < this.deckSize; i += 1) {

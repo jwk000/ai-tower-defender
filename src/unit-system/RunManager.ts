@@ -1,3 +1,6 @@
+import type { RunSnapshot } from '../core/SaveSystem.js';
+import type { DeckSystem } from './DeckSystem.js';
+
 export const RunPhase = {
   Idle: 'Idle',
   LevelMap: 'LevelMap',
@@ -248,11 +251,36 @@ export class RunManager {
     this._phase = RunPhase.Idle;
     this._currentLevel = 0;
     this._outcome = null;
-    // Run 级资源清零（v3.4 单 Run 闭环：死亡无回报）
     this._gold = 0;
     this._sp = 0;
     this._crystalHp = 0;
     this._crystalHpMax = 0;
     this._skillTreeState = new Set();
+  }
+
+  snapshot(deckSystem: DeckSystem): RunSnapshot {
+    return {
+      version: 1,
+      savedAt: Date.now(),
+      phase: 'LevelMap',
+      currentLevelIdx: this._currentLevel,
+      gold: this._gold,
+      skillPoints: this._sp,
+      crystalHp: this._crystalHp,
+      crystalHpMax: this._crystalHpMax,
+      skillTreeUnlocked: [...this._skillTreeState],
+      deck: deckSystem.snapshot(),
+    };
+  }
+
+  restoreFrom(snap: RunSnapshot): void {
+    this._phase = RunPhase.LevelMap;
+    this._currentLevel = snap.currentLevelIdx;
+    this._outcome = null;
+    this._gold = snap.gold;
+    this._sp = snap.skillPoints;
+    this._crystalHp = snap.crystalHp;
+    this._crystalHpMax = snap.crystalHpMax;
+    this._skillTreeState = new Set(snap.skillTreeUnlocked);
   }
 }

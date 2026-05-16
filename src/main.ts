@@ -426,6 +426,7 @@ async function bootstrap(): Promise<void> {
     },
     waveSystem,
     levelState,
+    deckSystem,
     onLevelStart: (levelNumber: number) => {
       loadLevel(levelNumber);
       waveSystem.start();
@@ -455,7 +456,7 @@ async function bootstrap(): Promise<void> {
   });
 
   function startNewRun(): void {
-    SaveSystem.clearOngoingRun();
+    SaveSystem.clearRun();
     runController.startRun();
     loadLevel(1);
     runStats.enemiesKilled = 0;
@@ -471,18 +472,19 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  const mainMenu = new MainMenu({ hasSavedRun: SaveSystem.hasOngoingRun() });
+  const mainMenu = new MainMenu({ hasSavedRun: SaveSystem.hasSavedRun() });
   mainMenu.setHandler((action: MainMenuAction) => {
     if (action === 'start-run') {
       startNewRun();
     } else if (action === 'continue-run') {
-      const saved = SaveSystem.loadOngoingRun();
-      if (!saved) return;
-      runController.startRun();
-      loadLevel(saved.currentLevelIdx);
+      const snap = SaveSystem.loadRun();
+      if (!snap) return;
+      loadLevel(snap.currentLevelIdx);
+      deckSystem.restoreFrom(snap.deck);
+      runController.loadProgress();
       runStats.enemiesKilled = 0;
       runStats.goldEarned = 0;
-      runStats.runStartMs = performance.now() - (Date.now() - saved.savedAt);
+      runStats.runStartMs = performance.now() - (Date.now() - snap.savedAt);
       runStats.runEndMs = 0;
       levelMapRenderer.refresh({
         totalLevels: TOTAL_RUN_LEVELS,
@@ -531,8 +533,8 @@ async function bootstrap(): Promise<void> {
   const interLevelPanel = new InterLevelPanel();
   interLevelPanel.setHandler((intent: InterLevelIntent) => {
     if (intent.kind === 'skip') {
-      // 跳过：直接回路线图，level++ 由 returnToLevelMap() 内部完成
       runController.returnToLevelMap();
+      runController.saveProgress();
       return;
     }
     if (intent.kind !== 'enter-node') return;
@@ -594,6 +596,7 @@ async function bootstrap(): Promise<void> {
       }
     } else if (intent.kind === 'close') {
       runController.closeShop();
+      runController.saveProgress();
     }
   });
 
@@ -629,8 +632,10 @@ async function bootstrap(): Promise<void> {
         }
       }
       runController.closeMystic();
+      runController.saveProgress();
     } else if (intent.kind === 'exit') {
       runController.closeMystic();
+      runController.saveProgress();
     }
   });
 
@@ -677,6 +682,7 @@ async function bootstrap(): Promise<void> {
       }
     } else if (intent.kind === 'exit') {
       runController.closeSkillTree();
+      runController.saveProgress();
     }
   });
 
@@ -685,7 +691,7 @@ async function bootstrap(): Promise<void> {
     viewportHeight: window.innerHeight,
   });
   runResultPanel.setHandler((action) => {
-    SaveSystem.clearOngoingRun();
+    SaveSystem.clearRun();
     if (action === 'return-menu') {
       runController.returnToMainMenu();
     } else if (action === 'start-new-run') {
@@ -703,18 +709,9 @@ async function bootstrap(): Promise<void> {
   const levelMapPanel = new LevelMapPanel();
   levelMapPanel.setHandler((action) => {
     if (action === 'challenge') {
+      if (runStats.runStartMs === 0) runStats.runStartMs = performance.now();
       runController.enterBattle();
       waveSystem.start();
-      if (runStats.runStartMs === 0) {
-        runStats.runStartMs = performance.now();
-        SaveSystem.saveOngoingRun({
-          currentLevelIdx: runManager.currentLevel,
-          gold: runManager.gold,
-          skillPoints: runManager.sp,
-          crystalHp: runManager.crystalHp,
-          savedAt: Date.now(),
-        });
-      }
     } else if (action === 'view-deck') {
       deckViewRenderer.refresh({ cardIds: deckSystem.previewDrawPile() });
       deckViewContainer.visible = true;
@@ -877,7 +874,7 @@ async function bootstrap(): Promise<void> {
         if (runStats.runEndMs === 0) runStats.runEndMs = now;
         runResultRenderer.refresh(buildRunResultState());
       } else if (phase === 'Idle') {
-        mainMenuRenderer.refresh({ hasSavedRun: SaveSystem.hasOngoingRun() });
+        mainMenuRenderer.refresh({ hasSavedRun: SaveSystem.hasSavedRun() });
       }
       prevPhase = phase;
     }

@@ -1,8 +1,8 @@
 ---
 title: 存档系统
 status: stable
-version: 3.0.0
-last-modified: 2026-05-15
+version: 3.1.0
+last-modified: 2026-05-16
 authority-for:
   - save-format-v3
   - persistence-spec-v3
@@ -424,9 +424,86 @@ function load(): SaveData | null {
 
 ---
 
+---
+
+## 13. Run 进度快照（v3.1.0 新增）
+
+> v3.0.0 「单 Run 不可中断保存」约束已被产品需求推翻。本节描述重新引入的 Run 进度存档机制。
+> 与 v3.0.0 核心哲学（单 Run 闭环、死亡无回报）**不冲突**：只在安全点存档，不存战斗中途状态。
+
+### 13.1 快照格式（`RunSnapshot` v1）
+
+```typescript
+interface RunSnapshot {
+  version: 1;
+  savedAt: number;             // Unix ms
+  phase: 'LevelMap';           // 唯一合法快照相位
+  currentLevelIdx: number;     // 1-based
+  gold: number;
+  skillPoints: number;
+  crystalHp: number;
+  crystalHpMax: number;
+  skillTreeUnlocked: string[];
+  deck: {
+    drawPile: string[];        // 保留洗牌顺序
+    discardPile: string[];
+  };
+}
+```
+
+- **存储位置**：`localStorage` key = `td_run_v1`
+- **版本 guard**：`version !== 1` 时 `loadRun()` 返回 `null`，丢弃旧存档
+- **旧 key**：`td_ongoing_run`（v3.0.0 极简格式）在 `clearRun()` 时一并清理
+
+### 13.2 存档时机（唯一触发点）
+
+进入 `LevelMap` 相位的所有出口均触发 `saveProgress()`：
+
+| 触发函数 | 相位转换 |
+|---------|---------|
+| `runController.returnToLevelMap()` | InterLevel → LevelMap |
+| `runController.closeShop()` | Shop → LevelMap |
+| `runController.closeMystic()` | Mystic → LevelMap |
+| `runController.closeSkillTree()` | SkillTree → LevelMap |
+
+进入 `Battle` 后**不再存档**，避免「死亡后加载存档」绕过失败惩罚。
+
+### 13.3 清档时机
+
+| 事件 | 清档操作 |
+|------|---------|
+| 开始新征程（`startNewRun`） | `clearRun()` |
+| Run 结算后返回主菜单或开始新征程 | `clearRun()` |
+
+**主动放弃（路线图「返回主菜单」）** 不触发清档——下次进入游戏仍可「继续游戏」。
+
+### 13.4 加载流程
+
+```
+主菜单「继续游戏」
+  → SaveSystem.loadRun()        拿到 RunSnapshot
+  → loadLevel(snap.currentLevelIdx)   重建关卡配置 + 新 DeckSystem
+  → deckSystem.restoreFrom(snap.deck) 恢复牌堆（覆盖 buildDeck 的随机结果）
+  → runController.loadProgress()      RunManager.restoreFrom(snap) + syncSceneVisibility
+  → 进入 LevelMap 相位，UI 刷新
+```
+
+### 13.5 涉及文件
+
+| 文件 | 变更 |
+|------|------|
+| `src/core/SaveSystem.ts` | 新接口 `RunSnapshot`；新 API `saveRun/loadRun/hasSavedRun/clearRun`；旧 API 保留 `@deprecated` 别名 |
+| `src/unit-system/DeckSystem.ts` | 新增 `snapshot()` / `restoreFrom()` |
+| `src/unit-system/RunManager.ts` | 新增 `snapshot(deckSystem)` / `restoreFrom(snap)` |
+| `src/core/RunController.ts` | 新增 `saveProgress()` / `loadProgress()`；config 新增可选 `deckSystem` |
+| `src/main.ts` | 存档时机迁移；`continue-run` 分支用新 API |
+
+---
+
 ## 12. 修订历史
 
 | 日期 | 版本 | 作者 | 说明 |
 |------|------|------|------|
 | 2026-05-14 | 1.0.0 | — | v3.0 初版存档系统：SparkShards / CardCollection / PermanentUpgrades / OngoingRun / RunHistory / Achievements / PlayerSettings；存档版本 v2.0.0 |
 | 2026-05-15 | 3.0.0 | v3.4 第 2 轮重构 | **整文重写**（455→~450 行）：存档版本 v2.0.0 → v3.0.0；§1 SaveData 删除 5 个 meta 字段（sparkShards / cardCollection / permanentUpgrades / ongoingRun / totalSparkShardsEarned）；§1.2 DEFAULT_SAVE 重构（卡池从配置层读取，不再持久化）；§2 自动存档时机改写（Run 过程不存档 + 无 meta 资源发放）；§3 永久解锁与火花碎片整节删除（短废弃声明 + cross-ref MIGRATION）；§4 关间存档点整节删除（短废弃声明 + 代价收益对照）；§5 流派识别 v3.4 重定位（本会话荣誉，与 meta 解耦）；§6.3 命名清理（baseHp 字段族全部删除）；§7 损坏恢复保留不变；§8 重置简化（删分级选项）；§9 存储瓶颈预估改写（< 10KB）；§10 已删除字段累计扩充（v2.0 5 项 + v3.0 6 项）；§11 cross-ref 全刷新（10-roguelike-loop §5.4/§11、11-economy §3.6/§4/§8、40-ui-ux §11、48、50-mda §17、MIGRATION §3.2、archive v1.0 快照）；frontmatter version 1.0.0→3.0.0 + supersedes 增 save-format-v1 + authority-for 增 single-run-closure-contract + cross-refs 增 11-economy/40-ui-ux/48/MIGRATION；旧版归档 [archive/61-save-system_v1.0_2026.05.15.md](../archive/61-save-system_v1.0_2026.05.15.md) |
+| 2026-05-16 | 3.1.0 | — | **新增 §13 Run 进度快照**：产品需求新增「继续游戏」功能，重新引入 Run 进度存档。与 v3.0.0 单 Run 闭环哲学不冲突——快照只存 LevelMap 相位（关卡间安全点），Run 内 Battle/Shop/Mystic 等相位不存档；死亡/主动放弃 Run 时清档。新增 `RunSnapshot` 接口（`td_run_v1` localStorage key）；`SaveSystem` 新增 `saveRun` / `loadRun` / `hasSavedRun` / `clearRun` API；`DeckSystem` 新增 `snapshot` / `restoreFrom`；`RunManager` 新增 `snapshot` / `restoreFrom`；`RunController` 新增 `saveProgress` / `loadProgress`。存档时机：`returnToLevelMap` / `closeShop` / `closeMystic` / `closeSkillTree` 之后自动触发。加载时机：主菜单「继续游戏」按钮。 |

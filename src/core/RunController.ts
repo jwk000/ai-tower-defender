@@ -3,6 +3,8 @@ import type { LevelState } from './LevelState.js';
 import type { WaveSystem } from '../systems/WaveSystem.js';
 import type { InterLevelChoice, RunManager } from '../unit-system/RunManager.js';
 import { RunPhase } from '../unit-system/RunManager.js';
+import type { DeckSystem } from '../unit-system/DeckSystem.js';
+import { SaveSystem } from './SaveSystem.js';
 
 export interface RunSceneContainers {
   readonly mainMenu: { visible: boolean };
@@ -21,6 +23,7 @@ export interface RunControllerConfig {
   readonly scenes: RunSceneContainers;
   readonly waveSystem?: WaveSystem;
   readonly levelState?: LevelState;
+  readonly deckSystem?: DeckSystem;
   readonly onLevelStart?: (levelNumber: number) => void;
 }
 
@@ -47,6 +50,7 @@ export class RunController {
   private readonly scenes: RunSceneContainers;
   private readonly waveSystem: WaveSystem | undefined;
   private readonly levelState: LevelState | undefined;
+  private readonly deckSystem: DeckSystem | undefined;
   private readonly onLevelStart: ((levelNumber: number) => void) | undefined;
 
   constructor(config: RunControllerConfig) {
@@ -55,6 +59,7 @@ export class RunController {
     this.scenes = config.scenes;
     this.waveSystem = config.waveSystem;
     this.levelState = config.levelState;
+    this.deckSystem = config.deckSystem;
     this.onLevelStart = config.onLevelStart;
     this.syncSceneVisibility();
   }
@@ -125,6 +130,19 @@ export class RunController {
   returnToMainMenu(): void {
     this.runManager.resetToIdle();
     this.syncSceneVisibility();
+  }
+
+  saveProgress(): void {
+    if (!this.deckSystem) return;
+    SaveSystem.saveRun(this.runManager.snapshot(this.deckSystem));
+  }
+
+  loadProgress(): boolean {
+    const snap = SaveSystem.loadRun();
+    if (!snap) return false;
+    this.runManager.restoreFrom(snap);
+    this.syncSceneVisibility();
+    return true;
   }
 
   private syncLevelStateFromWaveSystem(): void {
