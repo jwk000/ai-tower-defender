@@ -2,63 +2,100 @@ import { describe, it, expect } from 'vitest';
 
 import { hitTestRunResultButton, projectRunResult, RunResultPanel, type RunResultState } from '../RunResultPanel.js';
 
+function makeStats(overrides: Partial<RunResultState['stats']> = {}): RunResultState['stats'] {
+  return {
+    levelsCleared: 9,
+    totalLevels: 9,
+    enemiesKilled: 386,
+    maxSingleWaveKills: 24,
+    goldSpent: 1240,
+    crystalHpRemaining: 850,
+    crystalHpMax: 1000,
+    elapsedSeconds: 2538,
+    ...overrides,
+  };
+}
+
 function state(overrides: Partial<RunResultState> = {}): RunResultState {
   return {
     outcome: 'victory',
-    sparkAwarded: 10,
-    stats: {
-      levelsCleared: 8,
-      totalLevels: 8,
-      enemiesKilled: 142,
-      goldEarned: 530,
-      crystalHpRemaining: 12,
-      elapsedSeconds: 750,
-    },
+    stats: makeStats(),
     ...overrides,
   };
 }
 
 describe('projectRunResult', () => {
-  it('uses victory header + color when outcome is victory', () => {
+  it('victory header uses 🏆 emoji and gold color', () => {
     const layout = projectRunResult(state());
-    expect(layout.headerLabel).toBe('胜利！');
-    expect(layout.headerColor).toBe(0x4ec59a);
+    expect(layout.headerLabel).toBe('🏆 Run 胜利！');
+    expect(layout.headerColor).toBe(0xffd700);
   });
 
-  it('uses defeat header + color when outcome is defeat', () => {
+  it('defeat header uses 💀 emoji and dark-red color', () => {
     const layout = projectRunResult(state({ outcome: 'defeat' }));
-    expect(layout.headerLabel).toBe('失败');
-    expect(layout.headerColor).toBe(0xe06868);
+    expect(layout.headerLabel).toBe('💀 Run 失败');
+    expect(layout.headerColor).toBe(0xcc3333);
   });
 
   it('formats elapsed seconds as M:SS', () => {
+    const layout = projectRunResult(state({ stats: makeStats({ elapsedSeconds: 65 }) }));
+    const line = layout.lines.find((l) => l.label === '通关时长')!;
+    expect(line.value).toBe('1:05');
+  });
+
+  it('defeat uses "本次 Run 时长" label instead of "通关时长"', () => {
+    const layout = projectRunResult(state({ outcome: 'defeat', stats: makeStats({ elapsedSeconds: 120 }) }));
+    expect(layout.lines.find((l) => l.label === '本次 Run 时长')).toBeDefined();
+    expect(layout.lines.find((l) => l.label === '通关时长')).toBeUndefined();
+  });
+
+  it('contains all 6 base stat fields', () => {
+    const layout = projectRunResult(state());
+    const labels = layout.lines.map((l) => l.label);
+    expect(labels).toContain('最远到达');
+    expect(labels).toContain('总击杀');
+    expect(labels).toContain('最大单波击杀');
+    expect(labels).toContain('水晶剩余血量');
+    expect(labels).toContain('共花费金币');
+  });
+
+  it('shows archetypeTag and skillTreeHighlights on victory when provided', () => {
     const layout = projectRunResult(state({
-      stats: { levelsCleared: 1, totalLevels: 8, enemiesKilled: 0, goldEarned: 0, crystalHpRemaining: 0, elapsedSeconds: 65 },
+      stats: makeStats({ archetypeTag: '法术爆发流', skillTreeHighlights: ['电塔「贯穿」', '箭塔「急速」'] }),
     }));
-    const timeLine = layout.lines.find((l) => l.label === '用时')!;
-    expect(timeLine.value).toBe('1:05');
+    expect(layout.lines.find((l) => l.label === '流派标签')?.value).toBe('法术爆发流');
+    expect(layout.lines.find((l) => l.label === '关键技能树')?.value).toBe('电塔「贯穿」 + 箭塔「急速」');
   });
 
-  it('renders all 6 stat lines in fixed order', () => {
+  it('omits archetypeTag and skillTreeHighlights on defeat', () => {
+    const layout = projectRunResult(state({
+      outcome: 'defeat',
+      stats: makeStats({ archetypeTag: '法术爆发流', skillTreeHighlights: ['电塔「贯穿」'] }),
+    }));
+    expect(layout.lines.find((l) => l.label === '流派标签')).toBeUndefined();
+    expect(layout.lines.find((l) => l.label === '关键技能树')).toBeUndefined();
+  });
+
+  it('includes 3 resourceResetLines on victory (with "下一次 Run" line)', () => {
     const layout = projectRunResult(state());
-    expect(layout.lines.map((l) => l.label)).toEqual([
-      '通关关卡',
-      '击杀敌人',
-      '获得金币',
-      '水晶剩余',
-      '用时',
-      '获得火花',
-    ]);
+    expect(layout.resourceResetLines.length).toBe(3);
+    expect(layout.resourceResetLines[2]).toContain('下一次 Run');
   });
 
-  it('prefixes sparkAwarded value with + sign', () => {
-    const layout = projectRunResult(state({ sparkAwarded: 3 }));
-    expect(layout.lines.find((l) => l.label === '获得火花')!.value).toBe('+3');
+  it('includes 2 resourceResetLines on defeat', () => {
+    const layout = projectRunResult(state({ outcome: 'defeat' }));
+    expect(layout.resourceResetLines.length).toBe(2);
   });
 
-  it('has exactly 2 buttons: return-menu and start-new-run', () => {
-    const layout = projectRunResult(state());
+  it('has exactly 2 buttons: return-menu (left) and start-new-run (right)', () => {
+    const layout = projectRunResult(state(), 1920, 1080);
     expect(layout.buttons.map((b) => b.id)).toEqual(['return-menu', 'start-new-run']);
+    expect(layout.buttons[0]!.x).toBeLessThan(layout.buttons[1]!.x);
+  });
+
+  it('levelThemeName appears in defeat level label', () => {
+    const layout = projectRunResult(state({ outcome: 'defeat', levelThemeName: '雷暴荒原', stats: makeStats({ levelsCleared: 4 }) }));
+    expect(layout.lines.find((l) => l.label === '最远到达')?.value).toBe('关卡 4（雷暴荒原）');
   });
 });
 
@@ -78,7 +115,7 @@ describe('RunResultPanel class wrapper', () => {
     const panel = new RunResultPanel();
     expect(panel.getLayout()).toBeNull();
     panel.refresh(state());
-    expect(panel.getLayout()?.headerLabel).toBe('胜利！');
+    expect(panel.getLayout()?.headerLabel).toBe('🏆 Run 胜利！');
   });
 });
 

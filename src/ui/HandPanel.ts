@@ -8,6 +8,7 @@ export interface HandCard {
 export interface HandState {
   readonly cards: readonly HandCard[];
   readonly energy: number;
+  readonly energyMax: number;
 }
 
 export interface HandSlotRect {
@@ -30,17 +31,20 @@ export type PlayCardIntent =
   | { readonly kind: 'play'; readonly slot: number; readonly cardId: string; readonly targetX: number; readonly targetY: number }
   | { readonly kind: 'cancel'; readonly reason: 'not-playable' | 'over-hand-zone' | 'no-such-slot' };
 
-const HAND_ZONE_HEIGHT = 160;
+export const HAND_MAX_CARDS = 4;
+const HAND_ZONE_HEIGHT = 180;
 const SLOT_WIDTH = 120;
-const SLOT_HEIGHT = 160;
-const SLOT_GAP = 8;
+const SLOT_HEIGHT = 168;
+const SLOT_GAP = 16;
+const HAND_OFFSET_Y = 130;
 
 export function layoutHand(state: HandState, viewportWidth: number, viewportHeight: number): HandLayout {
-  const totalWidth = state.cards.length * SLOT_WIDTH + Math.max(0, state.cards.length - 1) * SLOT_GAP;
+  const cards = state.cards.slice(0, HAND_MAX_CARDS);
+  const totalWidth = cards.length * SLOT_WIDTH + Math.max(0, cards.length - 1) * SLOT_GAP;
   const startX = (viewportWidth - totalWidth) / 2;
-  const y = viewportHeight - SLOT_HEIGHT;
+  const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
   return {
-    slots: state.cards.map((card, i) => ({
+    slots: cards.map((card, i) => ({
       slot: card.slot,
       cardId: card.cardId,
       cost: card.cost,
@@ -50,7 +54,7 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       width: SLOT_WIDTH,
       height: SLOT_HEIGHT,
     })),
-    energyLabel: `Energy: ${state.energy}`,
+    energyLabel: `◇ ${state.energy}/${state.energyMax}`,
   };
 }
 
@@ -82,7 +86,7 @@ export function resolveDropIntent(
 export type HandPanelHandler = (intent: PlayCardIntent) => void;
 
 export class HandPanel {
-  private state: HandState = { cards: [], energy: 0 };
+  private state: HandState = { cards: [], energy: 0, energyMax: 10 };
   private handler: HandPanelHandler | null = null;
   private viewportWidth = 1920;
   private viewportHeight = 1080;

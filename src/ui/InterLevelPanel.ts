@@ -8,7 +8,11 @@ export interface InterLevelOffer {
 }
 
 export interface InterLevelState {
+  readonly levelIndex: number;
   readonly nextLevel: number;
+  readonly gold: number;
+  readonly spAwarded: number;
+  readonly crystalHpLost: number;
   readonly offers: readonly [InterLevelOffer, InterLevelOffer, InterLevelOffer];
 }
 
@@ -33,18 +37,24 @@ export interface InterLevelLayoutItem extends InterLevelOffer {
 
 export interface InterLevelLayout {
   readonly headerLabel: string;
+  readonly rewardGoldLabel: string;
+  readonly rewardSpLabel: string;
+  readonly crystalLostLabel: string;
   readonly items: readonly InterLevelLayoutItem[];
 }
 
 export function layoutInterLevel(state: InterLevelState, viewportWidth: number, viewportHeight: number): InterLevelLayout {
-  const cardW = 320;
-  const cardH = 420;
+  const cardW = 280;
+  const cardH = 320;
   const gap = 40;
   const totalW = cardW * 3 + gap * 2;
   const startX = (viewportWidth - totalW) / 2;
-  const y = (viewportHeight - cardH) / 2;
+  const y = (viewportHeight - cardH) / 2 + 130;
   return {
-    headerLabel: `Choose path to Level ${state.nextLevel}`,
+    headerLabel: `🏆 关卡 ${state.levelIndex} 通过！`,
+    rewardGoldLabel: `● 金币 +${state.gold}`,
+    rewardSpLabel: `✦ 技能点 +${state.spAwarded}`,
+    crystalLostLabel: state.crystalHpLost > 0 ? `水晶损失 -${state.crystalHpLost} HP` : '水晶无损',
     items: state.offers.map((o, i) => ({
       ...o,
       x: startX + i * (cardW + gap),

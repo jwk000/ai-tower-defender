@@ -4,97 +4,106 @@ HANDOFF CONTEXT
 USER REQUESTS (AS-IS)
 ---------------------
 
-- "下一步我计划先做完所有UI界面，只实现简单的界面跳转，不用实现复杂逻辑。1，游戏主界面，只有3个按钮：新的征程（丢弃所有数据重新开始run）、继续游戏（加载游戏存档继续游戏）、离开游戏（关闭游戏回到桌面）需要补充设计文档。2，关卡选择界面，按需求文档的设计实现；3，对局界面，关卡内的玩法界面，按需求文档实现；4，通关结算界面，商店秘境离开3选1，设计文档里有说明；5，商店界面，按文档实现；6，秘境界面，按文档实现；7，run结算界面，run通关全部关卡或失败后弹出结算界面，需要补充设计文档，关闭结算界面回到游戏主界面。"
-- 用户确认：放弃 v3.4 单 Run 闭环限制（恢复 ongoingRun 存档，支持「继续游戏」）
-- 用户确认：先补充设计文档，再实现
-- 用户确认：现在实现路线图（推荐选项）
+- "我希望卡池界面可以在关卡路线图界面打开，左侧是卡池右侧是选中卡的技能树，卡牌默认选中第一个卡，点击其他卡切换选中卡。在商店界面中，左侧是卡池，右侧是商品，选中卡不展示技能树。技能树只能在关卡路线图的卡池界面升级。卡池界面内容是所有获得的卡牌，分类展示。检查我的描述和设计文档是否一致。另外需要设计卡牌的界面，卡牌需要一个图标、名字（和技能树点亮的最新技能名字一致）、等级（用边框颜色表示：绿卡-蓝卡-金卡）、描述（攻防血等属性数值）、打出需要能量费用等信息。你需要检查一下文档和我的描述是否一致，卡牌界面要重新设计一下布局。"
 
 GOAL
 ----
 
-7 个 UI 界面全部已完成实现，代码已提交。下一步可以冒烟测试验收，或推进其他功能开发。
+继续修改设计文档，使其与用户描述完全一致：还有 3 个文档尚未修改（22-skill-tree-overview §9、48-shop-redesign-v34 §1、47-level-map-ui），以及最终运行文档一致性检查和提交。
 
 WORK COMPLETED
 --------------
 
-本次会话完成了所有 7 个 UI 界面的实现：
+本次会话执行了两件事：
 
-【设计文档（上一会话已完成）】
-- 新建 design/40-presentation/49-main-menu.md：主菜单 UI 权威（3按钮 + 存档确认弹窗 + 存档同步）
-- 新建 design/40-presentation/50-run-result.md：Run结算 UI 权威（胜利/失败 + 两个按钮 + 存档时序）
-- 修改 design/60-tech/61-save-system.md §1.1：恢复 ongoingRun 字段 + OngoingRun interface
+【核对检查（设计文档 vs 用户描述）】
+检查结论（4 个文档）：
+- 一致：卡池入口在关卡路线图（不消耗 3选1机会）；商店左侧卡池+右侧商品；商店无技能树；技能树关内禁止；卡池按类别分组
+- 不一致1（重要）：22-skill-tree-overview §9 的卡池界面是「两级页面导航」（全屏卡池 → 点按钮跳新页）；用户要求「左右分栏一体式」（左侧卡池列表 + 右侧实时显示选中卡技能树，默认选中第一张）
+- 不一致2（重要）：40-ui-ux §3.2 边框颜色表示稀有度（Common=白/Rare=蓝/Epic=紫/Legendary=金）+ 菱形等级；用户要求边框颜色表示等级（绿/蓝/金）
+- 不一致3：名字显示固定 `name`；用户要求显示「技能树最新节点名」
+- 不一致4：47-level-map-ui 没有定义路线图上「卡池」按钮的位置和入口
+- 不一致5（商店）：商店左侧卡池无「选中态」概念
 
-【代码实现（本次会话完成）】
-- 新建 src/ui/LevelMapPanel.ts：关卡路线图纯函数面板（9节点水平布局、completed/current/locked 三态、hitTest、LevelMapPanel 类）
-- 修改 src/render/PanelRenderers.ts：新增 LevelMapRenderer 类（节点圆角矩形 + 路径线 + 顶栏HUD + 挑战关卡按钮）
-- 修改 src/unit-system/RunManager.ts：新增 RunPhase.LevelMap 相位，startRun() 进入 LevelMap（而非直接 Battle），新增 enterBattle()（LevelMap→Battle）和 returnToLevelMap()（InterLevel→LevelMap，已预留但暂未接线）
-- 修改 src/core/RunController.ts：新增 levelMap 场景容器到 RunSceneContainers，新增 enterBattle() 方法，syncSceneVisibility 增加 LevelMap 分支
-- 修改 src/main.ts：新建 levelMapContainer，导入 LevelMapPanel/LevelMapRenderer，startNewRun() 改为进路线图（不立刻开战），「挑战关卡」按钮处理器调 runController.enterBattle() + waveSystem.start()
-- 更新集成测试和单元测试：run.integration.test.ts / content.integration.test.ts / RunManager.test.ts 中所有受影响的测试已加入 enterBattle() 调用，321 测试全绿
+【用户决策（通过问题确认）】
+- 等级 = 稀有度，合并概念，废弃稀有度（Common/Rare/Epic/Legendary），改为3档（L1绿/L2蓝/L3金）+ 保留菱形数量标记
+- 关卡路线图卡池：左右分栏一体式，右侧显示完整技能树
+- 商店左侧：支持选中态（点击高亮），右侧无技能树
 
-【已验证】
-- npm run typecheck 通过
-- npm test 321/321 全绿
-- npm run check:doc 文档一致性通过
-- 所有改动已 git commit（最新 commit: feat: 实现关卡路线图界面（LevelMapScreen））
+【已完成文档修改】
+- design/40-presentation/40-ui-ux.md §3.2：重写了单卡视觉规范（已应用到文件，尚未 git commit）
+  - 等级升档规则：L1=绿色/L2=蓝色/L3=金色，与技能树强化联动
+  - 卡牌名字 = 当前装备路径最深点亮节点的 name
+  - 关键属性字段补充（❤HP/⚔ATK，反映技能树加成后数值）
+  - 废弃稀有度概念声明
 
 CURRENT STATE
 -------------
 
-- 7 个 UI 界面均已实现并提交，代码干净无未提交变更
-- 完整 UI 跳转流程：主菜单 → 路线图（新的征程/继续游戏） → 战斗 → 3选1面板 → 商店/秘境/技能树 → 战斗(下一关) → … → Run结算 → 主菜单
-- SaveSystem 已实现 hasOngoingRun/loadOngoingRun/saveOngoingRun/clearOngoingRun
-- RunPhase 状态机：Idle → LevelMap → Battle → InterLevel → Shop/Mystic/SkillTree → Battle(level++) → … → Result → Idle
-- 路线图仅在 Run 启动时展示一次（新的征程 或 继续游戏），后续关卡切换走 InterLevel 3选1 流程
-- typecheck 状态：通过
+- design/40-presentation/40-ui-ux.md 已修改但未 git commit（git status 显示 M）
+- 代码侧无变更（上次提交是 8903793 feat: 技能树改为实例级独立 + 卡池界面入口）
+- typecheck/test 状态：上次全绿，本次未跑（只改了文档）
 
 PENDING TASKS
 -------------
 
-暂无强制 pending 任务。可选的后续工作：
+按优先级排序（设计文档修改任务，全部 L1 档无需测试，只需最终 typecheck 和 git commit）：
 
-1. 冒烟测试：运行 debug/ 下冒烟脚本验证完整 UI 流程（主菜单 → 路线图 → 战斗 → 通关 → Run结算）
-2. 美术补全：路线图界面当前为程序美术（纯色块），可接入实际资源
-3. 对局界面细节确认：UIPresenter + HUD 是否与 40-ui-ux.md §2-§5 完全对齐
-4. InterLevel 通关后回到路线图（目前通关后直接进3选1，RunManager 已有 returnToLevelMap() 方法，但 RunController 未接线）
-5. 丢弃存档确认弹窗（49-main-menu.md 设计了弹窗，目前新的征程直接清档，无二次确认）
-6. v3.4 第4轮代码改造（design/README.md 提到的 21-unit-roster §2.3 + 23-skill-buff §6 cross-ref 修复 + 18 文档「碎片」清理 + src 代码改造）
+1. [高优先级] design/20-units/22-skill-tree-overview.md §9：改写卡池界面为左右分栏一体式
+   - 左侧：卡池列表（按类别分组，卡牌显示图标+名字+等级），点击切换选中卡（高亮边框）
+   - 右侧：完整技能树（与当前 §9.3 内容类似，但不是独立页面）
+   - 默认选中第一张卡
+   - 更新 §9.4 视觉规范，§9.5 交互流程，删除「两级导航」概念
+   - 更新 §10.4 验收清单
+
+2. [中优先级] design/40-presentation/48-shop-redesign-v34.md §1：补充左栏「选中卡」视觉态
+   - 在 §1.2 领域划分 + §1.4 锚点表中补充：点击卡片进入选中态（高亮边框），右栏无变化
+   - 注意区分商店的「选中态」（仅视觉高亮，无技能树）vs 卡池的「选中态」（右侧显示技能树）
+
+3. [中优先级] design/40-presentation/47-level-map-ui.md：补充路线图上「卡池」按钮定义
+   - 在 §1.4 底栏或新增独立节中定义「卡池」按钮：位置（底栏右侧或独立浮动按钮）、样式、触发逻辑（打开全屏卡池界面，不消耗 3选1机会）
+   - 与 22-skill-tree-overview §9.1 的 cross-ref 补充
+
+4. [低优先级] 运行 npm run check:all（typecheck + check:doc），确认无破坏
+5. [低优先级] git commit 所有修改（按原子任务分别提交）
 
 KEY FILES
 ---------
 
-- src/main.ts — 启动层，全部 UI/系统接线主文件（约 890 行）
-- src/ui/LevelMapPanel.ts — 关卡路线图纯函数面板（新建）
-- src/render/PanelRenderers.ts — 所有面板的 PixiJS 渲染器（含新增 LevelMapRenderer）
-- src/unit-system/RunManager.ts — Run 状态机 + Run 级资源（新增 LevelMap 相位）
-- src/core/RunController.ts — UI 场景切换协调器（新增 levelMap 容器 + enterBattle()）
-- src/core/SaveSystem.ts — 存档系统（hasOngoingRun/loadOngoingRun/saveOngoingRun/clearOngoingRun）
-- design/40-presentation/49-main-menu.md — 主菜单 UI 权威（上次新建）
-- design/40-presentation/50-run-result.md — Run结算 UI 权威（上次新建）
-- design/40-presentation/47-level-map-ui.md — 关卡路线图 UI 权威（v3.4 已审计）
-- src/unit-system/__tests__/RunManager.test.ts — RunManager 单元测试（已同步更新）
+- design/40-presentation/40-ui-ux.md — 已修改 §3.2 卡牌视觉规范（等级/稀有度合并，待 commit）
+- design/20-units/22-skill-tree-overview.md — 需要修改 §9 卡池界面布局（两级导航→左右分栏）
+- design/40-presentation/48-shop-redesign-v34.md — 需要在 §1.2/§6 补充左栏选中态定义
+- design/40-presentation/47-level-map-ui.md — 需要补充「卡池」按钮入口定义
+- design/10-gameplay/10-roguelike-loop.md — 参考文件，关后流程权威
+- src/render/PanelRenderers.ts — 代码侧将来实现卡池界面时参考
+- src/core/RunController.ts — 将来接线卡池入口时参考
 
 IMPORTANT DECISIONS
 -------------------
 
-- 决策（本次）：路线图仅在 Run 启动时显示一次，不在每关通关后回到路线图。理由：用户要求"只实现简单界面跳转"，最小化工作量。RunManager 已预留 returnToLevelMap() 方法，将来可扩展为通关后回路线图。
-- 决策（上次）：放弃 v3.4 单 Run 闭环中断限制，重新引入 ongoingRun 存档支持「继续游戏」。影响：61-save-system.md（已恢复 ongoingRun 字段）、SaveSystem.ts（已实现完整存档 API）。
-- 决策（上次）：关卡路线图（47-level-map-ui.md §8.1）全部由 currentLevelIdx 派生，不需要修改 RunManager 的关卡数据。
+- 等级合并稀有度：废弃 Common/Rare/Epic/Legendary 词汇，改为 L1（绿）/L2（蓝）/L3（金）与技能树强化联动
+- 卡牌名字动态显示：= 当前装备路径上最深点亮节点的 name（如「三重箭塔」）；无点亮时显示默认 name
+- 卡池界面为左右分栏一体式（非两级导航），这是对 22-skill-tree-overview §9 原有草图的颠覆性修改
+- 商店左侧卡池支持「选中态」但右侧不显示技能树（仅视觉高亮，用于用户识别当前参照卡）
+- 路线图「卡池」按钮是独立于 3选1 的额外入口，不消耗节点机会，47-level-map-ui 需要补充这一定义
 
 EXPLICIT CONSTRAINTS
 --------------------
 
-- 只实现简单的界面跳转，不用实现复杂逻辑（用户明确说明）
 - 始终用中文回复（AGENTS.md 铁律）
 - 每完成一个逻辑任务单元立即 git commit（AGENTS.md 铁律）
 - 修改完后跑 npm run typecheck 验证（AGENTS.md 铁律）
-- 任务档位：L2（系统逻辑/功能扩展）—— 不改核心 ECS/规则引擎，只改 UI 层
+- 文档修改属于 L1 档（配置/视觉/胶水），免单测，跑冒烟即可
 
 CONTEXT FOR CONTINUATION
 ------------------------
 
-- 7 个 UI 界面已全部完成，本阶段目标已达成
-- 如需继续，建议从冒烟测试验收开始（运行 debug/ 下脚本，或手动启动游戏验证完整流程）
-- 路线图界面目前只在 Run 开始时出现；若需要"通关后回路线图→看进度→3选1"体验，需接线 returnToLevelMap() 并更新 RunController/main.ts
-- 「丢弃存档确认弹窗」(49-main-menu.md §3.2) 尚未实现，目前新的征程直接清档
-- v3.4 第4轮代码改造（存档结构升级、src 代码改造）是下一个大块工作，详见 design/README.md
+- 上次 handoff（技能树实例级独立）代码已提交（commit 8903793），设计文档 22-skill-tree-overview v1.1.0 + 40-ui-ux v3.1.0 均已完成
+- 本次任务纯文档修改，不涉及代码变更
+- 40-ui-ux.md §3.2 已修改但未 commit，需要先 commit 这个文件再继续其他文档
+- 22-skill-tree-overview §9 修改重点：将「两级页面导航」改为「左右分栏」，参考布局草图：
+  左侧（30%）= 卡牌列表（按塔/士兵/陷阱/法术/生产分组，点击切换选中，无「技能」按钮）
+  右侧（70%）= 完整技能树面板（选中卡的多路径节点图 + 底部操作区）
+  顶部统一显示 SP 余额
+- 商店 §1.2 领域划分描述中「点击卡片显示详情浮窗（不可购买）」需要扩充为「点击卡片进入选中态（高亮边框）+ 显示详情浮窗」
+- 47 文档 §1.4 底栏表中可增加一行「卡池按钮」，或在 §8.3 路线图入口时机中说明卡池可随时打开

@@ -5,23 +5,50 @@ import { hitTestHandSlot, layoutHand, resolveDropIntent, HandPanel, type HandSta
 function state(overrides: Partial<HandState> = {}): HandState {
   return {
     energy: 3,
+    energyMax: 10,
     cards: [
       { slot: 0, cardId: 'arrow_tower', cost: 2, playable: true },
       { slot: 1, cardId: 'shield_guard', cost: 3, playable: true },
       { slot: 2, cardId: 'fireball', cost: 5, playable: false },
+      { slot: 3, cardId: 'gold_mine', cost: 4, playable: true },
     ],
     ...overrides,
   };
 }
 
 describe('layoutHand', () => {
-  it('centers slots horizontally at the bottom of the viewport', () => {
+  it('centers slots horizontally, offset 130px from viewport bottom', () => {
     const layout = layoutHand(state(), 1920, 1080);
-    expect(layout.slots).toHaveLength(3);
-    expect(layout.energyLabel).toBe('Energy: 3');
-    const totalWidth = 3 * 120 + 2 * 8;
+    expect(layout.slots).toHaveLength(4);
+    const totalWidth = 4 * 120 + 3 * 16;
     expect(layout.slots[0]!.x).toBe((1920 - totalWidth) / 2);
-    expect(layout.slots[0]!.y).toBe(1080 - 160);
+    expect(layout.slots[0]!.y).toBe(1080 - 168 - 130);
+  });
+
+  it('energyLabel format is ◇ current/max', () => {
+    const layout = layoutHand(state({ energy: 3, energyMax: 10 }), 1920, 1080);
+    expect(layout.energyLabel).toBe('◇ 3/10');
+  });
+
+  it('slot dimensions are 120×168 with 16px gap', () => {
+    const layout = layoutHand(state(), 1920, 1080);
+    expect(layout.slots[0]!.width).toBe(120);
+    expect(layout.slots[0]!.height).toBe(168);
+    const gap = layout.slots[1]!.x - (layout.slots[0]!.x + 120);
+    expect(gap).toBe(16);
+  });
+
+  it('caps at 4 cards even when more are provided', () => {
+    const moreState = state({
+      cards: [
+        { slot: 0, cardId: 'a', cost: 1, playable: true },
+        { slot: 1, cardId: 'b', cost: 2, playable: true },
+        { slot: 2, cardId: 'c', cost: 3, playable: true },
+        { slot: 3, cardId: 'd', cost: 4, playable: true },
+        { slot: 4, cardId: 'e', cost: 5, playable: true },
+      ],
+    });
+    expect(layoutHand(moreState, 1920, 1080).slots).toHaveLength(4);
   });
 
   it('propagates playable flag and cost into slot rect', () => {
@@ -43,8 +70,8 @@ describe('resolveDropIntent', () => {
     expect(intent).toEqual({ kind: 'cancel', reason: 'not-playable' });
   });
 
-  it('cancels with over-hand-zone when dropping back into the hand bar', () => {
-    const intent = resolveDropIntent(state(), 0, 500, 1000, 1080);
+  it('cancels with over-hand-zone when dropping into hand zone (bottom 180px)', () => {
+    const intent = resolveDropIntent(state(), 0, 500, 1080 - 180 + 1, 1080);
     expect(intent).toEqual({ kind: 'cancel', reason: 'over-hand-zone' });
   });
 
@@ -67,11 +94,11 @@ describe('HandPanel class wrapper', () => {
   it('getLayout reflects refreshed state', () => {
     const panel = new HandPanel({ viewportWidth: 1920, viewportHeight: 1080 });
     panel.refresh(state());
-    expect(panel.getLayout().slots).toHaveLength(3);
+    expect(panel.getLayout().slots).toHaveLength(4);
   });
 });
 
-describe('hitTestHandSlot (Wave 8.2 Pixi 事件链)', () => {
+describe('hitTestHandSlot', () => {
   it('点击 slot 中心命中对应 slot 编号', () => {
     const layout = layoutHand(state(), 1344, 576);
     for (const slot of layout.slots) {
@@ -81,7 +108,7 @@ describe('hitTestHandSlot (Wave 8.2 Pixi 事件链)', () => {
     }
   });
 
-  it('点击 hand zone 之外返回 null（即使位于 hand 行的 y 区间）', () => {
+  it('点击 hand zone 之外返回 null', () => {
     const layout = layoutHand(state(), 1344, 576);
     expect(hitTestHandSlot(layout, 0, layout.slots[0]!.y)).toBeNull();
     expect(hitTestHandSlot(layout, 1343, layout.slots[0]!.y)).toBeNull();

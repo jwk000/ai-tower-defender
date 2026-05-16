@@ -5,42 +5,66 @@ import { projectHUD, type RunState } from '../HUD.js';
 function state(overrides: Partial<RunState> = {}): RunState {
   return {
     gold: 100,
-    crystalHp: 20,
-    crystalHpMax: 20,
+    crystalHp: 1000,
+    crystalHpMax: 1000,
     waveIndex: 1,
     waveTotal: 5,
     phase: 'deployment',
+    energy: 5,
+    energyMax: 10,
+    sp: 0,
+    runLevel: 1,
+    runTotalLevels: 9,
+    enemyCount: 0,
     ...overrides,
   };
 }
 
 describe('projectHUD', () => {
-  it('formats gold and wave label from state', () => {
-    const p = projectHUD(state({ gold: 250, waveIndex: 3, waveTotal: 10 }));
-    expect(p.gold).toBe('Gold: 250');
-    expect(p.waveLabel).toBe('Wave 3/10');
+  it('formats energy as ◇ current/max', () => {
+    const p = projectHUD(state({ energy: 5, energyMax: 10 }));
+    expect(p.energy).toBe('◇ 5/10');
   });
 
-  it('formats crystal as current/max', () => {
-    const p = projectHUD(state({ crystalHp: 7, crystalHpMax: 20 }));
-    expect(p.crystal).toBe('Crystal: 7/20');
+  it('formats gold as ● amount', () => {
+    const p = projectHUD(state({ gold: 250 }));
+    expect(p.gold).toBe('● 250');
   });
 
-  it('flips crystalLowAlarm when ratio drops below 25%', () => {
-    expect(projectHUD(state({ crystalHp: 6, crystalHpMax: 20 })).crystalLowAlarm).toBe(false);
-    expect(projectHUD(state({ crystalHp: 4, crystalHpMax: 20 })).crystalLowAlarm).toBe(true);
+  it('formats wave as ⚑ index/total', () => {
+    const p = projectHUD(state({ waveIndex: 3, waveTotal: 8 }));
+    expect(p.wave).toBe('⚑ 3/8');
   });
 
-  it('suppresses crystalLowAlarm when crystal is already dead (hp=0)', () => {
-    const p = projectHUD(state({ crystalHp: 0, crystalHpMax: 20 }));
-    expect(p.crystalLowAlarm).toBe(false);
+  it('formats enemy count as ☠ count', () => {
+    const p = projectHUD(state({ enemyCount: 12 }));
+    expect(p.enemy).toBe('☠ 12');
   });
 
-  it('maps each phase enum to its human label', () => {
-    expect(projectHUD(state({ phase: 'deployment' })).phaseLabel).toBe('Deployment');
-    expect(projectHUD(state({ phase: 'battle' })).phaseLabel).toBe('Battle');
-    expect(projectHUD(state({ phase: 'wave-break' })).phaseLabel).toBe('Wave Break');
-    expect(projectHUD(state({ phase: 'victory' })).phaseLabel).toBe('Victory');
-    expect(projectHUD(state({ phase: 'defeat' })).phaseLabel).toBe('Defeat');
+  it('formats crystal as 💎 hp/max', () => {
+    const p = projectHUD(state({ crystalHp: 850, crystalHpMax: 1000 }));
+    expect(p.crystal).toBe('💎 850/1000');
+  });
+
+  it('formats runProgress as Run level/total', () => {
+    const p = projectHUD(state({ runLevel: 3, runTotalLevels: 9 }));
+    expect(p.runProgress).toBe('Run 3/9');
+  });
+
+  it('triggers crystalLowAlarm when ratio drops below 30%', () => {
+    expect(projectHUD(state({ crystalHp: 300, crystalHpMax: 1000 })).crystalLowAlarm).toBe(false);
+    expect(projectHUD(state({ crystalHp: 299, crystalHpMax: 1000 })).crystalLowAlarm).toBe(true);
+  });
+
+  it('suppresses crystalLowAlarm when crystal is dead (hp=0)', () => {
+    expect(projectHUD(state({ crystalHp: 0, crystalHpMax: 1000 })).crystalLowAlarm).toBe(false);
+  });
+
+  it('maps each phase enum to Chinese label', () => {
+    expect(projectHUD(state({ phase: 'deployment' })).phaseLabel).toBe('部署阶段');
+    expect(projectHUD(state({ phase: 'battle' })).phaseLabel).toBe('战斗中');
+    expect(projectHUD(state({ phase: 'wave-break' })).phaseLabel).toBe('波次间歇');
+    expect(projectHUD(state({ phase: 'victory' })).phaseLabel).toBe('胜利');
+    expect(projectHUD(state({ phase: 'defeat' })).phaseLabel).toBe('失败');
   });
 });

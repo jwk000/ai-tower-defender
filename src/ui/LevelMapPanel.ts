@@ -6,6 +6,9 @@ export interface LevelNode {
   readonly status: LevelNodeStatus;
 }
 
+const NORMAL_NODE_SIZE = 80;
+const BOSS_NODE_SIZE = 120;
+
 export interface LevelNodeRect extends LevelNode {
   readonly x: number;
   readonly y: number;
@@ -25,11 +28,12 @@ export interface LevelMapBtnRect {
 export interface LevelMapLayout {
   readonly nodes: readonly LevelNodeRect[];
   readonly challengeBtn: LevelMapBtnRect;
-  readonly viewDeckBtn: LevelMapBtnRect;
+  readonly deckBtn: LevelMapBtnRect;
   readonly backBtn: LevelMapBtnRect;
-  readonly hudLabel: string;
-  readonly goldLabel: string;
+  readonly titleLabel: string;
   readonly crystalLabel: string;
+  readonly goldLabel: string;
+  readonly escHint: string;
 }
 
 export interface LevelMapState {
@@ -38,17 +42,28 @@ export interface LevelMapState {
   readonly gold: number;
   readonly crystalHp: number;
   readonly crystalHpMax: number;
+  readonly runIndex: number;
 }
 
-const NODE_W = 72;
-const NODE_H = 72;
-const NODE_GAP = 60;
-const CHALLENGE_BTN_W = 260;
-const CHALLENGE_BTN_H = 56;
-const VIEW_DECK_BTN_W = 180;
-const VIEW_DECK_BTN_H = 44;
+const CHALLENGE_BTN_W = 280;
+const CHALLENGE_BTN_H = 60;
+const DECK_BTN_W = 120;
+const DECK_BTN_H = 50;
 const BACK_BTN_W = 140;
 const BACK_BTN_H = 44;
+const BOTTOM_OFFSET_Y = 40;
+
+const NODE_COORDS: ReadonlyArray<readonly [number, number]> = [
+  [220, 600],
+  [400, 480],
+  [580, 600],
+  [760, 480],
+  [940, 600],
+  [1120, 480],
+  [1300, 600],
+  [1480, 480],
+  [1700, 540],
+];
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
   const nodes: LevelNode[] = [];
@@ -68,37 +83,60 @@ export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
 
 export function layoutLevelMap(state: LevelMapState, viewportWidth: number, viewportHeight: number): LevelMapLayout {
   const nodes = buildLevelNodes(state);
-  const totalW = nodes.length * NODE_W + (nodes.length - 1) * NODE_GAP;
-  const startX = (viewportWidth - totalW) / 2;
-  const nodeY = viewportHeight / 2 - NODE_H / 2;
 
-  const nodeRects: LevelNodeRect[] = nodes.map((n, i) => ({
-    ...n,
-    x: startX + i * (NODE_W + NODE_GAP),
-    y: nodeY,
-    width: NODE_W,
-    height: NODE_H,
-    label: n.isBoss ? '终战' : `关${n.levelIndex}`,
-  }));
+  const scaleX = viewportWidth / 1920;
+  const scaleY = viewportHeight / 1080;
 
-  const currentNode = nodeRects.find((n) => n.status === 'current');
-  const btnX = currentNode ? currentNode.x + (NODE_W - CHALLENGE_BTN_W) / 2 : (viewportWidth - CHALLENGE_BTN_W) / 2;
-  const btnY = nodeY + NODE_H + 40;
+  const nodeRects: LevelNodeRect[] = nodes.map((n, i) => {
+    const [cx, cy] = NODE_COORDS[i] ?? [960, 540];
+    const size = n.isBoss ? BOSS_NODE_SIZE : NORMAL_NODE_SIZE;
+    const scaledSize = Math.round(size * Math.min(scaleX, scaleY));
+    return {
+      ...n,
+      x: Math.round(cx * scaleX - scaledSize / 2),
+      y: Math.round(cy * scaleY - scaledSize / 2),
+      width: scaledSize,
+      height: scaledSize,
+      label: n.isBoss ? '终战' : `关${n.levelIndex}`,
+    };
+  });
 
-  const viewDeckBtnX = 30;
-  const viewDeckBtnY = viewportHeight - VIEW_DECK_BTN_H - 20;
+  const challengeBtnX = Math.round((viewportWidth - CHALLENGE_BTN_W) / 2);
+  const challengeBtnY = viewportHeight - CHALLENGE_BTN_H - BOTTOM_OFFSET_Y;
+
+  const deckBtnX = viewportWidth - DECK_BTN_W - 160;
+  const deckBtnY = viewportHeight - DECK_BTN_H - BOTTOM_OFFSET_Y;
 
   const backBtnX = viewportWidth - BACK_BTN_W - 30;
-  const backBtnY = viewportHeight - BACK_BTN_H - 20;
+  const backBtnY = 18;
 
   return {
     nodes: nodeRects,
-    challengeBtn: { x: btnX, y: btnY, width: CHALLENGE_BTN_W, height: CHALLENGE_BTN_H, label: `挑战关卡 ${state.currentLevelIdx}` },
-    viewDeckBtn: { x: viewDeckBtnX, y: viewDeckBtnY, width: VIEW_DECK_BTN_W, height: VIEW_DECK_BTN_H, label: '📚 查看卡组' },
-    backBtn: { x: backBtnX, y: backBtnY, width: BACK_BTN_W, height: BACK_BTN_H, label: '← 返回主菜单' },
-    hudLabel: '⚔ 长征路线',
-    goldLabel: `金币 ${state.gold}`,
-    crystalLabel: `💎 ${state.crystalHp}/${state.crystalHpMax}`,
+    challengeBtn: {
+      x: challengeBtnX,
+      y: challengeBtnY,
+      width: CHALLENGE_BTN_W,
+      height: CHALLENGE_BTN_H,
+      label: `挑战关卡 ${state.currentLevelIdx}`,
+    },
+    deckBtn: {
+      x: deckBtnX,
+      y: deckBtnY,
+      width: DECK_BTN_W,
+      height: DECK_BTN_H,
+      label: '📚 卡池',
+    },
+    backBtn: {
+      x: backBtnX,
+      y: backBtnY,
+      width: BACK_BTN_W,
+      height: BACK_BTN_H,
+      label: 'ESC 退出',
+    },
+    titleLabel: `⚔ 长征路线 — Run #${state.runIndex}`,
+    crystalLabel: `💎 HP ${state.crystalHp}/${state.crystalHpMax}`,
+    goldLabel: `● 金币 ${state.gold}`,
+    escHint: 'ESC 退出 Run',
   };
 }
 
@@ -108,7 +146,7 @@ function hitRect(rect: LevelMapBtnRect, px: number, py: number): boolean {
 
 export function hitTestLevelMap(layout: LevelMapLayout, px: number, py: number): LevelMapAction | null {
   if (hitRect(layout.challengeBtn, px, py)) return 'challenge';
-  if (hitRect(layout.viewDeckBtn, px, py)) return 'view-deck';
+  if (hitRect(layout.deckBtn, px, py)) return 'view-deck';
   if (hitRect(layout.backBtn, px, py)) return 'back-to-menu';
   return null;
 }

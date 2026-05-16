@@ -9,44 +9,73 @@ import {
   type InterLevelIntent,
 } from '../InterLevelPanel.js';
 
-function state(): InterLevelState {
+function state(overrides: Partial<InterLevelState> = {}): InterLevelState {
   return {
-    nextLevel: 2,
+    levelIndex: 3,
+    nextLevel: 4,
+    gold: 180,
+    spAwarded: 1,
+    crystalHpLost: 50,
     offers: [
-      { id: 'a', kind: 'shop', title: 'Shop', description: 'buy cards' },
-      { id: 'b', kind: 'mystic', title: 'Mystic Event', description: 'risk reward' },
-      { id: 'c', kind: 'skilltree', title: 'Skill Tree', description: 'spend SP' },
+      { id: 'a', kind: 'shop', title: '🏪 商店', description: '明码标价 · 补强资源' },
+      { id: 'b', kind: 'mystic', title: '🌀 秘境', description: '随机事件 · 高方差' },
+      { id: 'c', kind: 'skip', title: '⏭ 跳过', description: '直入下关 · 零代价' },
     ],
+    ...overrides,
   };
 }
 
 describe('layoutInterLevel', () => {
-  it('centers three cards horizontally with the configured gap', () => {
+  it('headerLabel shows 🏆 关卡N通过！ format', () => {
+    const layout = layoutInterLevel(state({ levelIndex: 5 }), 1920, 1080);
+    expect(layout.headerLabel).toBe('🏆 关卡 5 通过！');
+  });
+
+  it('rewardGoldLabel and rewardSpLabel show awarded amounts', () => {
+    const layout = layoutInterLevel(state({ gold: 200, spAwarded: 2 }), 1920, 1080);
+    expect(layout.rewardGoldLabel).toBe('● 金币 +200');
+    expect(layout.rewardSpLabel).toBe('✦ 技能点 +2');
+  });
+
+  it('crystalLostLabel shows damage when crystalHpLost > 0', () => {
+    expect(layoutInterLevel(state({ crystalHpLost: 50 }), 1920, 1080).crystalLostLabel).toBe('水晶损失 -50 HP');
+    expect(layoutInterLevel(state({ crystalHpLost: 0 }), 1920, 1080).crystalLostLabel).toBe('水晶无损');
+  });
+
+  it('centers three cards horizontally with 40px gap and 280px card width', () => {
     const layout = layoutInterLevel(state(), 1920, 1080);
     expect(layout.items).toHaveLength(3);
-    expect(layout.headerLabel).toBe('Choose path to Level 2');
-    const totalW = 320 * 3 + 40 * 2;
+    const totalW = 280 * 3 + 40 * 2;
     expect(layout.items[0]!.x).toBe((1920 - totalW) / 2);
+    expect(layout.items[0]!.width).toBe(280);
+    expect(layout.items[0]!.height).toBe(320);
+  });
+
+  it('gap between cards is 40px', () => {
+    const layout = layoutInterLevel(state(), 1920, 1080);
+    const gapBetween = layout.items[1]!.x - (layout.items[0]!.x + 280);
+    expect(gapBetween).toBe(40);
   });
 });
 
 describe('resolveInterLevelChoice', () => {
-  it('returns enter-node with kind when offerId matches', () => {
+  it('returns enter-node with kind when offerId matches shop or mystic', () => {
+    expect(resolveInterLevelChoice(state(), 'a')).toEqual({
+      kind: 'enter-node', offerId: 'a', node: 'shop',
+    });
     expect(resolveInterLevelChoice(state(), 'b')).toEqual({
       kind: 'enter-node', offerId: 'b', node: 'mystic',
     });
+  });
+
+  it('returns skip when offer kind is skip', () => {
+    expect(resolveInterLevelChoice(state(), 'c')).toEqual({ kind: 'skip' });
   });
 
   it('returns invalid when offerId does not exist', () => {
     expect(resolveInterLevelChoice(state(), 'nope')).toEqual({
       kind: 'invalid', reason: 'no-such-offer',
     });
-  });
-
-  it('preserves kind per offer (shop / mystic / skilltree)', () => {
-    expect(resolveInterLevelChoice(state(), 'a')).toMatchObject({ node: 'shop' });
-    expect(resolveInterLevelChoice(state(), 'b')).toMatchObject({ node: 'mystic' });
-    expect(resolveInterLevelChoice(state(), 'c')).toMatchObject({ node: 'skilltree' });
   });
 });
 
@@ -60,6 +89,15 @@ describe('InterLevelPanel class wrapper', () => {
     expect(got).toEqual([{ kind: 'enter-node', offerId: 'b', node: 'mystic' }]);
   });
 
+  it('returns skip intent for skip offer', () => {
+    const panel = new InterLevelPanel();
+    const got: InterLevelIntent[] = [];
+    panel.setHandler((i) => got.push(i));
+    panel.refresh(state());
+    panel.trigger('c');
+    expect(got).toEqual([{ kind: 'skip' }]);
+  });
+
   it('returns invalid intent when offerId not found', () => {
     const panel = new InterLevelPanel();
     const got: InterLevelIntent[] = [];
@@ -70,7 +108,7 @@ describe('InterLevelPanel class wrapper', () => {
   });
 });
 
-describe('hitTestInterLevel (Wave 8.2 Pixi 事件链)', () => {
+describe('hitTestInterLevel', () => {
   it('点击中心命中对应 offer', () => {
     const layout = layoutInterLevel(state(), 1344, 576);
     for (const item of layout.items) {

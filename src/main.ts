@@ -214,7 +214,7 @@ async function bootstrap(): Promise<void> {
   // Run 级统计（仅用于 RunResult 展示，不参与玩法逻辑）
   const runStats = {
     enemiesKilled: 0,
-    goldEarned: 0,
+    goldSpent: 0,
     runStartMs: 0,
     runEndMs: 0,
   };
@@ -223,7 +223,7 @@ async function bootstrap(): Promise<void> {
     const amount = typeof params?.amount === 'number' ? params.amount : 0;
     if (amount > 0) {
       runManager.addGold(amount);
-      runStats.goldEarned += amount;
+      runStats.goldSpent += amount;
     }
     runStats.enemiesKilled += 1;
   });
@@ -460,7 +460,7 @@ async function bootstrap(): Promise<void> {
     runController.startRun();
     loadLevel(1);
     runStats.enemiesKilled = 0;
-    runStats.goldEarned = 0;
+    runStats.goldSpent = 0;
     runStats.runStartMs = 0;
     runStats.runEndMs = 0;
     levelMapRenderer.refresh({
@@ -469,6 +469,7 @@ async function bootstrap(): Promise<void> {
       gold: runManager.gold,
       crystalHp: runManager.crystalHp,
       crystalHpMax: runManager.crystalHpMax,
+      runIndex: 1,
     });
   }
 
@@ -483,7 +484,7 @@ async function bootstrap(): Promise<void> {
       deckSystem.restoreFrom(snap.deck);
       runController.loadProgress();
       runStats.enemiesKilled = 0;
-      runStats.goldEarned = 0;
+      runStats.goldSpent = 0;
       runStats.runStartMs = performance.now() - (Date.now() - snap.savedAt);
       runStats.runEndMs = 0;
       levelMapRenderer.refresh({
@@ -492,6 +493,7 @@ async function bootstrap(): Promise<void> {
         gold: runManager.gold,
         crystalHp: runManager.crystalHp,
         crystalHpMax: runManager.crystalHpMax,
+        runIndex: 1,
       });
     } else if (action === 'quit') {
       window.close();
@@ -561,7 +563,7 @@ async function bootstrap(): Promise<void> {
     const shuffled = [...SHOP_UNIT_CARDS].sort(() => Math.random() - 0.5);
     const unitSlots = shuffled.slice(0, 4).map((c) => ({
       id: c.id,
-      kind: 'unit-card' as const,
+      kind: 'buy-unit-card' as const,
       label: c.label,
       costGold: c.costGold,
       grantsCardId: c.id,
@@ -571,11 +573,15 @@ async function bootstrap(): Promise<void> {
       { id: 'restore_crystal', kind: 'restore-crystal-hp' as const, label: '水晶恢复 (50%)', costGold: 100, stock: 1 },
       { id: 'recycle_card', kind: 'recycle-card' as const, label: '卡牌回收', costGold: 50, stock: 1 },
       { id: 'buy_sp', kind: 'buy-skill-point' as const, label: '技能点 ×1', costGold: 80, grantsSP: 1, stock: 3 },
-      { id: 'sp_exchange', kind: 'sp-exchange' as const, label: 'SP 兑换 (50G→1SP)', costGold: 50, grantsSP: 1, stock: 3 },
+      { id: 'sp_pack', kind: 'buy-skill-point-pack' as const, label: '技能点 ×5 限量包', costGold: 350, grantsSP: 5, stock: 1 },
     ];
     return {
       gold: runManager.gold,
       sp: runManager.sp,
+      skillPoints: runManager.sp,
+      energy: 0,
+      energyMax: 10,
+      levelIndex: runManager.currentLevel,
       items: [...unitSlots, ...funcSlots],
     };
   }
@@ -812,18 +818,16 @@ async function bootstrap(): Promise<void> {
       Math.floor(((runStats.runEndMs || performance.now()) - runStats.runStartMs) / 1000),
     );
     const levelsCleared = outcome === 'victory' ? runManager.currentLevel : Math.max(0, runManager.currentLevel - 1);
-    const hpBonus = runManager.crystalHp * 3;
-    const killBonus = Math.floor(runStats.enemiesKilled / 5);
-    const sparkAwarded = outcome === 'victory' ? Math.min(30, 10 + hpBonus + killBonus) : 0;
     return {
       outcome,
-      sparkAwarded,
       stats: {
         levelsCleared,
         totalLevels: TOTAL_RUN_LEVELS,
         enemiesKilled: runStats.enemiesKilled,
-        goldEarned: runStats.goldEarned,
+        maxSingleWaveKills: 0,
+        goldSpent: runStats.goldSpent,
         crystalHpRemaining: runManager.crystalHp,
+        crystalHpMax: runManager.crystalHpMax,
         elapsedSeconds,
       },
     };
@@ -864,10 +868,15 @@ async function bootstrap(): Promise<void> {
           gold: runManager.gold,
           crystalHp: runManager.crystalHp,
           crystalHpMax: runManager.crystalHpMax,
+          runIndex: 1,
         });
       } else if (phase === 'InterLevel') {
         interLevelRenderer.refresh({
+          levelIndex: runManager.currentLevel,
           nextLevel: runManager.currentLevel + 1,
+          gold: runManager.gold,
+          spAwarded: 1,
+          crystalHpLost: 0,
           offers: buildInterLevelOffers(),
         });
       } else if (phase === 'Result') {
@@ -915,10 +924,17 @@ function projectUIFrame(
       waveIndex: level.waveIndex + 1,
       waveTotal: level.waveTotal,
       phase: level.phase,
+      energy: energy.current,
+      energyMax: energy.max,
+      sp: run.sp,
+      runLevel: run.currentLevel,
+      runTotalLevels: TOTAL_RUN_LEVELS,
+      enemyCount: 0,
     },
     hand: {
       cards: handCards,
       energy: energy.current,
+      energyMax: energy.max,
     },
   };
 }

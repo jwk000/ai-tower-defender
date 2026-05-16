@@ -855,8 +855,12 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const shopState = {
       gold: runManager.gold,
       sp: runManager.sp,
+      skillPoints: runManager.sp,
+      energy: 0,
+      energyMax: 10,
+      levelIndex: runManager.currentLevel,
       items: [
-        { id: 'grunt_card', kind: 'unit-card' as const, label: 'Grunt Card', costGold: 30, grantsCardId: 'grunt_card', stock: 2 },
+        { id: 'grunt_card', kind: 'buy-unit-card' as const, label: 'Grunt Card', costGold: 30, grantsCardId: 'grunt_card', stock: 2 },
       ],
     };
     shopPanel.refresh(shopState);

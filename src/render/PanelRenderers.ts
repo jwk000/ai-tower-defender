@@ -758,7 +758,7 @@ export class LevelMapRenderer {
     this.bg.clear();
     this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: 0x0d1b2a, alpha: 1 });
 
-    this.hudText.text = layout.hudLabel;
+    this.hudText.text = layout.titleLabel;
     this.hudText.position.set(30, 18);
     this.crystalText.text = layout.crystalLabel;
     this.crystalText.position.set(this.viewportWidth / 2 - 120, 18);
@@ -808,7 +808,7 @@ export class LevelMapRenderer {
     this.challengeText.position.set(btn.x + btn.width / 2, btn.y + btn.height / 2);
 
     this.viewDeckGraphics.clear();
-    const vdb = layout.viewDeckBtn;
+    const vdb = layout.deckBtn;
     this.viewDeckGraphics.roundRect(vdb.x, vdb.y, vdb.width, vdb.height, 8).fill({ color: 0x1a237e, alpha: 0.92 });
     this.viewDeckGraphics.roundRect(vdb.x, vdb.y, vdb.width, vdb.height, 8).stroke({ width: 2, color: 0x7986cb });
     this.viewDeckText.text = vdb.label;

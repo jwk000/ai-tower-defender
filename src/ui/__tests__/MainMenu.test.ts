@@ -64,6 +64,20 @@ describe('layoutMainMenu + hitTestMainMenu', () => {
   const VW = 1344;
   const VH = 576;
 
+  it('layout 包含正确标题、副标题、版本号字段', () => {
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
+    expect(layout.titleLabel).toBe('Tower Defender');
+    expect(layout.subtitleLabel).toBe('塔 防 守 护 者');
+    expect(layout.versionLabel).toBe('v0.1');
+  });
+
+  it('按钮包含对应图标字段', () => {
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
+    expect(layout.buttons.find((b) => b.action === 'start-run')?.icon).toBe('🗡');
+    expect(layout.buttons.find((b) => b.action === 'continue-run')?.icon).toBe('▶');
+    expect(layout.buttons.find((b) => b.action === 'quit')?.icon).toBe('🚪');
+  });
+
   it('layout 中心对齐 3 个按钮，宽度 320，间距 16，可命中 start-run', () => {
     const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
     expect(layout.buttons.length).toBe(3);

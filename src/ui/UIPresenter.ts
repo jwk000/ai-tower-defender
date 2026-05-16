@@ -62,7 +62,7 @@ export class UIPresenter {
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
-  private lastHandState: HandState = { cards: [], energy: 0 };
+  private lastHandState: HandState = { cards: [], energy: 0, energyMax: 10 };
   private dragSlot: number | null = null;
   private ghostCard: Graphics | null = null;
   private ghostCell: Graphics | null = null;
@@ -276,7 +276,7 @@ export class UIPresenter {
     this.goldText.text = hud.gold;
     this.crystalText.text = hud.crystal;
     this.crystalText.style.fill = hud.crystalLowAlarm ? 0xff5252 : 0x4fc3f7;
-    this.waveText.text = hud.waveLabel;
+    this.waveText.text = hud.wave;
     this.phaseText.text = hud.phaseLabel;
 
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);

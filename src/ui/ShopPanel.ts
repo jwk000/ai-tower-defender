@@ -1,4 +1,4 @@
-export type ShopItemKind = 'unit-card' | 'sp-exchange' | 'restore-crystal-hp' | 'recycle-card' | 'buy-skill-point';
+export type ShopItemKind = 'buy-unit-card' | 'buy-skill-point' | 'buy-skill-point-pack' | 'restore-crystal-hp' | 'recycle-card';
 
 export interface ShopItem {
   readonly id: string;
@@ -14,7 +14,27 @@ export interface ShopItem {
 export interface ShopState {
   readonly gold: number;
   readonly sp: number;
+  readonly skillPoints: number;
+  readonly energy: number;
+  readonly energyMax: number;
+  readonly levelIndex: number;
   readonly items: readonly ShopItem[];
+}
+
+export interface ShopTopBarProjection {
+  readonly titleLabel: string;
+  readonly energyLabel: string;
+  readonly goldLabel: string;
+  readonly spLabel: string;
+}
+
+export function projectShopTopBar(state: ShopState): ShopTopBarProjection {
+  return {
+    titleLabel: `🏪 商店 ─ 关 ${state.levelIndex} 通过`,
+    energyLabel: `⚡ 能量 ${state.energy}/${state.energyMax}`,
+    goldLabel: `● 金币 ${state.gold}`,
+    spLabel: `✦ 技能点 ${state.skillPoints}`,
+  };
 }
 
 export type PurchaseResult =
@@ -41,6 +61,7 @@ export function applyPurchase(state: ShopState, itemId: string): { state: ShopSt
   if (result.kind !== 'success') return { state, result };
   return {
     state: {
+      ...state,
       gold: result.newGold,
       sp: result.newSp,
       items: state.items.map((i) => (i.id === itemId ? { ...i, stock: i.stock - 1 } : i)),
