@@ -125,7 +125,7 @@ export class MainMenuRenderer {
       this.buttonsGraphics.rect(b.x, b.y, b.width, b.height).fill({ color: fill, alpha: 0.95 });
       this.buttonsGraphics.rect(b.x, b.y, b.width, b.height).stroke({ width: 2, color: border });
       const label = this.buttonLabels[i]!;
-      label.text = b.label;
+      label.text = b.icon ? `${b.icon} ${b.label}` : b.label;
       label.style.fill = b.enabled ? TEXT_PRIMARY : TEXT_DIM;
       label.position.set(b.x + b.width / 2, b.y + b.height / 2);
     }
