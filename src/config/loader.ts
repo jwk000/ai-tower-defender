@@ -246,6 +246,7 @@ const LevelDocSchema = z
   .object({
     id: z.string(),
     name: z.string().optional(),
+    description: z.string().optional(),
     map: z
       .object({
         cols: z.number().int().positive(),
@@ -295,6 +296,7 @@ export interface LevelAvailable {
 export interface LevelConfig {
   readonly id: string;
   readonly name?: string;
+  readonly description?: string;
   readonly tileSize: number;
   readonly path: Array<{ x: number; y: number }>;
   readonly crystal: { row: number; col: number };
@@ -340,6 +342,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
   return {
     id: parsed.id,
     ...(parsed.name ? { name: parsed.name } : {}),
+    ...(parsed.description ? { description: parsed.description } : {}),
     tileSize,
     path,
     crystal: { row: anchor.row, col: anchor.col },

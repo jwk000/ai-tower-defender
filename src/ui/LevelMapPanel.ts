@@ -6,8 +6,14 @@ export interface LevelNode {
   readonly status: LevelNodeStatus;
 }
 
-const NORMAL_NODE_SIZE = 80;
-const BOSS_NODE_SIZE = 120;
+export interface LevelMeta {
+  readonly name: string;
+  readonly description: string;
+  readonly waveCount: number;
+}
+
+const NORMAL_NODE_SIZE = 160;
+const BOSS_NODE_SIZE = 160;
 
 export interface LevelNodeRect extends LevelNode {
   readonly x: number;
@@ -15,6 +21,9 @@ export interface LevelNodeRect extends LevelNode {
   readonly width: number;
   readonly height: number;
   readonly label: string;
+  readonly name: string;
+  readonly description: string;
+  readonly waveCount: number;
 }
 
 export interface LevelMapBtnRect {
@@ -43,6 +52,7 @@ export interface LevelMapState {
   readonly crystalHp: number;
   readonly crystalHpMax: number;
   readonly runIndex: number;
+  readonly levelMetas: readonly LevelMeta[];
 }
 
 const CHALLENGE_BTN_W = 280;
@@ -54,16 +64,18 @@ const BACK_BTN_H = 44;
 const BOTTOM_OFFSET_Y = 40;
 
 const NODE_COORDS: ReadonlyArray<readonly [number, number]> = [
-  [220, 600],
-  [400, 480],
-  [580, 600],
-  [760, 480],
-  [940, 600],
-  [1120, 480],
-  [1300, 600],
-  [1480, 480],
-  [1700, 540],
+  [120, 540],
+  [330, 540],
+  [540, 540],
+  [750, 540],
+  [960, 540],
+  [1170, 540],
+  [1380, 540],
+  [1590, 540],
+  [1800, 540],
 ];
+
+const FALLBACK_META: LevelMeta = { name: '???', description: '', waveCount: 0 };
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
   const nodes: LevelNode[] = [];
@@ -91,6 +103,7 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
     const [cx, cy] = NODE_COORDS[i] ?? [960, 540];
     const size = n.isBoss ? BOSS_NODE_SIZE : NORMAL_NODE_SIZE;
     const scaledSize = Math.round(size * Math.min(scaleX, scaleY));
+    const meta = state.levelMetas[i] ?? FALLBACK_META;
     return {
       ...n,
       x: Math.round(cx * scaleX - scaledSize / 2),
@@ -98,6 +111,9 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
       width: scaledSize,
       height: scaledSize,
       label: n.isBoss ? '终战' : `关${n.levelIndex}`,
+      name: meta.name,
+      description: meta.description,
+      waveCount: meta.waveCount,
     };
   });
 

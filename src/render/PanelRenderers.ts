@@ -616,6 +616,9 @@ export class LevelMapRenderer {
   private readonly viewDeckText: Text;
   private readonly backBtnText: Text;
   private readonly nodeLabelTexts: Text[] = [];
+  private readonly nodeNameTexts: Text[] = [];
+  private readonly nodeDescTexts: Text[] = [];
+  private readonly nodeWaveTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
   private readonly panel: LevelMapPanel;
@@ -697,40 +700,71 @@ export class LevelMapRenderer {
 
     this.nodesGraphics.clear();
     while (this.nodeLabelTexts.length < layout.nodes.length) {
-      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 14, fontWeight: 'bold', align: 'center' } });
-      lbl.anchor.set(0.5, 0.5);
+      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13, fontWeight: 'bold', align: 'center' } });
+      lbl.anchor.set(0.5, 0);
       this.container.addChild(lbl);
       this.nodeLabelTexts.push(lbl);
     }
+    while (this.nodeNameTexts.length < layout.nodes.length) {
+      const t = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 15, fontWeight: 'bold', align: 'center', wordWrap: true, wordWrapWidth: 140 } });
+      t.anchor.set(0.5, 0);
+      this.container.addChild(t);
+      this.nodeNameTexts.push(t);
+    }
+    while (this.nodeDescTexts.length < layout.nodes.length) {
+      const t = new Text({ text: '', style: { fill: TEXT_DIM, fontSize: 11, align: 'center', wordWrap: true, wordWrapWidth: 140 } });
+      t.anchor.set(0.5, 0);
+      this.container.addChild(t);
+      this.nodeDescTexts.push(t);
+    }
+    while (this.nodeWaveTexts.length < layout.nodes.length) {
+      const t = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 12, align: 'center' } });
+      t.anchor.set(0.5, 1);
+      this.container.addChild(t);
+      this.nodeWaveTexts.push(t);
+    }
     for (let i = layout.nodes.length; i < this.nodeLabelTexts.length; i += 1) {
       this.nodeLabelTexts[i]!.text = '';
+      this.nodeNameTexts[i]!.text = '';
+      this.nodeDescTexts[i]!.text = '';
+      this.nodeWaveTexts[i]!.text = '';
     }
     for (let i = 0; i < layout.nodes.length; i += 1) {
       const n = layout.nodes[i]!;
       const fill = n.status === 'completed' ? NODE_COMPLETED : n.status === 'current' ? NODE_CURRENT : NODE_LOCKED_COLOR;
       const border = n.status === 'completed' ? 0x4caf50 : n.status === 'current' ? 0x4fc3f7 : 0x455a64;
+      const borderWidth = n.status === 'current' ? 4 : 2;
       const cx = n.x + n.width / 2;
       const cy = n.y + n.height / 2;
-      const r = n.width / 2;
 
-      if (n.isBoss) {
-        this.nodesGraphics.rect(n.x, n.y, n.width, n.height).fill({ color: fill, alpha: 0.95 });
-        this.nodesGraphics.rect(n.x, n.y, n.width, n.height).stroke({ width: n.status === 'current' ? 4 : 2, color: border });
-      } else {
-        if (n.status === 'locked') {
-          // Future nodes: empty circle (○) with dim fill
-          this.nodesGraphics.circle(cx, cy, r).fill({ color: DIM_BG, alpha: 0.95 });
-          this.nodesGraphics.circle(cx, cy, r).stroke({ width: 2, color: border });
-        } else {
-          this.nodesGraphics.circle(cx, cy, r).fill({ color: fill, alpha: 0.95 });
-          this.nodesGraphics.circle(cx, cy, r).stroke({ width: n.status === 'current' ? 4 : 2, color: border });
-        }
-      }
+      this.nodesGraphics.rect(n.x, n.y, n.width, n.height).fill({ color: fill, alpha: n.status === 'locked' ? 0.5 : 0.95 });
+      this.nodesGraphics.rect(n.x, n.y, n.width, n.height).stroke({ width: borderWidth, color: border });
+
+      const innerPad = 8;
+      const innerTop = n.y + innerPad;
+      const innerBottom = n.y + n.height - innerPad;
+      const labelAreaH = 16;
 
       const lbl = this.nodeLabelTexts[i]!;
       lbl.text = n.status === 'completed' ? `✓ ${n.label}` : n.status === 'current' ? `★ ${n.label}` : n.label;
       lbl.style.fill = n.status === 'locked' ? TEXT_DIM : TEXT_PRIMARY;
-      lbl.position.set(n.x + n.width / 2, n.y + n.height / 2);
+      lbl.position.set(cx, innerTop);
+
+      const nameText = this.nodeNameTexts[i]!;
+      nameText.text = n.name;
+      nameText.style.fill = n.status === 'locked' ? TEXT_DIM : TITLE_COLOR;
+      nameText.position.set(cx, innerTop + labelAreaH + 4);
+
+      const descText = this.nodeDescTexts[i]!;
+      const shortDesc = n.description.length > 30 ? n.description.slice(0, 28) + '…' : n.description;
+      descText.text = n.status === 'locked' ? '??? 通过前一关解锁' : shortDesc;
+      descText.style.fill = TEXT_DIM;
+      descText.position.set(cx, innerTop + labelAreaH + 22 + 18);
+
+      const waveText = this.nodeWaveTexts[i]!;
+      waveText.text = n.waveCount > 0 ? `${n.waveCount} 波` : '';
+      waveText.style.fill = n.status === 'locked' ? TEXT_DIM : 0x80cbc4;
+      waveText.position.set(cx, innerBottom);
     }
 
     this.challengeGraphics.clear();

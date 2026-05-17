@@ -120,6 +120,18 @@ async function bootstrap(): Promise<void> {
     [7, level07Yaml],
     [8, level08Yaml],
   ]);
+
+  const allLevelConfigs: LevelConfig[] = [
+    level01Yaml, level02Yaml, level03Yaml, level04Yaml,
+    level05Yaml, level06Yaml, level07Yaml, level08Yaml,
+  ].map((yaml) => parseLevelConfig(yaml));
+
+  const ALL_LEVEL_METAS = allLevelConfigs.map((cfg) => ({
+    name: cfg.name ?? cfg.id,
+    description: cfg.description ?? '',
+    waveCount: cfg.waves.length,
+  }));
+
   const level = parseLevelConfig(level01Yaml);
   const unitYamlFiles = new Map<string, string>([
     ['units/enemies.yaml', enemiesYaml],
@@ -479,6 +491,7 @@ async function bootstrap(): Promise<void> {
       crystalHp: runManager.crystalHp,
       crystalHpMax: runManager.crystalHpMax,
       runIndex: 1,
+      levelMetas: ALL_LEVEL_METAS,
     });
   }
 
@@ -503,6 +516,7 @@ async function bootstrap(): Promise<void> {
         crystalHp: runManager.crystalHp,
         crystalHpMax: runManager.crystalHpMax,
         runIndex: 1,
+        levelMetas: ALL_LEVEL_METAS,
       });
     } else if (action === 'quit') {
       window.close();
@@ -857,6 +871,7 @@ async function bootstrap(): Promise<void> {
           crystalHp: runManager.crystalHp,
           crystalHpMax: runManager.crystalHpMax,
           runIndex: 1,
+          levelMetas: ALL_LEVEL_METAS,
         });
       } else if (phase === 'InterLevel') {
         interLevelRenderer.refresh({

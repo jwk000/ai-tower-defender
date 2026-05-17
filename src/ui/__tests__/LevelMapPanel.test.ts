@@ -16,6 +16,7 @@ function state(overrides: Partial<LevelMapState> = {}): LevelMapState {
     crystalHp: 850,
     crystalHpMax: 1000,
     runIndex: 1,
+    levelMetas: [],
     ...overrides,
   };
 }
@@ -47,19 +48,25 @@ describe('buildLevelNodes', () => {
 });
 
 describe('layoutLevelMap', () => {
-  it('produces 9 nodes at wave-line positions (first and third are lower row)', () => {
+  it('produces 9 nodes in a straight horizontal line (all same y)', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
     expect(layout.nodes).toHaveLength(9);
-    const n1 = layout.nodes[0]!;
-    const n2 = layout.nodes[1]!;
-    expect(n1.y).toBeGreaterThan(n2.y);
+    const ys = layout.nodes.map((n) => n.y);
+    expect(new Set(ys).size).toBe(1);
   });
 
-  it('boss node is larger than normal nodes', () => {
+  it('nodes are ordered left to right with increasing x', () => {
+    const layout = layoutLevelMap(state(), 1920, 1080);
+    for (let i = 1; i < layout.nodes.length; i += 1) {
+      expect(layout.nodes[i]!.x).toBeGreaterThan(layout.nodes[i - 1]!.x);
+    }
+  });
+
+  it('all nodes (including boss) have the same size', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
     const bossNode = layout.nodes[8]!;
     const normalNode = layout.nodes[0]!;
-    expect(bossNode.width).toBeGreaterThan(normalNode.width);
+    expect(bossNode.width).toBe(normalNode.width);
   });
 
   it('node labels use 关N for normal, 终战 for boss', () => {
