@@ -5,7 +5,7 @@
       "name": "Launch Chrome (Vite dev)",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3000",
+      "url": "http://localhost:3000/ai-tower-defender/",
       "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
         "/@fs/*": "${webRoot}/*",
