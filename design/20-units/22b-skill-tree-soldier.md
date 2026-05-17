@@ -1,7 +1,7 @@
 ---
-title: 士兵技能树详设（v3.4）
+title: 士兵科技树详设（v3.5）
 status: authoritative
-version: 1.1.0
+version: 1.2.0
 last-modified: 2026-05-18
 authority-for:
   - soldier-skill-tree
@@ -19,36 +19,34 @@ cross-refs:
   - v3.4-MAJOR-MIGRATION.md
 ---
 
-# 士兵技能树详设（v3.4）
+# 士兵科技树详设（v3.5）
 
 > ⚠️ **v3.5 形态级变更声明（2026-05-18）**：本文档节点设计将在 v3.5 第 2 轮全面更新（详见 [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)）。v3.5 核心变更：
 > - ~~`spCost`~~ → **`goldCost`**（技能点 SP 废弃，改用金币升级）
 > - ~~路径互斥单装备~~ → **线性等级 Lv.1/Lv.2/Lv.3**
 > - ~~`prerequisites`/`mutex`~~ → **删除**（获卡=自动解锁，无前置依赖）
 > - 节点设计（RuleHandler 效果）本身**保留**，字段名和结构待第 2 轮更新
->
-> **当前文档状态**：节点内容仍为 v3.4（spCost/paths 结构），待 v3.5 第 2 轮正式重写。
 
-> ⭐ **本文档是 6 个士兵单位技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview v2.0.0](./22-skill-tree-overview.md)（v3.5 科技树总览）。
+> ⭐ **本文档是 6 个士兵单位科技树的唯一权威详设**。所有节点 ID / 节点等级 / `goldCost` 字段 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview v2.0.0](./22-skill-tree-overview.md)（v3.5 科技树总览）。
 
-> 🆕 **本文档为 v3.4 全新创建（无 v3.1 蓝本继承）**。v3.1 22-tower-tech-tree 仅覆盖塔单位，士兵在 v3.1 阶段无关外科技树；v3.4 引入 SP 系统后，**士兵首次拥有技能树**，路径设计围绕"主动技能强化 + 行为模式切换"两条主线。
+> 🆕 **本文档为 v3.5 第 2 轮正式重写版本**。v3.4 的双路径分叉（主动技能强化 vs 普攻/行为强化）现统一收敛为**线性三等级成长**：Lv.1 提供基础形态，Lv.2 聚焦核心强化，Lv.3 合并高阶战斗特性。
 
 ---
 
 ## 目录
 
 - [1. 文档定位与读法](#1-文档定位与读法)
-- [2. 通用约定（与 22a 一致）](#2-通用约定与-22a-一致)
-- [3. 六士兵技能树清单（概览）](#3-六士兵技能树清单概览)
+- [2. 通用约定（v3.5 线性等级制）](#2-通用约定v35-线性等级制)
+- [3. 六士兵科技树清单（概览）](#3-六士兵科技树清单概览)
 - [4. 盾卫 · `shield_guard`](#4-盾卫--shield_guard)
 - [5. 剑士 · `swordsman`](#5-剑士--swordsman)
 - [6. 弓手 · `archer`](#6-弓手--archer)
 - [7. 牧师 · `priest`](#7-牧师--priest)
 - [8. 工程师 · `engineer`](#8-工程师--engineer)
 - [9. 刺客 · `assassin`](#9-刺客--assassin)
-- [10. 六士兵 SP 总需求与流派覆盖](#10-六士兵-sp-总需求与流派覆盖)
+- [10. 六士兵金币需求与流派覆盖](#10-六士兵金币需求与流派覆盖)
 - [11. RuleHandler 引用清单](#11-rulehandler-引用清单)
-- [12. v3.4 不变式核对](#12-v34-不变式核对)
+- [12. v3.5 不变式核对](#12-v35-不变式核对)
 - [13. 修订历史](#13-修订历史)
 
 ---
@@ -57,59 +55,59 @@ cross-refs:
 
 ### 1.1 本文档负责什么
 
-本文档**只**负责士兵单位（`category: Soldier`）的技能树详设，每士兵一节，内容包括：
+本文档**只**负责士兵单位（`category: Soldier`）的科技树详设，每士兵一节，内容包括：
 
 - 士兵定位（一句话功能描述 + 战术身份）
-- 路径表（每条路径的节点梯度、节点能力、形态名）
-- YAML 配置示例
-- 节点 effects[] 的 RuleHandler 引用说明
+- 线性三级节点表（Lv.1 / Lv.2 / Lv.3）
+- v3.5 YAML 配置示例
+- 节点 `effects[]` 的 RuleHandler 引用说明
 - 与主动技能的关联说明（详 [23-skill-buff](./23-skill-buff.md)）
 
 ### 1.2 本文档**不**负责什么
 
 | 不负责的内容 | 权威文档 |
 |---|---|
-| 节点结构 / 路径互斥 / SP 单价锚点 | [22-skill-tree-overview](./22-skill-tree-overview.md)|
-| SP 数值锚点 | [50-mda §17](../50-data-numerical/50-mda.md#17-技能点-sp-系统v34-新增) |
+| 节点结构 / `goldCost` 字段语义 / 线性等级骨架 | [22-skill-tree-overview](./22-skill-tree-overview.md) |
+| 金币数值锚点 | [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md#new-crystal-科技树数值占位) |
 | RuleHandler 注册 | `src/core/RuleHandlers.ts` + [60-architecture §5.3](../60-tech/60-architecture.md) |
 | 士兵基础属性（HP / ATK / 速度 / 人口）| [21-unit-roster §3](./21-unit-roster.md) |
 | 士兵 AI 行为（三圈模型 / 四状态机）| [31-soldier-ai](../30-ai/31-soldier-ai.md) |
 | 士兵主动技能数值（伤害 / 治疗量 / CD）| [23-skill-buff](./23-skill-buff.md) + [50-mda §5](../50-data-numerical/50-mda.md) |
 
-### 1.3 设计理念差异（vs 塔技能树）
+### 1.3 设计理念差异（vs 塔科技树）
 
-| 维度 | 塔技能树（22a）| 士兵技能树（本文档）|
+| 维度 | 塔科技树（22a）| 士兵科技树（本文档）|
 |---|---|---|
 | 节点效果方向 | 形态切换（外观 + 弹道 + 战斗机制）| **主动技能强化 + AI 行为微调** |
-| 路径数量 | 1-3 条 | **统一 2 条**（保持简洁，士兵不需要"3 元素互斥"那种复杂度）|
-| 节点深度 | 1-4 节点 | **统一 1-3 节点**（无 depth=4，电塔级"终极爆点"留给塔）|
+| 成长结构 | 线性三级 | **线性三级** |
+| 节点数量 | 单卡 3 级 | **单卡 3 级** |
 | 视觉变化 | 显著（双重箭塔 / 充能激光塔等）| **较弱**（小幅外观差异 + 特效附加）|
-| Run 内重要性 | 主输出来源，SP 主投 | **辅助强化**，单 Run 内点 1-2 个士兵已足够 |
+| Run 内重要性 | 主输出来源，金币重投 | **辅助强化**，单 Run 内点 1-2 个士兵已足够 |
 
 ---
 
-## 2. 通用约定（与 22a 一致）
+## 2. 通用约定（v3.5 线性等级制）
 
-### 2.1 节点深度与 SP 单价（[50-mda §17.3](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点) 锚点）
+### 2.1 节点等级与金币字段
 
-| 节点深度 | spCost | 说明 |
+| 节点等级 | goldCost | 说明 |
 |---|---|---|
-| **depth=1**（路径起点） | **0 SP** | 单位卡入手默认形态 |
-| **depth=2**（路径进阶） | **6 SP** | 路径关键流派成型 |
-| **depth=3**（路径终点）| **10 SP** | 流派满级 |
+| **Lv.1** | **0** | 单位卡入手默认形态 |
+| **Lv.2** | **TBD** | 核心强化节点 |
+| **Lv.3** | **TBD** | 高阶收束节点 |
 
-> ⚠️ **士兵单位全部不含 depth=4 节点**（终极爆点仅塔单位电塔有）。本文档全部 `spCost` 严格命中 0/6/10 锚点。
+> ⚠️ 具体金币数值统一由 [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md#new-crystal-科技树数值占位) 定义。本文档只定义字段和效果语义，不持有具体价格。
 
-### 2.2 effects[] 写法（差量语义）
+### 2.2 `effects[]` 写法（差量语义）
 
-每个节点 `effects[]` 仅描述相对上一节点的差量变化。配置加载器在装备路径时合并所有已点亮节点的 effects[]（与 22a 一致）。
+每个节点 `effects[]` 仅描述**相对上一等级**新增或覆盖的差量变化。配置加载器在卡牌升至对应等级时，累积应用 Lv.1 → 当前等级的全部 `effects[]`。
 
-### 2.3 单士兵单路径 SP 总需求
+### 2.3 线性三级体系的合并原则
 
-- 单路径满级 = 0 + 6 + 10 = **16 SP**
-- 双路径全满 = **32 SP**
-- 6 士兵全部单路径满级 = 6 × 16 = **96 SP**（接近单 Run SP 流量上限）
-- 6 士兵全部双路径全满 = 6 × 32 = **192 SP**（远超单 Run SP 流量，几乎不可能）
+- v3.4 原双路径效果在 v3.5 合并为**单一线性 3 级体系**。
+- Lv.2 负责放入该士兵**最具代表性的核心成长**。
+- Lv.3 负责吸收剩余高阶战斗效果，允许一个节点同时承载多个 RuleHandler。
+- 合并后**不删除任何已有战斗效果 RuleHandler**，只改变节点归属和结构表达。
 
 ### 2.4 与主动技能的关系
 
@@ -117,32 +115,43 @@ cross-refs:
 
 | 节点效果类 | 说明 | 示例 |
 |---|---|---|
-| **强化主动技能** | 提升主动技能数值 / 范围 / CD | 嘲讽范围扩大 / 旋风斩伤害提升 |
-| **强化普攻 / 行为** | 提升基础攻击或 AI 行为参数 | 弓手攻速提升 / 工程师修理速率提升 |
+| **强化主动技能** | 提升主动技能数值 / 范围 / CD / 附加机制 | 嘲讽范围扩大 / 旋风斩击退 / 治疗链跳数增加 |
+| **强化普攻 / 行为** | 提升基础攻击或 AI 行为参数 | 弓手攻速提升 / 工程师维护光环 / 刺客中毒续航 |
 
-每士兵 2 条路径常采用 **"强化主动 vs 强化普攻"** 的分叉设计，让玩家根据战局选择"特殊技能为王"还是"日常输出为王"。
+### 2.5 获卡即用与关内禁止升级
+
+- 获卡后默认可使用 **Lv.1** 形态。
+- 卡牌升级只在关间发生；关内**不出现升级按钮**。
+- 本文档全部节点均符合 [22-skill-tree-overview](./22-skill-tree-overview.md) 的 v3.5 线性等级约束。
 
 ---
 
-## 3. 六士兵技能树清单（概览）
+## 3. 六士兵科技树清单（概览）
 
-| 士兵 ID | 中文名 | 战术角色 | 路径数 | 单路径满级 SP | 双路径全满 SP |
-|---|---|---|---|---|---|
-| `shield_guard` | 盾卫 | 肉盾 | 2 | 16 SP | 32 SP |
-| `swordsman` | 剑士 | 前排输出 | 2 | 16 SP | 32 SP |
-| `archer` | 弓手 | 远程 DPS | 2 | 16 SP | 32 SP |
-| `priest` | 牧师 | 治疗支援 | 2 | 16 SP | 32 SP |
-| `engineer` | 工程师 | 修理建造 | 2 | 16 SP | 32 SP |
-| `assassin` | 刺客 | 近战爆发 | 2 | 16 SP | 32 SP |
+| 士兵 ID | 中文名 | 战术角色 | 节点数 | Lv.1 goldCost | Lv.2 goldCost | Lv.3 goldCost |
+|---|---|---|---|---|---|---|
+| `shield_guard` | 盾卫 | 肉盾 | 3 | 0 | TBD | TBD |
+| `swordsman` | 剑士 | 前排输出 | 3 | 0 | TBD | TBD |
+| `archer` | 弓手 | 远程 DPS | 3 | 0 | TBD | TBD |
+| `priest` | 牧师 | 治疗支援 | 3 | 0 | TBD | TBD |
+| `engineer` | 工程师 | 修理建造 | 3 | 0 | TBD | TBD |
+| `assassin` | 刺客 | 近战爆发 | 3 | 0 | TBD | TBD |
 
 ### 3.1 共同设计模板
 
-每士兵两条路径采用以下分叉模板：
+每个士兵统一采用以下线性模板：
 
-- **路径 A**：强化主动技能方向（数值 + 范围 + CD 优化）
-- **路径 B**：强化普攻 / 行为方向（攻速 / 移速 / 生存 / 输出风格优化）
+- **Lv.1**：基础单位形态，保留原默认能力。
+- **Lv.2**：最能代表该士兵玩法的中阶强化。
+- **Lv.3**：整合主动技能强化 + 普攻/生存/行为强化的高阶终点。
 
-具体路径设计因士兵战术角色不同而调整（如刺客 B 路径强调"瞬移频率"，工程师 B 路径强调"修理速度"）。
+### 3.2 合并策略说明
+
+v3.4 的“主动技能强化 vs 普攻/行为强化”不再表现为两条互斥路径，而是转化为：
+
+1. 先在 Lv.2 突出单位招牌玩法；
+2. 再在 Lv.3 补齐剩余高价值效果；
+3. 让玩家理解为“升级这张士兵卡”，而不是“给士兵选分支”。
 
 ---
 
@@ -150,21 +159,15 @@ cross-refs:
 
 **士兵定位**：肉盾，吸引仇恨 + 抗伤；主动技能「嘲讽」让范围内敌人优先攻击自己。
 
-### 4.1 节点图
+### 4.1 等级概览
 
-```
-路径 1 · 嘲讽王    [depth=1] 普通盾卫 ●────[depth=2] 嘲讽盾卫 ○ 6SP────[depth=3] 圣盾骑士 ○ 10SP
-路径 2 · 钢铁壁垒  [depth=1] 普通盾卫 ●────[depth=2] 重甲盾卫 ○ 6SP────[depth=3] 不动如山 ○ 10SP
-```
-
-### 4.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 嘲讽王** | 普通盾卫（默认嘲讽，半径 80px）| 嘲讽盾卫（嘲讽范围 +50% → 120px）| 圣盾骑士（嘲讽 + 嘲讽期间受到伤害 -20%）|
-| **2 · 钢铁壁垒** | 普通盾卫 | 重甲盾卫（HP 上限 +30%）| 不动如山（HP +30% 累加 → +60% + 免疫击退 / 眩晕）|
+| **Lv.1** | 普通盾卫 | 0 | 基础肉盾，默认嘲讽 |
+| **Lv.2** | 嘲讽盾卫 | TBD | 嘲讽范围扩大 + 最大 HP 提升 |
+| **Lv.3** | 圣盾壁垒 | TBD | 嘲讽期间减伤 + 进一步增 HP + 免疫击退/眩晕 |
 
-### 4.3 YAML 配置
+### 4.2 YAML 配置
 
 ```yaml
 shield_guard:
@@ -172,67 +175,42 @@ shield_guard:
   name: 盾卫
   category: Soldier
   skillTree:
-    paths:
-      - id: taunt_master
-        name: 嘲讽王
-        nodes:
-          - id: shield_basic
-            name: 普通盾卫
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: shield_taunter
-            name: 嘲讽盾卫
-            depth: 2
-            spCost: 6
-            prerequisites: [shield_basic]
-            effects:
-              - rule: mul_skill_range
-                skillId: taunt
-                value: 1.5
-          - id: shield_paladin
-            name: 圣盾骑士
-            depth: 3
-            spCost: 10
-            prerequisites: [shield_taunter]
-            effects:
-              - rule: add_skill_buff
-                skillId: taunt
-                buffId: damage_reduction_20
-                duration: same_as_skill         # 与技能持续时间同步
-      - id: steel_bulwark
-        name: 钢铁壁垒
-        nodes:
-          - id: shield_basic_sb
-            name: 普通盾卫
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: heavy_shield
-            name: 重甲盾卫
-            depth: 2
-            spCost: 6
-            prerequisites: [shield_basic_sb]
-            effects:
-              - rule: mul_max_hp
-                value: 1.3
-          - id: immovable_object
-            name: 不动如山
-            depth: 3
-            spCost: 10
-            prerequisites: [heavy_shield]
-            effects:
-              - rule: mul_max_hp
-                value: 1.23                     # 累加 → 共 1.6×
-              - rule: add_cc_immunity
-                effects: [knockback, stun]
+    nodes:
+      - id: shield_guard_lv1
+        name: 盾卫 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: shield_guard_lv2
+        name: 盾卫 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_range
+            skillId: taunt
+            value: 1.5
+          - rule: mul_max_hp
+            value: 1.3
+      - id: shield_guard_lv3
+        name: 盾卫 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_buff
+            skillId: taunt
+            buffId: damage_reduction_20
+            duration: same_as_skill
+          - rule: mul_max_hp
+            value: 1.23                     # 累加 → 共 1.6×
+          - rule: add_cc_immunity
+            effects: [knockback, stun]
 ```
 
-### 4.4 设计说明
+### 4.3 设计说明
 
-- 路径 1 = 主动技能流，扩大嘲讽影响圈 + 嘲讽期间生存能力。
-- 路径 2 = 被动生存流，最大化 HP 池 + CC 免疫，适合"嘲讽 CD 期"的硬抗。
-- 路径 2 终点 `add_cc_immunity` 是 v3.4 新增 RuleHandler，提供配置驱动的 CC 免疫列表（参考 [25-vulnerability](./25-vulnerability.md) 的 buff 保护规则）。
+- Lv.2 先建立“更会拉仇恨、也更能扛”的核心识别。
+- Lv.3 吸收 v3.4 两条路径的终点收益：嘲讽期减伤 + 终局硬控免疫。
+- `add_cc_immunity` 保留为 v3.4 新增 RuleHandler，继续作为高阶肉盾身份锚点。
 
 ---
 
@@ -240,21 +218,15 @@ shield_guard:
 
 **士兵定位**：前排输出；主动技能「旋风斩」AOE 范围伤害。
 
-### 5.1 节点图
+### 5.1 等级概览
 
-```
-路径 1 · 旋风之王  [depth=1] 普通剑士 ●────[depth=2] 旋风剑士 ○ 6SP────[depth=3] 飓风战将 ○ 10SP
-路径 2 · 利刃锋芒  [depth=1] 普通剑士 ●────[depth=2] 双刃剑士 ○ 6SP────[depth=3] 致命斩击 ○ 10SP
-```
-
-### 5.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 旋风之王** | 普通剑士（默认旋风斩 AOE）| 旋风剑士（旋风斩范围 +40%）| 飓风战将（旋风斩 + 命中附加击退 30px）|
-| **2 · 利刃锋芒** | 普通剑士 | 双刃剑士（普攻每 2 次攻击命中第 1 击对周围 50px 半径附加 25% 溅射伤害）| 致命斩击（普攻 15% 概率暴击 ×2）|
+| **Lv.1** | 普通剑士 | 0 | 基础近战输出，默认旋风斩 |
+| **Lv.2** | 旋风剑士 | TBD | 旋风斩范围扩大 + 周期性普攻溅射 |
+| **Lv.3** | 飓风战将 | TBD | 旋风斩附带击退 + 普攻暴击终结 |
 
-### 5.3 YAML 配置
+### 5.2 YAML 配置
 
 ```yaml
 swordsman:
@@ -262,68 +234,43 @@ swordsman:
   name: 剑士
   category: Soldier
   skillTree:
-    paths:
-      - id: whirlwind_king
-        name: 旋风之王
-        nodes:
-          - id: sword_basic
-            name: 普通剑士
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: sword_whirlwind
-            name: 旋风剑士
-            depth: 2
-            spCost: 6
-            prerequisites: [sword_basic]
-            effects:
-              - rule: mul_skill_range
-                skillId: whirlwind
-                value: 1.4
-          - id: sword_hurricane
-            name: 飓风战将
-            depth: 3
-            spCost: 10
-            prerequisites: [sword_whirlwind]
-            effects:
-              - rule: add_skill_effect
-                skillId: whirlwind
-                effect: knockback
-                distance: 30
-      - id: blade_edge
-        name: 利刃锋芒
-        nodes:
-          - id: sword_basic_be
-            name: 普通剑士
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: sword_dual
-            name: 双刃剑士
-            depth: 2
-            spCost: 6
-            prerequisites: [sword_basic_be]
-            effects:
-              - rule: add_aoe_on_attack
-                period: 2                       # 每 2 次攻击触发一次
-                radius: 50
-                damageRatio: 0.25
-          - id: sword_lethal
-            name: 致命斩击
-            depth: 3
-            spCost: 10
-            prerequisites: [sword_dual]
-            effects:
-              - rule: add_crit_chance
-                probability: 0.15
-                multiplier: 2.0
+    nodes:
+      - id: swordsman_lv1
+        name: 剑士 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: swordsman_lv2
+        name: 剑士 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_range
+            skillId: whirlwind
+            value: 1.4
+          - rule: add_aoe_on_attack
+            period: 2
+            radius: 50
+            damageRatio: 0.25
+      - id: swordsman_lv3
+        name: 剑士 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_effect
+            skillId: whirlwind
+            effect: knockback
+            distance: 30
+          - rule: add_crit_chance
+            probability: 0.15
+            multiplier: 2.0
 ```
 
-### 5.4 设计说明
+### 5.3 设计说明
 
-- 路径 1 = 主动技能强化（范围 → 击退），适合大波杂兵阵线。
-- 路径 2 = 普攻强化（溅射 → 暴击），适合精英 / Boss 单点击杀。
-- 路径 2 节点 2 的"周期溅射"是士兵层级首次引入 AOE 普攻，承接旧版"AOE 士兵"角色。
+- Lv.2 让剑士同时具备更强 AOE 主动与更稳定的日常清杂能力。
+- Lv.3 合并“控制终点”和“单点击杀终点”，让剑士从清线者升级为前排收割者。
+- `add_aoe_on_attack` 仍保留其“士兵层级首次引入 AOE 普攻”的定位。
 
 ---
 
@@ -331,21 +278,15 @@ swordsman:
 
 **士兵定位**：远程 DPS；主动技能「狙击」高单体伤害。
 
-### 6.1 节点图
+### 6.1 等级概览
 
-```
-路径 1 · 狙击大师  [depth=1] 普通弓手 ●────[depth=2] 神射手 ○ 6SP────[depth=3] 一发必杀 ○ 10SP
-路径 2 · 连射速攻  [depth=1] 普通弓手 ●────[depth=2] 速射弓手 ○ 6SP────[depth=3] 箭雨大师 ○ 10SP
-```
-
-### 6.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 狙击大师** | 普通弓手（默认狙击主动）| 神射手（狙击伤害 +50%）| 一发必杀（狙击 + 命中目标 HP < 30% 时直接处决）|
-| **2 · 连射速攻** | 普通弓手 | 速射弓手（攻击间隔 ×0.7，单发伤害 ×0.85）| 箭雨大师（攻速持续 + 每 5 次普攻附加范围伤害）|
+| **Lv.1** | 普通弓手 | 0 | 基础远程输出，默认狙击 |
+| **Lv.2** | 神射弓手 | TBD | 狙击伤害提高 + 速射姿态成型 |
+| **Lv.3** | 箭雨处决者 | TBD | 狙击附带处决 + 周期性范围箭雨 |
 
-### 6.3 YAML 配置
+### 6.2 YAML 配置
 
 ```yaml
 archer:
@@ -353,67 +294,43 @@ archer:
   name: 弓手
   category: Soldier
   skillTree:
-    paths:
-      - id: sniper_master
-        name: 狙击大师
-        nodes:
-          - id: archer_basic
-            name: 普通弓手
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: archer_marksman
-            name: 神射手
-            depth: 2
-            spCost: 6
-            prerequisites: [archer_basic]
-            effects:
-              - rule: mul_skill_damage
-                skillId: snipe
-                value: 1.5
-          - id: archer_executor
-            name: 一发必杀
-            depth: 3
-            spCost: 10
-            prerequisites: [archer_marksman]
-            effects:
-              - rule: add_skill_execute
-                skillId: snipe
-                hpThreshold: 0.3                # 命中 HP < 30% 直接处决
-      - id: rapid_fire
-        name: 连射速攻
-        nodes:
-          - id: archer_basic_rf
-            name: 普通弓手
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: archer_quickshot
-            name: 速射弓手
-            depth: 2
-            spCost: 6
-            prerequisites: [archer_basic_rf]
-            effects:
-              - rule: mul_attack_interval
-                value: 0.7
-              - rule: mul_atk
-                value: 0.85
-          - id: archer_arrowstorm
-            name: 箭雨大师
-            depth: 3
-            spCost: 10
-            prerequisites: [archer_quickshot]
-            effects:
-              - rule: add_aoe_on_attack
-                period: 5
-                radius: 80
-                damageRatio: 0.6
+    nodes:
+      - id: archer_lv1
+        name: 弓手 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: archer_lv2
+        name: 弓手 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_damage
+            skillId: snipe
+            value: 1.5
+          - rule: mul_attack_interval
+            value: 0.7
+          - rule: mul_atk
+            value: 0.85
+      - id: archer_lv3
+        name: 弓手 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_execute
+            skillId: snipe
+            hpThreshold: 0.3                # 命中 HP < 30% 直接处决
+          - rule: add_aoe_on_attack
+            period: 5
+            radius: 80
+            damageRatio: 0.6
 ```
 
-### 6.4 设计说明
+### 6.3 设计说明
 
-- 路径 1 = 狙击单点处决，针对精英 / Boss；处决机制是 v3.4 首次引入"HP 阈值秒杀"。
-- 路径 2 = 连射 + AOE 箭雨，针对杂兵清场。
+- Lv.2 先做“高频输出 + 狙击变疼”的核心识别，兼顾单点与持续火力。
+- Lv.3 再补上 v3.4 两条终点特性：处决与箭雨清场。
+- 速射仍保留“攻速上升但单发伤害下调”的设计，以维持输出风格区分。
 
 ---
 
@@ -421,21 +338,15 @@ archer:
 
 **士兵定位**：治疗支援；主动技能「治疗链」。
 
-### 7.1 节点图
+### 7.1 等级概览
 
-```
-路径 1 · 群体救赎  [depth=1] 普通牧师 ●────[depth=2] 慈悲牧师 ○ 6SP────[depth=3] 救世牧师 ○ 10SP
-路径 2 · 圣光涤荡  [depth=1] 普通牧师 ●────[depth=2] 圣光牧师 ○ 6SP────[depth=3] 神圣审判 ○ 10SP
-```
-
-### 7.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 群体救赎** | 普通牧师（默认治疗链 3 跳）| 慈悲牧师（治疗链跳数 +1 → 4 跳）| 救世牧师（治疗链 + 每跳额外恢复 5% 最大 HP）|
-| **2 · 圣光涤荡** | 普通牧师 | 圣光牧师（普攻附加治疗：友军命中时按 30% 普攻值治疗目标）| 神圣审判（治疗链命中敌方时改为伤害 ×0.8 × 治疗量）|
+| **Lv.1** | 普通牧师 | 0 | 基础治疗链支援 |
+| **Lv.2** | 慈悲牧师 | TBD | 治疗链跳数增加 + 普攻附带治疗 |
+| **Lv.3** | 神圣审判者 | TBD | 每跳额外恢复最大生命 + 治疗链可转为对敌伤害 |
 
-### 7.3 YAML 配置
+### 7.2 YAML 配置
 
 ```yaml
 priest:
@@ -443,64 +354,40 @@ priest:
   name: 牧师
   category: Soldier
   skillTree:
-    paths:
-      - id: group_redemption
-        name: 群体救赎
-        nodes:
-          - id: priest_basic
-            name: 普通牧师
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: priest_mercy
-            name: 慈悲牧师
-            depth: 2
-            spCost: 6
-            prerequisites: [priest_basic]
-            effects:
-              - rule: add_skill_chain
-                skillId: heal_chain
-                value: 1                        # 链跳数 +1
-          - id: priest_savior
-            name: 救世牧师
-            depth: 3
-            spCost: 10
-            prerequisites: [priest_mercy]
-            effects:
-              - rule: add_skill_bonus_heal
-                skillId: heal_chain
-                ratio: 0.05                     # 每跳额外 +5% 最大 HP
-      - id: holy_light
-        name: 圣光涤荡
-        nodes:
-          - id: priest_basic_hl
-            name: 普通牧师
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: priest_holy
-            name: 圣光牧师
-            depth: 2
-            spCost: 6
-            prerequisites: [priest_basic_hl]
-            effects:
-              - rule: add_attack_heal
-                friendlyHealRatio: 0.3          # 普攻同时治疗友军 30% 普攻值
-          - id: priest_judge
-            name: 神圣审判
-            depth: 3
-            spCost: 10
-            prerequisites: [priest_holy]
-            effects:
-              - rule: add_skill_damage_mode
-                skillId: heal_chain
-                enemyDamageRatio: 0.8           # 治疗链对敌方变为伤害 0.8× 治疗量
+    nodes:
+      - id: priest_lv1
+        name: 牧师 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: priest_lv2
+        name: 牧师 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: add_skill_chain
+            skillId: heal_chain
+            value: 1
+          - rule: add_attack_heal
+            friendlyHealRatio: 0.3
+      - id: priest_lv3
+        name: 牧师 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_bonus_heal
+            skillId: heal_chain
+            ratio: 0.05
+          - rule: add_skill_damage_mode
+            skillId: heal_chain
+            enemyDamageRatio: 0.8
 ```
 
-### 7.4 设计说明
+### 7.3 设计说明
 
-- 路径 1 = 治疗扩散方向，治疗链跳数 + 单跳治疗量。
-- 路径 2 = 攻防一体方向，普攻治疗友军 + 治疗链对敌伤害（罕见的"治疗→伤害"模式切换）。
+- Lv.2 先把牧师确立为“更能铺开治疗覆盖面”的支援核心。
+- Lv.3 再加入 v3.4 的高阶转换：治疗链既能更强治疗，也可在必要时转为对敌输出。
+- “治疗 → 伤害”的模式切换继续保留为牧师高等级独特卖点。
 
 ---
 
@@ -508,21 +395,15 @@ priest:
 
 **士兵定位**：修理建造；主动技能「紧急修复」单次大量恢复友方建筑/塔。
 
-### 8.1 节点图
+### 8.1 等级概览
 
-```
-路径 1 · 急救专家  [depth=1] 普通工程师 ●────[depth=2] 急救工程师 ○ 6SP────[depth=3] 抢修大师 ○ 10SP
-路径 2 · 持续维护  [depth=1] 普通工程师 ●────[depth=2] 维护工程师 ○ 6SP────[depth=3] 守护工匠 ○ 10SP
-```
-
-### 8.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 急救专家** | 普通工程师（默认紧急修复主动）| 急救工程师（紧急修复修复量 +50%）| 抢修大师（紧急修复 + CD 减半）|
-| **2 · 持续维护** | 普通工程师 | 维护工程师（被动光环：80px 内友方建筑每秒 +1% 最大 HP）| 守护工匠（光环范围 +50% → 120px + 友方建筑受到伤害 -10%）|
+| **Lv.1** | 普通工程师 | 0 | 基础修理与紧急修复 |
+| **Lv.2** | 急救工程师 | TBD | 紧急修复更强 + 建筑维护光环上线 |
+| **Lv.3** | 守护工匠 | TBD | 紧急修复冷却减半 + 光环扩大并附带减伤 |
 
-### 8.3 YAML 配置
+### 8.2 YAML 配置
 
 ```yaml
 engineer:
@@ -530,71 +411,46 @@ engineer:
   name: 工程师
   category: Soldier
   skillTree:
-    paths:
-      - id: emergency_expert
-        name: 急救专家
-        nodes:
-          - id: engineer_basic
-            name: 普通工程师
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: engineer_paramedic
-            name: 急救工程师
-            depth: 2
-            spCost: 6
-            prerequisites: [engineer_basic]
-            effects:
-              - rule: mul_skill_heal
-                skillId: emergency_repair
-                value: 1.5
-          - id: engineer_master_fixer
-            name: 抢修大师
-            depth: 3
-            spCost: 10
-            prerequisites: [engineer_paramedic]
-            effects:
-              - rule: mul_skill_cooldown
-                skillId: emergency_repair
-                value: 0.5                      # CD 减半
-      - id: continuous_maintenance
-        name: 持续维护
-        nodes:
-          - id: engineer_basic_cm
-            name: 普通工程师
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: engineer_maintainer
-            name: 维护工程师
-            depth: 2
-            spCost: 6
-            prerequisites: [engineer_basic_cm]
-            effects:
-              - rule: add_aura
-                radius: 80
-                target: building
-                effect: regen_per_second
-                ratio: 0.01                     # 每秒 +1% 最大 HP
-          - id: engineer_guardian_artisan
-            name: 守护工匠
-            depth: 3
-            spCost: 10
-            prerequisites: [engineer_maintainer]
-            effects:
-              - rule: mul_aura_radius
-                value: 1.5
-              - rule: add_aura_effect
-                target: building
-                effect: damage_reduction
-                value: 0.1
+    nodes:
+      - id: engineer_lv1
+        name: 工程师 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: engineer_lv2
+        name: 工程师 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_heal
+            skillId: emergency_repair
+            value: 1.5
+          - rule: add_aura
+            radius: 80
+            target: building
+            effect: regen_per_second
+            ratio: 0.01                     # 每秒 +1% 最大 HP
+      - id: engineer_lv3
+        name: 工程师 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_cooldown
+            skillId: emergency_repair
+            value: 0.5                      # CD 减半
+          - rule: mul_aura_radius
+            value: 1.5
+          - rule: add_aura_effect
+            target: building
+            effect: damage_reduction
+            value: 0.1
 ```
 
-### 8.4 设计说明
+### 8.3 设计说明
 
-- 路径 1 = 主动单点抢救方向（爆发治疗 + 高频）。
-- 路径 2 = 被动光环维护方向（持续小幅治疗 + 减伤），偏防御阵线维持。
-- 工程师是 v3.4 中唯一拥有"光环类"节点效果的士兵，与 [05 (M5 后)] 设计储备的 `bannerman` 鼓舞光环（[21-unit-roster §3.2](./21-unit-roster.md#32-未来扩展士兵v30-暂不收入开服卡池)）共用 `add_aura` RuleHandler。
+- Lv.2 先建立工程师的双身份：主动抢修 + 被动维护。
+- Lv.3 合并高频抢修与阵地减伤，让工程师成为长期防线的基础设施放大器。
+- `add_aura` / `mul_aura_radius` / `add_aura_effect` 仍作为该士兵最鲜明的系统特征保留。
 
 ---
 
@@ -602,21 +458,15 @@ engineer:
 
 **士兵定位**：近战爆发；主动技能「暗杀」瞬移 + 高伤害单次斩击。
 
-### 9.1 节点图
+### 9.1 等级概览
 
-```
-路径 1 · 影刃舞    [depth=1] 普通刺客 ●────[depth=2] 影刃刺客 ○ 6SP────[depth=3] 暗影使者 ○ 10SP
-路径 2 · 致命毒刃  [depth=1] 普通刺客 ●────[depth=2] 毒刃刺客 ○ 6SP────[depth=3] 死亡之契 ○ 10SP
-```
-
-### 9.2 路径详表
-
-| 路径 | depth=1（0 SP）| depth=2（6 SP）| depth=3（10 SP）|
+| 等级 | 名称 | goldCost | 效果摘要 |
 |---|---|---|---|
-| **1 · 影刃舞** | 普通刺客（默认暗杀主动）| 影刃刺客（暗杀 CD ×0.7）| 暗影使者（暗杀击杀目标后 CD 立即重置）|
-| **2 · 致命毒刃** | 普通刺客 | 毒刃刺客（普攻附加中毒 DOT，3s 内每秒 20% ATK）| 死亡之契（中毒目标被任意来源击杀时，刺客回复 20% 最大 HP）|
+| **Lv.1** | 普通刺客 | 0 | 基础暗杀爆发 |
+| **Lv.2** | 影毒刺客 | TBD | 暗杀冷却降低 + 普攻附带中毒 |
+| **Lv.3** | 暗影使者 | TBD | 暗杀击杀重置冷却 + 中毒击杀回血 |
 
-### 9.3 YAML 配置
+### 9.2 YAML 配置
 
 ```yaml
 assassin:
@@ -624,95 +474,70 @@ assassin:
   name: 刺客
   category: Soldier
   skillTree:
-    paths:
-      - id: shadow_blade_dance
-        name: 影刃舞
-        nodes:
-          - id: assassin_basic
-            name: 普通刺客
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: assassin_shadow_blade
-            name: 影刃刺客
-            depth: 2
-            spCost: 6
-            prerequisites: [assassin_basic]
-            effects:
-              - rule: mul_skill_cooldown
-                skillId: assassinate
-                value: 0.7
-          - id: assassin_shadow_emissary
-            name: 暗影使者
-            depth: 3
-            spCost: 10
-            prerequisites: [assassin_shadow_blade]
-            effects:
-              - rule: add_skill_reset_on_kill
-                skillId: assassinate
-      - id: lethal_poison
-        name: 致命毒刃
-        nodes:
-          - id: assassin_basic_lp
-            name: 普通刺客
-            depth: 1
-            spCost: 0
-            effects: []
-          - id: assassin_poison
-            name: 毒刃刺客
-            depth: 2
-            spCost: 6
-            prerequisites: [assassin_basic_lp]
-            effects:
-              - rule: add_poison_on_hit
-                duration: 3.0
-                tickRatio: 0.2
-          - id: assassin_death_pact
-            name: 死亡之契
-            depth: 3
-            spCost: 10
-            prerequisites: [assassin_poison]
-            effects:
-              - rule: add_heal_on_poison_kill
-                healRatio: 0.2                  # 中毒目标被击杀时刺客 +20% 最大 HP
+    nodes:
+      - id: assassin_lv1
+        name: 刺客 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: assassin_lv2
+        name: 刺客 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_cooldown
+            skillId: assassinate
+            value: 0.7
+          - rule: add_poison_on_hit
+            duration: 3.0
+            tickRatio: 0.2
+      - id: assassin_lv3
+        name: 刺客 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_reset_on_kill
+            skillId: assassinate
+          - rule: add_heal_on_poison_kill
+            healRatio: 0.2                  # 中毒目标被击杀时刺客 +20% 最大 HP
 ```
 
-### 9.4 设计说明
+### 9.3 设计说明
 
-- 路径 1 = 暗杀高频化（CD ↓ → 击杀重置），适合 Boss 战 / 精英爆发。
-- 路径 2 = 中毒续航流（DOT + 击杀回血），适合长期战线消耗。
-- 路径 2 节点 3 的 `add_heal_on_poison_kill` 是 v3.4 首次引入"友方间接受益于中毒"，与元素塔 22a §6 路径 3 病毒塔形成协同。
+- Lv.2 先建立“更频繁暗杀 + DOT 压血”的刺客核心节奏。
+- Lv.3 再把爆发链和续航链合并：击杀刷新技能，中毒收割补血。
+- `add_heal_on_poison_kill` 继续保留为中毒联动收益的关键 RuleHandler。
 
 ---
 
-## 10. 六士兵 SP 总需求与流派覆盖
+## 10. 六士兵金币需求与流派覆盖
 
-### 10.1 各士兵 SP 总需求矩阵
+### 10.1 各士兵金币需求矩阵
 
-| 士兵 | 路径 1 单满 | 路径 2 单满 | 双路径全满 |
+| 士兵 | Lv.1 | Lv.2 | Lv.3 |
 |---|---|---|---|
-| `shield_guard` | 16 SP | 16 SP | 32 SP |
-| `swordsman` | 16 SP | 16 SP | 32 SP |
-| `archer` | 16 SP | 16 SP | 32 SP |
-| `priest` | 16 SP | 16 SP | 32 SP |
-| `engineer` | 16 SP | 16 SP | 32 SP |
-| `assassin` | 16 SP | 16 SP | 32 SP |
+| `shield_guard` | 0 | TBD | TBD |
+| `swordsman` | 0 | TBD | TBD |
+| `archer` | 0 | TBD | TBD |
+| `priest` | 0 | TBD | TBD |
+| `engineer` | 0 | TBD | TBD |
+| `assassin` | 0 | TBD | TBD |
 
-**统一格式**：所有 6 士兵均为 2 路径 × 3 节点（depth=1 起点 0 SP + depth=2 6 SP + depth=3 10 SP）。
+**统一格式**：所有 6 士兵均为 **线性 3 节点**（Lv.1=0，Lv.2=TBD，Lv.3=TBD），不再区分路径总价。
 
-### 10.2 单 Run SP 预算策略示范（基于 100 SP 中位流量）
+### 10.2 单 Run 金币预算策略示范
 
-| 策略 | SP 分配 | 满级士兵数 | 适合玩法 |
+| 策略 | 金币分配方式 | 等级结果 | 适合玩法 |
 |---|---|---|---|
-| **3 士兵单路径** | 3 × 16 = 48 SP（剩 52 SP 投塔）| 3 个士兵 + 主力塔 | 多面手士兵阵 |
-| **1 士兵双路径** | 32 SP + 剩 68 SP 投塔 | 1 个全面士兵 + 主力塔 | 单士兵卡位深化 |
-| **不投士兵** | 0 SP，全部 100 SP 投塔 | 0 士兵 | 纯塔流 |
+| **广覆盖补强** | 先给 2-3 个士兵升 Lv.2 | 多个功能位同时成型 | 多面手士兵阵 |
+| **单核心拉满** | 集中把 1 个士兵升到 Lv.3 | 一个战术角色完成闭环 | 单士兵卡位深化 |
+| **士兵只保底** | 士兵维持 Lv.1，金币主要投塔/Crystal | 士兵只承担基础功能 | 纯塔流 / 高塔流 |
 
 ### 10.3 设计意图
 
-- **士兵不是 SP 主投方向**：本文档每士兵 32 SP 上限（双路径全满），相对塔技能树普遍 32 SP 双满（且元素塔 48 SP / 电塔 31 SP）来说更友好。
-- **设计预期**：玩家单 Run 内对士兵的 SP 投入约 20-40 SP（1-2 个士兵的关键路径），其余 SP 集中投塔。
-- 士兵技能树主要价值：**让"士兵流"玩法成为可能**（vs 纯塔流），不强求所有玩家都投。
+- **士兵不是金币主投方向**：它们依然是辅助强化位，不应压过塔与 Crystal 的主成长地位。
+- **线性升级减少理解门槛**：玩家只需判断“这张士兵卡值不值得继续升”。
+- 士兵科技树的主要价值仍是：**让士兵流玩法可行，但不强迫玩家重投士兵。**
 
 ---
 
@@ -724,66 +549,66 @@ assassin:
 
 | RuleHandler | 用途 | 引用士兵（节点）|
 |---|---|---|
-| `mul_atk` | 攻击力倍率 | 弓手（速射）|
-| `mul_attack_interval` | 攻击间隔倍率 | 弓手（速射）|
-| `mul_max_hp` | 最大 HP 倍率 | 盾卫（重甲/不动如山）|
-| `add_poison_on_hit` | 命中附加中毒 DOT | 刺客（毒刃）|
+| `mul_atk` | 攻击力倍率 | 弓手（Lv.2）|
+| `mul_attack_interval` | 攻击间隔倍率 | 弓手（Lv.2）|
+| `mul_max_hp` | 最大 HP 倍率 | 盾卫（Lv.2 / Lv.3）|
+| `add_poison_on_hit` | 命中附加中毒 DOT | 刺客（Lv.2）|
 
-### 11.2 主动技能强化类（v3.4 士兵新增）
+### 11.2 主动技能强化类
 
 | RuleHandler | 用途 | 引用士兵（节点）|
 |---|---|---|
-| `mul_skill_range` | 主动技能范围倍率 | 盾卫（嘲讽）/ 剑士（旋风）|
-| `mul_skill_damage` | 主动技能伤害倍率 | 弓手（神射手）|
-| `mul_skill_heal` | 主动技能治疗量倍率 | 工程师（急救）|
-| `mul_skill_cooldown` | 主动技能 CD 倍率 | 工程师（抢修）/ 刺客（影刃）|
-| `add_skill_buff` | 主动技能附加 Buff | 盾卫（圣盾骑士）|
-| `add_skill_effect` | 主动技能附加效果（击退/眩晕等）| 剑士（飓风）|
-| `add_skill_chain` | 主动技能链跳数 +N | 牧师（慈悲）|
-| `add_skill_bonus_heal` | 主动技能额外治疗 | 牧师（救世）|
-| `add_skill_execute` | 主动技能附加处决（HP 阈值秒杀）| 弓手（一发必杀）|
-| `add_skill_damage_mode` | 主动技能对敌方变伤害模式 | 牧师（神圣审判）|
-| `add_skill_reset_on_kill` | 主动技能击杀重置 CD | 刺客（暗影使者）|
+| `mul_skill_range` | 主动技能范围倍率 | 盾卫（Lv.2）/ 剑士（Lv.2）|
+| `mul_skill_damage` | 主动技能伤害倍率 | 弓手（Lv.2）|
+| `mul_skill_heal` | 主动技能治疗量倍率 | 工程师（Lv.2）|
+| `mul_skill_cooldown` | 主动技能 CD 倍率 | 工程师（Lv.3）/ 刺客（Lv.2）|
+| `add_skill_buff` | 主动技能附加 Buff | 盾卫（Lv.3）|
+| `add_skill_effect` | 主动技能附加效果（击退/眩晕等）| 剑士（Lv.3）|
+| `add_skill_chain` | 主动技能链跳数 +N | 牧师（Lv.2）|
+| `add_skill_bonus_heal` | 主动技能额外治疗 | 牧师（Lv.3）|
+| `add_skill_execute` | 主动技能附加处决（HP 阈值秒杀）| 弓手（Lv.3）|
+| `add_skill_damage_mode` | 主动技能对敌方变伤害模式 | 牧师（Lv.3）|
+| `add_skill_reset_on_kill` | 主动技能击杀重置 CD | 刺客（Lv.3）|
 
 ### 11.3 普攻 / 行为类
 
 | RuleHandler | 用途 | 引用士兵（节点）|
 |---|---|---|
-| `add_aoe_on_attack` | 周期性普攻 AOE | 剑士（双刃）/ 弓手（箭雨）|
-| `add_crit_chance` | 普攻暴击概率 + 倍率 | 剑士（致命）|
-| `add_attack_heal` | 普攻附加治疗友军 | 牧师（圣光）|
+| `add_aoe_on_attack` | 周期性普攻 AOE | 剑士（Lv.2）/ 弓手（Lv.3）|
+| `add_crit_chance` | 普攻暴击概率 + 倍率 | 剑士（Lv.3）|
+| `add_attack_heal` | 普攻附加治疗友军 | 牧师（Lv.2）|
 
 ### 11.4 光环 / Buff 类
 
 | RuleHandler | 用途 | 引用士兵（节点）|
 |---|---|---|
-| `add_aura` | 光环效果（半径 + 目标 + 效果）| 工程师（维护）|
-| `mul_aura_radius` | 光环范围倍率 | 工程师（守护工匠）|
-| `add_aura_effect` | 光环新增效果 | 工程师（守护工匠）|
-| `add_cc_immunity` | CC 免疫列表 | 盾卫（不动如山）|
+| `add_aura` | 光环效果（半径 + 目标 + 效果）| 工程师（Lv.2）|
+| `mul_aura_radius` | 光环范围倍率 | 工程师（Lv.3）|
+| `add_aura_effect` | 光环新增效果 | 工程师（Lv.3）|
+| `add_cc_immunity` | CC 免疫列表 | 盾卫（Lv.3）|
 
 ### 11.5 死亡 / 击杀触发类
 
 | RuleHandler | 用途 | 引用士兵（节点）|
 |---|---|---|
-| `add_heal_on_poison_kill` | 中毒目标被击杀时回血 | 刺客（死亡之契）|
+| `add_heal_on_poison_kill` | 中毒目标被击杀时回血 | 刺客（Lv.3）|
 
-**新增 RuleHandler 数量**：本文档共需新增 17 个 RuleHandler（其中 4 个与 22a 共享，13 个本文档新增）。
+**RuleHandler 保留情况**：v3.4 原有战斗效果 RuleHandler 全部保留，仅从“双路径分布”改为“线性等级分布”。
 
 ---
 
-## 12. v3.4 不变式核对
+## 12. v3.5 不变式核对
 
 | 不变式 | 权威文档 | 本文档执行情况 |
 |---|---|---|
-| 火花碎片词汇彻底废弃 | [v3.4-MAJOR-MIGRATION](../v3.4-MAJOR-MIGRATION.md) | ✅ 全文 0 处「火花碎片」「shard」「shardCost」「碎片」|
-| meta 永久积累机制取消 | [11-economy §4](../10-gameplay/11-economy.md) | ✅ 全文 0 处「永久解锁」「跨 Run」「meta 进度」|
-| 数值真理源唯一 | [50-mda](../50-data-numerical/50-mda.md) | ✅ 所有 `spCost` 严格命中 §17.3 锚点（0/6/10），不出现锚点外数值 |
-| 节点深度 SP 单价锚点 | [50-mda §17.3](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点) | ✅ 全 6 士兵 depth=1/2/3 = 0/6/10 命中 |
-| 单位卡入手默认形态 | [22-skill-tree-overview §7.3](./22-skill-tree-overview.md#73-depth1-起点-sp-单价为-0-还是-3) | ✅ 全部 depth=1 节点 spCost=0 |
-| 路径互斥单装备 | [22-skill-tree-overview §4](./22-skill-tree-overview.md#4-路径互斥与装备切换) | ✅ 全文未引入"多路径同时装备"机制 |
-| 关内禁止点亮 / 切换装备 | [22-skill-tree-overview §4.4](./22-skill-tree-overview.md#44-关内禁止点亮--切换装备) | ✅ 全文 0 处"关内升级"提及 |
-| 与 instanceLevel 正交 | [22-skill-tree-overview §6.2](./22-skill-tree-overview.md#62-正交关键点铁律) | ✅ 全文 effects[] 0 处 `add_instance_level` 引用 |
+| 火花碎片词汇彻底废弃 | [v3.4-MAJOR-MIGRATION](../v3.4-MAJOR-MIGRATION.md) | ✅ 全文 0 处「火花碎片」「shard」「shardCost」「碎片」 |
+| meta 永久积累机制取消 | [11-economy §4](../10-gameplay/11-economy.md) | ✅ 全文 0 处「永久解锁」「跨 Run」「meta 进度」 |
+| 数值真理源唯一 | [50-mda](../50-data-numerical/50-mda.md) | ✅ 全部升级价格写为 `goldCost` 语义字段，具体数值一律 TBD |
+| Lv.1 初始免费 | [22-skill-tree-overview §5.2](./22-skill-tree-overview.md#52-节点等级与金币单价50-mda-new-crystal-锚点) | ✅ 全 6 士兵 Lv.1 节点 `goldCost: 0` |
+| 线性三等级成长 | [22-skill-tree-overview §4](./22-skill-tree-overview.md#4-卡牌等级体系) | ✅ 全文已删除路径互斥表述，统一改为 Lv.1/Lv.2/Lv.3 |
+| 获卡即用，无前置依赖图 | [22-skill-tree-overview §6](./22-skill-tree-overview.md#6-获卡与节点解锁) | ✅ 全部 YAML 已删除 `prerequisites` / `mutex` |
+| 关内禁止升级 | [22-skill-tree-overview §4.4](./22-skill-tree-overview.md#44-关内禁止升级) | ✅ 全文 0 处“关内升级”正向设计 |
+| 与 instanceLevel 正交 | [v3.5-MAJOR-MIGRATION §6](../v3.5-MAJOR-MIGRATION.md) | ✅ 全文 `effects[]` 0 处 `add_instance_level` 引用 |
 
 ---
 
@@ -791,4 +616,5 @@ assassin:
 
 | 版本 | 日期 | 类型 | 摘要 |
 |---|---|---|---|
+| 1.2.0 | 2026-05-18 | refactor | **v3.5 第 2 轮重写**：6 个士兵 YAML 全量升级到 `skillTree.nodes[]` 线性三级 schema；`spCost` 全部改为 `goldCost`；删除 `paths` / `depth` / `prerequisites` / `mutex`；正文表格、概览、术语与不变式全面切换到 v3.5 科技树表达；保留全部既有战斗效果 RuleHandler，并将原双路径效果收敛为 Lv.1/Lv.2/Lv.3 线性成长。 |
 | 1.0.0 | 2026-05-15 | refactor | **v3.4 第 3 轮第 3 份创建**：士兵技能树详设权威。13 章覆盖：文档定位 / 通用约定 / 六士兵技能树清单 / 6 士兵详设（盾卫 / 剑士 / 弓手 / 牧师 / 工程师 / 刺客）/ 六士兵 SP 总需求矩阵 / RuleHandler 引用清单（17 个）/ v3.4 8 项不变式核对。**v3.4 全新创建（无 v3.1 蓝本）**：v3.1 阶段士兵无关外科技树，v3.4 引入 SP 系统后士兵首次拥有技能树。统一模板：每士兵 2 路径 × 3 节点（depth=1/2/3 = 0/6/10 SP），路径分叉模板为"强化主动技能 vs 强化普攻/行为"。 |
