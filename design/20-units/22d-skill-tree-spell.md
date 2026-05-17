@@ -1,8 +1,8 @@
 ---
 title: 法术卡参数技能树详设（v3.4）
 status: authoritative
-version: 1.0.0
-last-modified: 2026-05-15
+version: 1.1.0
+last-modified: 2026-05-18
 authority-for:
   - spell-skill-tree
   - spell-path-nodes
@@ -14,16 +14,27 @@ cross-refs:
   - 20-units/27-traps-spells-scene.md
   - 50-data-numerical/50-mda.md
   - 60-tech/60-architecture.md
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
 ---
 
 # 法术卡参数技能树详设（v3.4）
 
-> ⭐ **本文档是 14 张法术卡技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview](./22-skill-tree-overview.md)。
+> ⚠️ **v3.5 形态级变更声明（2026-05-18）**：本文档节点设计将在 v3.5 第 2 轮全面更新（详见 [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)）。v3.5 核心变更：
+> - ~~`spCost`~~ → **`goldCost`**（技能点 SP 废弃，改用金币升级）
+> - ~~路径互斥单装备~~ → **线性等级 Lv.1/Lv.2/Lv.3**
+> - ~~`prerequisites`/`mutex`~~ → **删除**（获卡=自动解锁，无前置依赖）
+> - ~~`精炼术 (refining)` 法术卡和 `instanceLevel` 机制~~ → **整套废弃删除**（[v3.5-MAJOR-MIGRATION §6](../v3.5-MAJOR-MIGRATION.md)）
+> - ~~`§9 与 instanceLevel 正交边界铁律`~~ → **整节废弃**（instanceLevel 不再存在）
+> - 其余节点设计（RuleHandler 效果）本身**保留**，字段名和结构待第 2 轮更新
+>
+> **当前文档状态**：节点内容仍为 v3.4（spCost/paths 结构 + 精炼术节点），待 v3.5 第 2 轮正式重写。
+
+> ⭐ **本文档是 14 张法术卡技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview v2.0.0](./22-skill-tree-overview.md)（v3.5 科技树总览）。
 
 > 🆕 **本文档为 v3.4 全新创建**。v3.1 阶段法术卡仅有 [23-skill-buff §7 instanceLevel](./23-skill-buff.md#7-instancelevel-法术卡提升机制) 机制（关内单局战斗强化），无关外/本 Run 技能树。v3.4 引入 SP 系统后，**法术卡首次拥有参数维度技能树**，与 instanceLevel 形成正交两层强化。
 
-> ⚠️ **关键正交铁律（vs 23-skill-buff §7）**：本文档的技能树节点 = **本 Run SP 投入的"参数维度永久强化"**；§7 instanceLevel = **关内单局战斗的"精炼术"临时提升**。两者完全独立，**节点 effects[] 严禁出现 `add_instance_level` RuleHandler**。
+> ~~⚠️ **关键正交铁律（vs 23-skill-buff §7）**：本文档的技能树节点 = **本 Run SP 投入的"参数维度永久强化"**；§7 instanceLevel = **关内单局战斗的"精炼术"临时提升**。两者完全独立，**节点 effects[] 严禁出现 `add_instance_level` RuleHandler**。~~ → **v3.5 废弃**：instanceLevel / 精炼术已整套删除，此铁律不再适用。
 
 ---
 

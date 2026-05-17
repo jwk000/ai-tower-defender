@@ -1,8 +1,8 @@
 ---
 title: 塔技能树详设（v3.4）
 status: authoritative
-version: 1.1.0
-last-modified: 2026-05-17
+version: 1.2.0
+last-modified: 2026-05-18
 authority-for:
   - tower-skill-tree
   - tower-path-nodes
@@ -14,6 +14,7 @@ cross-refs:
   - 50-data-numerical/50-mda.md
   - 60-tech/60-architecture.md
   - 40-presentation/48-shop-redesign-v34.md
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
 supersedes:
   - 20-units/22-tower-tech-tree.md（v3.1，已 deprecated）
@@ -21,7 +22,15 @@ supersedes:
 
 # 塔技能树详设（v3.4）
 
-> ⭐ **本文档是 7 个塔单位技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架（路径互斥、SP 经济、装备切换、YAML schema）见 [22-skill-tree-overview](./22-skill-tree-overview.md)。
+> ⚠️ **v3.5 形态级变更声明（2026-05-18）**：本文档节点设计将在 v3.5 第 2 轮全面更新（详见 [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)）。v3.5 核心变更：
+> - ~~`spCost`~~ → **`goldCost`**（技能点 SP 废弃，改用金币升级）
+> - ~~路径互斥单装备~~ → **线性等级 Lv.1/Lv.2/Lv.3**（每条路径深度节点合并为对应等级效果）
+> - ~~`prerequisites`/`mutex`~~ → **删除**（获卡=自动解锁，无前置依赖）
+> - 节点设计（RuleHandler 效果）本身**保留**，字段名和结构待第 2 轮更新
+>
+> **当前文档状态**：节点内容仍为 v3.4（spCost/paths 结构），待 v3.5 第 2 轮正式重写。
+
+> ⭐ **本文档是 7 个塔单位技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架（路径互斥、SP 经济、装备切换、YAML schema）见 [22-skill-tree-overview v2.0.0](./22-skill-tree-overview.md)（v3.5 科技树总览）。
 
 > 🛑 **本文档蓝本式继承 v3.1 [22-tower-tech-tree §4](./22-tower-tech-tree.md#4-七塔完整科技树) 七塔节点设计**，节点 ID / 名称 / 形态梯度 / 路径机制 / 能力描述完整保留；仅做 v3.4 字段重命名（`shardCost`→`spCost`、`techTree`→`skillTree`、`unlockedNodes`→`runActiveNodes`）与 SP 单价锚点对齐（[50-mda §17.3](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点)）。
 

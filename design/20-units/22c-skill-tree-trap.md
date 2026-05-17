@@ -1,8 +1,8 @@
 ---
 title: 陷阱技能树详设（v3.4）
 status: authoritative
-version: 1.0.0
-last-modified: 2026-05-15
+version: 1.1.0
+last-modified: 2026-05-18
 authority-for:
   - trap-skill-tree
   - trap-path-nodes
@@ -15,12 +15,21 @@ cross-refs:
   - 20-units/27-traps-spells-scene.md
   - 50-data-numerical/50-mda.md
   - 60-tech/60-architecture.md
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
 ---
 
 # 陷阱技能树详设（v3.4）
 
-> ⭐ **本文档是 9 个陷阱单位技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview](./22-skill-tree-overview.md)。
+> ⚠️ **v3.5 形态级变更声明（2026-05-18）**：本文档节点设计将在 v3.5 第 2 轮全面更新（详见 [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)）。v3.5 核心变更：
+> - ~~`spCost`~~ → **`goldCost`**（技能点 SP 废弃，改用金币升级）
+> - ~~路径互斥单装备~~ → **线性等级 Lv.1/Lv.2/Lv.3**
+> - ~~`prerequisites`/`mutex`~~ → **删除**（获卡=自动解锁，无前置依赖）
+> - 节点设计（RuleHandler 效果）本身**保留**，字段名和结构待第 2 轮更新
+>
+> **当前文档状态**：节点内容仍为 v3.4（spCost/paths 结构），待 v3.5 第 2 轮正式重写。
+
+> ⭐ **本文档是 9 个陷阱单位技能树的唯一权威详设**。所有节点 ID / 路径 ID / SP 单价 / RuleHandler 引用以本文档为准；通用骨架见 [22-skill-tree-overview v2.0.0](./22-skill-tree-overview.md)（v3.5 科技树总览）。
 
 > 🆕 **本文档为 v3.4 全新创建**。v3.1 阶段陷阱无技能树。v3.4 引入 SP 系统后，陷阱获得轻量级 2 路径技能树，围绕 **"耐久 / 触发次数"** 与 **"范围 / 烈度"** 两条主线。
 
