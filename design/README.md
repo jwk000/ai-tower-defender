@@ -1,7 +1,7 @@
 # Tower Defender — 设计文档索引
 
-> 版本: **v3.4** · 卡牌 + Roguelike 长征版 · **单 Run 闭环 · 技能点系统 · 火花碎片已废弃**
-> 最后整理: 2026-05-15（v3.4 形态级重构：火花碎片彻底废弃 + 新增技能点资源 + 商店重构）
+> 版本: **v3.5（文档第 1 轮进行中）** · 卡牌 + Roguelike 长征版 · **单 Run 闭环 · 二资源轴（能量/金币）· 科技树系统 · 人口机制**
+> 最后整理: 2026-05-18（v3.5 形态级重构第 1 轮：废弃技能点 + 科技树替代技能树 + 人口上限 + 卡牌等级 + 获卡自动解锁节点）
 
 ---
 
@@ -13,6 +13,40 @@
 - 其它文档只描述字段语义/公式骨架/规则边界，**不再持有数值表**。
 - 若发现某文档残留数值与 50-mda 冲突，**视为 BUG，必须删除残留并以 50-mda 为准**。
 - 提 PR 时若改了数值，PR 标题以 `[数值]` 前缀。
+
+---
+
+## 🛑 v3.5 形态级重构声明（最高优先级，必读）
+
+**v3.5（2026-05-18，文档第 1 轮进行中）：技能点废弃 + 科技树替代技能树 + 人口机制 + 卡牌等级 + 获卡自动解锁节点。**
+
+- ⭐ **[v3.5-MAJOR-MIGRATION](./v3.5-MAJOR-MIGRATION.md)** — v3.5 主声明 + 7 项核心变更 + 受影响文档清单 + 迁移规划（**第一阅读**）
+
+**v3.5 核心变更**：
+
+| 维度 | v3.4（旧） | v3.5（新） |
+|---|---|---|
+| 资源轴 | 能量 / 金币 / **技能点** | **能量 / 金币**（删技能点） |
+| 场上约束 | 无明确人口限制 | **人口上限**（energyCost 复用为持续占用） |
+| 卡池管理 | 所有卡开局即解锁 | **获卡/购卡 → 进入卡池**（关外每种1张） |
+| 手牌机制 | 固定4张手牌 | **固定4张 + 打出立即抽补** |
+| 塔/单位升级 | 本 Run 内技能树（SP）| **科技树（金币）+ Crystal升级驱动卡牌等级** |
+| 节点解锁 | 前置依赖图 + 花SP | **获卡=自动解锁，线性等级 Lv1/2/3，花金币** |
+| 关内临时升级 | ~~关内即时升级~~ | **废弃**（移至关外科技树） |
+
+**v3.5 第 1 轮已完成文档（7/7 ✅，2026-05-18）**：
+- ✅ [v3.5-MAJOR-MIGRATION](./v3.5-MAJOR-MIGRATION.md) v1.0.0 — 7 项变更主声明 + 受影响清单 + 不变式 + 迁移规划
+- ✅ [10-roguelike-loop](./10-gameplay/10-roguelike-loop.md) v3.0.0 — 二资源轴 + 卡池/手牌重设计 + 人口机制 + 新 INV-11/12/13
+- ✅ [11-economy](./10-gameplay/11-economy.md) v4.0.0 — 删 SP 整章 + 新增人口系统 §3 + 金币新增 Crystal 升级/科技树节点流出途径
+- ✅ [22-skill-tree-overview](./20-units/22-skill-tree-overview.md) v2.0.0 — 改为科技树总览；Crystal 升级3级 + 卡牌等级体系 + 获卡自动解锁 + 新 RunManager 接口
+- ✅ [22a-22e 技能树文档](./20-units/) v1.1.0/v1.2.0 — 顶部添加 v3.5 变更声明（spCost→goldCost，节点保留待第 2 轮重写）
+- ✅ [48-shop-redesign-v34](./40-presentation/48-shop-redesign-v34.md) v1.2.0 — 顶部添加 v3.5 变更声明（删 SP 资源轴 / 技能点卡）
+- ✅ [50-mda](./50-data-numerical/50-mda.md) v1.4.0 — §17 SP 系统废弃 + §13.3 兑换废弃 + §NEW-CRYSTAL 占位（数值 TBD）
+
+**v3.5 后续轮次规划**：
+- **第 2 轮**：22a-22e 节点详细重写（spCost→goldCost，路径互斥→线性等级 Lv1/2/3）+ 23-skill-buff §7 instanceLevel 整节删除
+- **第 3 轮**：40-ui-ux（HUD 删 SP / 新增人口）+ 61-save-system（skillPoints→crystalLevel）+ §NEW-CRYSTAL 数值填入
+- **第 4 轮**：代码实现（按新接口改造 RunManager / 卡牌系统 / 战斗逻辑）
 
 ---
 
@@ -95,8 +129,8 @@
 
 | 文档 | 状态 | 简介 |
 |---|---|---|
-| [10-roguelike-loop](./10-gameplay/10-roguelike-loop.md) | ⭐ authoritative · **v3.4 v2.0.0** | **v3.4 Run 长征单 Run 闭环权威（13 节）**：三资源 = 能量/金币/技能点；§3 关后 3 选 1（商店/秘境/跳过）；§5.2.4 水晶 HP 跨关继承；§6 单 Run 闭环结算；§11 10 条不变式。v1.0（v3.0/v3.1/v3.3 时期 14 章 893 行）已归档 [archive/10-roguelike-loop_v1.0_2026.05.15.md](./archive/10-roguelike-loop_v1.0_2026.05.15.md) |
-| [11-economy](./10-gameplay/11-economy.md) | ⭐ authoritative · **v3.4 v3.0.0** | **v3.4 三资源轴权威**：能量 E（关内单波）/ 金币 G（本 Run 关间）/ **技能点 SP（本 Run 技能树）**；§3.5 金币→SP 兑换 50G/SP + §4 SP 系统（关 N×2 SP + 秘境 5-50 SP + 节点 3-15 SP）+ §5 资源流向总图（Run 结束清零）；~~火花碎片 meta~~ 整节删除 |
+| [10-roguelike-loop](./10-gameplay/10-roguelike-loop.md) | ⭐ authoritative · **v3.5 v3.0.0** | **v3.5 Run 长征单 Run 闭环权威**：二资源 = 能量/金币；卡池每种1张 + 手牌打出立即抽补；人口上限机制（INV-11）；§11 不变式新增 INV-11/12/13（删 INV-02/08）。v2.0.0（v3.4）已归档；v1.0（v3.0/v3.1/v3.3 时期）已归档 [archive](./archive/) |
+| [11-economy](./10-gameplay/11-economy.md) | ⭐ authoritative · **v3.5 v4.0.0** | **v3.5 二资源轴权威**：能量 E（关内单波）/ 金币 G（本 Run 关间）；**§3 人口系统**（energyCost 复用为持续占用 + Crystal 等级上限表）；§4 金币新增 Crystal 升级/科技树节点流出途径；~~技能点 SP~~ 整章删除 |
 | [12-game-modes](./10-gameplay/12-game-modes.md) | stable | Run 模式（仅此一种）、关卡内难度 4 阶段 |
 | [13-map-level](./10-gameplay/13-map-level.md) | stable | 21×9 网格、8 关 + 终战、6 个 PRNG 流隔离 |
 | [14-weather](./10-gameplay/14-weather.md) | stable · v3.1 audit | 5 种天气、数值影响矩阵（仅影响战斗，不影响经济） |
@@ -110,12 +144,12 @@
 | [20-unit-system](./20-units/20-unit-system.md) | stable | 统一单位概念、配置驱动、卡牌生成入口 |
 | [21-unit-roster](./20-units/21-unit-roster.md) | stable | **R3 合并**（原 03 + 22）：单位字段语义、20 敌+20 友阵容、卡牌目录 |
 | [22-tower-tech-tree](./20-units/22-tower-tech-tree.md) | 🛑 **deprecated (v3.4)** | ~~v3.1 塔升级权威~~ → v3.4 全文废弃，由 [22-skill-tree-overview](./20-units/22-skill-tree-overview.md)（通用骨架）+ [22a-skill-tree-tower](./20-units/22a-skill-tree-tower.md)（塔详设，蓝本式继承本文档节点设计）接替 |
-| [22-skill-tree-overview](./20-units/22-skill-tree-overview.md) | ⭐ authoritative · **v3.4 v1.0.0** | **v3.4 技能树通用骨架权威**：13 章 / 641 行；节点结构 + SP 单价 0/3/6/10/15 锚点 + 路径互斥单装备 + 与 23-skill-buff §7 instanceLevel 正交边界 + YAML schema（skillTree 字段替代 v3.1 techTree）+ RunManager.skillTreeState 接口 + UI 草图 + 7 项不变式核对 |
-| [22a-skill-tree-tower](./20-units/22a-skill-tree-tower.md) | ⭐ authoritative · **v3.4 v1.0.0** | **7 塔技能树详设权威**：915 行；蓝本式继承 v3.1 22-tower-tech-tree 节点 ID / 名称 / 形态梯度；箭塔 / 炮塔 / 元素塔（原冰塔）/ 电塔 / 激光塔 / 蝙蝠塔 / 导弹塔；19 RuleHandler；spCost 严格 0/6/10/15 锚点（电塔含 depth=4） |
-| [22b-skill-tree-soldier](./20-units/22b-skill-tree-soldier.md) | ⭐ authoritative · **v3.4 v1.0.0** | **6 士兵技能树详设权威**：785 行；v3.4 全新创建；盾卫 / 剑士 / 弓手 / 牧师 / 工程师 / 刺客；统一 2 路径 × 3 节点；17 RuleHandler；强化主动技能 vs 强化普攻分叉模板 |
-| [22c-skill-tree-trap](./20-units/22c-skill-tree-trap.md) | ⭐ authoritative · **v3.4 v1.0.0** | **9 陷阱技能树详设权威**：978 行；v3.4 全新创建；9 陷阱 × 2 路径 × 3 节点 = 54 节点；26 RuleHandler；触发机制 vs 区域效果分叉模板 |
-| [22d-skill-tree-spell](./20-units/22d-skill-tree-spell.md) | ⭐ authoritative · **v3.4 v1.0.0** | **14 法术卡技能树详设权威**：~1100 行；v3.4 全新创建；弹性 2-4 路径设计；43 路径 / 129 节点；4 维度池（伤害/范围/CD/持续时间）；§9 与 23-skill-buff §7 instanceLevel 正交铁律；23 RuleHandler |
-| [22e-skill-tree-production](./20-units/22e-skill-tree-production.md) | ⭐ authoritative · **v3.4 v1.0.0** | **2 生产建筑技能树详设权威**：462 行；v3.4 全新创建；金矿 + 能量水晶 × 2 路径 × 3 节点 = 12 节点；7 RuleHandler；§7 与等级系统 L1/L2/L3 正交铁律 + effects[] 黑名单；严守 v3.0 能量水晶重命名机制不回退 |
+| [22-skill-tree-overview](./20-units/22-skill-tree-overview.md) | ⭐ authoritative · **v3.5 v2.0.0** | **v3.5 科技树总览权威**：Crystal 升级 3 级（人口上限 + 卡牌等级上限）；卡牌等级体系 Lv1/2/3；获卡=自动解锁节点（无前置依赖图）；goldCost 替代 spCost；新 RunManager 接口（crystalLevel / techTreeState / CardTechTreeState.cardLevel）；UI 草图（左右分栏 + ★☆☆ 等级 + Crystal 升级按钮） |
+| [22a-skill-tree-tower](./20-units/22a-skill-tree-tower.md) | ⭐ authoritative · **v3.5 v1.2.0** | **7 塔科技树详设权威（声明已加，节点待第 2 轮重写）**：顶部 v3.5 声明（spCost→goldCost + 路径互斥→线性等级 + 获卡自动解锁）；正文节点内容保持 v3.4（第 2 轮重写时更新） |
+| [22b-skill-tree-soldier](./20-units/22b-skill-tree-soldier.md) | ⭐ authoritative · **v3.5 v1.1.0** | **6 士兵科技树详设权威（声明已加，节点待第 2 轮重写）**：顶部 v3.5 声明；正文保持 v3.4 |
+| [22c-skill-tree-trap](./20-units/22c-skill-tree-trap.md) | ⭐ authoritative · **v3.5 v1.1.0** | **9 陷阱科技树详设权威（声明已加，节点待第 2 轮重写）**：顶部 v3.5 声明；正文保持 v3.4 |
+| [22d-skill-tree-spell](./20-units/22d-skill-tree-spell.md) | ⭐ authoritative · **v3.5 v1.1.0** | **14 法术卡科技树详设权威（声明已加，节点待第 2 轮重写）**：顶部 v3.5 声明（额外：精炼术/instanceLevel废弃，§9正交铁律废弃）；正文保持 v3.4 |
+| [22e-skill-tree-production](./20-units/22e-skill-tree-production.md) | ⭐ authoritative · **v3.5 v1.1.0** | **2 生产建筑科技树详设权威（声明已加，节点待第 2 轮重写）**：顶部 v3.5 声明；正文保持 v3.4 |
 | [23-skill-buff](./20-units/23-skill-buff.md) | stable | 技能/Buff 系统、法术卡子分类、`instanceLevel` 通过法术卡递增 |
 | [24-combat](./20-units/24-combat.md) | stable · v3.1 audit | 战斗公式骨架、攻速/移速、眩晕/弹道规范 |
 | [25-vulnerability](./20-units/25-vulnerability.md) | stable · v3.1 audit | 玩家阵营 buff 保护规则、debuff 优先级、回归测试映射 |
@@ -144,7 +178,7 @@
 | [45-layer-system](./40-presentation/45-layer-system.md) | stable · v3.1 audit | 6 层垂直空间层级、层级交互规则、渲染排序 |
 | [46-audio](./40-presentation/46-audio.md) | stable | 63 个音效（含卡牌/关间/商店/秘境/碎片新增 24 个） |
 | [47-level-map-ui](./40-presentation/47-level-map-ui.md) | ⭐ authoritative · v3.3 + v3.4 audit | **关卡路线图 UI 权威**：Mario 风格 9 节点 + 三状态切换 + 关后 3 选 1（商店/秘境/跳过） + 终战特例 + ESC 退出 Run 确认（v3.4 已删除火花碎片显示） |
-| [48-shop-redesign-v34](./40-presentation/48-shop-redesign-v34.md) | ⭐ authoritative · **v3.4 新增** | **v3.4 商店 + 技能点资源权威**：两栏 UI / 8 槽（前 4 单位 + 后 4 功能）/ shop_item CardType 拓展 / 4 种功能卡 / RunManager 锁定 |
+| [48-shop-redesign-v34](./40-presentation/48-shop-redesign-v34.md) | ⭐ authoritative · **v3.5 v1.2.0（声明已加，正文待第 3 轮重写）** | **商店 UI 权威（v3.5 变更声明已加）**：两栏 UI / 8 槽（前 4 单位 + 后 4 功能）；v3.5 声明：删 SP 顶栏/§2/技能点卡/§5.3/§5.4/RunManager.skillPoints；正文内容仍为 v3.4 待第 3 轮重写 |
 | [49-main-menu](./40-presentation/49-main-menu.md) | ⭐ authoritative · **2026-05-16 新增** | **游戏主界面（主菜单）UI 权威**：精简 3 按钮（新的征程/继续游戏/离开游戏）+ 界面跳转逻辑 + 丢弃存档确认弹窗 + 存档同步规则；对应 [40-ui-ux §11](./40-presentation/40-ui-ux.md) |
 | [50-run-result](./40-presentation/50-run-result.md) | ⭐ authoritative · **2026-05-16 新增** | **Run 结算界面 UI 权威**：胜利/失败面板 + 战绩统计字段 + 「返回主菜单」/「立即新征程」按钮行为 + 存档清零时序；对应 [40-ui-ux §10](./40-presentation/40-ui-ux.md) |
 
@@ -152,7 +186,7 @@
 
 | 文档 | 状态 | 简介 |
 |---|---|---|
-| [50-mda](./50-data-numerical/50-mda.md) | ⭐ authoritative · **v3.4 v1.3.1** | **v3.4 数值真理源**：§14 商店 8 槽（前 4 单位 30/60/120/240G + 后 4 功能卡）+ §15 秘境事件池数值镜像（v3.4 14 事件 + 35.7% 高风险） + §17 技能点 SP 系统（关 N×2 SP + 秘境 5-50 SP + 节点 3-15 SP）+ §13 SP 兑换条款；~~§20 塔科技树~~ 整节删除；其他章节 v3.4 audit 不变 |
+| [50-mda](./50-data-numerical/50-mda.md) | ⭐ authoritative · **v3.5 v1.4.0** | **v3.5 数值真理源**：§14 商店 8 槽 + §15 秘境事件池镜像 + §NEW-CRYSTAL 科技树占位（Crystal 升级费用/卡牌等级费用/人口上限，TBD）；~~§17 SP 系统~~ 废弃；~~§13.3 SP 兑换~~ 废弃 |
 
 ### `60-tech/` — 技术与工具
 
@@ -186,7 +220,7 @@
 2. **一切皆卡牌** — v3.0 所有可部署内容都是卡牌（单位卡 / 法术卡 / 陷阱卡 / 生产卡）。
 3. **配置驱动** — 单位/卡牌静态属性 + 动态行为规则全在配置中。
 4. **规则引擎驱动 AI**（v3.4） — 单位行为由配置中的 `targetSelection` / `attackMode` / `movementMode` + 生命周期 `RuleHandler` 共同驱动，统一走规则引擎。~~v3.0/v3.1 时期的行为树方案~~ 已于 2026-05-16 决策放弃（详见 [decisions/2026-05-16_drop-behavior-tree.md](./00-vision/decisions/2026-05-16_drop-behavior-tree.md)）。
-5. **三资源轴（v3.4）** — 能量 / 金币 / **技能点** 严格分层、不可互转。Run 结束全部清零，无 meta 积累。
+5. **二资源轴（v3.5）** — ~~三资源~~ → 能量 / 金币，Run 结束全部清零，无 meta 积累。~~技能点 SP~~ v3.5 废弃；人口上限作为约束资源（非货币）。
 6. **Run 长征** — 8 关连闯 + 终战，水晶 HP 全程继承（无敌 + 秒杀机制）。
 7. **数值真理源** — [50-mda](./50-data-numerical/50-mda.md) 是数值唯一权威来源。
 
