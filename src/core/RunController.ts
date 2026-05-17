@@ -13,7 +13,6 @@ export interface RunSceneContainers {
   readonly interLevel: { visible: boolean };
   readonly shop: { visible: boolean };
   readonly mystic: { visible: boolean };
-  readonly skillTree: { visible: boolean };
   readonly runResult: { visible: boolean };
 }
 
@@ -166,7 +165,6 @@ export class RunController {
     this.scenes.interLevel.visible = p === RunPhase.InterLevel;
     this.scenes.shop.visible = p === RunPhase.Shop;
     this.scenes.mystic.visible = p === RunPhase.Mystic;
-    this.scenes.skillTree.visible = p === RunPhase.SkillTree;
     this.scenes.runResult.visible = p === RunPhase.Result;
   }
 }

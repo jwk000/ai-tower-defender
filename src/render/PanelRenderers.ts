@@ -22,7 +22,7 @@ import {
 import type { ShopPanel, ShopState } from '../ui/ShopPanel.js';
 import type { MysticEventConfig } from '../config/loader.js';
 import type { MysticPanel } from '../ui/MysticPanel.js';
-import { layoutSkillTree, type SkillTreePanel, type SkillTreeState } from '../ui/SkillTreePanel.js';
+
 import {
   hitTestLevelMap,
   layoutLevelMap,
@@ -564,119 +564,6 @@ export class MysticRenderer {
   }
 }
 
-export class SkillTreeRenderer {
-  private readonly container: Container;
-  private readonly bg: Graphics;
-  private readonly nodesGraphics: Graphics;
-  private readonly headerText: Text;
-  private readonly spText: Text;
-  private readonly closeText: Text;
-  private readonly nodeLabelTexts: Text[] = [];
-  private readonly nodeDescTexts: Text[] = [];
-  private readonly nodeCostTexts: Text[] = [];
-  private viewportWidth: number;
-  private viewportHeight: number;
-  private readonly panel: SkillTreePanel;
-  private state: SkillTreeState | null = null;
-
-  constructor(config: PanelRendererConfig, panel: SkillTreePanel) {
-    this.container = config.container;
-    this.viewportWidth = config.viewportWidth;
-    this.viewportHeight = config.viewportHeight;
-    this.panel = panel;
-
-    this.bg = new Graphics();
-    this.nodesGraphics = new Graphics();
-    this.headerText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 28, fontWeight: 'bold', align: 'center' } });
-    this.headerText.anchor.set(0.5, 0.5);
-    this.spText = new Text({ text: '', style: { fill: SP_COLOR, fontSize: 22 } });
-    this.spText.anchor.set(0.5, 0.5);
-    this.closeText = new Text({ text: 'Exit Skill Tree', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
-    this.closeText.anchor.set(0.5, 0.5);
-
-    this.container.addChild(this.bg, this.headerText, this.spText, this.nodesGraphics, this.closeText);
-    this.container.eventMode = 'static';
-    this.container.hitArea = { contains: () => true };
-    this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
-  }
-
-  resize(vw: number, vh: number): void {
-    this.viewportWidth = vw;
-    this.viewportHeight = vh;
-    if (this.state) this.render();
-  }
-
-  refresh(state: SkillTreeState): void {
-    this.state = state;
-    this.panel.refresh(state);
-    this.render();
-  }
-
-  private get closeBtn() {
-    const w = 260;
-    const h = 56;
-    return { x: (this.viewportWidth - w) / 2, y: this.viewportHeight - 100, w, h };
-  }
-
-  private onPointerDown(e: FederatedPointerEvent): void {
-    if (!this.state) return;
-    const local = this.container.toLocal(e.global);
-    const cb = this.closeBtn;
-    if (local.x >= cb.x && local.x <= cb.x + cb.w && local.y >= cb.y && local.y <= cb.y + cb.h) {
-      this.panel.triggerExit();
-      return;
-    }
-    const layout = layoutSkillTree(this.state, this.viewportWidth, this.viewportHeight);
-    for (const node of layout.nodes) {
-      if (local.x >= node.x && local.x <= node.x + node.width && local.y >= node.y && local.y <= node.y + node.height) {
-        this.panel.triggerUnlock(node.id);
-        return;
-      }
-    }
-  }
-
-  private render(): void {
-    if (!this.state) return;
-    const layout = layoutSkillTree(this.state, this.viewportWidth, this.viewportHeight);
-    this.bg.clear();
-    this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: DIM_BG, alpha: 0.95 });
-
-    this.headerText.text = layout.headerLabel;
-    this.headerText.position.set(this.viewportWidth / 2, 60);
-    this.spText.text = layout.spLabel;
-    this.spText.position.set(this.viewportWidth / 2, 110);
-
-    this.nodesGraphics.clear();
-    while (this.nodeLabelTexts.length < layout.nodes.length) {
-      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 18, fontWeight: 'bold' } });
-      const desc = new Text({ text: '', style: { fill: TEXT_DIM, fontSize: 14, wordWrap: true, wordWrapWidth: 240 } });
-      const cost = new Text({ text: '', style: { fill: SP_COLOR, fontSize: 15 } });
-      this.container.addChild(lbl, desc, cost);
-      this.nodeLabelTexts.push(lbl);
-      this.nodeDescTexts.push(desc);
-      this.nodeCostTexts.push(cost);
-    }
-    for (let i = 0; i < layout.nodes.length; i += 1) {
-      const node = layout.nodes[i]!;
-      const fillColor = node.purchased ? NODE_PURCHASED : node.affordable ? NODE_AFFORDABLE : NODE_LOCKED;
-      const borderColor = node.purchased ? 0x69f0ae : node.affordable ? BUTTON_BORDER : BUTTON_BORDER_DISABLED;
-      this.nodesGraphics.rect(node.x, node.y, node.width, node.height).fill({ color: fillColor, alpha: 0.95 });
-      this.nodesGraphics.rect(node.x, node.y, node.width, node.height).stroke({ width: 2, color: borderColor });
-      this.nodeLabelTexts[i]!.text = node.purchased ? `✓ ${node.label}` : node.label;
-      this.nodeLabelTexts[i]!.position.set(node.x + 16, node.y + 16);
-      this.nodeDescTexts[i]!.text = node.description;
-      this.nodeDescTexts[i]!.position.set(node.x + 16, node.y + 52);
-      this.nodeCostTexts[i]!.text = node.purchased ? 'Purchased' : `${node.costSP} SP`;
-      this.nodeCostTexts[i]!.position.set(node.x + 16, node.y + 140);
-    }
-
-    const cb = this.closeBtn;
-    this.nodesGraphics.rect(cb.x, cb.y, cb.w, cb.h).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
-    this.nodesGraphics.rect(cb.x, cb.y, cb.w, cb.h).stroke({ width: 2, color: BUTTON_BORDER });
-    this.closeText.position.set(cb.x + cb.w / 2, cb.y + cb.h / 2);
-  }
-}
-
 const NODE_COMPLETED = 0x1b5e20;
 const NODE_CURRENT = 0x1565c0;
 const NODE_LOCKED_COLOR = 0x37474f;
@@ -823,19 +710,45 @@ export class LevelMapRenderer {
   }
 }
 
+const DECK_L1_BORDER = 0x4caf50;
+const DECK_L2_BORDER = 0x1565c0;
+const DECK_L3_BORDER = 0xffd54f;
+const DECK_SELECTED_BG = 0x0d2a4a;
+const DECK_SELECTED_BORDER = 0x1e88e5;
+const DECK_GOLD_GLOW = 0xffd54f;
+const DECK_ITEM_H = 56;
+const DECK_ITEM_GAP = 6;
+const DECK_TOPBAR_H = 50;
+const DECK_BOTTOMBAR_H = 50;
+
+function deckLevelBorderColor(level: number | undefined): number {
+  if (level === 3) return DECK_L3_BORDER;
+  if (level === 2) return DECK_L2_BORDER;
+  return DECK_L1_BORDER;
+}
+
+function deckLevelDiamond(level: number | undefined): string {
+  if (level === 3) return ' ✦✦';
+  if (level === 2) return ' ✦';
+  return '';
+}
+
 export class DeckViewRenderer {
   private readonly container: Container;
   private readonly bg: Graphics;
-  private readonly cardGraphics: Graphics;
+  private readonly leftGraphics: Graphics;
+  private readonly rightGraphics: Graphics;
   private readonly titleText: Text;
-  private readonly closeText: Text;
-  private readonly cardLabels: Text[] = [];
+  private readonly spText: Text;
+  private readonly closeBtnText: Text;
+  private readonly rightPlaceholderText: Text;
+  private readonly cardItemTexts: Text[] = [];
+  private readonly nodeTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
   private readonly panel: DeckViewPanel;
   private state: DeckViewState | null = null;
-
-  private readonly CLOSE_BTN = { x: 0, y: 0, w: 100, h: 38 };
+  private selectedInstanceId: string | null = null;
 
   constructor(config: PanelRendererConfig, panel: DeckViewPanel) {
     this.container = config.container;
@@ -844,45 +757,71 @@ export class DeckViewRenderer {
     this.panel = panel;
 
     this.bg = new Graphics();
-    this.cardGraphics = new Graphics();
-    this.titleText = new Text({ text: '📚 本局卡组', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
-    this.closeText = new Text({ text: '✕ 关闭', style: { fill: TEXT_PRIMARY, fontSize: 15 } });
-    this.closeText.anchor.set(0.5, 0.5);
+    this.leftGraphics = new Graphics();
+    this.rightGraphics = new Graphics();
+    this.titleText = new Text({ text: '📚 卡组 · 技能树', style: { fill: TITLE_COLOR, fontSize: 20, fontWeight: 'bold' } });
+    this.spText = new Text({ text: '', style: { fill: SP_COLOR, fontSize: 16 } });
+    this.spText.anchor.set(1, 0.5);
+    this.closeBtnText = new Text({ text: '✕ 关闭', style: { fill: TEXT_PRIMARY, fontSize: 16 } });
+    this.closeBtnText.anchor.set(0.5, 0.5);
+    this.rightPlaceholderText = new Text({ text: '← 选择左侧卡牌', style: { fill: TEXT_DIM, fontSize: 18 } });
+    this.rightPlaceholderText.anchor.set(0.5, 0.5);
 
-    this.container.addChild(this.bg, this.cardGraphics, this.titleText, this.closeText);
+    this.container.addChild(this.bg, this.leftGraphics, this.rightGraphics,
+      this.titleText, this.spText, this.closeBtnText, this.rightPlaceholderText);
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
-
-    this.updateCloseBtnPos();
   }
 
-  private updateCloseBtnPos(): void {
-    this.CLOSE_BTN.x = this.viewportWidth - 120;
-    this.CLOSE_BTN.y = 16;
+  private get leftColWidth(): number { return Math.floor(this.viewportWidth * 0.3); }
+  private get rightColX(): number { return this.leftColWidth + 1; }
+  private get rightColWidth(): number { return this.viewportWidth - this.rightColX; }
+  private get contentH(): number { return this.viewportHeight - DECK_TOPBAR_H - DECK_BOTTOMBAR_H; }
+  private get closeBtnRect() {
+    const w = 160; const h = 40;
+    return { x: (this.viewportWidth - w) / 2, y: this.viewportHeight - DECK_BOTTOMBAR_H + 5, w, h };
   }
 
-  private isCloseBtnHit(px: number, py: number): boolean {
-    const b = this.CLOSE_BTN;
-    return px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h;
+  private instances(): readonly import('../ui/DeckViewPanel.js').CardInstanceEntry[] {
+    return this.state?.instances ?? [];
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {
+    if (!this.state) return;
     const local = this.container.toLocal(e.global);
-    if (this.isCloseBtnHit(local.x, local.y)) {
+    const cb = this.closeBtnRect;
+    if (local.x >= cb.x && local.x <= cb.x + cb.w && local.y >= cb.y && local.y <= cb.y + cb.h) {
       this.panel.trigger('close');
+      return;
+    }
+    if (local.x < this.leftColWidth && local.y >= DECK_TOPBAR_H && local.y < this.viewportHeight - DECK_BOTTOMBAR_H) {
+      const idx = Math.floor((local.y - DECK_TOPBAR_H) / (DECK_ITEM_H + DECK_ITEM_GAP));
+      const instances = this.instances();
+      if (idx >= 0 && idx < instances.length) {
+        const inst = instances[idx]!;
+        this.selectedInstanceId = inst.instanceId;
+        this.panel.selectInstance(inst.instanceId);
+        this.render();
+      }
     }
   }
 
   resize(vw: number, vh: number): void {
     this.viewportWidth = vw;
     this.viewportHeight = vh;
-    this.updateCloseBtnPos();
     if (this.state) this.render();
   }
 
   refresh(state: DeckViewState): void {
     this.state = state;
+    const instances = state.instances;
+    if (instances && instances.length > 0 && this.selectedInstanceId === null) {
+      this.selectedInstanceId = instances[0]!.instanceId;
+    }
+    if (state.selectedInstanceId !== undefined) {
+      this.selectedInstanceId = state.selectedInstanceId;
+    }
     this.panel.refresh(state);
     this.render();
   }
@@ -891,53 +830,114 @@ export class DeckViewRenderer {
     if (!this.state) return;
     const vw = this.viewportWidth;
     const vh = this.viewportHeight;
+    const lw = this.leftColWidth;
+    const rx = this.rightColX;
+    const rw = this.rightColWidth;
 
     this.bg.clear();
-    this.bg.rect(0, 0, vw, vh).fill({ color: 0x0d1b2a, alpha: 0.96 });
+    this.bg.rect(0, 0, vw, vh).fill({ color: 0x0d1b2a, alpha: 0.97 });
 
-    this.titleText.position.set(30, 20);
+    this.leftGraphics.clear();
+    this.leftGraphics.rect(0, DECK_TOPBAR_H, vw, 1).fill({ color: 0x263238 });
+    this.leftGraphics.rect(lw, DECK_TOPBAR_H, 1, this.contentH).fill({ color: 0x263238 });
+    this.leftGraphics.rect(0, vh - DECK_BOTTOMBAR_H, vw, 1).fill({ color: 0x263238 });
 
-    const b = this.CLOSE_BTN;
-    this.cardGraphics.clear();
-    this.cardGraphics.roundRect(b.x, b.y, b.w, b.h, 6).fill({ color: 0x5d1a1a, alpha: 0.92 });
-    this.cardGraphics.roundRect(b.x, b.y, b.w, b.h, 6).stroke({ width: 2, color: 0xff5252 });
-    this.closeText.position.set(b.x + b.w / 2, b.y + b.h / 2);
+    this.titleText.position.set(20, DECK_TOPBAR_H / 2);
+    this.titleText.anchor.set(0, 0.5);
+    const sp = this.state.sp;
+    this.spText.text = sp !== undefined ? `SP: ${sp}` : '';
+    this.spText.position.set(vw - 20, DECK_TOPBAR_H / 2);
 
-    const cards = this.state.cardIds;
-    const CARD_W = 140;
-    const CARD_H = 56;
-    const COLS = Math.max(1, Math.floor((vw - 60) / (CARD_W + 12)));
-    const startX = 30;
-    const startY = 80;
+    const cb = this.closeBtnRect;
+    this.rightGraphics.clear();
+    this.rightGraphics.roundRect(cb.x, cb.y, cb.w, cb.h, 8).fill({ color: 0x37474f, alpha: 0.95 });
+    this.rightGraphics.roundRect(cb.x, cb.y, cb.w, cb.h, 8).stroke({ width: 2, color: 0x80cbc4 });
+    this.closeBtnText.position.set(cb.x + cb.w / 2, cb.y + cb.h / 2);
 
-    while (this.cardLabels.length < cards.length) {
-      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13 } });
-      this.container.addChild(lbl);
-      this.cardLabels.push(lbl);
+    this.renderCardList(lw);
+    this.renderRightPanel(rx, rw);
+  }
+
+  private renderCardList(lw: number): void {
+    const instances = this.instances();
+    const startY = DECK_TOPBAR_H + 8;
+
+    while (this.cardItemTexts.length < instances.length) {
+      const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13 } });
+      this.container.addChild(t);
+      this.cardItemTexts.push(t);
     }
-    for (let i = cards.length; i < this.cardLabels.length; i++) {
-      this.cardLabels[i]!.text = '';
+
+    for (let i = 0; i < instances.length; i += 1) {
+      const inst = instances[i]!;
+      const iy = startY + i * (DECK_ITEM_H + DECK_ITEM_GAP);
+      const ix = 8;
+      const iw = lw - 16;
+      const isSelected = inst.instanceId === this.selectedInstanceId;
+      const hasNodes = (inst.activeNodeCount ?? 0) > 0;
+      const level = inst.level ?? 1;
+      const borderColor = isSelected ? DECK_SELECTED_BORDER : (hasNodes ? DECK_GOLD_GLOW : deckLevelBorderColor(level));
+      const bgColor = isSelected ? DECK_SELECTED_BG : 0x1a2a3a;
+
+      this.leftGraphics.roundRect(ix, iy, iw, DECK_ITEM_H, 6).fill({ color: bgColor, alpha: 0.95 });
+      this.leftGraphics.roundRect(ix, iy, iw, DECK_ITEM_H, 6).stroke({ width: isSelected ? 2 : 1, color: borderColor });
+
+      const lbl = this.cardItemTexts[i]!;
+      lbl.text = `${inst.cardName ?? inst.cardId}${deckLevelDiamond(level)}`;
+      lbl.position.set(ix + 10, iy + DECK_ITEM_H / 2 - 7);
     }
 
-    const counts = new Map<string, number>();
-    for (const id of cards) counts.set(id, (counts.get(id) ?? 0) + 1);
-    const unique = [...counts.entries()];
-
-    for (let i = unique.length; i < this.cardLabels.length; i++) {
-      this.cardLabels[i]!.text = '';
+    for (let i = instances.length; i < this.cardItemTexts.length; i += 1) {
+      this.cardItemTexts[i]!.text = '';
     }
+  }
 
-    for (let i = 0; i < unique.length; i++) {
-      const [cardId, count] = unique[i]!;
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const cx = startX + col * (CARD_W + 12);
-      const cy = startY + row * (CARD_H + 10);
-      this.cardGraphics.roundRect(cx, cy, CARD_W, CARD_H, 6).fill({ color: BUTTON_ENABLED, alpha: 0.92 });
-      this.cardGraphics.roundRect(cx, cy, CARD_W, CARD_H, 6).stroke({ width: 2, color: BUTTON_BORDER });
-      const lbl = this.cardLabels[i]!;
-      lbl.text = count > 1 ? `${cardId}\n×${count}` : cardId;
-      lbl.position.set(cx + 8, cy + 8);
+  private renderRightPanel(rx: number, rw: number): void {
+    const instances = this.instances();
+    const selected = instances.find((i) => i.instanceId === this.selectedInstanceId);
+
+    if (!selected) {
+      this.rightPlaceholderText.position.set(rx + rw / 2, DECK_TOPBAR_H + this.contentH / 2);
+      this.rightPlaceholderText.visible = true;
+      for (const t of this.nodeTexts) t.text = '';
+      return;
+    }
+    this.rightPlaceholderText.visible = false;
+
+    const level = selected.level ?? 1;
+    const cardTitle = `${selected.cardName ?? selected.cardId}${deckLevelDiamond(level)}`;
+    const panelX = rx + 20;
+    const panelY = DECK_TOPBAR_H + 60;
+
+    const MAX_SLOTS = 12;
+    while (this.nodeTexts.length < MAX_SLOTS) {
+      const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13 } });
+      this.container.addChild(t);
+      this.nodeTexts.push(t);
+    }
+    for (const t of this.nodeTexts) t.text = '';
+
+    this.rightGraphics.roundRect(rx + 12, DECK_TOPBAR_H + 8, rw - 24, 32, 6)
+      .fill({ color: 0x1a2a3a, alpha: 0.8 });
+
+    const titleLabel = this.nodeTexts[MAX_SLOTS - 1]!;
+    titleLabel.text = `🃏 ${cardTitle}`;
+    titleLabel.style.fill = TITLE_COLOR;
+    titleLabel.style.fontSize = 15;
+    titleLabel.position.set(rx + 20, DECK_TOPBAR_H + 16);
+
+    const bodyLabel = this.nodeTexts[MAX_SLOTS - 2]!;
+    bodyLabel.text = '技能树开发中';
+    bodyLabel.style.fill = TEXT_DIM;
+    bodyLabel.style.fontSize = 14;
+    bodyLabel.position.set(panelX, panelY);
+
+    if (selected.equippedPath) {
+      const equippedLabel = this.nodeTexts[0]!;
+      equippedLabel.text = `已装备路径: ${selected.equippedPath}`;
+      equippedLabel.style.fill = DECK_L3_BORDER;
+      equippedLabel.style.fontSize = 13;
+      equippedLabel.position.set(panelX, panelY + 30);
     }
   }
 }

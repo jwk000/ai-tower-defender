@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ShopPanel } from '../ui/ShopPanel.js';
 import { MysticPanel } from '../ui/MysticPanel.js';
-import { SkillTreePanel, ARROW_TOWER_SKILL_TREE } from '../ui/SkillTreePanel.js';
+import { ARROW_TOWER_SKILL_TREE } from '../ui/ArrowTowerConfig.js';
 import { addComponent } from 'bitecs';
 
 import { Game } from '../core/Game.js';
@@ -221,7 +221,6 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
       interLevel: { visible: false },
       shop: { visible: false },
       mystic: { visible: false },
-      skillTree: { visible: false },
       runResult: { visible: false },
     };
   }
@@ -831,7 +830,6 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
       interLevel: { visible: false },
       shop: { visible: false },
       mystic: { visible: false },
-      skillTree: { visible: false },
       runResult: { visible: false },
     };
   }
@@ -950,27 +948,15 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     controller.pickInterLevel('skilltree');
     expect(runManager.phase).toBe(RunPhase.SkillTree);
 
-    const skillTreePanel = new SkillTreePanel();
-    const stateForPanel = { config: ARROW_TOWER_SKILL_TREE, sp: runManager.sp, purchased: runManager.skillTreeState };
-    skillTreePanel.refresh(stateForPanel);
-    skillTreePanel.setHandler((intent) => {
-      if (intent.kind === 'unlock' && intent.result.kind === 'success') {
-        const spCost = runManager.sp - intent.result.newSp;
-        if (spCost > 0) runManager.spendSp(spCost);
-        runManager.unlockSkillNode(intent.result.nodeId);
-      } else if (intent.kind === 'exit') {
-        controller.closeSkillTree();
-      }
-    });
-
     const spBefore = runManager.sp;
     const nodeId = ARROW_TOWER_SKILL_TREE.nodes[0]!.id;
     const nodeCost = ARROW_TOWER_SKILL_TREE.nodes[0]!.costSP;
-    skillTreePanel.triggerUnlock(nodeId);
+    runManager.spendSp(nodeCost);
+    runManager.unlockSkillNode(nodeId);
     expect(runManager.sp).toBe(spBefore - nodeCost);
     expect(runManager.hasSkillNode(nodeId)).toBe(true);
 
-    skillTreePanel.triggerExit();
+    controller.closeSkillTree();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
 

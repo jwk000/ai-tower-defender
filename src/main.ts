@@ -14,7 +14,6 @@ import {
   RunResultRenderer,
   ShopRenderer,
   MysticRenderer,
-  SkillTreeRenderer,
 } from './render/PanelRenderers.js';
 import { UIPresenter } from './ui/UIPresenter.js';
 import { MainMenu, type MainMenuAction } from './ui/MainMenu.js';
@@ -28,7 +27,7 @@ import { LevelMapPanel } from './ui/LevelMapPanel.js';
 import { DeckViewPanel } from './ui/DeckViewPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
-import { SkillTreePanel, type SkillTreeIntent, ARROW_TOWER_SKILL_TREE } from './ui/SkillTreePanel.js';
+import { ARROW_TOWER_SKILL_TREE } from './ui/ArrowTowerConfig.js';
 import { RunResultPanel, type RunResultState } from './ui/RunResultPanel.js';
 import { createAttackSystem } from './systems/AttackSystem.js';
 import { createCrystalSystem } from './systems/CrystalSystem.js';
@@ -146,7 +145,6 @@ async function bootstrap(): Promise<void> {
   const interLevelContainer = new Container();
   const shopContainer = new Container();
   const mysticContainer = new Container();
-  const skillTreeContainer = new Container();
   const runResultContainer = new Container();
   const deckViewContainer = new Container();
   renderer.uiLayer.addChild(
@@ -156,7 +154,6 @@ async function bootstrap(): Promise<void> {
     interLevelContainer,
     shopContainer,
     mysticContainer,
-    skillTreeContainer,
     runResultContainer,
     deckViewContainer,
   );
@@ -421,7 +418,6 @@ async function bootstrap(): Promise<void> {
       interLevel: interLevelContainer,
       shop: shopContainer,
       mystic: mysticContainer,
-      skillTree: skillTreeContainer,
       runResult: runResultContainer,
     },
     waveSystem,
@@ -521,7 +517,6 @@ async function bootstrap(): Promise<void> {
 
   let shopRenderer!: ShopRenderer;
   let mysticRenderer!: MysticRenderer;
-  let skillTreeRenderer!: SkillTreeRenderer;
   let levelMapRenderer!: LevelMapRenderer;
   let deckViewRenderer!: DeckViewRenderer;
 
@@ -545,8 +540,6 @@ async function bootstrap(): Promise<void> {
       shopRenderer.refresh(buildShopState());
     } else if (intent.node === 'mystic') {
       mysticRenderer.refresh(pickMysticEvent());
-    } else if (intent.node === 'skilltree') {
-      skillTreeRenderer.refresh({ config: arrowTowerSkillTree, sp: runManager.sp, purchased: runManager.skillTreeState });
     }
   });
 
@@ -676,22 +669,6 @@ async function bootstrap(): Promise<void> {
     }
   }
 
-  const skillTreePanel = new SkillTreePanel();
-  skillTreePanel.setHandler((intent: SkillTreeIntent) => {
-    if (intent.kind === 'unlock') {
-      if (intent.result.kind === 'success') {
-        const spCost = runManager.sp - intent.result.newSp;
-        if (spCost > 0) runManager.spendSp(spCost);
-        runManager.unlockSkillNode(intent.result.nodeId);
-        applySkillEffectToExistingTowers(intent.result.effect as { type: string; [k: string]: unknown });
-        skillTreeRenderer.refresh({ config: arrowTowerSkillTree, sp: runManager.sp, purchased: runManager.skillTreeState });
-      }
-    } else if (intent.kind === 'exit') {
-      runController.closeSkillTree();
-      runController.saveProgress();
-    }
-  });
-
   const runResultPanel = new RunResultPanel({
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
@@ -752,11 +729,6 @@ async function bootstrap(): Promise<void> {
     { container: mysticContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     mysticPanel,
   );
-  skillTreeRenderer = new SkillTreeRenderer(
-    { container: skillTreeContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
-    skillTreePanel,
-  );
-
   const devHooks = (globalThis as Record<string, unknown>);
   devHooks['__td'] = {
     mainMenu,
@@ -765,7 +737,6 @@ async function bootstrap(): Promise<void> {
     runResultPanel,
     shopPanel,
     mysticPanel,
-    skillTreePanel,
     levelMapPanel,
     runController,
     waveSystem,
@@ -775,7 +746,6 @@ async function bootstrap(): Promise<void> {
     runResultRenderer,
     shopRenderer,
     mysticRenderer,
-    skillTreeRenderer,
     handSystem,
     deckSystem,
     energySystem,
@@ -844,7 +814,6 @@ async function bootstrap(): Promise<void> {
     runResultRenderer.resize(vw, vh);
     shopRenderer.resize(vw, vh);
     mysticRenderer.resize(vw, vh);
-    skillTreeRenderer.resize(vw, vh);
     presenter.resize(vw, vh);
   }
   window.addEventListener('resize', onWindowResize);

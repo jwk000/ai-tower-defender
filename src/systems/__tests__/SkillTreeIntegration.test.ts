@@ -3,7 +3,7 @@ import { addComponent } from 'bitecs';
 
 import { Game } from '../../core/Game.js';
 import { Attack, Faction, FactionTeam, Position, UnitCategory, UnitTag } from '../../core/components.js';
-import { attemptPurchaseSkill, type SkillTreeConfig, type SkillTreeState } from '../../ui/SkillTreePanel.js';
+import { attemptPurchaseSkill, type SkillTreeConfig, type SkillTreeState } from '../../ui/ArrowTowerConfig.js';
 
 const MOCK_SKILL_TREE: SkillTreeConfig = {
   unitId: 'arrow_tower',
