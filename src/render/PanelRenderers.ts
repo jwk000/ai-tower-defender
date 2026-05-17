@@ -325,13 +325,17 @@ const NODE_PURCHASED = 0x1b5e20;
 const NODE_AFFORDABLE = 0x1565c0;
 const NODE_LOCKED = 0x37474f;
 
+
 export class ShopRenderer {
   private readonly container: Container;
   private readonly bg: Graphics;
+  private readonly leftGraphics: Graphics;
   private readonly itemsGraphics: Graphics;
   private readonly headerText: Text;
   private readonly goldText: Text;
   private readonly closeText: Text;
+  private readonly leftTitleText: Text;
+  private readonly leftPlaceholderText: Text;
   private readonly itemLabelTexts: Text[] = [];
   private readonly itemCostTexts: Text[] = [];
   private viewportWidth: number;
@@ -346,15 +350,17 @@ export class ShopRenderer {
     this.panel = panel;
 
     this.bg = new Graphics();
+    this.leftGraphics = new Graphics();
     this.itemsGraphics = new Graphics();
-    this.headerText = new Text({ text: 'Shop', style: { fill: TITLE_COLOR, fontSize: 32, fontWeight: 'bold', align: 'center' } });
-    this.headerText.anchor.set(0.5, 0.5);
-    this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 22 } });
-    this.goldText.anchor.set(0.5, 0.5);
-    this.closeText = new Text({ text: 'Leave Shop', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
+    this.headerText = new Text({ text: '🏪 商店', style: { fill: TITLE_COLOR, fontSize: 24, fontWeight: 'bold' } });
+    this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 18 } });
+    this.closeText = new Text({ text: '离开商店', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
     this.closeText.anchor.set(0.5, 0.5);
 
-    this.container.addChild(this.bg, this.headerText, this.goldText, this.itemsGraphics, this.closeText);
+    this.leftTitleText = new Text({ text: '当前卡组', style: { fill: TEXT_PRIMARY, fontSize: 20, fontWeight: 'bold' } });
+    this.leftPlaceholderText = new Text({ text: '（卡组数据将在此显示）', style: { fill: TEXT_DIM, fontSize: 16 } });
+
+    this.container.addChild(this.bg, this.leftGraphics, this.itemsGraphics, this.headerText, this.goldText, this.closeText, this.leftTitleText, this.leftPlaceholderText);
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
@@ -374,22 +380,20 @@ export class ShopRenderer {
 
   private get closeBtn() {
     const w = 260;
-    const h = 56;
-    return { x: (this.viewportWidth - w) / 2, y: this.viewportHeight - 100, w, h };
+    const h = 50;
+    return { x: (this.viewportWidth - w) / 2, y: this.viewportHeight - h - 20, w, h };
   }
 
-  private itemRect(index: number) {
-    const itemW = 240;
-    const itemH = 120;
+  private itemRect(index: number, rightColX: number, rightColW: number) {
+    const cols = 4;
     const colGap = 16;
     const rowGap = 20;
-    const cols = 4;
+    const itemW = (rightColW - (cols - 1) * colGap) / cols;
+    const itemH = 140;
     const col = index % cols;
     const row = Math.floor(index / cols);
-    const totalW = cols * itemW + (cols - 1) * colGap;
-    const startX = (this.viewportWidth - totalW) / 2;
-    const startY = 150;
-    return { x: startX + col * (itemW + colGap), y: startY + row * (itemH + rowGap), w: itemW, h: itemH };
+    const startY = 80;
+    return { x: rightColX + col * (itemW + colGap), y: startY + row * (itemH + rowGap), w: itemW, h: itemH };
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {
@@ -400,8 +404,10 @@ export class ShopRenderer {
       this.panel.triggerClose();
       return;
     }
+    const rightColX = this.viewportWidth * 0.35 + 20;
+    const rightColW = this.viewportWidth * 0.65 - 40;
     for (let i = 0; i < this.state.items.length; i += 1) {
-      const r = this.itemRect(i);
+      const r = this.itemRect(i, rightColX, rightColW);
       if (local.x >= r.x && local.x <= r.x + r.w && local.y >= r.y && local.y <= r.y + r.h) {
         this.panel.triggerPurchase(this.state.items[i]!.id);
         return;
@@ -414,30 +420,51 @@ export class ShopRenderer {
     this.bg.clear();
     this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: DIM_BG, alpha: 0.95 });
 
-    this.headerText.position.set(this.viewportWidth / 2, 60);
-    this.goldText.text = `Gold: ${this.state.gold}  SP: ${this.state.sp}`;
-    this.goldText.position.set(this.viewportWidth / 2, 110);
+    // Topbar
+    this.headerText.position.set(20, 15);
+    this.goldText.text = `💰 ${this.state.gold}G  SP: ${this.state.sp}`;
+    this.goldText.anchor.set(1, 0);
+    this.goldText.position.set(this.viewportWidth - 20, 15);
+
+    // Left column (35%)
+    const leftColW = this.viewportWidth * 0.35;
+    this.leftGraphics.clear();
+    this.leftGraphics.rect(20, 80, leftColW - 40, this.viewportHeight - 160).stroke({ width: 2, color: 0x263238 });
+    this.leftTitleText.position.set(40, 100);
+    this.leftPlaceholderText.position.set(40, 140);
+
+    // Right column (65%)
+    const rightColX = leftColW + 20;
+    const rightColW = this.viewportWidth * 0.65 - 40;
 
     this.itemsGraphics.clear();
-    while (this.itemLabelTexts.length < this.state.items.length) {
-      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 18, fontWeight: 'bold' } });
+    while (this.itemLabelTexts.length < 8) { // Up to 8 items as requested
+      const lbl = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 18, fontWeight: 'bold', wordWrap: true, wordWrapWidth: 150 } });
       const cost = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 16 } });
       this.container.addChild(lbl, cost);
       this.itemLabelTexts.push(lbl);
       this.itemCostTexts.push(cost);
     }
-    for (let i = 0; i < this.state.items.length; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
+      this.itemLabelTexts[i]!.text = '';
+      this.itemCostTexts[i]!.text = '';
+    }
+
+    for (let i = 0; i < this.state.items.length && i < 8; i += 1) {
       const item = this.state.items[i]!;
-      const r = this.itemRect(i);
-      const canBuy = this.state.gold >= item.costGold && item.stock > 0;
+      const r = this.itemRect(i, rightColX, rightColW);
+      const isAffordable = this.state.gold >= item.costGold;
+      const canBuy = isAffordable && item.stock > 0;
       const fillColor = canBuy ? BUTTON_ENABLED : BUTTON_DISABLED;
-      const borderColor = canBuy ? BUTTON_BORDER : BUTTON_BORDER_DISABLED;
+      const borderColor = canBuy ? 0x4caf50 : (isAffordable ? 0x80cbc4 : BUTTON_BORDER_DISABLED);
+
       this.itemsGraphics.rect(r.x, r.y, r.w, r.h).fill({ color: fillColor, alpha: 0.95 });
       this.itemsGraphics.rect(r.x, r.y, r.w, r.h).stroke({ width: 2, color: borderColor });
       this.itemLabelTexts[i]!.text = item.label;
       this.itemLabelTexts[i]!.position.set(r.x + 16, r.y + 16);
       this.itemCostTexts[i]!.text = `${item.costGold}G  (stock: ${item.stock})`;
-      this.itemCostTexts[i]!.position.set(r.x + 16, r.y + 52);
+      this.itemCostTexts[i]!.style.fill = canBuy ? GOLD_COLOR : TEXT_DIM;
+      this.itemCostTexts[i]!.position.set(r.x + 16, r.y + r.h - 30);
     }
 
     const cb = this.closeBtn;
