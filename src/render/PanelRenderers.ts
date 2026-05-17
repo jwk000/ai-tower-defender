@@ -208,10 +208,14 @@ export class InterLevelRenderer {
     }
     for (let i = 0; i < layout.items.length; i += 1) {
       const item = layout.items[i]!;
-      this.cardsGraphics.rect(item.x, item.y, item.width, item.height).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
-      this.cardsGraphics.rect(item.x, item.y, item.width, item.height).stroke({ width: 2, color: BUTTON_BORDER });
+      this.cardsGraphics.roundRect(item.x, item.y, item.width, item.height, 12).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
+      this.cardsGraphics.roundRect(item.x, item.y, item.width, item.height, 12).stroke({ width: 2, color: BUTTON_BORDER });
       const title = this.cardTitleTexts[i]!;
-      title.text = item.title;
+      let titleText = item.title;
+      if (item.kind === 'shop' && !titleText.includes('🏪')) titleText = '🏪 ' + titleText;
+      if (item.kind === 'mystic' && !titleText.includes('🌀')) titleText = '🌀 ' + titleText;
+      if (item.kind === 'skip' && !titleText.includes('⏭')) titleText = '⏭ ' + titleText;
+      title.text = titleText;
       title.position.set(item.x + 20, item.y + 20);
       const desc = this.cardDescTexts[i]!;
       desc.text = item.description;
