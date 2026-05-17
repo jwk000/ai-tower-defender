@@ -11,8 +11,13 @@
         "/@fs/*": "${webRoot}/*",
         "/src/*": "${webRoot}/src/*"
       },
+      "userDataDir": false,
       "preLaunchTask": "npm: dev",
-      "userDataDir": false
+      "serverReadyAction": {
+        "pattern": "Local:.*http://localhost:([0-9]+)",
+        "uriFormat": "http://localhost:%s/ai-tower-defender/",
+        "action": "debugWithChrome"
+      }
     },
     {
       "name": "Attach Chrome",
@@ -21,7 +26,8 @@
       "port": 9222,
       "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
-        "webpack:///./src/*": "${webRoot}/src/*"
+        "/@fs/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*"
       }
     }
   ]
