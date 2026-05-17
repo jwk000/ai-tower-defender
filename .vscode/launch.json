@@ -11,7 +11,8 @@
         "/@fs/*": "${webRoot}/*",
         "/src/*": "${webRoot}/src/*"
       },
-      "preLaunchTask": "npm: dev"
+      "preLaunchTask": "npm: dev",
+      "userDataDir": false
     },
     {
       "name": "Attach Chrome",
