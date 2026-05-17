@@ -74,6 +74,8 @@ import enemiesYaml from './config/units/enemies.yaml?raw';
 import towerUnitsYaml from './config/units/towers.yaml?raw';
 import soldiersYaml from './config/units/soldiers.yaml?raw';
 import towerCardsYaml from './config/cards/towers.yaml?raw';
+import soldierCardsYaml from './config/cards/soldiers.yaml?raw';
+import spellCardsYaml from './config/cards/spells.yaml?raw';
 import mysticAncientAltarYaml from './config/mystic-events/ancient_altar.yaml?raw';
 import mysticHealingSpringYaml from './config/mystic-events/healing_spring.yaml?raw';
 import mysticWanderingMerchantYaml from './config/mystic-events/wandering_merchant.yaml?raw';
@@ -126,6 +128,8 @@ async function bootstrap(): Promise<void> {
   ]);
   const cardYamlFiles = new Map<string, string>([
     ['cards/towers.yaml', towerCardsYaml],
+    ['cards/soldiers.yaml', soldierCardsYaml],
+    ['cards/spells.yaml', spellCardsYaml],
   ]);
   const unitConfigs = loadUnitConfigsForLevel(level, unitYamlFiles);
   const cardConfigs = loadCardConfigsForLevel(level, cardYamlFiles);
@@ -189,7 +193,13 @@ async function bootstrap(): Promise<void> {
     return MYSTIC_EVENT_POOL[idx]!;
   }
 
-  let deckSystem = new DeckSystem({ pool: cardConfigs.map((c) => c.id), deckSize: DEFAULT_DECK_SIZE, rng: Math.random });
+  const STARTER_DECK = [
+    'arrow_tower_card', 'arrow_tower_card', 'arrow_tower_card', 'arrow_tower_card',
+    'shield_guard_card', 'shield_guard_card',
+    'fireball_card', 'fireball_card',
+  ] as const;
+  let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
+  deckSystem.initWithCards(STARTER_DECK);
   const handSystem = new HandSystem({ maxSize: 4 });
   let energySystem = new EnergySystem({
     regenPerSecond: ENERGY_REGEN_PER_SECOND,
@@ -215,6 +225,13 @@ async function bootstrap(): Promise<void> {
     runStartMs: 0,
     runEndMs: 0,
   };
+
+  game.ruleEngine.registerHandler('return_card_to_deck', (_eid, params) => {
+    const cardId = typeof params?.cardId === 'string' ? params.cardId : null;
+    if (cardId) {
+      deckSystem.discard(cardId);
+    }
+  });
 
   game.ruleEngine.registerHandler('drop_gold', (_eid, params) => {
     const amount = typeof params?.amount === 'number' ? params.amount : 0;
@@ -373,16 +390,11 @@ async function bootstrap(): Promise<void> {
   };
 
   function loadLevel(levelNumber: number): void {
-    const { levelConfig, nextUnitConfigs, nextCardConfigs } = loadLevelAssets(levelNumber);
+    const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
     clearBattleEntities();
     activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
     activeMovementSystem = createMovementRuntime(levelConfig);
     levelState.reset(levelConfig.waves.length);
-    deckSystem = new DeckSystem({
-      pool: nextCardConfigs.map((card) => card.id),
-      deckSize: DEFAULT_DECK_SIZE,
-      rng: Math.random,
-    });
     handSystem.clear();
     handSystem.drawTo(deckSystem);
     energySystem = new EnergySystem({
@@ -454,6 +466,7 @@ async function bootstrap(): Promise<void> {
   function startNewRun(): void {
     SaveSystem.clearRun();
     runController.startRun();
+    deckSystem.initWithCards(STARTER_DECK);
     loadLevel(1);
     runStats.enemiesKilled = 0;
     runStats.goldSpent = 0;
@@ -507,11 +520,17 @@ async function bootstrap(): Promise<void> {
     const snapX = col * CELL_SIZE + CELL_SIZE / 2;
     const snapY = row * CELL_SIZE + CELL_SIZE / 2;
     const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
-    if (newEid !== null && hasComponent(game.world, Attack, newEid)) {
-      applyPurchasedSkillsToTower(newEid);
+    if (newEid !== null) {
+      if (hasComponent(game.world, Attack, newEid)) {
+        applyPurchasedSkillsToTower(newEid);
+      }
+      game.world.ruleEngine.attachRules(newEid, 'onDeath', [
+        { handler: 'return_card_to_deck', params: { cardId: intent.cardId } },
+      ]);
+    } else {
+      deckSystem.discard(intent.cardId);
     }
     handSystem.playCard(intent.slot);
-    deckSystem.discard(intent.cardId);
     handSystem.drawTo(deckSystem);
   });
 

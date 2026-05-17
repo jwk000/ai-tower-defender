@@ -544,4 +544,5 @@ Phase F:        █████████████████████�
 - add_extra_target
 - boost_attack_speed
 - drop_gold
+- return_card_to_deck
 <!-- CODEGEN:handlers:END -->

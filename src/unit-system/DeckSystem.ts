@@ -76,6 +76,20 @@ export class DeckSystem {
     return result;
   }
 
+  initWithCards(cards: readonly string[]): void {
+    if (cards.length === 0) {
+      throw new Error('[DeckSystem] initWithCards: cards must not be empty');
+    }
+    this.drawPile = [];
+    this.drawPileInstances = [];
+    this.discardPile = [];
+    this.discardPileInstances = [];
+    for (const cardId of cards) {
+      this.drawPile.push(cardId);
+      this.drawPileInstances.push(this.allocateInstance(cardId));
+    }
+  }
+
   reset(): void {
     this.discardPile = [];
     this.discardPileInstances = [];
