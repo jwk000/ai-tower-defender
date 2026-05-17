@@ -116,12 +116,16 @@ W  : 路径中段空投点（仅关 5 用）
 
 | 触发器 | 说明 |
 |---|---|
-| `auto_at(t)` | 当游戏时钟到达 `t` 秒时自动启动下一波（用于固定节奏的波间冷场） |
+| `auto_at(t)` | 当游戏时钟到达 `t` 秒时自动启动下一波（用于固定节奏的最长冷场上限；实际常被速清触发提前） |
 | `victory` | 该波是关卡终点，全部敌人清场后判定胜利 |
 | `on_clear_at_least(t)` | 当前波清场 **且** 游戏时钟 ≥ `t` 时启动下一波（保留触发器，本文档 8 关未使用） |
 | `manual` | 等待玩家手动按下 "下一波" 按钮（关 1 教学波专用） |
 
-> 默认波间冷场 30s；关 6 GAUNTLET flavor 强制 15s（[15-level-themes §1.2](./15-level-themes.md#12-五大波次-flavor-分类本文档统一术语)）；关 8 单超长波三阶段无波间冷场。
+> **默认波间冷场 10s**（从旧版 30s 缩短至 10s）；关 6 GAUNTLET flavor 强制 5s（[15-level-themes §1.2](./15-level-themes.md#12-五大波次-flavor-分类本文档统一术语)）；关 8 单超长波三阶段无波间冷场。
+>
+> **速清奖励机制**：当前波清场后，UI 显示「提前开始下一波 +5G」按钮，倒计时 10s。玩家在 10s 内点击按钮即可立即启动下一波并获得 +5G 奖励；10s 未点击则自动触发下一波（无奖励）。此机制同时适用于所有 `auto_at(t)` 触发的波次，将「冷场等待」转化为「主动决策时机」（对应 10-roguelike-loop §2.3 波次结束速清奖励规则）。
+>
+> **波次时间线 `t` 参数调整**：`auto_at(t)` 中的 `t` 值现在代表「最长冷场上限」而非「固定冷场结束时间」。实际下一波开始时间 = `max(上波结束时间 + 10s, 玩家点击时间)`。各关波次时间线表中的 `t` 值已按新机制重新标注（含最长上限 = 上波结束 + 10s）。
 
 ### 1.5 编队枚举（formation）
 
@@ -259,14 +263,14 @@ unlockPrevLevelId: <前一关 id 或 null>
 
 | 波 | t | spawn 流 | 结束 t | 下一波 trigger | flavor | 备注 |
 |---|---|---|---|---|---|---|
-| W1 | 0 | Δ0: grunt × 4 @S0 fmt=column interval=1.0 | 4 | `auto_at(30)` | BASELINE | 教学：暂停 spawn 直到玩家放第 1 塔；放塔后恢复 |
-| W2 | 30 | Δ0: grunt × 5 @S0 fmt=column interval=0.8<br>Δ6: runner × 2 @S0 fmt=column interval=0.6 | 38 | `auto_at(75)` | BASELINE | — |
-| W3 | 75 | Δ0: grunt × 4 @S0 fmt=column<br>Δ5: runner × 4 @S0 fmt=swarm | 87 | `auto_at(125)` | BASELINE | 教学：首次出现快速兵；提示"减速塔" |
-| W4 | 125 | Δ0: runner × 6 @S0 fmt=swarm interval=0.4<br>Δ10: grunt × 4 @S0 fmt=column | 157 | `auto_at(195)` | SWARM | — |
-| W5 | 195 | Δ0: heavy × 2 @S0 fmt=column interval=2.0<br>Δ6: grunt × 4 @S0 fmt=column | 214 | `auto_at(255)` | BASELINE | 教学：首次出现重装；提示"穿甲塔/大炮" |
-| W6 | 255 | Δ0: mage × 1 @S0 fmt=single<br>Δ4: grunt × 6 @S0 fmt=column<br>Δ16: mage × 1 @S0 fmt=single | 274 | `auto_at(310)` | ELITE-SPIKE | 教学：首次出现远程；提示"魔抗塔" |
-| W7 | 310 | Δ0: exploder × 1 @S0 fmt=single<br>Δ6: runner × 4 @S0 fmt=swarm<br>Δ20: heavy × 1 @S0 fmt=single | 335 | `auto_at(380)` | ELITE-SPIKE | 教学：首次出现自爆兵；提示"保持距离" |
-| W8 | 380 | Δ0: grunt × 8 @S0 fmt=column interval=0.6<br>Δ12: heavy × 2 @S0 fmt=column<br>Δ20: mage × 1 @S0 fmt=single<br>Δ24: runner × 4 @S0 fmt=swarm | 410 | `victory` | BASELINE | 关末综合考核，无 Boss |
+| W1 | 0 | Δ0: grunt × 4 @S0 fmt=column interval=1.0 | 4 | `auto_at(14)` | BASELINE | 教学：暂停 spawn 直到玩家放第 1 塔；放塔后恢复；清场后 10s 速清窗口 |
+| W2 | 14 | Δ0: grunt × 5 @S0 fmt=column interval=0.8<br>Δ6: runner × 2 @S0 fmt=column interval=0.6 | 22 | `auto_at(32)` | BASELINE | — |
+| W3 | 32 | Δ0: grunt × 4 @S0 fmt=column<br>Δ5: runner × 4 @S0 fmt=swarm | 44 | `auto_at(54)` | BASELINE | 教学：首次出现快速兵；提示"减速塔" |
+| W4 | 54 | Δ0: runner × 6 @S0 fmt=swarm interval=0.4<br>Δ10: grunt × 4 @S0 fmt=column | 86 | `auto_at(96)` | SWARM | — |
+| W5 | 96 | Δ0: heavy × 2 @S0 fmt=column interval=2.0<br>Δ6: grunt × 4 @S0 fmt=column | 115 | `auto_at(125)` | BASELINE | 教学：首次出现重装；提示"穿甲塔/大炮" |
+| W6 | 125 | Δ0: mage × 1 @S0 fmt=single<br>Δ4: grunt × 6 @S0 fmt=column<br>Δ16: mage × 1 @S0 fmt=single | 144 | `auto_at(154)` | ELITE-SPIKE | 教学：首次出现远程；提示"魔抗塔" |
+| W7 | 154 | Δ0: exploder × 1 @S0 fmt=single<br>Δ6: runner × 4 @S0 fmt=swarm<br>Δ20: heavy × 1 @S0 fmt=single | 179 | `auto_at(189)` | ELITE-SPIKE | 教学：首次出现自爆兵；提示"保持距离" |
+| W8 | 189 | Δ0: grunt × 8 @S0 fmt=column interval=0.6<br>Δ12: heavy × 2 @S0 fmt=column<br>Δ20: mage × 1 @S0 fmt=single<br>Δ24: runner × 4 @S0 fmt=swarm | 219 | `victory` | BASELINE | 关末综合考核，无 Boss |
 
 **累计敌数**：4 + 7 + 8 + 10 + 6 + 8 + 6 + 15 = **56 个**
 
@@ -297,7 +301,7 @@ unlockPrevLevelId: null
 - [ ] 玩家若不操作任何塔，W3 之前 0 漏怪（grunt × 4 自然撞墙时长 ≤ 4s 内被任何箭塔点死）。
 - [ ] 全 8 波累计漏怪 ≤ 3（[50-mda §21.3](../50-data-numerical/50-mda.md#213-8-关水晶-hp-消耗预算替换-193)）。
 - [ ] W6 mage 远程攻击至少 1 次成功击中玩家塔（否则魔抗教学失败）。
-- [ ] 通关时间窗口 [5min, 7min]。
+- [ ] 通关时间窗口 [3min, 5min]（新节奏：冷场 10s × 7 次 + 战斗时间，较旧版压缩约 40%）。
 - [ ] 关末金币结余 ≥ 80（保证关 2 起步资金）。
 
 ---

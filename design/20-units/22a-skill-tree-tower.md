@@ -1,8 +1,8 @@
 ---
 title: 塔技能树详设（v3.4）
 status: authoritative
-version: 1.0.0
-last-modified: 2026-05-15
+version: 1.1.0
+last-modified: 2026-05-17
 authority-for:
   - tower-skill-tree
   - tower-path-nodes
@@ -31,18 +31,19 @@ supersedes:
 
 - [1. 文档定位与读法](#1-文档定位与读法)
 - [2. 通用约定](#2-通用约定)
-- [3. 七塔技能树清单（概览）](#3-七塔技能树清单概览)
-- [4. 箭塔 · `arrow_tower`](#4-箭塔--arrow_tower)
-- [5. 炮塔 · `cannon_tower`](#5-炮塔--cannon_tower)
-- [6. 元素塔 · `elemental_tower`（原冰塔）](#6-元素塔--elemental_tower原冰塔)
-- [7. 电塔 · `lightning_tower`](#7-电塔--lightning_tower)
-- [8. 激光塔 · `laser_tower`](#8-激光塔--laser_tower)
-- [9. 蝙蝠塔 · `bat_tower`](#9-蝙蝠塔--bat_tower)
-- [10. 导弹塔 · `missile_tower`](#10-导弹塔--missile_tower)
-- [11. 七塔 SP 总需求与流派覆盖](#11-七塔-sp-总需求与流派覆盖)
-- [12. RuleHandler 引用清单](#12-rulehandler-引用清单)
-- [13. v3.4 不变式核对](#13-v34-不变式核对)
-- [14. 修订历史](#14-修订历史)
+- [3. 七塔主动技能（关内手动触发）](#3-七塔主动技能关内手动触发) ← **v3.4 节奏优化新增**
+- [4. 七塔技能树清单（概览）](#4-七塔技能树清单概览)
+- [5. 箭塔 · `arrow_tower`](#5-箭塔--arrow_tower)
+- [6. 炮塔 · `cannon_tower`](#6-炮塔--cannon_tower)
+- [7. 元素塔 · `elemental_tower`（原冰塔）](#7-元素塔--elemental_tower原冰塔)
+- [8. 电塔 · `lightning_tower`](#8-电塔--lightning_tower)
+- [9. 激光塔 · `laser_tower`](#9-激光塔--laser_tower)
+- [10. 蝙蝠塔 · `bat_tower`](#10-蝙蝠塔--bat_tower)
+- [11. 导弹塔 · `missile_tower`](#11-导弹塔--missile_tower)
+- [12. 七塔 SP 总需求与流派覆盖](#12-七塔-sp-总需求与流派覆盖)
+- [13. RuleHandler 引用清单](#13-rulehandler-引用清单)
+- [14. v3.4 不变式核对](#14-v34-不变式核对)
+- [15. 修订历史](#15-修订历史)
 
 ---
 
@@ -130,7 +131,55 @@ supersedes:
 
 ---
 
-## 3. 七塔技能树清单（概览）
+## 3. 七塔主动技能（关内手动触发）
+
+> **v3.4 节奏优化新增（2026-05-17）**：每座塔拥有 1 个可关内手动触发的主动技能，不消耗能量，各塔独立 CD。这是「建议 D」的落地——给玩家在出卡之外提供持续的微操决策点，填充「能量不足时的等待窗口」。
+>
+> **主动技能规则边界**（与 [22-skill-tree-overview §4.4](./22-skill-tree-overview.md#44-关内禁止点亮--切换装备) 一致）：
+> - 无论当前装备哪条技能树路径，主动技能始终可用（与路径无关）
+> - 点击场上的塔实体即可触发；触发时塔有高亮闪光视觉反馈
+> - **不消耗能量**（为玩家提供零成本决策点）
+> - CD 期间按钮变灰，倒计时显示在塔头顶
+> - 数值（CD、效果量）权威见 [50-mda §12.4](../50-data-numerical/50-mda.md#124-塔主动技能-cd--效果数值)
+
+### 3.1 七塔主动技能一览
+
+| 塔 | 主动技能名 | 效果 | CD |
+|---|---|---|---|
+| 箭塔 `arrow_tower` | **齐射** | 立即向射程内所有敌人各发射 1 支箭（单次 AoE 弹雨，伤害同普通攻击）| 12s |
+| 炮塔 `cannon_tower` | **精准轰炸** | 对当前目标立即发射 1 枚高爆炮弹（伤害 × 2.5，AoE 半径 × 1.5）| 15s |
+| 元素塔 `elemental_tower` | **元素爆发** | 以塔为中心释放圆形元素爆炸（半径 80px），效果随当前元素路径：冰→群体冻结 2s / 火→群体灼烧 DOT / 毒→群体中毒传播 | 18s |
+| 电塔 `lightning_tower` | **过载放电** | 立即对场上所有敌人释放 1 跳链式闪电（伤害为普通攻击的 60%，穿透无限跳数）| 20s |
+| 激光塔 `laser_tower` | **全功率扫射** | 激光旋转 360° 扫射一圈，持续 2s，期间伤害 × 1.5 | 16s |
+| 蝙蝠塔 `bat_tower` | **召唤蝠群** | 召唤 3 只临时幽灵蝙蝠（HP 极低，存活 8s，沿路径追杀敌人）| 14s |
+| 导弹塔 `missile_tower` | **饱和打击** | 立即发射 3 枚导弹（自动分散锁定场上 HP 最高的 3 个敌人，按 26-missile-special 地格评分选点）| 25s |
+
+### 3.2 YAML schema（主动技能字段）
+
+每个塔 YAML 在顶层新增 `activeSkill` 字段：
+
+```yaml
+arrow_tower:
+  id: arrow_tower
+  name: 箭塔
+  category: tower
+  activeSkill:
+    id: arrow_volley
+    name: 齐射
+    cdSeconds: 12                    # 冷却时间（秒），数值权威 50-mda §12.4
+    triggerType: manual              # manual = 玩家点击触发
+    effects:
+      - rule: fire_at_all_in_range   # 向范围内所有目标各发 1 支箭
+        damageRatio: 1.0             # 伤害倍率（相对于普通攻击）
+  skillTree:
+    paths: [ ... ]                   # 技能树路径（不变）
+```
+
+> **RuleHandler 引用**：`fire_at_all_in_range` / `instant_aoe_hit` / `temp_summon_unit` / `multi_missile_strike` 等主动技能专用 Handler 需在 `src/core/RuleHandlers.ts` 注册（[60-architecture §5.3](../60-tech/60-architecture.md)）。
+
+---
+
+## 4. 七塔技能树清单（概览）
 
 | 塔 ID | 中文名 | 路径数 | 节点总数 | 单路径满级 SP | 双路径满级 SP | 备注 |
 |---|---|---|---|---|---|---|
@@ -156,7 +205,7 @@ supersedes:
 
 ---
 
-## 4. 箭塔 · `arrow_tower`
+## 5. 箭塔 · `arrow_tower`
 
 **塔定位**：物理单体远程，基础经济友好型。
 
@@ -245,7 +294,7 @@ arrow_tower:
 
 ---
 
-## 5. 炮塔 · `cannon_tower`
+## 6. 炮塔 · `cannon_tower`
 
 **塔定位**：物理 AOE 范围伤害，主清杂兵。
 
@@ -337,7 +386,7 @@ cannon_tower:
 
 ---
 
-## 6. 元素塔 · `elemental_tower`（原冰塔）
+## 7. 元素塔 · `elemental_tower`（原冰塔）
 
 **塔定位**：控制 / 元素效果，是 v3.4 中**唯一拥有 3 条路径**的塔。
 
@@ -469,7 +518,7 @@ elemental_tower:
 
 ---
 
-## 7. 电塔 · `lightning_tower`
+## 8. 电塔 · `lightning_tower`
 
 **塔定位**：链式弹跳，群体压制。**v3.4 唯一拥有 depth=4 节点的塔**。
 
@@ -549,7 +598,7 @@ lightning_tower:
 
 ---
 
-## 8. 激光塔 · `laser_tower`
+## 9. 激光塔 · `laser_tower`
 
 **塔定位**：聚焦 / 持续输出。
 
@@ -638,7 +687,7 @@ laser_tower:
 
 ---
 
-## 9. 蝙蝠塔 · `bat_tower`
+## 10. 蝙蝠塔 · `bat_tower`
 
 **塔定位**：群体单位类塔，受天气影响。
 
@@ -703,7 +752,7 @@ bat_tower:
 
 ---
 
-## 10. 导弹塔 · `missile_tower`
+## 11. 导弹塔 · `missile_tower`
 
 **塔定位**：战略大射程打击（600px）。**v1.2 起目标选择默认为「手动指挥」**（玩家点击塔拖动指示器手动选目标），可右键塔切换为「托管」走原地格评分系统。两种模式与本节科技树节点（双联齐射 / 战略弹头）正交——无论节点 1 还是节点 3，都既可手动也可托管。详见 [26-missile-special](./26-missile-special.md)（特别是 §3 双模式状态机 + §9 交互速查）。
 
@@ -802,7 +851,7 @@ missile_tower:
 
 ---
 
-## 11. 七塔 SP 总需求与流派覆盖
+## 12. 七塔 SP 总需求与流派覆盖
 
 ### 11.1 各塔 SP 总需求矩阵
 
@@ -835,7 +884,7 @@ missile_tower:
 
 ---
 
-## 12. RuleHandler 引用清单
+## 13. RuleHandler 引用清单
 
 本文档共引用以下 RuleHandler（注册在 `src/core/RuleHandlers.ts`，详 [60-architecture §5.3](../60-tech/60-architecture.md)）：
 
@@ -893,7 +942,7 @@ missile_tower:
 
 ---
 
-## 13. v3.4 不变式核对
+## 14. v3.4 不变式核对
 
 | 不变式 | 权威文档 | 本文档执行情况 |
 |---|---|---|
@@ -908,8 +957,9 @@ missile_tower:
 
 ---
 
-## 14. 修订历史
+## 15. 修订历史
 
 | 版本 | 日期 | 类型 | 摘要 |
 |---|---|---|---|
 | 1.0.0 | 2026-05-15 | refactor | **v3.4 第 3 轮第 2 份创建**：塔技能树详设权威。14 章覆盖：文档定位 / 通用约定 / 七塔技能树清单 / 7 个塔（箭塔 2 路径 / 炮塔 2 路径 / 元素塔 3 路径 / 电塔 1 路径 4 节点 / 激光塔 2 路径 / 蝙蝠塔 1 路径 / 导弹塔 2 路径）/ 七塔 SP 总需求矩阵 / RuleHandler 引用清单（19 个）/ v3.4 8 项不变式核对。**蓝本式继承 v3.1 [22-tower-tech-tree §4](./22-tower-tech-tree.md#4-七塔完整科技树)**，节点 ID / 名称 / 形态梯度完整保留；字段重命名（`shardCost`→`spCost`、`techTree`→`skillTree`）+ SP 单价命中 50-mda §17.3 锚点（0/6/10/15）+ depth=1 起点 spCost=0。 |
+| 1.1.0 | 2026-05-17 | feat | **新增 §3 七塔主动技能**（节奏优化建议 D 落地）：每塔 1 个关内手动触发主动技能，不消耗能量，各塔独立 CD（12-25s）；新增 §3.1 七塔主动技能一览表 + §3.2 YAML schema（`activeSkill` 字段）；原 §3-§14 顺移为 §4-§15；7 项主动技能设计（齐射/精准轰炸/元素爆发/过载放电/全功率扫射/召唤蝠群/饱和打击）；新增 4 个 RuleHandler 引用（`fire_at_all_in_range` / `instant_aoe_hit` / `temp_summon_unit` / `multi_missile_strike`）。 |
