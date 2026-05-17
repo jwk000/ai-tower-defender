@@ -1,40 +1,47 @@
 ---
-title: 技能树系统总览（v3.4）
+title: 科技树总览（v3.5）
 status: authoritative
-version: 1.2.0
-last-modified: 2026-05-17
+version: 2.0.0
+last-modified: 2026-05-18
 authority-for:
-  - skill-tree-overview
-  - skill-tree-node-structure
-  - skill-tree-path-mutex
-  - skill-tree-equip-switch
-  - skill-tree-sp-economy-binding
-  - skill-tree-yaml-schema
-  - skill-tree-ui-sketch
-  - skill-tree-instance-id
+  - tech-tree-overview
+  - tech-tree-node-structure
+  - tech-tree-card-level-system
+  - tech-tree-crystal-upgrade
+  - tech-tree-gold-economy-binding
+  - tech-tree-yaml-schema
+  - tech-tree-ui-sketch
   - card-pool-ui
 supersedes:
-  - 22-tower-tech-tree.md（v3.1，2026-05-15 deprecated；本文档接替"通用骨架"职能，单位详设由 22a-22e 接替）
+  - 22-skill-tree-overview v1.2.0（v3.4 技能树通用骨架；v3.5 重写为科技树总览，废弃 SP/路径互斥/instanceLevel）
+  - 22-tower-tech-tree.md（v3.1，2026-05-15 deprecated）
 cross-refs:
-  - 10-gameplay/10-roguelike-loop.md      # v2.0.0 单 Run 闭环 / §11 不变式
-  - 10-gameplay/11-economy.md             # v3.0.0 §4 技能点 SP 系统
-  - 40-presentation/48-shop-redesign-v34.md   # §2 技能点资源 / §9 技能树占位 cross-ref
-  - 50-data-numerical/50-mda.md           # §17 技能点 SP 系统（数值真理源）
-  - 20-units/23-skill-buff.md             # §7 instanceLevel 法术卡提升边界（与本文档正交）
-  - 20-units/22a-skill-tree-tower.md      # 7 塔详设
-  - 20-units/22b-skill-tree-soldier.md    # 6 士兵详设
-  - 20-units/22c-skill-tree-trap.md       # 9 陷阱详设
-  - 20-units/22d-skill-tree-spell.md      # 14 法术参数树
-  - 20-units/22e-skill-tree-production.md # 生产建筑详设
-  - 60-tech/61-save-system.md             # v3.0.0 RunHistory.archetype（本会话荣誉）
+  - 10-gameplay/10-roguelike-loop.md      # v3.0.0 单 Run 闭环权威（v3.5）
+  - 10-gameplay/11-economy.md             # v4.0.0 二资源轴（能量/金币）
+  - 40-presentation/48-shop-redesign-v34.md   # 商店 + Crystal 升级入口（待 v3.5 更新）
+  - 50-data-numerical/50-mda.md           # 数值真理源（§NEW-CRYSTAL Crystal 升级 + 卡牌升级费用）
+  - 20-units/22a-skill-tree-tower.md      # 7 塔详设（待 v3.5 更新：spCost→goldCost）
+  - 20-units/22b-skill-tree-soldier.md    # 6 士兵详设（待 v3.5 更新）
+  - 20-units/22c-skill-tree-trap.md       # 9 陷阱详设（待 v3.5 更新）
+  - 20-units/22d-skill-tree-spell.md      # 14 法术参数树（待 v3.5 更新，删精炼术）
+  - 20-units/22e-skill-tree-production.md # 生产建筑详设（待 v3.5 更新）
+  - 60-tech/61-save-system.md             # 待 v3.5 更新：crystalLevel 字段
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
 ---
 
-# 技能树系统总览（v3.4）
+# 科技树总览（v3.5）
 
-> **v3.4 形态级新机制权威**：本文档定义全单位技能树的**通用骨架** —— 节点结构、路径互斥规则、装备切换、SP 经济衔接、YAML schema、UI 草图、与 23-skill-buff §7 instanceLevel 机制的边界。
+> **v3.5 形态级新机制权威**：本文档定义 v3.5 科技树系统的**通用骨架** —— Crystal 升级机制、卡牌等级体系、节点金币解锁/升级规则、YAML schema、RunManager 接口、UI 草图。
 >
-> **数值锚点**：所有 SP 单价、Run 流量、节点深度 SP 价格统一来自 [50-mda §17.3](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点)。本文档**只描述字段语义、机制骨架、设计原则**，不持有任何具体数值。
+> **v3.5 核心变更**（原 v3.4 技能树 → v3.5 科技树）：
+> - ~~技能点 SP~~ → **金币（goldCost）** 驱动节点升级
+> - ~~路径互斥单装备~~ → **线性等级成长**（Lv1 / Lv2 / Lv3，等同原 depth=1/2/3 节点效果）
+> - ~~instanceLevel / 精炼术~~ → **整套废弃**（[v3.5-MAJOR-MIGRATION §6](../v3.5-MAJOR-MIGRATION.md)）
+> - ✅ 新增 **Crystal 升级**：防御 Crystal 花金币升 Lv1→Lv3，提升人口上限 + 卡牌等级上限
+> - ✅ **获卡=自动解锁科技树节点**（商店购卡 / 关卡奖励卡 → 该卡节点直接可用，无前置依赖图）
+>
+> **数值锚点**：所有金币升级费用、Crystal 费用统一来自 [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md#new-crystal-科技树数值占位)。本文档**只描述字段语义、机制骨架、设计原则**，不持有具体数值。
 >
 > **单位详设**：本文档**不**描述具体单位的节点效果，请阅读：
 > - 7 塔 → [22a-skill-tree-tower](./22a-skill-tree-tower.md)
@@ -48,16 +55,16 @@ cross-refs:
 ## 目录
 
 - [1. 设计目标与核心原则](#1-设计目标与核心原则)
-- [2. v3.1 → v3.4 迁移说明](#2-v31--v34-迁移说明)
-- [3. 节点结构](#3-节点结构)
-- [4. 路径互斥与装备切换](#4-路径互斥与装备切换)
-- [5. SP 经济衔接](#5-sp-经济衔接)
-- [6. 与 23-skill-buff §7 instanceLevel 的边界](#6-与-23-skill-buff-7-instancelevel-的边界)
+- [2. v3.4 → v3.5 迁移说明](#2-v34--v35-迁移说明)
+- [3. Crystal 升级机制](#3-crystal-升级机制)
+- [4. 卡牌等级体系](#4-卡牌等级体系)
+- [5. 节点结构（v3.5）](#5-节点结构v35)
+- [6. 获卡与节点解锁](#6-获卡与节点解锁)
 - [7. YAML 配置 Schema](#7-yaml-配置-schema)
 - [8. RunManager 接口](#8-runmanager-接口)
-- [9. UI 草图（关后技能树面板）](#9-ui-草图关后技能树面板)
+- [9. UI 草图（科技树面板）](#9-ui-草图科技树面板)
 - [10. 验收清单](#10-验收清单)
-- [11. v3.4 不变式核对](#11-v34-不变式核对)
+- [11. v3.5 不变式核对](#11-v35-不变式核对)
 - [12. 影响文档清单](#12-影响文档清单)
 - [13. 修订历史](#13-修订历史)
 
@@ -67,263 +74,239 @@ cross-refs:
 
 ### 1.1 设计目标
 
-1. **本 Run 临时持有** —— 技能树**仅本 Run 内有效**，Run 结束清零，与 v3.4「单 Run 闭环」原则完全一致（详 [10-roguelike-loop §11 不变式 INV-04 / INV-08](../10-gameplay/10-roguelike-loop.md)）。
-2. **流派成型感** —— 全 Run SP 流量 80-130 SP（[50-mda §17.2.4](../50-data-numerical/50-mda.md#1724-总流量校验)），目标"实质性升级 1-2 个塔的关键节点（点亮 5-15 个节点）"，让玩家**主动选择 1-2 个核心单位深耕**而不是均摊。
-3. **路径互斥鼓励策略分叉** —— 同一单位多条路径中，单 Run 仅装备一条，鼓励"明确流派 + 一条路径打到底"。
-4. **配置驱动** —— 节点结构、效果差量、SP 单价全部 YAML 化，策划可改不动代码（规则引擎 dispatch handler 沿用 [60-architecture §5.3 规则引擎](../60-tech/60-architecture.md)）。
-5. **零 meta 持久化** —— 严禁出现"跨 Run 解锁"概念，所有节点状态在 `RunManager.skillTreeState` 内存中，不写入存档 [61-save-system v3.0.0 §1](../60-tech/61-save-system.md)。
+1. **本 Run 临时持有** —— 科技树状态**仅本 Run 内有效**，Run 结束清零，与 v3.5「单 Run 闭环」原则一致（[10-roguelike-loop §11 INV-01](../10-gameplay/10-roguelike-loop.md)）。
+2. **流派成型感** —— 通过金币分配在 Crystal 升级 vs 卡牌升级之间做策略取舍，形成每 Run 独特的阵容风格。
+3. **线性等级成长，消除路径困惑** —— 废弃路径互斥机制，改为 Lv1/Lv2/Lv3 线性成长。玩家直觉：「升级这张卡」而非「选择哪条路径」。
+4. **获卡即解锁，零门槛使用** —— 商店购卡或关卡奖励卡一旦进入卡池，该卡的科技树节点立即可用（无需额外解锁步骤）。
+5. **Crystal 是人口与等级的双控制器** —— Crystal 等级同时决定人口上限和卡牌等级上限，形成双向成长约束。
+6. **配置驱动** —— 节点结构、效果差量、金币单价全部 YAML 化，策划可改不动代码。
 
-### 1.2 与 v3.1 旧科技树的差异
-
-| 维度 | v3.1 旧科技树（已 deprecated） | v3.4 新技能树 |
-|---|---|---|
-| 持久化范围 | meta 永久（跨 Run） | **本 Run 临时**（Run 结束清零）|
-| 解锁货币 | 火花碎片（已废弃） | **技能点 SP**（详 [50-mda §17](../50-data-numerical/50-mda.md#17-技能点-sp-系统v34-新建替换火花碎片)）|
-| 路径重置 | 消耗碎片重置（返还 50%） | **不可重置**（本 Run 临时，无返还需求）|
-| 装备切换 | 关外卡池 UI 切换 | **关后节点 UI** 或 **关内单位部署前**切换（详 §4.3）|
-| 覆盖单位 | 仅 7 塔 | **6 类 / 38 单位**：7 塔 + 6 士兵 + 9 陷阱 + 14 法术 + 2 生产建筑（含未来扩展）|
-| 配置字段 | `techTree.paths[].nodes[].shardCost` | `skillTree.paths[].nodes[].spCost`（语义对齐，字段重命名）|
-| 存档字段 | `CardEntry.techTree.unlockedNodes[]` | **不存档**（仅 `RunManager` 内存）|
-
-### 1.3 核心原则
+### 1.2 核心原则
 
 | 原则 | 描述 | 锁定方文档 |
 |---|---|---|
-| **本 Run 闭环** | 技能树状态在 `RunManager` 内存中，Run 结束清零；存档无 `skillTree` 持久字段 | [61-save-system v3.0.0 §10](../60-tech/61-save-system.md) |
-| **SP 单价区间** | depth=1 → 3 SP / depth=2 → 6 SP / depth=3 → 10 SP / depth=4 → 15 SP | [50-mda §17.3](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点) |
-| **路径互斥单装备** | 同单位多路径只能装备 1 条，点亮但不装备的路径不生效 | 本文档 §4 |
-| **跨路径独立点亮** | 路径 A 与路径 B 节点解锁互不影响（SP 够都可点亮）| 本文档 §4.2 |
-| **装备切换零成本** | 已点亮的两路径之间切换装备：0 SP | 本文档 §4.3 |
-| **不可重置** | 已点亮的节点不可"忘记"返还 SP（Run 结束清零）| [50-mda §17.4](../50-data-numerical/50-mda.md#174-sp-消耗路径切换本-run-内) |
-| **与 instanceLevel 正交** | 技能树升塔形态 / 数值上限，instanceLevel 升塔临时数值 | 本文档 §6 + [23-skill-buff §7](./23-skill-buff.md#7-instancelevel-法术卡提升机制) |
-| **关内禁止点亮** | 关内不出现"购买节点"按钮，仅关后/关间 SP 消耗 | 本文档 §4.4 |
+| **本 Run 闭环** | 科技树状态在 `RunManager.techTreeState` 内存中，Run 结束清零 | [61-save-system](../60-tech/61-save-system.md)（待 v3.5 更新）|
+| **金币单价驱动** | 节点升级花费 goldCost（金币），不再使用 SP | 本文档 §5 + [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md) |
+| **线性等级上限** | 卡牌最高 Lv.3，受 Crystal 等级约束（Crystal Lv.N → 卡牌最高 Lv.N）| 本文档 §4 |
+| **获卡自动解锁** | 进入卡池 → 该卡科技树节点自动可用，无需消耗金币"解锁" | 本文档 §6 |
+| **Crystal 控制上限** | Crystal Lv.1/2/3 分别对应卡牌等级上限 1/2/3 和不同人口上限 | 本文档 §3 |
+| **关内禁止升级** | 关内不出现「升级卡牌」按钮，仅关后/关间金币消耗 | 本文档 §4.4 |
+| **instanceLevel 废弃** | 不再存在 instanceLevel / 精炼术机制 | [v3.5-MAJOR-MIGRATION §6](../v3.5-MAJOR-MIGRATION.md) |
 
 ---
 
-## 2. v3.1 → v3.4 迁移说明
+## 2. v3.4 → v3.5 迁移说明
 
 ### 2.1 字段映射
 
-| v3.1 字段 | v3.4 字段 | 迁移方式 |
+| v3.4 字段 | v3.5 字段 | 迁移方式 |
 |---|---|---|
-| `techTree.paths[]` | `skillTree.paths[]` | 重命名（YAML 字段全替）|
-| `nodes[].shardCost` | `nodes[].spCost` | 重命名（语义对齐：N SP 而非 N 碎片）|
+| `nodes[].spCost` | `nodes[].goldCost` | 重命名（金币替代 SP）|
 | `nodes[].id` / `name` / `effects[]` | 保持不变 | 节点设计完整继承 |
-| `CardEntry.techTree.unlockedNodes[]` | **删除** | v3.4 不持久化技能树状态 |
-| `CardEntry.techTree.equippedPath` | **删除** | 同上 |
-| `RunManager.skillTreeState.activeNodes` | 新建 | v3.4 内存状态（详 §8）|
-| `RunManager.skillTreeState.equippedPaths` | 新建 | 同上 |
+| `skillTree.paths[].nodes[]` | `skillTree.nodes[]`（线性数组）| 结构简化：废弃多路径设计 |
+| `paths[].mutex` | **删除** | 路径互斥废弃 |
+| `RunManager.skillPoints` | **删除** | SP 资源废弃 |
+| `RunManager.skillTreeState` | `RunManager.techTreeState` | 重命名 + 结构调整 |
+| `CardSkillTreeState.equippedPath` | **删除** | 路径互斥废弃 |
+| `CardSkillTreeState.activeNodes` → | `CardTechTreeState.cardLevel` | 简化为等级整数 |
 
-### 2.2 单位详设映射
+### 2.2 废弃机制总结
 
-| 文档 | v3.1 蓝本 | v3.4 改造方式 |
+| v3.4 机制 | v3.5 处理 |
+|---|---|
+| 技能点 SP 资源 | **整套废弃**（货币改为金币）|
+| 路径互斥单装备 | **废弃**（改为线性等级 Lv1-3）|
+| instanceLevel / 精炼术 | **整套废弃**（23-skill-buff §7 整节删除）|
+| 装备切换（0 SP 成本） | **废弃**（无路径互斥，不需要切换）|
+| 前置节点 prerequisites | **废弃**（线性等级直接升，无前置依赖图）|
+| 关卡通关 SP 奖励 | **废弃**（改为关后 3 选 1 节点奖励）|
+| 商店金币→SP 兑换 | **废弃**（删除兑换槽）|
+
+### 2.3 单位详设映射（待 v3.5 更新）
+
+| 文档 | v3.4 状态 | v3.5 待处理 |
 |---|---|---|
-| [22a 塔](./22a-skill-tree-tower.md) | 22-tower-tech-tree §4（7 塔 13 路径）| **蓝本式重写**：节点设计全继承，仅字段名变 + SP 单价对齐 50-mda §17.3 |
-| [22b 士兵](./22b-skill-tree-soldier.md) | 无（v3.1 士兵无升级机制）| **从零设计**：6 士兵 × 2 路径 × 2-3 节点 |
-| [22c 陷阱](./22c-skill-tree-trap.md) | 无（v3.1 陷阱无升级机制）| **从零设计**：9 陷阱 × 2 路径方向（耐久/范围）|
-| [22d 法术](./22d-skill-tree-spell.md) | 无（v3.1 法术 instanceLevel 仅由"精炼术"提升）| **从零设计**：14 法术 × 4 参数路径（伤害/范围/CD/持续）|
-| [22e 生产](./22e-skill-tree-production.md) | 无 | **从零设计**：2 建筑 × 2 路径（产出速率/种类）|
-
-### 2.3 旧文档归档策略
-
-- [22-tower-tech-tree](./22-tower-tech-tree.md) 文档**保留作 deprecated**（已加顶部废弃声明 + 4 个 authority-for 失效列出），仅供回溯。
-- v3.4 新开发禁止参考 22-tower-tech-tree，所有塔技能树问题查 [22a](./22a-skill-tree-tower.md)。
+| [22a 塔](./22a-skill-tree-tower.md) | 7 塔 × 多路径 × spCost | spCost→goldCost，路径合并为线性 Lv1/2/3 效果 |
+| [22b 士兵](./22b-skill-tree-soldier.md) | 6 士兵 × 2 路径 | 同上 |
+| [22c 陷阱](./22c-skill-tree-trap.md) | 9 陷阱 × 2 路径 | 同上 |
+| [22d 法术](./22d-skill-tree-spell.md) | 14 法术 × 4 参数路径 + 精炼术 | spCost→goldCost + 删精炼术 refining 节点 |
+| [22e 生产](./22e-skill-tree-production.md) | 2 建筑 × 2 路径 | 同上 |
 
 ---
 
-## 3. 节点结构
+## 3. Crystal 升级机制
 
-### 3.1 节点是技能树的最小单位
+### 3.1 Crystal 是什么
+
+**Crystal（防御水晶）** 是每 Run 开始时玩家拥有的防御核心建筑，同时也是：
+1. **HP 资源**：Crystal HP 降至 0 则 Run 结束（失败）
+2. **升级目标**：可在关间花金币升级 Lv1→Lv2→Lv3，提升战斗上限
+
+### 3.2 Crystal 等级效果
+
+| Crystal 等级 | 人口上限 | 卡牌等级上限 | 含义 |
+|------------|---------|------------|------|
+| **Lv.1（Run 初始）** | TBD | **1**（只能用 Lv1 卡牌效果）| 基础形态 |
+| **Lv.2** | TBD（比 Lv1 更高）| **2**（可升级卡牌到 Lv2）| 强化形态 |
+| **Lv.3** | TBD（比 Lv2 更高）| **3**（可升级卡牌到 Lv3）| 巅峰形态 |
+
+> **TBD**：具体人口上限数值和升级费用（金币）在 [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md#new-crystal-科技树数值占位) 中定义，待 50-mda 更新。
+
+### 3.3 Crystal 升级规则
+
+| 维度 | 规则 |
+|------|------|
+| **升级时机** | 仅关间节点可升级（商店内或专属 Crystal 升级选项），关内不可升级 |
+| **升级方向** | 单向，Lv1 → Lv2 → Lv3，不可降级 |
+| **单 Run 上限** | 最多从 Lv1 升到 Lv3（2 次升级） |
+| **效果生效** | 升级后立即生效（人口上限提升 + 卡牌等级上限提升）|
+| **Run 结束** | Crystal 等级随 Run 结束清零，下一 Run 从 Lv1 开始 |
+
+### 3.4 Crystal 升级与金币分配策略
+
+Crystal 升级与卡牌升级竞争同一金币资源，形成核心策略取舍：
+
+```
+金币 G
+ ├──→ Crystal 升级（提升人口上限 + 卡牌等级上限）
+ ├──→ 卡牌升级（提升特定卡牌效果等级，受 Crystal 上限约束）
+ ├──→ 商店买卡（扩池，自动解锁科技树节点）
+ └──→ 其他功能卡（能量瓶 / 水晶修复 / 手牌刷新）
+```
+
+**设计意图**：先升 Crystal 才能解锁高等级卡牌上限，但 Crystal 升级费用高。玩家需决策：「先扩阵容宽度（买卡）vs 先提升深度（Crystal 升级）vs 直接升核心卡」。
+
+---
+
+## 4. 卡牌等级体系
+
+### 4.1 卡牌等级基本规则
+
+| 维度 | 规则 |
+|------|------|
+| **等级范围** | Lv.1 / Lv.2 / Lv.3（三级）|
+| **初始等级** | 每张卡进入卡池时为 Lv.1 |
+| **升级货币** | 金币（goldCost，见 [50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md)）|
+| **等级上限** | = 当前 Crystal 等级（Crystal Lv.2 → 卡牌最高升 Lv.2）|
+| **升级时机** | 仅关间节点可升级，关内不可升级 |
+| **效果叠加** | 每升一级，激活对应 depth 节点的 effects[]（差量叠加）|
+
+### 4.2 卡牌等级 vs 原 depth 节点对应关系
+
+v3.5 卡牌等级体系直接继承 v3.4 各 depth 层的效果设计：
+
+| v3.5 卡牌等级 | 对应原 v3.4 节点 | 效果累积 |
+|------------|----------------|---------|
+| **Lv.1**（初始）| 原 depth=1 节点效果 | 基础特性 |
+| **Lv.2** | 原 depth=1 + depth=2 节点效果 | 进阶特性 |
+| **Lv.3** | 原 depth=1 + depth=2 + depth=3 节点效果 | 高阶特性 |
+
+> **注**：22a-22e 中的多路径节点设计在 v3.5 更新时会合并/简化为线性三级效果。具体单位的每级效果描述见 22a-22e（待 v3.5 更新）。
+
+### 4.3 卡牌等级与人口占用的关系
+
+**卡牌等级本身不改变 energyCost（人口占用数）**。高等级卡只是效果更强，不增加部署成本。这确保玩家「升级核心卡」不会额外压缩人口空间。
+
+### 4.4 关内禁止升级
+
+- 关内**不出现「升级卡牌」按钮**。
+- 玩家在关内仅可「放置单位 / 移除单位 / 施放法术」。
+- 此规则保证关内战术节奏不被 meta 决策打断，符合 v3.5「分层清晰」原则。
+
+---
+
+## 5. 节点结构（v3.5）
+
+### 5.1 节点是卡牌等级的效果载体
+
+v3.5 节点语义变为「升到某等级时激活哪些效果」，不再承载「路径分叉 + SP 选择」的语义。
 
 每个节点包含：
 - `id`（字符串，全局唯一）
 - `name`（中文显示名）
-- `pathId`（所属路径 ID）
-- `depth`（路径上第几个节点，1-4）
-- `spCost`（点亮花费的 SP，由 50-mda §17.3 锚点决定）
-- `effects[]`（节点效果数组，描述"相对于上一深度新增/覆盖的差量"，由规则引擎 dispatch handler 实现）
-- `prerequisites`（前置节点 ID，必须同路径 depth N-1 节点已点亮）
+- `level`（对应卡牌等级，1-3；替代原 `depth` 字段）
+- `goldCost`（升到此等级花费的金币；替代原 `spCost` 字段）
+- `effects[]`（节点效果数组，描述「相对于上一等级新增/覆盖的差量」，由规则引擎 dispatch handler 实现）
 
-### 3.2 节点深度与 SP 单价（50-mda §17.3 锚点）
+### 5.2 节点等级与金币单价（50-mda §NEW-CRYSTAL 锚点）
 
-| 节点深度（路径上第 N 个节点）| SP 单价 | 设计意图 |
+| 卡牌等级 | 金币单价 | 设计意图 |
 |---|---|---|
-| **depth=1**（路径起点）| 3 SP | 路径关键性能解锁（"差异化进场"）|
-| **depth=2**（路径进阶）| 6 SP | 路径强化（"流派成型"）|
-| **depth=3**（路径高阶 / 部分单位终点）| 10 SP | 路径深化（"成型流派的明显跃迁"）|
-| **depth=4**（部分单位终极节点）| 15 SP | 终极爆点（仅 4 节点路径，如电塔闪电塔，"流派满级独有"）|
+| **Lv.1**（入手默认）| 0 G（自动获得）| 获卡即可用基础效果，零门槛 |
+| **Lv.2**（进阶）| TBD（50-mda §NEW-CRYSTAL）| 核心强化，需要 Crystal Lv.2 解锁上限 |
+| **Lv.3**（高阶）| TBD（50-mda §NEW-CRYSTAL）| 终极强化，需要 Crystal Lv.3 解锁上限 |
 
-> **单塔单路径满级（3 节点）SP 成本** = 3 + 6 + 10 = **19 SP**
-> **电塔 4 节点路径满级 SP 成本** = 3 + 6 + 10 + 15 = **34 SP**
-> **同塔两路径全满（不切换装备）SP 成本** = 19 × 2 = **38 SP（3 节点路径）** 或 19 + 34 = **53 SP（一 3 节点 + 一 4 节点）**
+> **TBD**：具体金币单价在 50-mda §NEW-CRYSTAL 中定义，待 50-mda 更新。
 
-### 3.3 节点效果（effects 数组）
+### 5.3 节点效果（effects 数组）
 
-每个节点 `effects[]` 是规则引擎 RuleHandler 引用数组，按声明顺序应用。
+与 v3.4 机制相同：每个节点 `effects[]` 是规则引擎 RuleHandler 引用数组，差量语义（relative to 上一等级）。
 
 ```yaml
 effects:
-  - rule: add_projectile_count       # RuleHandler 名（[60-architecture §5.3](../60-tech/60-architecture.md)）
-    value: 1                         # handler 参数
+  - rule: add_projectile_count       # RuleHandler 名
+    value: 1
   - rule: mul_attack_interval
     value: 0.4
 ```
 
-**effects 是"差量"语义**：节点 N 的 effects 只描述"相对于节点 N-1 新增/覆盖什么"，便于策划读懂"这个节点比前一个强在哪"。
-
-**累积叠加由配置加载器在装备路径时全节点合并**为单位实际属性（详 §4.5）。
-
-### 3.4 节点效果类型枚举
-
-按效果类型对 RuleHandler 分类（具体注册在 `src/core/RuleHandlers.ts`）：
+### 5.4 节点效果类型枚举（与 v3.4 相同）
 
 | 类型 | 例子 RuleHandler | 应用场景 |
 |---|---|---|
-| **数值修饰** | `add_atk` / `mul_attack_interval` / `add_range` / `add_hp_max` | 数值加成（最常见）|
-| **形态切换** | `set_form_id` / `set_element_type` / `set_visual` | 改变单位形态/外观/元素属性（元素塔特有）|
+| **数值修饰** | `add_atk` / `mul_attack_interval` / `add_range` / `add_hp_max` | 数值加成 |
+| **形态切换** | `set_form_id` / `set_element_type` / `set_visual` | 改变单位形态/元素属性 |
 | **能力新增** | `add_projectile_count` / `add_burning_on_hit` / `add_chain_jump` | 新增主动/被动能力 |
-| **特殊机制** | `trigger_screen_lightning_with_cd` / `add_focus_charge` / `unlock_path_block` | 单单位特化机制 |
+| **特殊机制** | `trigger_screen_lightning_with_cd` / `add_focus_charge` | 单单位特化机制 |
 
-> 完整 RuleHandler 注册表见 `src/core/RuleHandlers.ts`，22a-22e 各单位详设引用具体 handler 名。
+### 5.5 节点效果的局限（边界）
 
-### 3.5 节点效果的局限（边界）
-
-- 节点效果**只能修改单位静态属性 / 注入行为规则**，不能修改全局规则（如金币奖励倍率、能量上限）—— 这些是 [23-skill-buff §3 法术](./23-skill-buff.md#3-法术spell-子类) 全局规则改写法术的职责。
-- 节点效果**不能跨单位生效**（不能 A 塔的节点 buff B 塔），跨单位增益由法术卡 + 23-skill-buff Aura 机制实现。
-- 节点效果**不能触发胜负条件**（如不能直接降水晶 HP）—— 胜负判定走 [10-roguelike-loop §5 水晶机制](../10-gameplay/10-roguelike-loop.md)。
+- 节点效果**只能修改单位静态属性 / 注入行为规则**，不能修改全局规则（如金币奖励倍率、能量上限）
+- 节点效果**不能跨单位生效**（不能 A 塔的节点 buff B 塔）
+- ~~节点效果不允许出现 `add_instance_level` handler~~ → v3.5 instanceLevel 整套废弃，此规则不再需要
 
 ---
 
-## 4. 路径互斥与装备切换
+## 6. 获卡与节点解锁
 
-### 4.1 路径概念
+### 6.1 获卡=自动解锁科技树节点（无前置依赖）
 
-- **路径（path）**：一条由若干节点串联的升级线，节点必须按 `depth=1 → 2 → 3 → (4)` 线性解锁。
-- **每个单位 1-3 条路径**，路径之间设计上互斥（每路径代表一种"流派"，玩家选其一）。
+**v3.5 的核心设计简化**：卡牌科技树节点**不需要额外金币"解锁"步骤**。
 
-| 单位类型 | 典型路径数 | 路径深度 |
-|---|---|---|
-| 塔（22a）| **2 条 / 多重路径**（元素塔 3 条，电塔 1 条 4 节点）| 大多 3 节点，电塔 4 节点 |
-| 士兵（22b）| **2 条**（攻击型 / 辅助型）| 2-3 节点 |
-| 陷阱（22c）| **2 条**（耐久型 / 范围型）| 2-3 节点 |
-| 法术（22d）| **4 条**（伤害 / 范围 / CD / 持续时间）| 2 节点 |
-| 生产（22e）| **2 条**（速率 / 种类）| 2 节点 |
+| 获卡途径 | 节点解锁结果 |
+|---------|------------|
+| 商店购卡（花金币买卡） | 该卡进入卡池，该卡科技树所有节点**立即可用**（可升级）|
+| 关卡通关 3 选 1 奖励卡 | 同上 |
+| 秘境事件奖励卡 | 同上 |
+| Run 开局起手卡 | 同上 |
 
-### 4.2 跨路径独立点亮规则
+**「可用」的含义**：
+- 节点可被升级（花金币升级该卡到 Lv2/Lv3）
+- 无需任何前置节点满足（无前置依赖图）
+- 唯一约束：受 Crystal 等级上限（Crystal Lv.1 时，即使你有金币也不能升到 Lv2/Lv3）
 
-- 路径 A 与路径 B 的节点解锁**互不影响**。
-- SP 充足时，玩家可"两条路径都点满"（前提是 SP 够付 19 SP × 2 = 38 SP，可能性低但允许）。
-- 已点亮的两路径之间**自由切换装备**，无 SP 成本。
+### 6.2 无前置依赖图（简化认知）
 
-### 4.3 装备切换规则
+v3.5 废弃了 v3.4 的 `prerequisites` 字段（前置节点依赖）：
 
-- **装备**：一个单位在某时刻**仅装备一条路径**（即"哪条路径生效"）；未装备的路径节点虽点亮但不生效。
-- **切换时机**：
-  - **关后节点界面**（详 [47-level-map-ui §3](../40-presentation/47-level-map-ui.md)）—— 主要切换场景，玩家可统一调整本 Run 所有单位的装备路径
-  - **关内单位部署前**（手牌区拖出单位卡到战场前）—— 玩家可在拖出前快捷切换当前卡的装备路径（次要场景）
-- **切换成本**：**0 SP**（已点亮的路径之间自由切换）。
-- **切换限制**：
-  - 关内单位**已部署后**不可切换装备（避免战斗中突变形态破坏战术决策）
-  - 切换装备**不重置 instanceLevel**（法术卡施加的临时数值层数保留，与装备路径正交，详 §6）
+- **v3.4**：点亮 depth=3 节点必须先点亮 depth=1 + depth=2 → 有依赖图
+- **v3.5**：升级到 Lv.3 必须先升 Lv.1 → Lv.2（线性，但唯一约束是 Crystal 等级上限）
 
-### 4.4 关内禁止点亮 / 切换装备
+玩家心智模型：「我的 Crystal 升到 Lv2 了，现在可以把这张核心塔卡升到 Lv2。」
 
-- 关内**不出现"购买节点 SP"按钮 / "切换装备路径"快捷键**。
-- 玩家在关内仅可"放置单位 / 移除单位 / 施放法术"。
-- 此规则保证关内战术节奏不被 meta 决策打断，符合 v3.4「分层清晰」原则。
+### 6.3 金币「买卡」vs「升级卡」的设计边界
 
-### 4.5 effects 合并算法
-
-装备某条路径时，配置加载器合并该路径**所有已点亮节点**的 `effects[]`，按以下顺序应用到单位实例：
-
-```
-单位基础属性 (config/units/*.yaml baseStats)
-  → 装备路径 depth=1 节点 effects[]
-  → 装备路径 depth=2 节点 effects[]（仅已点亮）
-  → 装备路径 depth=3 节点 effects[]（仅已点亮）
-  → 装备路径 depth=4 节点 effects[]（仅已点亮，部分单位有）
-  → instanceLevel 法术卡效果（独立层，详 §6）
-  → 战场 Buff 临时效果（独立层，[23-skill-buff §4](./23-skill-buff.md)）
-```
-
-合并算法以 RuleHandler 类型分类：
-- `add_*` 类（加法）—— 直接累加
-- `mul_*` 类（乘法）—— 直接乘积（叠加遵循 [25-vulnerability §2 优先级表](./25-vulnerability.md)）
-- `set_*` 类（覆盖）—— 后写覆盖先写
-- `add_capability_*` 类（能力新增）—— 标志位 OR
-
----
-
-## 5. SP 经济衔接
-
-### 5.1 SP 来源（[50-mda §17.2](../50-data-numerical/50-mda.md#172-sp-获取流量) 锚点）
-
-| 来源 | 单 Run 流量 | 备注 |
-|---|---|---|
-| 关卡通关 SP | 2 + 4 + 6 + 8 + 10 + 12 + 14 + 16 + 20 = **92 SP** | 关 N 通关给 N × 2 SP，终战给 20 SP（突出最终奖励）|
-| 秘境节点 SP 奖励 | **0-50 SP/事件**（5/15/30/50 4 档 + 20%/35%/40%/5% 权重）| 单 Run 秘境 ≈ 2-4 次，期望约 **63 SP（满秘境路径）**|
-| 商店金币兑换 | 单商店上限 3 SP（50 G/1 SP）| 单 Run 4-8 次商店，理论上限 24 SP，实际 5-15 SP |
-
-**单 Run SP 流量目标**：80-130 SP（[50-mda §17.2.4](../50-data-numerical/50-mda.md#1724-总流量校验)）
-
-### 5.2 SP 消耗：技能树节点（本文档）+ 商店功能卡（[48 §3](../40-presentation/48-shop-redesign-v34.md)）
-
-| 消耗端 | 单 Run 期望 SP 流量 | 优先级 |
-|---|---|---|
-| **本文档：技能树节点点亮** | 50-80 SP（满 1 塔关键节点 + 半 1 塔）| **高**（主流派成型）|
-| 48 §3 "技能点限量包" | 0-20 SP（机会型）| 低（仅当玩家有冗余 SP）|
-
-> 设计意图：90% 以上 SP 应流向"技能树节点点亮"，确保 v3.4 SP 系统的核心价值（流派成型）落地。
-
-### 5.3 SP 不可转出（[50-mda §13.4](../50-data-numerical/50-mda.md#134-资源转化规则汇总) 锚点）
-
-- SP ⇏ 金币（不可逆兑换）
-- SP ⇏ 能量（v3.4 INV-08 跨货币锁）
-- SP ⇏ 火花碎片（v3.4 火花碎片已废弃，词汇不存在）
-- SP ⇏ HP（无 SP→HP 路径）
-
-唯一转入：**金币 → SP**（商店槽 5 "技能点卡"，50 G/1 SP，单商店上限 3 SP，[50-mda §13.3](../50-data-numerical/50-mda.md#133-跨货币兑换条款v34-新建)）。
-
----
-
-## 6. 与 23-skill-buff §7 instanceLevel 的边界
-
-### 6.1 两个机制的正交关系
-
-v3.4 单位升级有**两套独立机制**，各管各的，互不干扰：
-
-| 机制 | 升级对象 | 升级层级数 | 升级来源 | 持久性 | 数值/形态 |
-|---|---|---|---|---|---|
-| **技能树（本文档）** | 单位形态 / 能力上限 / 静态属性 | **节点（路径上 1-4 个）** | SP 消耗 | **本 Run 临时**（Run 结束清零）| 形态切换 + 数值上限 |
-| **instanceLevel（[23-skill-buff §7](./23-skill-buff.md#7-instancelevel-法术卡提升机制)）** | 单位**实例**临时数值 | **3 层上限**（[23 §7.2](./23-skill-buff.md)）| 法术卡（仅"精炼术"refining）| **本局战斗**（塔死亡 / 关卡结束清零）| 纯数值 + 30% / 层 |
-
-### 6.2 正交关键点（**铁律**）
-
-| 边界规则 | 描述 |
-|---|---|
-| **技能树不提升 instanceLevel** | 节点 effects[] 不允许出现 `add_instance_level` handler |
-| **instanceLevel 不点亮节点** | 法术卡（精炼术）只能 `instanceLevel += 1`，不能解锁/装备技能树节点 |
-| **触发优先级** | 数值合并顺序：技能树 effects → instanceLevel 数值层 → 战场 Buff（[23 §4](./23-skill-buff.md)）|
-| **持久化层级** | 技能树：RunManager 内存（本 Run 临时，但跨关保留）；instanceLevel：单位实例（本局战斗，关结束清零）|
-| **切换装备影响范围** | 切换技能树装备 → 重新合并 effects，**保留** instanceLevel 数值层；instanceLevel 清零 → **不影响**技能树节点状态 |
-
-### 6.3 玩家心智模型
-
-| 玩家想做 | 走哪条路径 |
-|---|---|
-| 给箭塔升 3 重射击形态 | **技能树**（22a 箭塔路径 1 depth=3 节点）|
-| 给单个箭塔实例临时 +90% 伤害（本局救场）| **instanceLevel**（[23 §7](./23-skill-buff.md) refining 法术 ×3）|
-| 给全场所有塔 +30% 攻速 | **战场 Buff**（[23 §4](./23-skill-buff.md) 全局规则法术或 Aura）|
-
-> 这三套机制设计目的是**让玩家在不同决策时点投入不同资源**：长期规划用 SP 走技能树；本局战术高峰用法术能量走 instanceLevel；瞬时救场用法术能量走战场 Buff。
+| 操作 | 金币消耗 | 效果 |
+|------|---------|------|
+| 商店购买新卡 | 购买价格（50-mda §14） | 卡进入卡池（Lv1 免费）|
+| 升级已有卡 Lv1→Lv2 | goldCost Lv2（50-mda §NEW-CRYSTAL）| 该卡牌效果增强 |
+| 升级已有卡 Lv2→Lv3 | goldCost Lv3（50-mda §NEW-CRYSTAL）| 该卡牌效果进一步增强 |
 
 ---
 
 ## 7. YAML 配置 Schema
 
-### 7.1 单位 YAML 增加 `skillTree` 字段
-
-旧 v3.1 `techTree` 字段彻底废弃。新 `skillTree` 字段 schema：
+### 7.1 单位 YAML 中的 `skillTree` 字段（v3.5 更新版）
 
 ```yaml
 arrow_tower:
@@ -336,393 +319,271 @@ arrow_tower:
     range: 200
     attackInterval: 1.0
   skillTree:
-    paths:
-      - id: multi_shot
-        name: 多重射击
-        nodes:
-          - id: arrow_basic
-            name: 普通箭塔
-            depth: 1                 # 路径起点
-            spCost: 0                # 默认拥有（depth=1 起点为 0 SP 还是 3 SP？详 §7.3）
-            effects: []
-          - id: arrow_double
-            name: 双重箭塔
-            depth: 2
-            spCost: 6                # 50-mda §17.3 锚点：depth=2 → 6 SP
-            prerequisites: [arrow_basic]
-            effects:
-              - rule: add_projectile_count
-                value: 1
-          - id: arrow_triple
-            name: 三重箭塔
-            depth: 3
-            spCost: 10               # 50-mda §17.3 锚点：depth=3 → 10 SP
-            prerequisites: [arrow_double]
-            effects:
-              - rule: add_projectile_count
-                value: 2
-      - id: rapid_fire
-        name: 高频火力
-        nodes:
-          - id: arrow_crossbow
-            name: 连弩箭塔
-            depth: 2
-            spCost: 6
-            prerequisites: [arrow_basic]
-            effects:
-              - rule: mul_attack_interval
-                value: 0.4
-              - rule: mul_atk
-                value: 0.5
-          - id: arrow_crossbow_fire
-            name: 连弩火箭塔
-            depth: 3
-            spCost: 10
-            prerequisites: [arrow_crossbow]
-            effects:
-              - rule: add_burning_on_hit
-                duration: 2.0
-                tickRatio: 0.2
+    nodes:
+      - id: arrow_lv1
+        name: 箭塔 Lv.1
+        level: 1                 # 对应卡牌等级（替代 depth）
+        goldCost: 0              # 入手自动获得，无需花金币
+        effects: []              # Lv.1 即基础形态，差量为空
+      - id: arrow_lv2
+        name: 箭塔 Lv.2
+        level: 2
+        goldCost: 80             # 示例值，具体见 50-mda §NEW-CRYSTAL
+        effects:
+          - rule: add_projectile_count
+            value: 1             # 新增 1 发投射物（总 2 发）
+          - rule: mul_attack_interval
+            value: 0.9           # 攻速微提升
+      - id: arrow_lv3
+        name: 箭塔 Lv.3
+        level: 3
+        goldCost: 180            # 示例值，具体见 50-mda §NEW-CRYSTAL
+        effects:
+          - rule: add_projectile_count
+            value: 1             # 再增 1 发（总 3 发）
+          - rule: add_burning_on_hit
+            duration: 2.0
+            tickRatio: 0.15
 ```
 
 ### 7.2 关键字段说明
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `skillTree.paths[]` | 数组 | 是 | 该单位所有路径 |
-| `paths[].id` | string | 是 | 路径全局唯一 ID |
-| `paths[].name` | string | 是 | 中文显示名 |
-| `paths[].nodes[]` | 数组 | 是 | 该路径所有节点 |
+| `skillTree.nodes[]` | 数组 | 是 | 该单位所有等级节点（1-3 个，对应 Lv1/2/3）|
 | `nodes[].id` | string | 是 | 节点全局唯一 ID |
 | `nodes[].name` | string | 是 | 中文显示名 |
-| `nodes[].depth` | int | 是 | 路径上深度（1-4）|
-| `nodes[].spCost` | int | 是 | 点亮花费 SP（50-mda §17.3 锚点）|
-| `nodes[].prerequisites` | string[] | 否 | 前置节点 ID（depth=1 起点无前置）|
-| `nodes[].effects` | object[] | 否 | RuleHandler 引用数组（差量语义，详 §3.3）|
+| `nodes[].level` | int | 是 | 卡牌等级（1-3，替代 depth）|
+| `nodes[].goldCost` | int | 是 | 升到此等级花费金币（Lv1=0，Lv2/Lv3 见 50-mda）|
+| `nodes[].effects` | object[] | 否 | RuleHandler 引用数组（差量语义）|
 
-### 7.3 depth=1 起点 SP 单价为 0 还是 3？
+> **废弃字段**：`paths[]`（多路径）、`spCost`（SP 费用）、`prerequisites`（前置依赖）、`mutex`（路径互斥）——这些 v3.4 字段在 v3.5 全部删除。
 
-**决策：depth=1 起点 spCost = 0**（路径起点自动获得，单位卡入手即可用）。
+### 7.3 Lv.1 goldCost = 0 的设计意图
 
-- 玩家从手牌打出单位 → 该单位**默认拥有所有路径的 depth=1 节点形态**（如箭塔默认是"普通箭塔"形态）
-- 玩家从 depth=1 起 SP 选择**走哪条路径的 depth=2**（路径分叉点）
-- depth=1 设计为 0 SP 的好处：玩家不必为"激活基础形态"付费，SP 全部投入"真正流派分化"
-
-> 此决策与 [50-mda §17.3 锚点表](../50-data-numerical/50-mda.md#173-sp-消耗技能树节点单价v34-锚点) 中"depth=1 → 3 SP"看似冲突，但 50-mda §17.3 描述的是**实际购买的节点深度区间**，路径起点 depth=1 形态作为单位卡入手默认形态不算"购买"，spCost = 0。
-
-### 7.4 路径互斥的 YAML 声明（可选）
-
-如果某些路径在设计上**完全互斥**（如元素塔的冰/火/毒），可在 path 级别声明 `mutex` 标签辅助 UI 显示：
-
-```yaml
-- id: ice_path
-  name: 冰系
-  mutex: elemental    # 同 mutex 组的路径在 UI 上明确显示"互斥"
-  nodes: [...]
-- id: fire_path
-  name: 火系
-  mutex: elemental
-  nodes: [...]
-```
-
-> `mutex` 字段**仅影响 UI 显示**，不影响实际点亮规则（"路径互斥单装备" §4.1 才是机制层）。多数单位路径不需要 `mutex` 标签。
+- 获卡=进入卡池=Lv.1 效果立即生效，无需额外付费
+- 玩家从 Lv.1 开始决策「是否值得花金币升到 Lv.2」
+- 金币全部投入「真正的等级提升」
 
 ---
 
 ## 8. RunManager 接口
 
-### 8.1 RunManager.skillTreeState 数据结构
+### 8.1 RunManager.techTreeState 数据结构
 
-> **v3.4 实例级技能树**：技能树状态以**卡牌实例 ID（cardInstanceId）** 为 key，而非卡种类 ID（unitCardId）。同一种类的两张箭塔卡各自拥有独立的技能树状态，互不影响。
+> **v3.5 实例级科技树**：科技树状态以**卡牌实例 ID（cardInstanceId）** 为 key，同一种类的两张箭塔卡各自独立。
 
 ```typescript
 interface RunManager {
-  skillPoints: number              // 当前 SP 余额（[48 §2](../40-presentation/48-shop-redesign-v34.md)）
-  skillTreeState: SkillTreeState   // 本 Run 技能树状态（v3.4 新增）
+  crystalLevel: 1 | 2 | 3          // Crystal 当前等级（v3.5 新增，替代 skillPoints）
+  techTreeState: TechTreeState      // 本 Run 科技树状态（v3.5：替代 skillTreeState）
   // ... 其他字段
 }
 
-interface SkillTreeState {
-  // key = cardInstanceId（每张卡在本 Run 内的唯一实例 ID，如 'arrow_tower_inst_1'）
-  // 同种类多张卡各自独立，互不共享技能树状态
-  instances: Record<string, CardSkillTreeState>
+interface TechTreeState {
+  // key = cardInstanceId（每张卡在本 Run 内的唯一实例 ID）
+  instances: Record<string, CardTechTreeState>
 }
 
-interface CardSkillTreeState {
-  unitCardId: string               // 对应的卡种类 ID（用于查 skillTree 配置，如 'arrow_tower'）
-  activeNodes: Set<string>         // 已点亮节点 ID 集合（跨所有路径）
-  equippedPath: string | null      // 当前装备的路径 ID（null = 仅起点 depth=1 默认形态）
+interface CardTechTreeState {
+  unitCardId: string               // 对应的卡种类 ID（如 'arrow_tower'）
+  cardLevel: 1 | 2 | 3            // 当前卡牌等级（替代 activeNodes Set）
 }
 ```
 
-**实例 ID 生命周期**：
-- 卡牌进入卡组时（开局抽卡 / 商店购买 / 关卡抽卡）分配唯一 `cardInstanceId`
-- 卡牌战场被击杀 / 摧毁 → 实例状态**保留**（本 Run 内技能树不因单次战斗损毁而清零）
-- Run 结束（胜利/失败）→ `resetSkillTreeState()` 清零全部实例状态
+**v3.4 → v3.5 接口变更**：
+
+| v3.4 字段 | v3.5 字段 | 变更原因 |
+|---|---|---|
+| `skillPoints: number` | **删除** | SP 废弃 |
+| `skillTreeState` | `techTreeState` | 重命名 |
+| `CardSkillTreeState.activeNodes: Set<string>` | `CardTechTreeState.cardLevel: 1\|2\|3` | 线性等级简化 |
+| `CardSkillTreeState.equippedPath: string\|null` | **删除** | 路径互斥废弃 |
+
+**实例 ID 生命周期**（与 v3.4 相同）：
+- 卡牌进入卡池时分配唯一 `cardInstanceId`
+- 卡牌战场被击杀 → 实例状态**保留**（关内死亡不清零升级投入）
+- Run 结束 → `resetTechTreeState()` 清零
 
 ### 8.2 核心接口
 
 ```typescript
 class RunManager {
-  // 点亮节点（消耗 SP）
-  // 返回 false 表示失败：SP 不足 / 节点不存在 / 前置未点亮
-  activateNode(cardInstanceId: string, nodeId: string): boolean
+  // 升级卡牌（花金币）
+  // 返回 false：金币不足 / 未找到实例 / 已达 Crystal 等级上限 / 已在最高级
+  upgradeCard(cardInstanceId: string): boolean
 
-  // 切换装备路径（0 SP）
-  // 返回 false 表示失败：路径不存在 / 路径上无任何节点已点亮 / 关内已部署该单位实例
-  equipPath(cardInstanceId: string, pathId: string | null): boolean
+  // Crystal 升级（花金币）
+  // 返回 false：金币不足 / 已 Lv.3
+  upgradeCrystal(): boolean
 
-  // 查询该卡实例当前生效的 effects（合并算法详 §4.5）
+  // 查询该卡实例当前生效的 effects（Lv.1 到当前等级所有节点差量合并）
   resolveCardEffects(cardInstanceId: string): Effect[]
 
   // Run 结束清零（[10-roguelike-loop §6](../10-gameplay/10-roguelike-loop.md)）
-  resetSkillTreeState(): void
+  resetTechTreeState(): void
 }
 ```
 
 ### 8.3 边界检查
 
-`activateNode(cardInstanceId, nodeId)` 的失败条件：
+`upgradeCard(cardInstanceId)` 的失败条件：
 
 | 失败原因 | 错误码 |
 |---|---|
-| SP 不足 | `INSUFFICIENT_SP` |
-| cardInstanceId 不存在（该卡不在本 Run 卡组内）| `INSTANCE_NOT_FOUND` |
-| 节点 ID 不存在于该卡种类 skillTree 配置 | `NODE_NOT_FOUND` |
-| 前置节点未点亮（depth=2 但 depth=1 未亮，或 depth=3 但 depth=2 未亮）| `PREREQUISITE_NOT_MET` |
-| 节点已点亮 | `NODE_ALREADY_ACTIVE` |
-
-`equipPath(cardInstanceId, pathId)` 的失败条件：
-
-| 失败原因 | 错误码 |
-|---|---|
+| 金币不足 | `INSUFFICIENT_GOLD` |
 | cardInstanceId 不存在 | `INSTANCE_NOT_FOUND` |
-| 路径 ID 不存在 | `PATH_NOT_FOUND` |
-| 路径上无任何节点已点亮（深度 ≥ 2 的节点未亮）| `PATH_NOT_ACTIVATABLE` |
-| 关内已部署该卡实例对应的战场单位（不可热切换装备）| `UNIT_DEPLOYED` |
-| 已装备同路径（无需切换）| `ALREADY_EQUIPPED` |
+| 已达 Crystal 等级上限（如 Crystal Lv.1，卡已 Lv.1，无法升 Lv.2）| `CRYSTAL_LEVEL_CAP` |
+| 卡已达 Lv.3（最高级）| `ALREADY_MAX_LEVEL` |
 
 ---
 
-## 9. UI 草图（卡池界面——左右分栏一体式）
-
-> **v3.4 设计决策（2026-05-17）**：卡池界面采用**左右分栏一体式**布局（非两级页面导航）。左侧显示卡牌列表，右侧实时显示选中卡的完整技能树，点击卡片即切换右侧内容，无需跳转新页面。
+## 9. UI 草图（科技树面板）
 
 ### 9.1 入口
 
-玩家通过**关后路线图屏幕上的「卡池」按钮**进入卡池界面，与 3 选 1 路径（商店/秘境/跳过）平行，**不消耗节点机会**，可自由进入、规划、退出。
+玩家通过**关后路线图屏幕上的「科技树」按钮**进入科技树面板，与 3 选 1 路径（商店/秘境/跳过）平行，**不消耗节点机会**，可自由进入、规划、退出。
 
-> **与 40-ui-ux §9 的关系**：v3.4 第 2 轮删除的是"主菜单永久卡池（meta 解锁）"，此处的「卡池」是**关间技能强化入口**，展示本 Run 已获得的卡牌实例并提供技能点投入功能，语义不同。
-
-> **与商店的对比**：商店界面同样是左侧卡池 + 右侧内容的两栏布局，但商店右侧显示商品（不显示技能树）；卡池界面右侧显示选中卡的技能树（可在此升级），这是两种界面的核心区别。
-
-### 9.2 卡池界面布局（左右分栏一体式）
+### 9.2 科技树面板布局（左右分栏一体式）
 
 ```
 全屏 1920×1080：
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│  📚 卡池 — 关 4 通关后                                  ✦ SP: 23    │
+│  🔬 科技树 — 关 4 通关后        💎 Crystal Lv.2    💰 金币: 320 G   │
 ├──────────────────────────┬──────────────────────────────────────────┤
 │                          │                                           │
-│  本 Run 卡组             │  🏹 三重箭塔 #1 · 技能树                  │
-│  ──────────              │  ────────────────────────────             │
-│                          │                                           │
-│  🏹 塔                   │  路径 1：多重射击 (已装备 ✓)               │
-│  ┌────┐ ┌────┐ ┌────┐    │  ●━━━━●━━━━○                              │
-│  │箭塔│ │炮塔│ │电塔│    │  普通    双重    三重(10 SP)               │
-│  │✦✦  │ │    │ │✦   │    │                                           │
-│  │◇3  │ │◇5  │ │◇6  │    │  路径 2：高频火力                          │
-│  └────┘ └────┘ └────┘    │  ●━━━━○━━━━○                              │
-│  [选中，蓝色高亮]         │  普通    连弩(6 SP)  火连弩(10 SP)         │
-│                          │                                           │
-│  ⚔ 士兵                  │  ─────────────────────────────────        │
-│  ┌────┐ ┌────┐            │  [切换装备到路径 2]                        │
-│  │盾卫│ │剑士│            │                                           │
-│  │    │ │    │            │  ─── 节点详情（点击节点后展开）──────────  │
-│  │◇2  │ │◇3  │            │  三重箭塔 · depth=3 · 10 SP               │
-│  └────┘ └────┘            │  效果：再增加 1 发投射物（总计 3 发）      │
-│                          │  前置：双重箭塔（已点亮 ✓）                 │
-│  💥 法术                  │  [点亮 · 10 SP]                           │
-│  ┌────┐ ┌────┐            │                                           │
-│  │火球│ │治疗│            │  ─────────────────────────────────        │
-│  │    │ │    │            │  ✦ SP: 23  已消耗: 9 SP  点亮: 2 节点     │
-│  │◇◇  │ │◇   │            │                                           │
+│  本 Run 卡池             │  🏹 箭塔 #1                              │
+│  ──────────              │  ─────────────────────────────────        │
+│                          │  当前等级：Lv.2 ★★☆                       │
+│  🏹 塔                   │  等级上限：Lv.2（Crystal Lv.2 限制）       │
+│  ┌────┐ ┌────┐ ┌────┐    │                                           │
+│  │箭塔│ │炮塔│ │电塔│    │  Lv.1 ✓ 普通箭塔（已获得）                │
+│  │★★☆ │ │★☆☆ │ │★★☆ │    │    ↓                                      │
+│  └────┘ └────┘ └────┘    │  Lv.2 ✓ 双重箭塔（已升级）                │
+│  [选中，蓝色高亮]         │    效果：+1 发投射物（总 2 发）            │
+│                          │    ↓                                      │
+│  ⚔ 士兵                  │  Lv.3 🔒 三重箭塔（需 Crystal Lv.3）       │
+│  ┌────┐ ┌────┐            │    效果：+1 发（总 3 发）+ 灼烧           │
+│  │盾卫│ │剑士│            │    花费：180 G（🔒 Crystal 未达 Lv.3）    │
+│  │★☆☆ │ │★★☆ │            │                                           │
 │  └────┘ └────┘            │                                           │
-│                          │                                           │
-│  ...（陷阱 / 生产）       │                                           │
+│                          │  ─────────────────────────────────        │
+│  💥 法术（无等级系统）     │  [升级到 Lv.3]（灰色/禁用）              │
+│  ─────────────           │                                           │
+│  🛠 陷阱                  │                                           │
+│  ⚙ 生产                  │  💎 Crystal Lv.2 → Lv.3：[X G]（升级）   │
 │                          │                                           │
 ├──────────────────────────┴──────────────────────────────────────────┤
-│  [关闭]                                                               │
+│  💰 金币: 320 G    💎 Crystal Lv.2（卡牌最高等级：Lv.2）   [关闭]   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 **布局说明**：
 
-| 区域 | 占屏宽 | 内容 | 交互 |
-|---|---|---|---|
-| 顶栏 | 100% × 50px | 标题 + 当前 SP 余额 | 只读 |
-| 左栏（卡牌列表） | 30% × ~970px | 本 Run 卡组所有实例，按类别分组（塔/士兵/法术/陷阱/生产） | 点击切换选中卡，选中态高亮边框 |
-| 右栏（技能树） | 70% × ~970px | 选中卡的完整技能树（多路径并排 + 节点详情 + 操作按钮） | 点亮节点 / 切换装备路径 |
-| 底栏 | 100% × 50px | 关闭按钮 | [关闭] 返回关后路线图 |
+| 区域 | 占屏宽 | 内容 |
+|---|---|---|
+| 顶栏 | 100% × 50px | 标题 + Crystal 当前等级 + 金币余额 |
+| 左栏（卡池列表）| 30% × ~970px | 本 Run 卡池所有卡牌实例，按类别分组 |
+| 右栏（卡牌详情）| 70% × ~970px | 选中卡的等级进度条 + 升级按钮 |
+| 底栏 | 100% × 50px | 金币余额 + Crystal 等级 + 关闭按钮 |
 
-**卡牌列表项说明**：
-- 默认进入界面时，**自动选中第一张卡**，右侧显示其技能树
-- `#1` = 同种类多张卡的实例序号（如两张箭塔分别显示 `#1` / `#2`）
-- 卡牌缩略图显示：图标 + 等级边框颜色（绿/蓝/金，详见 [40-ui-ux §3.2](../40-presentation/40-ui-ux.md)） + 菱形等级标记 + 能量费用
-- 已点亮节点的卡牌边框显示金色光晕（快速识别已强化卡）
-
-### 9.3 右侧技能树面板
-
-右侧技能树面板根据左侧选中卡实时更新，不跳转新页面：
-
-```
-🏹 三重箭塔 #1 · 技能树
-────────────────────────────
-
-路径 1：多重射击 (已装备 ✓)
-●━━━━●━━━━○
-普通    双重    三重(10 SP)
-
-路径 2：高频火力
-●━━━━○━━━━○
-普通    连弩(6 SP)  火连弩(10 SP)
-
-─────────────────────────────────
-[切换装备到路径 2]
-
-─── 节点详情（点击节点后展开）──────
-三重箭塔 · depth=3 · 10 SP
-效果：再增加 1 发投射物（总计 3 发）
-前置：双重箭塔（已点亮 ✓）
-[点亮 · 10 SP]
-```
-
-### 9.4 视觉规范
+### 9.3 视觉规范
 
 | 元素 | 视觉处理 |
 |---|---|
-| 选中卡（左栏） | 高亮边框（主题蓝色，2px 加粗）+ 背景色加深 |
-| 未选中卡（左栏） | 等级边框颜色（绿/蓝/金）普通样式 |
-| 已有点亮节点的卡（左栏） | 边框额外金色光晕（区分于未强化卡） |
-| 已点亮节点（右栏） | 实心圆（路径色饱和） |
-| 未点亮但可点亮节点（右栏） | 空心圆（路径色淡）+ SP 单价显示 |
-| 未点亮且不可点亮节点（前置未亮 / SP 不足）| 灰色禁用圆 |
-| 已装备路径（右栏） | 路径头部加 "✓" 标记 + 连接线高亮 |
-| 互斥路径标签 | 多路径头部加 "⚡互斥" 标签（仅 path.mutex 不为空时显示）|
+| 选中卡（左栏）| 高亮边框（主题蓝色）|
+| 卡牌等级标识 | ★☆☆ / ★★☆ / ★★★（实心/空心星，当前等级实心）|
+| 已解锁等级节点 | 绿色勾 ✓ + 效果文字展示 |
+| 可升级等级（金币够 + Crystal 够）| 高亮按钮 [升级到 LvX - Y G] |
+| 受 Crystal 等级限制的节点 | 🔒 锁图标 + 灰色 + 「需 Crystal Lv.X」提示 |
+| Crystal 升级按钮（底部）| 始终显示，Crystal 已 Lv.3 则灰色 |
 
-### 9.5 交互流程
+### 9.4 交互流程
 
-1. 进入界面 → 展示本 Run 卡组所有卡牌实例（左栏），按类别分组（塔 / 士兵 / 法术 / 陷阱 / 生产）
-2. **默认选中第一张卡**，右侧显示该卡技能树
-3. 同一种类多张卡 → 各自独立显示（如两张箭塔显示「箭塔 #1」「箭塔 #2」，技能树各自独立）
-4. 点击左栏某张卡 → 右栏实时切换为该卡技能树（无页面跳转）
-5. 右栏点击某节点 → 底部展开节点详情（名称 / 效果 / SP 单价 / 前置条件）
-6. 右栏点击「点亮 · N SP」→ 扣 SP / 节点高亮 / 卡片等级可能升档（详见 [40-ui-ux §3.2](../40-presentation/40-ui-ux.md) 等级升档规则）
-7. 右栏点击「切换装备到路径 X」→ 切换装备（0 SP）
-8. 底栏点击「关闭」→ 返回关后路线图屏幕
-
-### 9.6 SP 预算可视化
-
-右栏底部显示**本 Run SP 流量进度**：
-- 当前 SP 余额 / 本卡已消耗 SP / 本卡已点亮节点数
-- 鼓励玩家"评估剩余资源 → 决定继续点节点还是留 SP 给商店"
+1. 进入界面 → 展示本 Run 卡池所有卡牌（左栏），按类别分组
+2. **默认选中第一张卡**，右侧显示该卡等级进度
+3. 点击左栏某卡 → 右栏实时切换为该卡信息（无页面跳转）
+4. 右栏显示 Lv.1/Lv.2/Lv.3 三个节点状态（已获得/可升级/锁定）
+5. 点击「升级到 Lv.X」→ 扣金币，节点高亮，卡牌等级提升
+6. Crystal 升级按钮（右栏底部/底栏）→ 花金币升 Crystal，解锁更高卡牌等级上限
+7. 底栏点击「关闭」→ 返回关后路线图
 
 ---
 
 ## 10. 验收清单
 
-### 10.1 机制层
+### 10.1 Crystal 升级
 
-- [ ] 节点 `depth` 字段 1-4，`spCost` 严格遵循 50-mda §17.3 锚点（3/6/10/15）
-- [ ] depth=1 起点 spCost = 0（单位入手默认形态）
-- [ ] `prerequisites` 校验通过：depth=N 节点要求同路径 depth=N-1 节点已点亮
-- [ ] 路径互斥：单单位同时装备路径数 ≤ 1
-- [ ] 跨路径独立点亮：路径 A 节点解锁不影响路径 B 节点解锁
-- [ ] 切换装备：0 SP 成本，关内已部署单位禁止切换
-- [ ] Run 结束清零：`RunManager.resetSkillTreeState()` 在 [10-roguelike-loop §6.2](../10-gameplay/10-roguelike-loop.md) 结算时调用
+- [ ] Crystal 初始 Lv.1，关间消耗金币升级
+- [ ] Crystal Lv.1/2/3 对应不同人口上限（50-mda §NEW-CRYSTAL）
+- [ ] Crystal 等级 = 当前 Run 内卡牌等级上限
+- [ ] Run 结束 Crystal 等级清零（回到 Lv.1）
+- [ ] 关内不可升级 Crystal
 
-### 10.2 与 instanceLevel 边界
+### 10.2 卡牌等级
 
-- [ ] 节点 effects[] 不出现 `add_instance_level` handler
-- [ ] 装备切换不影响 instanceLevel 数值层（保留）
-- [ ] instanceLevel 清零（关卡结束）不影响技能树节点状态
+- [ ] 卡牌等级 Lv.1/2/3 线性升级，不可跳级
+- [ ] 升级消耗金币（goldCost），数值见 50-mda §NEW-CRYSTAL
+- [ ] 卡牌等级受 Crystal 等级约束（Crystal Lv.2 → 卡最高 Lv.2）
+- [ ] Lv.1 节点 goldCost = 0，入手自动获得
+- [ ] 关内不可升级卡牌等级
 
-### 10.3 数据持久化
+### 10.3 节点解锁
 
-- [ ] [61-save-system v3.0.0 §1](../60-tech/61-save-system.md) `SaveData` 无 `skillTree` 字段（确认不持久化）
-- [ ] `RunManager.skillTreeState` 仅内存状态，Run 结束清零
+- [ ] 获卡（商店/奖励）→ 该卡 Lv.1 节点自动可用，无需额外操作
+- [ ] 无 prerequisites 前置依赖检查（废弃）
+- [ ] 无路径互斥机制（废弃）
 
-### 10.4 UI
+### 10.4 废弃机制不再出现
 
-**布局（左右分栏一体式）**：
-- [ ] 卡池界面独立入口（关后路线图「卡池」按钮，非 3 选 1 路径之一，不消耗节点机会）
-- [ ] 全屏左右两栏：左栏卡牌列表（30%）+ 右栏技能树（70%）
-- [ ] 进入界面时**自动选中第一张卡**，右栏显示其技能树
-- [ ] 点击左栏卡牌 → 右栏实时切换为该卡技能树（无页面跳转）
-- [ ] 选中卡显示高亮边框（主题蓝色）
-- [ ] 已有点亮节点的卡牌显示金色光晕
+- [ ] 代码中不存在 `skillPoints` / `spCost` 相关逻辑
+- [ ] 代码中不存在 `instanceLevel` / `精炼术 refining` 相关逻辑
+- [ ] 代码中不存在 `equippedPath` / `mutex` 相关逻辑
+- [ ] YAML 中不存在 `paths[]` 多路径结构（已迁移为线性 `nodes[]`）
 
-**卡牌列表**：
-- [ ] 按类别分组显示（塔 / 士兵 / 法术 / 陷阱 / 生产）
-- [ ] 同种类多张卡分别独立显示（箭塔 #1 / 箭塔 #2），各自技能树互不影响
-- [ ] 卡牌缩略图显示：图标 + 等级边框颜色（绿/蓝/金）+ 菱形等级标记 + 能量费用
+### 10.5 UI
 
-**技能树面板（右栏）**：
-- [ ] 显示选中卡的完整技能树（所有路径并排展示）
-- [ ] 节点视觉三态：已点亮（实心）/ 可点亮（空心）/ 不可点亮（灰色）
-- [ ] 已装备路径头部 "✓" 标记 + 连接线高亮
-- [ ] 点击节点 → 底部展开节点详情（名称 / 效果 / SP 单价 / 前置条件）
-- [ ] 「点亮 · N SP」按钮可用性：SP 充足 + 前置已亮 = 可点击，否则置灰
-- [ ] 「切换装备到路径 X」按钮（0 SP，路径上无任何点亮节点时置灰）
-- [ ] 右栏底部 SP 余额 / 本卡已消耗 SP / 已点亮节点数
-
-### 10.5 配置
-
-- [ ] 所有单位 YAML 含 `skillTree` 字段，无 v3.1 `techTree` 残留
-- [ ] effects[] 仅引用已注册 RuleHandler（运行时校验）
-- [ ] 路径 `mutex` 标签可选，不影响实际点亮规则
+- [ ] 科技树面板左右分栏，左栏卡池列表 + 右栏卡牌等级详情
+- [ ] 卡牌等级显示 ★☆☆ / ★★☆ / ★★★
+- [ ] Crystal 等级上限约束在 UI 可见（🔒 图标）
+- [ ] Crystal 升级按钮可用（金币足够 + 未达 Lv.3）
 
 ---
 
-## 11. v3.4 不变式核对
+## 11. v3.5 不变式核对
 
 | 不变式 | 来源 | 本文档核对 |
 |---|---|---|
-| INV-01 单 Run 闭环 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ 技能树状态本 Run 临时，Run 结束清零 |
-| INV-03 起始 SP = 0 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ 每 Run 从 0 SP 起步，无 meta 累计 |
-| INV-04 Run 不可中断 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ 技能树状态在 RunManager 内存，无持久化中断点 |
-| INV-08 跨货币锁 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ SP 不可转出，技能树节点不可转换为其他资源 |
-| 50-mda §17.3 SP 单价 | [50-mda](../50-data-numerical/50-mda.md) | ✅ depth 1-4 = 0/3/6/10/15（depth=1 起点 0，purchased 1-4 = 3/6/10/15）|
-| 23-skill-buff §7 instanceLevel 边界 | [23-skill-buff](./23-skill-buff.md) | ✅ §6 明确正交，effects[] 禁止 add_instance_level |
-| 火花碎片词汇禁用 | [v3.4-MAJOR-MIGRATION](../v3.4-MAJOR-MIGRATION.md) | ✅ 全文不含"火花碎片"/"shard"（仅作为 v3.1 历史对照）|
-| **实例级技能树独立** | 本文档 §8.1 | ✅ key = cardInstanceId，同种类两张卡技能树互不共享 |
+| INV-01 单 Run 闭环 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ 科技树状态本 Run 临时，Run 结束清零 |
+| INV-11 人口持续占用 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ Crystal 等级控制人口上限，升级才能扩容 |
+| INV-12 instanceLevel 不存在 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ instanceLevel 废弃，本文档不含此机制 |
+| INV-13 关外卡池每种唯一 | [10-roguelike-loop §11](../10-gameplay/10-roguelike-loop.md) | ✅ 获卡=唯一一张（与等级升级体系正交）|
+| Crystal Lv = 卡牌等级上限 | 本文档 §3.2 | ✅ 机制核心约束 |
+| 获卡=自动解锁 | 本文档 §6.1 | ✅ 无前置依赖图 |
+| 关内禁止升级 | 本文档 §4.4 | ✅ 升级仅关间 |
+| 火花碎片词汇禁用 | [v3.4-MAJOR-MIGRATION](../v3.4-MAJOR-MIGRATION.md) | ✅ 全文不含"火花碎片"/"shard" |
+| SP/技能点词汇禁用 | [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md) | ✅ 全文不含"技能点 SP"（仅作为废弃历史对照）|
 
 ---
 
 ## 12. 影响文档清单
 
-### 12.1 接替关系
+### 12.1 本文档接替关系
 
 | 旧文档 | 接替方式 |
 |---|---|
-| [22-tower-tech-tree](./22-tower-tech-tree.md) v3.1 | 本文档（通用骨架）+ [22a](./22a-skill-tree-tower.md)（塔详设）共同接替 |
+| [22-skill-tree-overview v1.2.0（v3.4 技能树）](./22-skill-tree-overview.md) | 本文档 v2.0.0（v3.5 科技树总览）整文重写接替 |
+| [22-tower-tech-tree v3.1（deprecated）](./22-tower-tech-tree.md) | 同上 |
 
-### 12.2 引用本文档的文档
+### 12.2 待更新的下游文档（v3.5 第 2 轮）
 
-| 文档 | 引用本文档的章节 |
+| 文档 | 待处理 |
 |---|---|
-| [48-shop-redesign-v34 §9](../40-presentation/48-shop-redesign-v34.md) | spendSkillPoints 接口与节点 ID 字符串占位（v3.4 第 3 轮已落地，待第 4 轮代码改造）|
-| [50-mda §17.3](../50-data-numerical/50-mda.md) | SP 单价锚点 |
-| [50-mda §17.5](../50-data-numerical/50-mda.md) | SP 与商店优先级权衡 |
-| [10-roguelike-loop §6.2](../10-gameplay/10-roguelike-loop.md) | Run 结算清零接口 `RunManager.resetSkillTreeState()` |
-| [61-save-system v3.0.0 §1](../60-tech/61-save-system.md) | SkillTreeState 不进存档 |
-| [40-ui-ux v3.0.0 §6](../40-presentation/40-ui-ux.md) | 关后 3 选 1 路径外独立技能树入口 |
-| [47-level-map-ui §3](../40-presentation/47-level-map-ui.md) | 关后路线图 UI 集成技能树按钮 |
-
-### 12.3 单位详设文档（22a-22e）
-
-详 §1.1 + §2.2 / [README.md `20-units/` 目录](../README.md)。
+| [22a-22e 详设文档](./22a-skill-tree-tower.md) | spCost→goldCost，路径合并为线性等级，删精炼术（22d）|
+| [23-skill-buff §7](./23-skill-buff.md) | instanceLevel 整节删除 |
+| [48-shop-redesign](../40-presentation/48-shop-redesign-v34.md) | 删 SP 槽，可能新增 Crystal 升级入口 |
+| [61-save-system](../60-tech/61-save-system.md) | skillPoints→crystalLevel，skillTreeState→techTreeState |
 
 ---
 
@@ -730,6 +591,7 @@ class RunManager {
 
 | 版本 | 日期 | 修订者 | 摘要 |
 |---|---|---|---|
-| 1.0.0 | 2026-05-15 | refactor | **v3.4 第 3 轮创建**：技能树通用骨架。13 章覆盖：设计目标 / v3.1→v3.4 迁移 / 节点结构（depth=1-4 + SP 单价 0/3/6/10/15）/ 路径互斥单装备 / SP 经济衔接 / 与 23-skill-buff §7 instanceLevel 正交边界 / YAML schema（skillTree 字段替代 v3.1 techTree）/ RunManager.skillTreeState 接口 / UI 草图 + 视觉规范 + 交互流程 / 验收清单 / v3.4 7 项不变式核对 / 影响文档清单。接替 v3.1 22-tower-tech-tree 的"通用骨架"职能。 |
-| 1.1.0 | 2026-05-16 | — | **实例级技能树 + 卡池 UI 入口**：§8 RunManager 接口改为 cardInstanceId 为 key（SkillTreeState.instances，替代 units）+ CardSkillTreeState（替代 UnitSkillTreeState），activateNode/equipPath/resolveCardEffects 签名改为接受 cardInstanceId；§8.1 补充实例 ID 生命周期说明（卡死亡保留、Run 结束清零）；§8.3 边界检查新增 INSTANCE_NOT_FOUND 错误码；§9 UI 草图全部重写为"卡池界面 → 技能树面板"两级导航（卡池显示本 Run 已获得卡牌实例列表 + 技能按钮，点击进入单卡技能树面板，面板顶部「← 返回卡池」）；§10.4 验收清单扩充卡池 UI 项；§11 不变式新增"实例级技能树独立"项。 |
-| 1.2.0 | 2026-05-17 | — | **卡池界面改为左右分栏一体式**：§9 全文重写——废弃"两级页面导航"设计（全屏卡池 → 点按钮跳技能树面板），改为"左右分栏一体式"（左 30% 卡牌列表 + 右 70% 技能树，默认选中第一张卡，点击左栏切换右侧技能树，无页面跳转）；§9.2 新增布局表格说明；§9.4 视觉规范新增左栏选中态 / 金色光晕；§9.5 交互流程重写（强调点击切换、无页面跳转）；§10.4 验收清单全面重写（分布局/卡牌列表/技能树面板三组）。 |
+| 1.0.0 | 2026-05-15 | v3.4 第 3 轮 | v3.4 技能树通用骨架创建（13 章）|
+| 1.1.0 | 2026-05-16 | — | 实例级技能树 + 卡池 UI 入口 |
+| 1.2.0 | 2026-05-17 | — | 卡池界面改为左右分栏一体式 |
+| 2.0.0 | 2026-05-18 | v3.5 第 1 轮 | **整文重写**：技能树总览→科技树总览；废弃 SP/路径互斥/instanceLevel；新增 Crystal 升级机制（§3）；卡牌等级体系（§4）线性 Lv1-3 替代多路径；YAML schema 更新（paths→nodes，spCost→goldCost，删 prerequisites/mutex）；RunManager 接口更新（skillPoints→crystalLevel，skillTreeState→techTreeState，CardSkillTreeState.cardLevel）；UI 草图重写（等级进度条 + Crystal 升级按钮）；不变式更新（删 INV-03/04/08，增 INV-11/12/13）；影响文档清单更新 |
