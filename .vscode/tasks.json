@@ -15,7 +15,7 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^  VITE",
-          "endsPattern": "^  VITE"
+          "endsPattern": "Local:"
         }
       }
     },

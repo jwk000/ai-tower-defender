@@ -8,8 +8,8 @@
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
-        "webpack:///./src/*": "${webRoot}/src/*",
-        "webpack:///src/*": "${webRoot}/src/*"
+        "/@fs/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*"
       },
       "preLaunchTask": "npm: dev"
     },
