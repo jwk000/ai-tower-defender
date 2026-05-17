@@ -1,11 +1,12 @@
 ---
 title: v3.4 商店重构与技能点资源系统
 status: authoritative
-version: 1.1.0
-last-modified: 2026-05-17
+version: 1.2.0
+last-modified: 2026-05-18
 authority-for: ["shop-ui-v34", "shop-item-card", "skill-point-resource"]
 supersedes: []
 cross-refs:
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
   - 10-gameplay/10-roguelike-loop.md
   - 40-presentation/47-level-map-ui.md
@@ -14,6 +15,15 @@ cross-refs:
 ---
 
 # v3.4 商店重构与技能点资源系统
+
+> ⚠️ **v3.5 形态级变更声明（2026-05-18）**：本文档将在 v3.5 第 3 轮正式更新（详见 [v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)）。v3.5 对本文档的核心变更：
+> - **§1.3 顶栏资源显示**：~~三资源（能量/金币/技能点）~~ → **二资源（能量/金币）**，删除技能点 ✦ 显示
+> - **§2 资源架构**：三资源梳理表删除技能点行，改为二资源
+> - **§3.3 shop_item 子类型**：~~`buy_skill_point`（技能点卡）~~ 和 ~~`buy_skill_point_pack`（技能点限量包）~~ → **整体删除**；后 4 槽功能卡调整为：水晶恢复 / 卡牌回收 / **Crystal 升级（可能）** / 其他
+> - **§5.3 / §5.4**：技能点卡和技能点限量包整节废弃
+> - **§8.1 RunManager 字段**：删除 `skillPoints` 字段；新增 `crystalLevel` 字段（来自 22-skill-tree-overview §8）
+>
+> **当前文档状态**：内容仍为 v3.4（含技能点卡/SP 相关），待 v3.5 第 3 轮正式重写。
 
 > 本文档是 v3.4 商店 UI / 商品卡 / 技能点资源 的唯一权威。所有 8 槽商店布局 / 商品卡卡型 / 技能点获取消费 / 与卡池交互 的设计以本文档为准。
 
