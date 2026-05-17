@@ -708,12 +708,27 @@ export class LevelMapRenderer {
     for (let i = 0; i < layout.nodes.length; i += 1) {
       const n = layout.nodes[i]!;
       const fill = n.status === 'completed' ? NODE_COMPLETED : n.status === 'current' ? NODE_CURRENT : NODE_LOCKED_COLOR;
-      const border = n.status === 'completed' ? 0x69f0ae : n.status === 'current' ? 0x90caf9 : PATH_FUTURE;
-      const radius = n.isBoss ? 0 : 8;
-      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, radius).fill({ color: fill, alpha: 0.95 });
-      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, radius).stroke({ width: n.status === 'current' ? 3 : 2, color: border });
+      const border = n.status === 'completed' ? 0x4caf50 : n.status === 'current' ? 0x4fc3f7 : 0x455a64;
+      const cx = n.x + n.width / 2;
+      const cy = n.y + n.height / 2;
+      const r = n.width / 2;
+
+      if (n.isBoss) {
+        this.nodesGraphics.rect(n.x, n.y, n.width, n.height).fill({ color: fill, alpha: 0.95 });
+        this.nodesGraphics.rect(n.x, n.y, n.width, n.height).stroke({ width: n.status === 'current' ? 4 : 2, color: border });
+      } else {
+        if (n.status === 'locked') {
+          // Future nodes: empty circle (○) with dim fill
+          this.nodesGraphics.circle(cx, cy, r).fill({ color: DIM_BG, alpha: 0.95 });
+          this.nodesGraphics.circle(cx, cy, r).stroke({ width: 2, color: border });
+        } else {
+          this.nodesGraphics.circle(cx, cy, r).fill({ color: fill, alpha: 0.95 });
+          this.nodesGraphics.circle(cx, cy, r).stroke({ width: n.status === 'current' ? 4 : 2, color: border });
+        }
+      }
+
       const lbl = this.nodeLabelTexts[i]!;
-      lbl.text = n.status === 'completed' ? `✓ ${n.label}` : n.label;
+      lbl.text = n.status === 'completed' ? `✓ ${n.label}` : n.status === 'current' ? `★ ${n.label}` : n.label;
       lbl.style.fill = n.status === 'locked' ? TEXT_DIM : TEXT_PRIMARY;
       lbl.position.set(n.x + n.width / 2, n.y + n.height / 2);
     }
