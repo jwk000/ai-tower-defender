@@ -1,4 +1,22 @@
+import type { SerializedSkillTreeState } from '../unit-system/SkillTreeState.js';
+
 export interface RunSnapshot {
+  readonly version: 2;
+  readonly savedAt: number;
+  readonly phase: 'LevelMap';
+  readonly currentLevelIdx: number;
+  readonly gold: number;
+  readonly skillPoints: number;
+  readonly crystalHp: number;
+  readonly crystalHpMax: number;
+  readonly skillTree: SerializedSkillTreeState;
+  readonly deck: {
+    readonly drawPile: string[];
+    readonly discardPile: string[];
+  };
+}
+
+export interface RunSnapshotV1 {
   readonly version: 1;
   readonly savedAt: number;
   readonly phase: 'LevelMap';
@@ -23,12 +41,37 @@ export interface OngoingRun {
   readonly savedAt: number;
 }
 
-const STORAGE_KEY = 'td_run_v1';
+const STORAGE_KEY = 'td_run_v2';
+const LEGACY_KEY_V1 = 'td_run_v1';
 const LEGACY_KEY = 'td_ongoing_run';
+
+function migrateV1ToV2(v1: RunSnapshotV1): RunSnapshot {
+  return {
+    version: 2,
+    savedAt: v1.savedAt,
+    phase: v1.phase,
+    currentLevelIdx: v1.currentLevelIdx,
+    gold: v1.gold,
+    skillPoints: v1.skillPoints,
+    crystalHp: v1.crystalHp,
+    crystalHpMax: v1.crystalHpMax,
+    skillTree: {
+      instances: v1.skillTreeUnlocked.map((nodeId, i) => ({
+        instanceId: `legacy_inst_${i}`,
+        state: {
+          unitCardId: 'unknown',
+          activeNodes: [nodeId],
+          equippedPath: null,
+        },
+      })),
+    },
+    deck: v1.deck,
+  };
+}
 
 export const SaveSystem = {
   hasSavedRun(): boolean {
-    return localStorage.getItem(STORAGE_KEY) !== null;
+    return localStorage.getItem(STORAGE_KEY) !== null || localStorage.getItem(LEGACY_KEY_V1) !== null;
   },
 
   /** @deprecated 用 hasSavedRun() */
@@ -38,14 +81,26 @@ export const SaveSystem = {
 
   loadRun(): RunSnapshot | null {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as RunSnapshot;
-      if (parsed.version !== 1) return null;
-      return parsed;
-    } catch {
-      return null;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as RunSnapshot;
+        if (parsed.version !== 2) return null;
+        return parsed;
+      } catch {
+        return null;
+      }
     }
+    const rawV1 = localStorage.getItem(LEGACY_KEY_V1);
+    if (rawV1) {
+      try {
+        const parsed = JSON.parse(rawV1) as RunSnapshotV1;
+        if (parsed.version !== 1) return null;
+        return migrateV1ToV2(parsed);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   },
 
   /** @deprecated 用 loadRun() */
@@ -68,7 +123,7 @@ export const SaveSystem = {
   /** @deprecated 用 saveRun() */
   saveOngoingRun(run: OngoingRun): void {
     SaveSystem.saveRun({
-      version: 1,
+      version: 2,
       savedAt: run.savedAt,
       phase: 'LevelMap',
       currentLevelIdx: run.currentLevelIdx,
@@ -76,13 +131,14 @@ export const SaveSystem = {
       skillPoints: run.skillPoints,
       crystalHp: run.crystalHp,
       crystalHpMax: run.crystalHp,
-      skillTreeUnlocked: [],
+      skillTree: { instances: [] },
       deck: { drawPile: [], discardPile: [] },
     });
   },
 
   clearRun(): void {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY_V1);
     localStorage.removeItem(LEGACY_KEY);
   },
 

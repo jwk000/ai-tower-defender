@@ -719,7 +719,7 @@ async function bootstrap(): Promise<void> {
       runController.enterBattle();
       waveSystem.start();
     } else if (action === 'view-deck') {
-      deckViewRenderer.refresh({ cardIds: deckSystem.previewDrawPile() });
+      deckViewRenderer.refresh({ cardIds: deckSystem.getCardInstances().map((i) => i.cardId) });
       deckViewContainer.visible = true;
     } else if (action === 'back-to-menu') {
       runController.returnToMainMenu();

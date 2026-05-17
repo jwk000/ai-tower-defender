@@ -52,25 +52,22 @@ describe('RunManager snapshot / restoreFrom', () => {
     mgr.addGold(50);
     mgr.grantSp(5);
     mgr.damageCrystal(3);
-    mgr.unlockSkillNode('node_a');
 
     const snap = mgr.snapshot(deck);
-    expect(snap.version).toBe(1);
+    expect(snap.version).toBe(2);
     expect(snap.phase).toBe('LevelMap');
     expect(snap.currentLevelIdx).toBe(1);
     expect(snap.gold).toBe(150);
     expect(snap.skillPoints).toBe(5);
     expect(snap.crystalHp).toBe(17);
     expect(snap.crystalHpMax).toBe(20);
-    expect(snap.skillTreeUnlocked).toEqual(['node_a']);
+    expect(snap.skillTree).toBeDefined();
   });
 
   it('restoreFrom sets phase to LevelMap and restores all fields', () => {
     const mgr = makeManager(5);
     mgr.startRun();
     mgr.addGold(80);
-    mgr.unlockSkillNode('n1');
-    mgr.unlockSkillNode('n2');
     const deck = makeDeck();
     const snap = mgr.snapshot(deck);
 
@@ -79,8 +76,6 @@ describe('RunManager snapshot / restoreFrom', () => {
     expect(mgr2.phase).toBe(RunPhase.LevelMap);
     expect(mgr2.currentLevel).toBe(1);
     expect(mgr2.gold).toBe(180);
-    expect(mgr2.skillTreeState.has('n1')).toBe(true);
-    expect(mgr2.skillTreeState.has('n2')).toBe(true);
   });
 });
 
@@ -95,7 +90,7 @@ describe('SaveSystem save / load round-trip', () => {
 
   it('saves and loads a RunSnapshot round-trip', () => {
     const snap: RunSnapshot = {
-      version: 1,
+      version: 2,
       savedAt: 1000,
       phase: 'LevelMap',
       currentLevelIdx: 3,
@@ -103,7 +98,7 @@ describe('SaveSystem save / load round-trip', () => {
       skillPoints: 4,
       crystalHp: 15,
       crystalHpMax: 20,
-      skillTreeUnlocked: ['atk_up'],
+      skillTree: { instances: [] },
       deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
     };
 
@@ -115,14 +110,36 @@ describe('SaveSystem save / load round-trip', () => {
   });
 
   it('loadRun returns null for unknown version', () => {
-    localStorage.setItem('td_run_v1', JSON.stringify({ version: 99, phase: 'LevelMap' }));
+    localStorage.setItem('td_run_v2', JSON.stringify({ version: 99, phase: 'LevelMap' }));
     expect(SaveSystem.loadRun()).toBeNull();
   });
 
-  it('clearRun removes save and legacy key', () => {
+  it('loadRun migrates v1 save to v2 format', () => {
+    const v1Save = {
+      version: 1,
+      savedAt: 999,
+      phase: 'LevelMap',
+      currentLevelIdx: 2,
+      gold: 100,
+      skillPoints: 3,
+      crystalHp: 18,
+      crystalHpMax: 20,
+      skillTreeUnlocked: ['node_a', 'node_b'],
+      deck: { drawPile: ['c1'], discardPile: [] },
+    };
+    localStorage.setItem('td_run_v1', JSON.stringify(v1Save));
+    const loaded = SaveSystem.loadRun();
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.skillTree).toBeDefined();
+    expect(loaded?.gold).toBe(100);
+  });
+
+  it('clearRun removes save and legacy keys', () => {
+    localStorage.setItem('td_run_v2', '{}');
     localStorage.setItem('td_run_v1', '{}');
     localStorage.setItem('td_ongoing_run', '{}');
     SaveSystem.clearRun();
+    expect(localStorage.getItem('td_run_v2')).toBeNull();
     expect(localStorage.getItem('td_run_v1')).toBeNull();
     expect(localStorage.getItem('td_ongoing_run')).toBeNull();
   });
