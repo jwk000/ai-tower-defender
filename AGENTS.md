@@ -1,6 +1,6 @@
 # AGENTS.md — 塔防游戏（Tower Defender）
 
-> 设计文档: `design/README.md` | 架构权威: `design/60-tech/60-architecture.md`
+> 设计文档: `design/OVERVIEW.md` | 架构权威: `design/TECH.md`
 
 ## 🚦 任务分类决策表（开工前先对号入座）
 

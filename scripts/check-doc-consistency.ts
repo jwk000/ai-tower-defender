@@ -1,7 +1,7 @@
 /**
  * check-doc-consistency.ts
  *
- * 检查代码与 design/60-tech/60-architecture.md 中「权威列表」的一致性。
+ * 检查代码与 design/TECH.md 中「权威列表」的一致性。
  *
  * 扫描范围：
  *   - ECS 组件：src/core/components.ts 中所有 `export const X = defineComponent(...)` 的 X
@@ -12,7 +12,7 @@
  *   npx tsx scripts/check-doc-consistency.ts          # 检查模式（有差异则 exit 1）
  *   npx tsx scripts/check-doc-consistency.ts --fix    # 修复模式（自动把代码列表写回文档）
  *
- * architecture.md 中的权威列表块格式（由脚本维护，禁止手工编辑）：
+ * TECH.md 中的权威列表块格式（由脚本维护，禁止手工编辑）：
  *   <!-- CODEGEN:components:START -->
  *   - ComponentName
  *   <!-- CODEGEN:components:END -->
@@ -81,7 +81,7 @@ function scanRuleHandlers(): string[] {
   return [...names].sort();
 }
 
-const ARCH_DOC = join(ROOT, 'design/60-tech/60-architecture.md');
+const ARCH_DOC = join(ROOT, 'design/TECH.md');
 
 function readBlock(content: string, key: string): string[] {
   const startTag = `<!-- CODEGEN:${key}:START -->`;
