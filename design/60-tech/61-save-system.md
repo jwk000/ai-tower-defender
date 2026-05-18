@@ -1,8 +1,8 @@
 ---
 title: 存档系统
 status: stable
-version: 3.1.0
-last-modified: 2026-05-16
+version: 3.2.0
+last-modified: 2026-05-18
 authority-for:
   - save-format-v3
   - persistence-spec-v3
@@ -11,15 +11,23 @@ supersedes:
   - save-format-v1  # v1.0.0 含 meta 永久积累存档结构；v3.4 第 2 轮整文重写
 cross-refs:
   - 60-tech/60-architecture.md
-  - 10-gameplay/10-roguelike-loop.md      # v2.0.0 单 Run 闭环
-  - 10-gameplay/11-economy.md             # v3.0.0 三资源轴 + §8 已删除机制
+  - 10-gameplay/10-roguelike-loop.md      # v3.0.0 单 Run 闭环（v3.5）
+  - 10-gameplay/11-economy.md             # v4.0.0 二资源轴 + §3 人口系统
   - 50-data-numerical/50-mda.md           # 数值真理源
-  - 40-presentation/40-ui-ux.md           # v3.0.0 主菜单删「继续 Run」/「卡池」/「永久升级」
+  - 40-presentation/40-ui-ux.md           # 主菜单 / Run 结算界面
   - 40-presentation/48-shop-redesign-v34.md
+  - v3.5-MAJOR-MIGRATION.md
   - v3.4-MAJOR-MIGRATION.md
 ---
 
 # 存档系统（v3.4 单 Run 闭环契约）
+
+> ⚠️ **v3.5 变更声明（2026-05-18）**：
+> - **`OngoingRun.skillPoints`** → **删除**（v3.5 废弃 SP 资源）；替换为 **`crystalLevel: 1|2|3`**（Crystal 科技树等级，Run 内持久）
+> - **`OngoingRun.skillTreeState`** → **重命名为 `techTreeState`**（结构不变：卡牌 ID → 卡牌等级 Lv1/2/3 的映射）
+> - **`RunSnapshot.skillPoints`** → **删除**；替换为 **`crystalLevel: 1|2|3`**
+> - **`RunSnapshot.skillTreeUnlocked`** → **重命名为 `techTreeState`**（结构从 `string[]` 节点 ID 列表改为 `Record<string, 1|2|3>` 卡牌等级映射）
+> - **存档格式版本**：`3.0.0` → **`3.1.0`**（向前兼容：加载旧版存档时 `crystalLevel` 默认为 `1`，`techTreeState` 默认为 `{}`）
 
 > ✅ **v3.4 形态级第 2 轮已完成（2026-05-15）**：本文档已从 v1.0.0 **整文重写**为 v3.0.0「v3.4 单 Run 闭环存档契约」。
 >
@@ -35,7 +43,7 @@ cross-refs:
 
 > 存档数据结构、版本兼容、损坏恢复、自动存档时机
 >
-> **v3.4 设计哲学**：存档仅持久化"主菜单设置 + 战绩统计 + 设置项"等**与 Run 进度无关**的数据。所有 Run 资源（金币 / SP / 水晶 HP / 卡组 / 技能树）随 Run 结束清零，**永不进入存档**。
+> **v3.4 设计哲学**：存档仅持久化"主菜单设置 + 战绩统计 + 设置项"等**与 Run 进度无关**的数据。所有 Run 资源（金币 / 水晶 HP / 卡组 / 科技树等级）随 Run 结束清零，**永不进入存档**。
 
 ---
 
@@ -84,17 +92,20 @@ interface OngoingRun {
   // Run 进度
   currentLevelIdx: number;      // 当前关卡序号（1-9，9 = 终战）
   
-  // 三资源状态
+  // 二资源状态（v3.5）
   gold: number;                  // 当前金币余额
-  skillPoints: number;           // 当前技能点余额（SP）
+  // ❌ skillPoints — v3.5 废弃（SP 整套删除）
   crystalHp: number;             // 水晶当前 HP
   crystalHpMax: number;          // 水晶最大 HP（通常 1000）
   
-  // 卡组状态
-  deckCardIds: string[];         // 当前 Run 卡组（有序列表）
+  // 科技树状态（v3.5）
+  crystalLevel: 1 | 2 | 3;      // Crystal 升级等级（决定人口上限 + 卡牌等级上限）
   
-  // 技能树已解锁节点
-  skillTreeState: string[];      // 已解锁节点 ID 列表
+  // 卡组状态
+  deckCardIds: string[];         // 当前 Run 卡组（有序列表，关外每种唯一）
+  
+  // 科技树卡牌等级映射（v3.5，替代旧 skillTreeState: string[]）
+  techTreeState: Record<string, 1 | 2 | 3>;  // cardId → 当前卡牌等级 Lv1/2/3
   
   // 时间戳（用于"最近中断时间"显示）
   savedAt: number;               // Unix ms
@@ -168,10 +179,11 @@ const DEFAULT_SAVE: SaveData = {
 };
 ```
 
-**v3.4 关键不变式**：
+**v3.5 关键不变式**：
 - ✅ DEFAULT_SAVE 中**不含任何 Run 资源字段**（无 sparkShards / 无 cardCollection / 无 permanentUpgrades / 无 ongoingRun）
-- ✅ 卡牌池完全由配置层 `src/config/cards/*.yaml` 决定，**存档不参与卡牌解锁判定**
-- ✅ Run 起始水晶 HP / 起始金币 / 起始 SP 全部固定值，来自 `src/data/balance.ts`（[50-mda §17.6](../50-data-numerical/50-mda.md)），**存档不参与 Run 初始化参数**
+- ✅ 卡牌池由玩家在 Run 内购买/获得决定（关外每种卡唯一），**存档不参与初始卡池配置**
+- ✅ Run 起始水晶 HP / 起始金币 / 起始 crystalLevel 全部固定值，来自 `src/data/balance.ts`（[50-mda §NEW-CRYSTAL](../50-data-numerical/50-mda.md)），**存档不参与 Run 初始化参数**
+- ✅ ~~skillPoints~~ → v3.5 废弃，Run 内无技能点资源字段
 
 详见 [10-roguelike-loop §11 不变式 v3.4-INV-01](../10-gameplay/10-roguelike-loop.md)。
 
@@ -397,7 +409,16 @@ function load(): SaveData | null {
 | `ongoingRun: OngoingRun \| null` | v3.4 Run 不可中断保存（v3.4-INV-04） |
 | `RunHistory.totalSparkShardsEarned` | v3.4 无碎片资源 |
 
-### 10.3 v3.0 保留字段（与 v2.0 一致）
+### 10.3 v3.5 删除/重命名（v3.4 → v3.5 转型）
+
+| 字段 | v3.5 处理原因 |
+|---|---|
+| `OngoingRun.skillPoints: number` | v3.5 废弃 SP 整套资源；替换为 `crystalLevel: 1\|2\|3` |
+| `OngoingRun.skillTreeState: string[]` | v3.5 节点 ID 列表 → 卡牌等级映射；重命名为 `techTreeState: Record<string, 1\|2\|3>` |
+| `RunSnapshot.skillPoints: number` | 同上，废弃 SP |
+| `RunSnapshot.skillTreeUnlocked: string[]` | 同上，重命名为 `techTreeState`，类型变为 `Record<string, 1\|2\|3>` |
+
+### 10.4 v3.0 保留字段（与 v2.0 一致）
 
 - `RunHistory.totalRuns / totalVictories / highestLevelReached / fastestVictoryTimeSeconds / currentStreak / longestWinStreak / archetypeWins`
 - `totalPlayTimeSeconds / totalKills / totalGoldEarned`（玩家行为累计，非 meta 资源）
@@ -408,15 +429,17 @@ function load(): SaveData | null {
 ## 11. 参考章节
 
 ### 系统设计
-- **Run 长征循环**：[10-roguelike-loop v2.0.0](../10-gameplay/10-roguelike-loop.md)（§5.4 单 Run 不可中断 + §6 Run 结束清零 + §11 v3.4-INV-04）
-- **经济系统**：[11-economy v3.0.0](../10-gameplay/11-economy.md)（§3.6 关后清零 + §4 SP 系统不持久化 + §8 已删除机制）
-- **UI 主菜单**：[40-ui-ux v3.0.0 §11](../40-presentation/40-ui-ux.md)（删「继续 Run」/「卡池」/「永久升级」按钮）
+- **Run 长征循环**：[10-roguelike-loop v3.0.0](../10-gameplay/10-roguelike-loop.md)（§6 Run 结束清零 + §11 INV-11/12/13）
+- **经济系统**：[11-economy v4.0.0](../10-gameplay/11-economy.md)（§3 人口系统 + §4 金币流出途径 + §8 已删除机制）
+- **科技树**：[22-skill-tree-overview v2.0.0](../20-units/22-skill-tree-overview.md)（RunManager 接口：crystalLevel / techTreeState / CardTechTreeState.cardLevel）
+- **UI 主菜单**：[40-ui-ux §11](../40-presentation/40-ui-ux.md)（继续游戏 / 新的征程 按钮行为）
 - **商店契约**：[48-shop-redesign-v34](../40-presentation/48-shop-redesign-v34.md)（shop_item 卡 / RunManager 状态机）
 
 ### 数值依赖
-- **数值真理源**：[50-mda v1.3.0](../50-data-numerical/50-mda.md)（§13.3 SP 兑换 / §17 SP 系统）
+- **数值真理源**：[50-mda v1.4.0](../50-data-numerical/50-mda.md)（§14 商店 / §NEW-CRYSTAL 科技树占位）
 
-### v3.4 形态主声明
+### 形态主声明
+- **v3.5 变更总览**：[v3.5-MAJOR-MIGRATION](../v3.5-MAJOR-MIGRATION.md)
 - **v3.4 变更总览**：[v3.4-MAJOR-MIGRATION](../v3.4-MAJOR-MIGRATION.md)（§3.2 第 5 项 61-save-system v3.0.0 迁移）
 
 ### v1.0 历史归档
@@ -435,15 +458,17 @@ function load(): SaveData | null {
 
 ```typescript
 interface RunSnapshot {
-  version: 1;
+  version: 2;                  // v3.5 升至 version=2（字段结构变更）
   savedAt: number;             // Unix ms
   phase: 'LevelMap';           // 唯一合法快照相位
   currentLevelIdx: number;     // 1-based
   gold: number;
-  skillPoints: number;
+  // ❌ skillPoints — v3.5 废弃（SP 整套删除）
   crystalHp: number;
   crystalHpMax: number;
-  skillTreeUnlocked: string[];
+  crystalLevel: 1 | 2 | 3;    // v3.5 新增：Crystal 科技树等级
+  // techTreeState 替代旧 skillTreeUnlocked: string[]
+  techTreeState: Record<string, 1 | 2 | 3>;  // cardId → 卡牌等级 Lv1/2/3
   deck: {
     drawPile: string[];        // 保留洗牌顺序
     discardPile: string[];
@@ -451,9 +476,9 @@ interface RunSnapshot {
 }
 ```
 
-- **存储位置**：`localStorage` key = `td_run_v1`
-- **版本 guard**：`version !== 1` 时 `loadRun()` 返回 `null`，丢弃旧存档
-- **旧 key**：`td_ongoing_run`（v3.0.0 极简格式）在 `clearRun()` 时一并清理
+- **存储位置**：`localStorage` key = `td_run_v2`（v3.5 升至 v2）
+- **版本 guard**：`version !== 2` 时 `loadRun()` 返回 `null`，丢弃旧存档（兼容处理：v1 快照缺少 `crystalLevel` / `techTreeState` 字段，加载时默认 `crystalLevel=1`、`techTreeState={}`）
+- **旧 key**：`td_run_v1`（v3.1.0 格式）和 `td_ongoing_run`（v3.0.0 极简格式）在 `clearRun()` 时一并清理
 
 ### 13.2 存档时机（唯一触发点）
 
@@ -492,11 +517,11 @@ interface RunSnapshot {
 
 | 文件 | 变更 |
 |------|------|
-| `src/core/SaveSystem.ts` | 新接口 `RunSnapshot`；新 API `saveRun/loadRun/hasSavedRun/clearRun`；旧 API 保留 `@deprecated` 别名 |
-| `src/unit-system/DeckSystem.ts` | 新增 `snapshot()` / `restoreFrom()` |
-| `src/unit-system/RunManager.ts` | 新增 `snapshot(deckSystem)` / `restoreFrom(snap)` |
-| `src/core/RunController.ts` | 新增 `saveProgress()` / `loadProgress()`；config 新增可选 `deckSystem` |
-| `src/main.ts` | 存档时机迁移；`continue-run` 分支用新 API |
+| `src/core/SaveSystem.ts` | 接口 `RunSnapshot` 升至 version=2；删 `skillPoints`，新增 `crystalLevel` / `techTreeState`；`td_run_v1` 旧 key 兼容清理 |
+| `src/unit-system/DeckSystem.ts` | `snapshot()` / `restoreFrom()` 保持不变 |
+| `src/unit-system/RunManager.ts` | 删 `skillPoints` 字段；新增 `crystalLevel: 1|2|3`；`skillTreeState` → `techTreeState: Record<string, 1|2|3>`；`snapshot` / `restoreFrom` 同步更新 |
+| `src/core/RunController.ts` | `saveProgress()` / `loadProgress()` 同步新字段 |
+| `src/main.ts` | `continue-run` 分支用新接口；旧 `td_run_v1` 兼容降级处理 |
 
 ---
 
@@ -507,3 +532,4 @@ interface RunSnapshot {
 | 2026-05-14 | 1.0.0 | — | v3.0 初版存档系统：SparkShards / CardCollection / PermanentUpgrades / OngoingRun / RunHistory / Achievements / PlayerSettings；存档版本 v2.0.0 |
 | 2026-05-15 | 3.0.0 | v3.4 第 2 轮重构 | **整文重写**（455→~450 行）：存档版本 v2.0.0 → v3.0.0；§1 SaveData 删除 5 个 meta 字段（sparkShards / cardCollection / permanentUpgrades / ongoingRun / totalSparkShardsEarned）；§1.2 DEFAULT_SAVE 重构（卡池从配置层读取，不再持久化）；§2 自动存档时机改写（Run 过程不存档 + 无 meta 资源发放）；§3 永久解锁与火花碎片整节删除（短废弃声明 + cross-ref MIGRATION）；§4 关间存档点整节删除（短废弃声明 + 代价收益对照）；§5 流派识别 v3.4 重定位（本会话荣誉，与 meta 解耦）；§6.3 命名清理（baseHp 字段族全部删除）；§7 损坏恢复保留不变；§8 重置简化（删分级选项）；§9 存储瓶颈预估改写（< 10KB）；§10 已删除字段累计扩充（v2.0 5 项 + v3.0 6 项）；§11 cross-ref 全刷新（10-roguelike-loop §5.4/§11、11-economy §3.6/§4/§8、40-ui-ux §11、48、50-mda §17、MIGRATION §3.2、archive v1.0 快照）；frontmatter version 1.0.0→3.0.0 + supersedes 增 save-format-v1 + authority-for 增 single-run-closure-contract + cross-refs 增 11-economy/40-ui-ux/48/MIGRATION；旧版归档 [archive/61-save-system_v1.0_2026.05.15.md](../archive/61-save-system_v1.0_2026.05.15.md) |
 | 2026-05-16 | 3.1.0 | — | **新增 §13 Run 进度快照**：产品需求新增「继续游戏」功能，重新引入 Run 进度存档。与 v3.0.0 单 Run 闭环哲学不冲突——快照只存 LevelMap 相位（关卡间安全点），Run 内 Battle/Shop/Mystic 等相位不存档；死亡/主动放弃 Run 时清档。新增 `RunSnapshot` 接口（`td_run_v1` localStorage key）；`SaveSystem` 新增 `saveRun` / `loadRun` / `hasSavedRun` / `clearRun` API；`DeckSystem` 新增 `snapshot` / `restoreFrom`；`RunManager` 新增 `snapshot` / `restoreFrom`；`RunController` 新增 `saveProgress` / `loadProgress`。存档时机：`returnToLevelMap` / `closeShop` / `closeMystic` / `closeSkillTree` 之后自动触发。加载时机：主菜单「继续游戏」按钮。 |
+| 2026-05-18 | 3.2.0 | v3.5 第 3 轮 | **v3.5 接口字段迁移**：`OngoingRun.skillPoints` 删除 → 替换为 `crystalLevel: 1\|2\|3`；`OngoingRun.skillTreeState: string[]` 重命名为 `techTreeState: Record<string, 1\|2\|3>`（卡牌等级映射）；`RunSnapshot` 同步更新（version=1→2，localStorage key `td_run_v1`→`td_run_v2`，兼容旧 key 在 `clearRun()` 清理）；`RunSnapshot.skillTreeUnlocked` 改为 `techTreeState`；§13.5 涉及文件表格同步更新；§10 新增 10.3 v3.5 删除/重命名字段节；§11 参考章节更新（11-economy v4.0.0 / 50-mda v1.4.0 / 新增 22-skill-tree-overview / 新增 v3.5-MIGRATION）；frontmatter 新增 v3.5-MAJOR-MIGRATION cross-ref，11-economy 注释更新为二资源轴。 |
