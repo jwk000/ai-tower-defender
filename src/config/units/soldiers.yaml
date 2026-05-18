@@ -1,9 +1,19 @@
 # ============================================================
-# Tower Defender — 我方移动单位（士兵）配置
+# Tower Defender — 我方移动单位（士兵）配置（v3.5）
 # ============================================================
-# 设计文档: design/03-unit-data.md
+# 设计文档:
+#   - design/20-units/21-unit-roster.md §3 士兵阵容清单
+#   - design/20-units/22b-skill-tree-soldier.md 士兵科技树详设
+#   - design/50-data-numerical/50-mda.md §5 我方移动单位数值
+#
+# 士兵只有 Lv.1 基础配置（卡牌对应 Lv.1）。
+# 升级效果通过 skillTree.nodes 的 goldCost 驱动，
+# 不创建独立 Lv2/Lv3 UnitConfig，而是运行时叠加 effects[]。
+# ============================================================
 
-# 盾卫 — 坦克/嘲讽
+# ────────────────────────────────────────────────
+# 盾卫 — 肉盾 + 嘲讽
+# ────────────────────────────────────────────────
 shield_guard:
   id: shield_guard
   name: 盾卫
@@ -12,26 +22,26 @@ shield_guard:
   layer: Ground
 
   stats:
-    hp: 300
-    atk: 8
+    hp: 350
+    atk: 10
     attackSpeed: 0.8
     range: 50
-    speed: 60
-    armor: 40
-    mr: 5
+    speed: 55
+    armor: 50
+    mr: 10
     damageType: physical
-    moveRange: 200
+    population: 2
 
   cost:
-    build: 50
+    build: 55
     pop: 2
 
   visual:
     shape: rect
     color: "#4dd0e1"
-    size: 30
+    size: 32
     outline: true
-    symbol: cross
+    symbol: shield
 
   behavior:
     targetSelection: nearest
@@ -42,11 +52,40 @@ shield_guard:
     - id: taunt
       name: 嘲讽
       cooldown: 8
-      energyCost: 20
-      range: 120
-      value: 0
-      buffId: taunt_buff
-      description: 强制周围敌人攻击自己，持续3秒
+      range: 130
+      value: 3
+      description: 强制范围130px内敌人攻击自己，持续3秒
+
+  skillTree:
+    nodes:
+      - id: shield_guard_lv1
+        name: 盾卫 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: shield_guard_lv2
+        name: 盾卫 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_range
+            skillId: taunt
+            value: 1.5
+          - rule: mul_max_hp
+            value: 1.3
+      - id: shield_guard_lv3
+        name: 盾卫 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_buff
+            skillId: taunt
+            buffId: damage_reduction_20
+            duration: same_as_skill
+          - rule: mul_max_hp
+            value: 1.23
+          - rule: add_cc_immunity
+            effects: [knockback, stun]
 
   lifecycle:
     onDeath:
@@ -58,7 +97,9 @@ shield_guard:
         duration: 0.1
 
 ---
-# 剑士 — DPS/旋风斩
+# ────────────────────────────────────────────────
+# 剑士 — 前排输出 + 旋风斩
+# ────────────────────────────────────────────────
 swordsman:
   id: swordsman
   name: 剑士
@@ -67,43 +108,71 @@ swordsman:
   layer: Ground
 
   stats:
-    hp: 150
-    atk: 15
+    hp: 180
+    atk: 18
     attackSpeed: 1.0
     range: 55
-    speed: 80
-    armor: 10
-    mr: 0
+    speed: 78
+    armor: 15
+    mr: 5
     damageType: physical
-    moveRange: 250
+    population: 2
 
   cost:
-    build: 50
+    build: 55
     pop: 2
 
   visual:
     shape: rect
     color: "#e57373"
-    size: 26
+    size: 28
     outline: true
     symbol: cross
 
   behavior:
     targetSelection: nearest
-    attackMode: aoe_splash
+    attackMode: single_target
     movementMode: player_directed
-    special:
-      splashRadius: 80
-      splashDamage: 30
 
   skills:
     - id: whirlwind
       name: 旋风斩
       cooldown: 6
-      energyCost: 15
       range: 80
-      value: 30
-      description: 对周围敌人造成30点AOE伤害
+      value: 35
+      description: 对周围80px敌人造成35点AOE物理伤害
+
+  skillTree:
+    nodes:
+      - id: swordsman_lv1
+        name: 剑士 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: swordsman_lv2
+        name: 剑士 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_range
+            skillId: whirlwind
+            value: 1.4
+          - rule: add_aoe_on_attack
+            period: 2
+            radius: 50
+            damageRatio: 0.25
+      - id: swordsman_lv3
+        name: 剑士 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_effect
+            skillId: whirlwind
+            effect: knockback
+            distance: 30
+          - rule: add_crit_chance
+            probability: 0.15
+            multiplier: 2.0
 
   lifecycle:
     onDeath:
@@ -118,7 +187,9 @@ swordsman:
         animation: whirlwind_spin
 
 ---
-# 弓手 — 远程DPS/狙击
+# ────────────────────────────────────────────────
+# 弓手 — 远程 DPS + 狙击
+# ────────────────────────────────────────────────
 archer:
   id: archer
   name: 弓手
@@ -127,26 +198,26 @@ archer:
   layer: Ground
 
   stats:
-    hp: 100
-    atk: 20
+    hp: 110
+    atk: 22
     attackSpeed: 0.7
-    range: 250
-    speed: 70
-    armor: 5
+    range: 260
+    speed: 68
+    armor: 0
     mr: 0
     damageType: physical
-    moveRange: 200
+    population: 2
 
   cost:
-    build: 55
+    build: 60
     pop: 2
 
   visual:
     shape: rect
     color: "#66bb6a"
-    size: 24
+    size: 26
     outline: true
-    symbol: cross
+    symbol: arrow
 
   behavior:
     targetSelection: nearest
@@ -157,10 +228,41 @@ archer:
     - id: snipe
       name: 狙击
       cooldown: 10
-      energyCost: 25
-      range: 400
+      range: 420
       value: 3.0
-      description: 超远程单体高伤害（基础ATK×3）
+      description: 超远程单体高伤害（ATK×3），射程420px
+
+  skillTree:
+    nodes:
+      - id: archer_lv1
+        name: 弓手 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: archer_lv2
+        name: 弓手 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_damage
+            skillId: snipe
+            value: 1.5
+          - rule: mul_attack_interval
+            value: 0.7
+          - rule: mul_atk
+            value: 0.85
+      - id: archer_lv3
+        name: 弓手 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_execute
+            skillId: snipe
+            hpThreshold: 0.3
+          - rule: add_aoe_on_attack
+            period: 5
+            radius: 80
+            damageRatio: 0.6
 
   lifecycle:
     onDeath:
@@ -175,7 +277,9 @@ archer:
         projectile: arrow_long
 
 ---
-# 祭司 — 治疗/治疗链
+# ────────────────────────────────────────────────
+# 祭司 — 治疗支援 + 治疗链
+# ────────────────────────────────────────────────
 priest:
   id: priest
   name: 祭司
@@ -184,14 +288,14 @@ priest:
   layer: Ground
 
   stats:
-    hp: 80
+    hp: 85
     atk: 0
     speed: 50
     armor: 5
-    mr: 20
-    healAmount: 8
-    healRange: 150
-    moveRange: 180
+    mr: 25
+    healAmount: 10
+    healRange: 160
+    population: 2
 
   cost:
     build: 55
@@ -213,10 +317,38 @@ priest:
     - id: heal_chain
       name: 治疗链
       cooldown: 5
-      energyCost: 10
-      range: 150
+      range: 160
       value: 5.0
-      description: 给周围单位/建筑持续回血
+      description: 对周围160px友军持续回血（治疗链）
+
+  skillTree:
+    nodes:
+      - id: priest_lv1
+        name: 牧师 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: priest_lv2
+        name: 牧师 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: add_skill_chain
+            skillId: heal_chain
+            value: 1
+          - rule: add_attack_heal
+            friendlyHealRatio: 0.3
+      - id: priest_lv3
+        name: 牧师 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_bonus_heal
+            skillId: heal_chain
+            ratio: 0.05
+          - rule: add_skill_damage_mode
+            skillId: heal_chain
+            enemyDamageRatio: 0.8
 
   lifecycle:
     onDeath:
@@ -228,7 +360,9 @@ priest:
         duration: 0.1
 
 ---
-# 工程师 — 修复建筑
+# ────────────────────────────────────────────────
+# 工程师 — 修理建造 + 紧急修复
+# ────────────────────────────────────────────────
 engineer:
   id: engineer
   name: 工程师
@@ -237,25 +371,26 @@ engineer:
   layer: Ground
 
   stats:
-    hp: 90
-    atk: 5
+    hp: 100
+    atk: 6
     attackSpeed: 0.6
     range: 40
     speed: 50
     armor: 10
     mr: 5
-    moveRange: 180
+    damageType: physical
+    population: 2
 
   cost:
-    build: 60
-    pop: 3
+    build: 55
+    pop: 2
 
   visual:
     shape: rect
     color: "#ffa726"
     size: 26
     outline: true
-    symbol: cross
+    symbol: wrench
 
   behavior:
     targetSelection: nearest
@@ -265,11 +400,45 @@ engineer:
   skills:
     - id: emergency_repair
       name: 紧急修复
-      cooldown: 12
-      energyCost: 20
+      cooldown: 10
       range: 100
       value: 0.5
-      description: 修复周围建筑50%最大HP
+      description: 修复范围100px内建筑50%最大HP
+
+  skillTree:
+    nodes:
+      - id: engineer_lv1
+        name: 工程师 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: engineer_lv2
+        name: 工程师 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_heal
+            skillId: emergency_repair
+            value: 1.5
+          - rule: add_aura
+            radius: 80
+            target: building
+            effect: regen_per_second
+            ratio: 0.01
+      - id: engineer_lv3
+        name: 工程师 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_cooldown
+            skillId: emergency_repair
+            value: 0.5
+          - rule: mul_aura_radius
+            value: 1.5
+          - rule: add_aura_effect
+            target: building
+            effect: damage_reduction
+            value: 0.1
 
   lifecycle:
     onDeath:
@@ -281,7 +450,9 @@ engineer:
         duration: 0.1
 
 ---
-# 刺客 — 高机动/暗杀
+# ────────────────────────────────────────────────
+# 刺客 — 近战爆发 + 暗杀
+# ────────────────────────────────────────────────
 assassin:
   id: assassin
   name: 刺客
@@ -290,18 +461,18 @@ assassin:
   layer: Ground
 
   stats:
-    hp: 70
-    atk: 35
-    attackSpeed: 1.5
+    hp: 65
+    atk: 28
+    attackSpeed: 1.3
     range: 40
-    speed: 110
+    speed: 105
     armor: 0
     mr: 0
     damageType: physical
-    moveRange: 300
+    population: 3
 
   cost:
-    build: 60
+    build: 70
     pop: 3
 
   visual:
@@ -309,7 +480,7 @@ assassin:
     color: "#ab47bc"
     size: 22
     outline: true
-    symbol: cross
+    symbol: blade
 
   behavior:
     targetSelection: weakest
@@ -319,11 +490,38 @@ assassin:
   skills:
     - id: assassinate
       name: 暗杀
-      cooldown: 8
-      energyCost: 30
-      range: 300
+      cooldown: 10
+      range: 280
       value: 3.0
-      description: 瞬移300px到最弱敌人旁，造成高伤害
+      description: 瞬移280px到最弱敌人旁，造成ATK×3高伤害
+
+  skillTree:
+    nodes:
+      - id: assassin_lv1
+        name: 刺客 Lv.1
+        level: 1
+        goldCost: 0
+        effects: []
+      - id: assassin_lv2
+        name: 刺客 Lv.2
+        level: 2
+        goldCost: TBD
+        effects:
+          - rule: mul_skill_cooldown
+            skillId: assassinate
+            value: 0.7
+          - rule: add_poison_on_hit
+            duration: 3.0
+            tickRatio: 0.2
+      - id: assassin_lv3
+        name: 刺客 Lv.3
+        level: 3
+        goldCost: TBD
+        effects:
+          - rule: add_skill_reset_on_kill
+            skillId: assassinate
+          - rule: add_heal_on_poison_kill
+            healRatio: 0.2
 
   lifecycle:
     onDeath:
