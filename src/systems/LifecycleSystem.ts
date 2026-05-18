@@ -6,7 +6,6 @@ import type { TowerWorld } from '../core/World.js';
 
 export function createLifecycleSystem(): System {
   const corpseQuery = defineQuery([DeadTag]);
-  const processed = new Set<number>();
 
   return {
     name: 'LifecycleSystem',
@@ -15,8 +14,9 @@ export function createLifecycleSystem(): System {
       const entities = corpseQuery(world);
       for (let i = 0; i < entities.length; i += 1) {
         const eid = entities[i]!;
-        if (processed.has(eid)) continue;
-        processed.add(eid);
+        // isDestroyed means destroyEntity was already called this frame or prior;
+        // skip to avoid double-dispatch when the deferred flush hasn't run yet.
+        if (world.isDestroyed(eid)) continue;
         world.ruleEngine.dispatch('onDeath', eid, world);
         world.ruleEngine.clearRules(eid);
         world.destroyEntity(eid);
