@@ -1,21 +1,31 @@
 # ============================================================
-# Tower Defender — 塔类配置
+# Tower Defender — 塔类配置（v3.5，7塔×Lv1/Lv2/Lv3）
 # ============================================================
-# 设计文档: design/03-unit-data.md
-# 架构: 配置驱动 — 修改此文件即可改变游戏行为
+# 设计文档:
+#   - design/20-units/21-unit-roster.md §2 塔阵容清单
+#   - design/20-units/22a-skill-tree-tower.md  七塔科技树详设
+#   - design/50-data-numerical/50-mda.md §4    塔类单位数值
+#
+# 每个升级等级是独立的 UnitConfig（id 不同），升级时实体替换为新 ID 的单位。
+# Lv.1 = 获卡默认形态，Lv.2/Lv.3 = 关外金币升级解锁（由科技树系统驱动）。
+# upgradesTo 字段供科技树系统查找下一等级单位 ID。
 # ============================================================
 
-# 箭塔 — 基础单体攻击塔
+# ────────────────────────────────────────────────
+# 箭塔 Lv.1 — 基础单体物理远程
+# ────────────────────────────────────────────────
 arrow_tower:
   id: arrow_tower
   name: 箭塔
   category: Tower
   faction: Player
   layer: Ground
+  upgradesTo: arrow_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 100
-    atk: 10
+    atk: 11
     attackSpeed: 1.0
     range: 200
     armor: 0
@@ -24,12 +34,9 @@ arrow_tower:
 
   cost:
     build: 50
-    upgrade: [40, 70, 110, 160]
-    atkGrowth: [5, 8, 12, 16]
-    rangeGrowth: [20, 20, 30, 30]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#4fc3f7"
     size: 36
     outline: false
@@ -54,46 +61,132 @@ arrow_tower:
       - type: play_sound
         sound: SFX_ARROW_SHOOT
 
-  passives:
-    l3:
-      id: precise_shot
-      name: 精准射击
-      description: 15%概率造成2倍暴击
-      params:
-        critChance: 0.15
-        critMultiplier: 2.0
+---
+# 箭塔 Lv.2 — 双重箭塔（多重射击 + 高频火力）
+arrow_tower_lv2:
+  id: arrow_tower_lv2
+  name: 双重箭塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: arrow_tower_lv3
+  cardLevel: 2
 
-  skillTree:
-    unitId: arrow_tower
-    nodes:
-      - id: arrow_tower.boost_attack_speed
-        label: Quick Draw
-        description: "Attack speed +30%"
-        costSP: 2
-        effect:
-          type: boost_attack_speed
-          multiplier: 1.3
-      - id: arrow_tower.add_extra_target
-        label: Multi-Shot
-        description: "Hit one extra target"
-        costSP: 3
-        effect:
-          type: add_extra_target
-          count: 1
+  stats:
+    hp: 110
+    atk: 8
+    attackSpeed: 1.4
+    range: 215
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 50
+
+  visual:
+    shape: rect
+    color: "#29b6f6"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      projectileCount: 2
+
+  lifecycle:
+    onDeath:
+      - type: leave_ruins
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: arrow
+        count: 2
+      - type: play_sound
+        sound: SFX_ARROW_SHOOT
 
 ---
-# 炮塔 — AOE溅射攻击塔
+# 箭塔 Lv.3 — 三重箭塔（三发齐射 + 灼烧）
+arrow_tower_lv3:
+  id: arrow_tower_lv3
+  name: 三重箭塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 120
+    atk: 8
+    attackSpeed: 1.4
+    range: 235
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 50
+
+  visual:
+    shape: rect
+    color: "#0288d1"
+    size: 40
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      projectileCount: 3
+      burnOnHit:
+        duration: 2.0
+        tickRatio: 0.2
+
+  lifecycle:
+    onDeath:
+      - type: leave_ruins
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn
+        duration: 2.0
+        tickRatio: 0.2
+    onAttack:
+      - type: spawn_projectile
+        projectile: arrow
+        count: 3
+      - type: play_sound
+        sound: SFX_ARROW_SHOOT
+
+---
+# ────────────────────────────────────────────────
+# 炮塔 Lv.1 — 基础 AOE 溅射，命中眩晕
+# ────────────────────────────────────────────────
 cannon_tower:
   id: cannon_tower
   name: 炮塔
   category: Tower
   faction: Player
   layer: Ground
+  upgradesTo: cannon_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 120
-    atk: 25
-    attackSpeed: 0.35
+    atk: 24
+    attackSpeed: 0.55
     range: 180
     armor: 0
     mr: 0
@@ -101,12 +194,9 @@ cannon_tower:
 
   cost:
     build: 80
-    upgrade: [50, 90, 140, 200]
-    atkGrowth: [8, 12, 16, 22]
-    rangeGrowth: [20, 20, 30, 30]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#ff8a65"
     size: 38
     outline: false
@@ -118,8 +208,10 @@ cannon_tower:
     special:
       splashRadius: 80
       splashPercent: 0.6
-      stunDuration: 0.8
-      bossImmuneStun: true
+      stunOnHit:
+        probability: 1.0
+        duration: 1.5
+        bossImmune: true
 
   lifecycle:
     onDeath:
@@ -135,28 +227,137 @@ cannon_tower:
       - type: play_sound
         sound: SFX_CANNON_SHOOT
 
-  passives:
-    l3:
-      id: cluster_munition
-      name: 集束弹药
-      description: AOE半径+30%，溅射伤害提升至80%
-      params:
-        splashRadiusBonus: 1.3
-        splashPercent: 0.8
-
 ---
-# 冰塔 — 减速/冰冻控制塔
-ice_tower:
-  id: ice_tower
-  name: 冰塔
+# 炮塔 Lv.2 — 重炮塔（控场AOE：概率眩晕 + 狙击模式：远程单发高伤）
+cannon_tower_lv2:
+  id: cannon_tower_lv2
+  name: 重炮塔
   category: Tower
   faction: Player
   layer: Ground
+  upgradesTo: cannon_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 140
+    atk: 60
+    attackSpeed: 0.275
+    range: 270
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 80
+
+  visual:
+    shape: rect
+    color: "#f4511e"
+    size: 42
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      splashRadius: 80
+      splashPercent: 0.6
+      stunOnHit:
+        probability: 0.3
+        duration: 0.5
+        bossImmune: true
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_orange
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: cannonball_heavy
+      - type: play_sound
+        sound: SFX_CANNON_SHOOT
+
+---
+# 炮塔 Lv.3 — 超级炮塔（击退 + 贯穿 ≤2 目标）
+cannon_tower_lv3:
+  id: cannon_tower_lv3
+  name: 超级炮塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 160
+    atk: 75
+    attackSpeed: 0.275
+    range: 295
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 80
+
+  visual:
+    shape: rect
+    color: "#bf360c"
+    size: 46
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      splashRadius: 80
+      splashPercent: 0.75
+      knockbackOnHit:
+        distance: 60
+      pierceTargets: 2
+      stunOnHit:
+        probability: 0.3
+        duration: 0.5
+        bossImmune: true
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_orange
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_knockback
+        distance: 60
+    onAttack:
+      - type: spawn_projectile
+        projectile: cannonball_super
+      - type: play_sound
+        sound: SFX_CANNON_SHOOT
+
+---
+# ────────────────────────────────────────────────
+# 元素塔 Lv.1 — 冰系，命中减速（原 ice_tower）
+# ────────────────────────────────────────────────
+elemental_tower:
+  id: elemental_tower
+  name: 元素塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: elemental_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 100
-    atk: 5
-    attackSpeed: 1.2
+    atk: 8
+    attackSpeed: 1.1
     range: 200
     armor: 0
     mr: 0
@@ -164,12 +365,9 @@ ice_tower:
 
   cost:
     build: 65
-    upgrade: [40, 70, 110, 160]
-    atkGrowth: [3, 5, 7, 10]
-    rangeGrowth: [20, 20, 30, 30]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#81d4fa"
     size: 34
     outline: false
@@ -179,10 +377,13 @@ ice_tower:
     attackMode: single_target
     movementMode: hold_position
     special:
-      slowPercent: 20
-      slowMaxStacks: 5
-      slowDuration: 3.0
-      freezeDuration: 1.0
+      elementType: ice
+      slowOnHit:
+        slowPercent: 25
+        maxStacks: 4
+        duration: 3.0
+        freezeAtMaxStacks: true
+        freezeDuration: 1.0
 
   lifecycle:
     onDeath:
@@ -192,33 +393,172 @@ ice_tower:
       - type: flash_color
         color: "#ffffff"
         duration: 0.1
+      - type: apply_slow
+        slowPercent: 25
+        maxStacks: 4
+        duration: 3.0
+        freezeAtMaxStacks: true
+        freezeDuration: 1.0
     onAttack:
       - type: spawn_projectile
         projectile: ice_crystal
       - type: play_sound
         sound: SFX_ICE_SHOOT
 
-  passives:
-    l3:
-      id: shatter
-      name: 碎裂
-      description: 冰冻结束时触发30伤害AOE
-      params:
-        shatterDamage: 30
-        shatterRadius: 80
+---
+# 元素塔 Lv.2 — 冰火切换（冰冻强化 + 火焰路线并入）
+elemental_tower_lv2:
+  id: elemental_tower_lv2
+  name: 元素塔 Ⅱ
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: elemental_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 110
+    atk: 11
+    attackSpeed: 1.1
+    range: 215
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 65
+
+  visual:
+    shape: rect
+    color: "#4dd0e1"
+    size: 36
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: fire
+      burnOnHit:
+        duration: 3.0
+        tickRatio: 0.25
+      freezeOnHit:
+        probability: 0.25
+        duration: 1.0
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: ice_shatter
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn
+        duration: 3.0
+        tickRatio: 0.25
+      - type: apply_freeze
+        probability: 0.25
+        duration: 1.0
+    onAttack:
+      - type: spawn_projectile
+        projectile: fire_orb
+      - type: play_sound
+        sound: SFX_FIRE_SHOOT
 
 ---
-# 电塔 — 连锁闪电攻击塔
+# 元素塔 Lv.3 — 毒系（中毒传染 + 击杀回能 + 霜冻 debuff）
+elemental_tower_lv3:
+  id: elemental_tower_lv3
+  name: 元素塔 Ⅲ
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 120
+    atk: 15
+    attackSpeed: 1.1
+    range: 235
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 65
+
+  visual:
+    shape: rect
+    color: "#aed581"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: poison
+      poisonOnHit:
+        duration: 4.0
+        tickRatio: 0.2
+      poisonContagion:
+        maxJumps: 3
+        radius: 80
+        damageDecay: 0.5
+      atkDebuffOnHit:
+        value: -0.3
+        duration: 3.0
+      energyOnKill:
+        probability: 0.2
+        amount: 1
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: poison_dissolve
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_poison
+        duration: 4.0
+        tickRatio: 0.2
+      - type: apply_poison_contagion
+        maxJumps: 3
+        radius: 80
+        damageDecay: 0.5
+      - type: apply_atk_debuff
+        value: -0.3
+        duration: 3.0
+    onKill:
+      - type: restore_energy
+        probability: 0.2
+        amount: 1
+    onAttack:
+      - type: spawn_projectile
+        projectile: poison_orb
+      - type: play_sound
+        sound: SFX_POISON_SHOOT
+
+---
+# ────────────────────────────────────────────────
+# 电塔 Lv.1 — 链式弹跳 1 次
+# ────────────────────────────────────────────────
 lightning_tower:
   id: lightning_tower
   name: 电塔
   category: Tower
   faction: Player
   layer: Ground
+  upgradesTo: lightning_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 100
-    atk: 15
+    atk: 13
     attackSpeed: 0.9
     range: 170
     armor: 0
@@ -227,13 +567,9 @@ lightning_tower:
 
   cost:
     build: 70
-    upgrade: [45, 75, 120, 170]
-    atkGrowth: [6, 9, 13, 18]
-    chainGrowth: [1, 1, 1, 1]
-    rangeGrowth: [15, 15, 20, 20]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#fff176"
     size: 34
     outline: false
@@ -243,9 +579,9 @@ lightning_tower:
     attackMode: chain
     movementMode: hold_position
     special:
-      chainCount: 3
+      chainCount: 1
       chainRange: 120
-      chainDecay: 0.2
+      chainDecay: 0.22
 
   lifecycle:
     onDeath:
@@ -257,44 +593,150 @@ lightning_tower:
         duration: 0.1
     onAttack:
       - type: spawn_lightning_bolt
+        chainCount: 1
+        chainRange: 120
+        chainDecay: 0.22
       - type: play_sound
         sound: SFX_LIGHTNING
 
-  passives:
-    l3:
-      id: overcharge
-      name: 过载
-      description: 弹跳+2，衰减降至15%
-      params:
-        chainBonus: 2
-        chainDecay: 0.15
+---
+# 电塔 Lv.2 — 热电塔（链跳 +1 → 共 2 次）
+lightning_tower_lv2:
+  id: lightning_tower_lv2
+  name: 热电塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: lightning_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 110
+    atk: 19
+    attackSpeed: 0.9
+    range: 185
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+
+  visual:
+    shape: rect
+    color: "#ffee58"
+    size: 36
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: chain
+    movementMode: hold_position
+    special:
+      chainCount: 2
+      chainRange: 120
+      chainDecay: 0.22
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: electric_spark
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_lightning_bolt
+        chainCount: 2
+        chainRange: 120
+        chainDecay: 0.22
+      - type: play_sound
+        sound: SFX_LIGHTNING
 
 ---
-# 激光塔 — 贯穿光束攻击塔
+# 电塔 Lv.3 — 闪电塔（链跳 +1 → 共 3 次 + 概率全屏闪电）
+lightning_tower_lv3:
+  id: lightning_tower_lv3
+  name: 闪电塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 120
+    atk: 27
+    attackSpeed: 0.9
+    range: 205
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+
+  visual:
+    shape: rect
+    color: "#ffd600"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: chain
+    movementMode: hold_position
+    special:
+      chainCount: 3
+      chainRange: 120
+      chainDecay: 0.17
+      globalStrike:
+        probability: 0.15
+        cooldown: 10.0
+        damageMul: 1.5
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: electric_spark
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_lightning_bolt
+        chainCount: 3
+        chainRange: 120
+        chainDecay: 0.17
+      - type: play_sound
+        sound: SFX_LIGHTNING
+
+---
+# ────────────────────────────────────────────────
+# 激光塔 Lv.1 — 贯穿单束激光
+# ────────────────────────────────────────────────
 laser_tower:
   id: laser_tower
   name: 激光塔
   category: Tower
   faction: Player
   layer: Ground
+  upgradesTo: laser_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 80
-    atk: 22
-    attackSpeed: 0.4
-    range: 250
+    atk: 20
+    attackSpeed: 0.5
+    range: 260
     armor: 0
     mr: 0
     damageType: magic
 
   cost:
     build: 90
-    upgrade: [55, 85, 130, 190]
-    atkGrowth: [6, 9, 13, 18]
-    rangeGrowth: [15, 15, 20, 20]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#00e5ff"
     size: 36
     outline: false
@@ -304,7 +746,7 @@ laser_tower:
     attackMode: piercing
     movementMode: hold_position
     special:
-      pierceDecay: 0.15
+      pierceDecay: 0.125
 
   lifecycle:
     onDeath:
@@ -316,22 +758,135 @@ laser_tower:
         duration: 0.1
     onAttack:
       - type: spawn_laser_beam
+        beamCount: 1
+        pierceDecay: 0.125
       - type: play_sound
         sound: SFX_LASER
 
 ---
-# 蝙蝠塔 — 特殊条件激活塔
+# 激光塔 Lv.2 — 稳压激光塔（双束 + 持续锁定）
+laser_tower_lv2:
+  id: laser_tower_lv2
+  name: 稳压激光塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: laser_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 90
+    atk: 26
+    attackSpeed: 0.5
+    range: 275
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 90
+
+  visual:
+    shape: rect
+    color: "#00bcd4"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: persistent_lock
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      beamCount: 2
+      pierceDecay: 0.125
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: crystal_shatter
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_laser_beam
+        beamCount: 2
+        pierceDecay: 0.125
+      - type: play_sound
+        sound: SFX_LASER
+
+---
+# 激光塔 Lv.3 — 充能激光塔（三束 + 蓄能伤害递增 + 攻速提升）
+laser_tower_lv3:
+  id: laser_tower_lv3
+  name: 充能激光塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 100
+    atk: 34
+    attackSpeed: 0.714
+    range: 295
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 90
+
+  visual:
+    shape: rect
+    color: "#006064"
+    size: 42
+    outline: false
+
+  behavior:
+    targetSelection: persistent_lock
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      beamCount: 3
+      pierceDecay: 0.125
+      chargeDamage:
+        rampPerSecond: 0.5
+        maxMul: 5.0
+        resetOnTargetChange: true
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: crystal_shatter
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_laser_beam
+        beamCount: 3
+        pierceDecay: 0.125
+      - type: play_sound
+        sound: SFX_LASER
+
+---
+# ────────────────────────────────────────────────
+# 蝙蝠塔 Lv.1 — 3只蝙蝠，天气影响 ATK
+# ────────────────────────────────────────────────
 bat_tower:
   id: bat_tower
   name: 蝙蝠塔
   category: Tower
   faction: Player
-  layer: LowAir
+  layer: Ground
+  upgradesTo: bat_tower_lv2
+  cardLevel: 1
 
   stats:
     hp: 90
-    atk: 25
-    attackSpeed: 0.75
+    atk: 12
+    attackSpeed: 0.8
     range: 200
     armor: 0
     mr: 0
@@ -339,12 +894,9 @@ bat_tower:
 
   cost:
     build: 85
-    upgrade: [50, 80, 120, 175]
-    atkGrowth: [7, 10, 15, 21]
-    rangeGrowth: [15, 15, 20, 20]
 
   visual:
-    shape: circle
+    shape: rect
     color: "#7c4dff"
     size: 34
     outline: false
@@ -355,17 +907,16 @@ bat_tower:
     movementMode: hold_position
     special:
       batCount: 3
-      batReplenishCD: 5.0
       batHP: 40
-      batDamage: 12
-      batAttackRange: 80
-      batAttackSpeed: 1.0
-      batSpeed: 150
       batSize: 10
-      drainPercent: 0.3
-      weatherGated: true
-      activeWeather: [Night, Fog]
-      fogImmuneRange: true
+      batSpeed: 150
+      batAttackRange: 80
+      batReplenishCD: 5.0
+      weatherDependentAtk:
+        dayMultiplier: 0.5
+        nightMultiplier: 2.0
+        fogMultiplier: 2.0
+      lifestealRatio: 0.25
 
   lifecycle:
     onDeath:
@@ -377,5 +928,322 @@ bat_tower:
         duration: 0.1
     onAttack:
       - type: spawn_bat_swarm
+        batCount: 3
       - type: play_sound
         sound: SFX_BAT_ATTACK
+
+---
+# 蝙蝠塔 Lv.2 — 4只蝙蝠，ATK ×1.2
+bat_tower_lv2:
+  id: bat_tower_lv2
+  name: 蝙蝠塔 Ⅱ
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: bat_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 100
+    atk: 14
+    attackSpeed: 0.8
+    range: 215
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 85
+
+  visual:
+    shape: rect
+    color: "#651fff"
+    size: 36
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      batCount: 4
+      batHP: 40
+      batSize: 10
+      batSpeed: 150
+      batAttackRange: 80
+      batReplenishCD: 5.0
+      weatherDependentAtk:
+        dayMultiplier: 0.5
+        nightMultiplier: 2.0
+        fogMultiplier: 2.0
+      lifestealRatio: 0.25
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: bat_dissolve
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_bat_swarm
+        batCount: 4
+      - type: play_sound
+        sound: SFX_BAT_ATTACK
+
+---
+# 蝙蝠塔 Lv.3 — 5只蝙蝠，ATK ×1.2（累计 ×1.44）
+bat_tower_lv3:
+  id: bat_tower_lv3
+  name: 蝙蝠塔 Ⅲ
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 110
+    atk: 17
+    attackSpeed: 0.8
+    range: 235
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 85
+
+  visual:
+    shape: rect
+    color: "#4a0080"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      batCount: 5
+      batHP: 40
+      batSize: 10
+      batSpeed: 150
+      batAttackRange: 80
+      batReplenishCD: 5.0
+      weatherDependentAtk:
+        dayMultiplier: 0.5
+        nightMultiplier: 2.0
+        fogMultiplier: 2.0
+      lifestealRatio: 0.25
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: bat_dissolve
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_bat_swarm
+        batCount: 5
+      - type: play_sound
+        sound: SFX_BAT_ATTACK
+
+---
+# ────────────────────────────────────────────────
+# 导弹塔 Lv.1 — 战略大射程打击，默认手动指挥
+# ────────────────────────────────────────────────
+missile_tower:
+  id: missile_tower
+  name: 导弹塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: missile_tower_lv2
+  cardLevel: 1
+
+  stats:
+    hp: 150
+    atk: 90
+    attackSpeed: 0.14
+    range: 600
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 220
+
+  visual:
+    shape: rect
+    color: "#ef5350"
+    size: 44
+    outline: false
+
+  behavior:
+    targetSelection: manual
+    attackMode: global_aoe
+    movementMode: hold_position
+    special:
+      explosionRadius: 130
+      flightSpeed: 180
+      missileCount: 1
+      canHitAir: false
+      fallbackMode: tile_score
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_large
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_missile
+        count: 1
+        explosionRadius: 130
+        flightSpeed: 180
+      - type: play_sound
+        sound: SFX_MISSILE_LAUNCH
+    onKill:
+      - type: screen_shake
+        intensity: 0.5
+        duration: 0.3
+
+---
+# 导弹塔 Lv.2 — 双联导弹（同坐标 2 枚，单发伤害 ×0.6，爆炸附灼烧）
+missile_tower_lv2:
+  id: missile_tower_lv2
+  name: 双联导弹塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: missile_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 160
+    atk: 54
+    attackSpeed: 0.15
+    range: 600
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 220
+
+  visual:
+    shape: rect
+    color: "#e53935"
+    size: 48
+    outline: false
+
+  behavior:
+    targetSelection: manual
+    attackMode: global_aoe
+    movementMode: hold_position
+    special:
+      explosionRadius: 140
+      flightSpeed: 180
+      missileCount: 2
+      canHitAir: false
+      fallbackMode: tile_score
+      burnOnExplosion:
+        duration: 3.0
+        tickRatio: 0.25
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_large
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn_aoe
+        radius: 140
+        duration: 3.0
+        tickRatio: 0.25
+    onAttack:
+      - type: spawn_missile
+        count: 2
+        explosionRadius: 140
+        flightSpeed: 180
+        staggerDelay: 0.1
+      - type: play_sound
+        sound: SFX_MISSILE_LAUNCH
+    onKill:
+      - type: screen_shake
+        intensity: 0.6
+        duration: 0.35
+
+---
+# 导弹塔 Lv.3 — 集束导弹（3 枚，爆炸半径 ×1.6，伤害 ×1.4）
+missile_tower_lv3:
+  id: missile_tower_lv3
+  name: 集束导弹塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 170
+    atk: 76
+    attackSpeed: 0.2
+    range: 600
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 220
+
+  visual:
+    shape: rect
+    color: "#b71c1c"
+    size: 52
+    outline: false
+
+  behavior:
+    targetSelection: manual
+    attackMode: global_aoe
+    movementMode: hold_position
+    special:
+      explosionRadius: 190
+      flightSpeed: 180
+      missileCount: 3
+      canHitAir: false
+      fallbackMode: tile_score
+      burnOnExplosion:
+        duration: 3.0
+        tickRatio: 0.25
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_large
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn_aoe
+        radius: 190
+        duration: 3.0
+        tickRatio: 0.25
+    onAttack:
+      - type: spawn_missile
+        count: 3
+        explosionRadius: 190
+        flightSpeed: 180
+        staggerDelay: 0.12
+      - type: play_sound
+        sound: SFX_MISSILE_LAUNCH
+    onKill:
+      - type: screen_shake
+        intensity: 0.8
+        duration: 0.4
