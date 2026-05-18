@@ -19,12 +19,12 @@ gold_mine_card:
   placement:
     targetType: tile
 
-energy_tower_card:
-  name: 能量塔
+energy_crystal_card:
+  name: 能量水晶
   description: 每秒回复能量，长期收益建筑
   type: production
   rarity: rare
   energyCost: 4
-  unitConfigId: energy_tower
+  unitConfigId: energy_crystal
   placement:
     targetType: tile

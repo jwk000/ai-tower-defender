@@ -1,28 +1,27 @@
 # ============================================================
 # Tower Defender — 生产建筑配置
 # ============================================================
-# 设计文档: design/03-unit-data.md
+# 设计文档: design/20-units/21-unit-roster.md
+# 数值权威: design/50-data-numerical/50-mda.md §7.2 §7.3
 
-# 金矿 — 持续产出金币
+# 金矿 Lv1 — 2.5G/s，造价 85G
 gold_mine:
   id: gold_mine
   name: 金矿
   category: Building
   faction: Player
   layer: Ground
+  upgradesTo: gold_mine_lv2
 
   stats:
     hp: 80
 
   cost:
-    build: 100
-    upgrade: [60, 120]
+    build: 85
 
   production:
     resourceType: gold
-    baseRate: 2
-    ratePerLevel: 2
-    maxLevel: 3
+    rate: 2.5
 
   visual:
     shape: rect
@@ -44,26 +43,99 @@ gold_mine:
         sound: SFX_UPGRADE
 
 ---
-# 能量塔 — 持续产出能量
-energy_tower:
-  id: energy_tower
-  name: 能量塔
+
+# 金矿 Lv2 — 5G/s，升级费 55G
+gold_mine_lv2:
+  id: gold_mine_lv2
+  name: 金矿 Lv2
+  category: Building
+  faction: Player
+  layer: Ground
+  upgradesTo: gold_mine_lv3
+
+  stats:
+    hp: 100
+
+  cost:
+    upgrade: 55
+
+  production:
+    resourceType: gold
+    rate: 5
+
+  visual:
+    shape: rect
+    color: "#ffca28"
+    size: 30
+    outline: true
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: destruction_particles
+    onUpgrade:
+      - type: play_effect
+        effect: upgrade_gold
+      - type: play_sound
+        sound: SFX_UPGRADE
+
+---
+
+# 金矿 Lv3（最高级）— 8G/s，升级费 100G
+gold_mine_lv3:
+  id: gold_mine_lv3
+  name: 金矿 Lv3
   category: Building
   faction: Player
   layer: Ground
 
   stats:
+    hp: 130
+
+  cost:
+    upgrade: 100
+
+  production:
+    resourceType: gold
+    rate: 8
+
+  visual:
+    shape: rect
+    color: "#ffb300"
+    size: 32
+    outline: true
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: destruction_particles
+
+---
+
+# 能量水晶 Lv1 — 1.5E/s，造价 65G（v3.0 重命名自 energy_tower）
+energy_crystal:
+  id: energy_crystal
+  name: 能量水晶
+  category: Building
+  faction: Player
+  layer: Ground
+  upgradesTo: energy_crystal_lv2
+
+  stats:
     hp: 60
 
   cost:
-    build: 75
-    upgrade: [50, 100]
+    build: 65
 
   production:
     resourceType: energy
-    baseRate: 1
-    ratePerLevel: 1
-    maxLevel: 3
+    rate: 1.5
 
   visual:
     shape: rect
@@ -83,3 +155,77 @@ energy_tower:
         effect: upgrade_energy
       - type: play_sound
         sound: SFX_UPGRADE
+
+---
+
+# 能量水晶 Lv2 — 2.5E/s，升级费 50G
+energy_crystal_lv2:
+  id: energy_crystal_lv2
+  name: 能量水晶 Lv2
+  category: Building
+  faction: Player
+  layer: Ground
+  upgradesTo: energy_crystal_lv3
+
+  stats:
+    hp: 80
+
+  cost:
+    upgrade: 50
+
+  production:
+    resourceType: energy
+    rate: 2.5
+
+  visual:
+    shape: rect
+    color: "#673ab7"
+    size: 30
+    outline: true
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: destruction_particles
+    onUpgrade:
+      - type: play_effect
+        effect: upgrade_energy
+      - type: play_sound
+        sound: SFX_UPGRADE
+
+---
+
+# 能量水晶 Lv3（最高级）— 4E/s，升级费 90G
+energy_crystal_lv3:
+  id: energy_crystal_lv3
+  name: 能量水晶 Lv3
+  category: Building
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 100
+
+  cost:
+    upgrade: 90
+
+  production:
+    resourceType: energy
+    rate: 4
+
+  visual:
+    shape: rect
+    color: "#512da8"
+    size: 32
+    outline: true
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: destruction_particles
