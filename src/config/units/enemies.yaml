@@ -2907,3 +2907,910 @@ e_blood_trickster:
       - type: play_sound
         sound: SFX_ENEMY_SPAWN
 
+# ============================================================
+# 核心阵容扩展 — 14 种缺失敌人（21-unit-roster §4.1 #2-20）
+# ============================================================
+
+---
+
+# L1 远程普通 — 哥布林弓手（100px 远程，L1 引入）
+goblin_archer:
+  id: goblin_archer
+  name: 哥布林弓手
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L1
+
+  stats:
+    hp: 45
+    atk: 8
+    attackSpeed: 0.8
+    range: 100
+    speed: 70
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 10
+
+  visual:
+    shape: circle
+    color: "#aed581"
+    size: 22
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L2 高速普通 — 狼（群体出现，高速）
+wolf:
+  id: wolf
+  name: 狼
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 50
+    atk: 6
+    attackSpeed: 1.2
+    range: 32
+    speed: 120
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 9
+
+  visual:
+    shape: circle
+    color: "#78909c"
+    size: 22
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L2 精英 — 狼骑士（高速冲刺 + can_attack_buildings）
+wolf_rider:
+  id: wolf_rider
+  name: 狼骑士
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 120
+    atk: 14
+    attackSpeed: 1.0
+    range: 32
+    speed: 110
+    armor: 10
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 20
+
+  visual:
+    shape: circle
+    color: "#546e7a"
+    size: 28
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: cavalry_charge
+      name: 骑兵冲刺
+      cooldown: 8
+      range: 160
+      value: 22
+      description: "向目标方向冲刺 160px，冲刺途中对所有命中单位造成 22 物理伤害"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L3 普通 — 毒蛇（攻击带毒 DOT 5s）
+poison_snake:
+  id: poison_snake
+  name: 毒蛇
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L3
+
+  stats:
+    hp: 80
+    atk: 10
+    attackSpeed: 0.9
+    range: 40
+    speed: 75
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 14
+
+  visual:
+    shape: circle
+    color: "#66bb6a"
+    size: 24
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onAttack:
+      - type: apply_buff
+        target: hit_target
+        buffId: poison_dot
+        duration: 5
+        dps: 8
+        damageType: magic
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L3 精英 — 治疗祭司（治疗周围敌人 100HP/s，最高优先级击杀目标）
+healer_priest:
+  id: healer_priest
+  name: 治疗祭司
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L3
+
+  stats:
+    hp: 100
+    atk: 6
+    attackSpeed: 0.6
+    range: 40
+    speed: 50
+    armor: 5
+    mr: 20
+    damageType: magic
+
+  reward:
+    gold: 28
+
+  visual:
+    shape: circle
+    color: "#f48fb1"
+    size: 26
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  enemyTargetPriority:
+    - healer_priest
+
+  skills:
+    - id: heal_aura
+      name: 治疗光环
+      cooldown: 0
+      range: 100
+      value: 100
+      description: "持续光环：每秒治疗周围 100px 内所有友方敌人 100 HP（最高优先击杀目标）"
+
+  lifecycle:
+    onCondition:
+      condition: "interval_1s"
+      effects:
+        - type: heal_nearby_enemies
+          radius: 100
+          amount: 100
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L4 LowAir — 蝙蝠群（飞行 + 群体，仅反空塔可击）
+bat_swarm:
+  id: bat_swarm
+  name: 蝙蝠群
+  category: Enemy
+  faction: Enemy
+  layer: LowAir
+  tier: L4
+
+  stats:
+    hp: 55
+    atk: 7
+    attackSpeed: 1.1
+    range: 32
+    speed: 100
+    armor: 0
+    mr: 5
+    damageType: physical
+
+  reward:
+    gold: 12
+
+  visual:
+    shape: circle
+    color: "#37474f"
+    size: 20
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      flying: true
+      immuneToGroundTraps: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L4 LowAir — 幽灵之火（飞行 + 出生 3s 隐形）
+wisp:
+  id: wisp
+  name: 幽灵之火
+  category: Enemy
+  faction: Enemy
+  layer: LowAir
+  tier: L4
+
+  stats:
+    hp: 60
+    atk: 9
+    attackSpeed: 0.9
+    range: 32
+    speed: 90
+    armor: 0
+    mr: 10
+    damageType: magic
+
+  reward:
+    gold: 14
+
+  visual:
+    shape: circle
+    color: "#e1f5fe"
+    size: 18
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      flying: true
+      immuneToGroundTraps: true
+      spawnInvisibleDuration: 3
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: set_invisible
+        duration: 3
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L5 普通 — 散乱触手（周期散开/聚拢 + 抗 AoE）
+scattered_tentacle:
+  id: scattered_tentacle
+  name: 散乱触手
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L5
+
+  stats:
+    hp: 130
+    atk: 12
+    attackSpeed: 0.8
+    range: 40
+    speed: 55
+    armor: 15
+    mr: 15
+    damageType: physical
+
+  reward:
+    gold: 18
+
+  visual:
+    shape: circle
+    color: "#ab47bc"
+    size: 28
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: scatter_form
+      name: 散开形态
+      cooldown: 6
+      range: 0
+      value: 0
+      description: "每 6s 切换形态：散开时分裂为 4 个小触手（各 30HP，AoE 伤害 -80%）；聚拢时恢复为单体（HP 合并）"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L6 精英 — 骷髅召唤者（死亡召唤 3 只小骷髅）
+summoner_skeleton:
+  id: summoner_skeleton
+  name: 骷髅召唤者
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L6
+
+  stats:
+    hp: 200
+    atk: 15
+    attackSpeed: 0.7
+    range: 40
+    speed: 45
+    armor: 20
+    mr: 10
+    damageType: physical
+
+  reward:
+    gold: 30
+
+  visual:
+    shape: circle
+    color: "#eeeeee"
+    size: 30
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: spawn_unit
+        unitId: skeleton_minion
+        count: 3
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L6 精英 — 盾牌战士（护盾未破时免疫伤害）
+shielded_warrior:
+  id: shielded_warrior
+  name: 盾牌战士
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L6
+
+  stats:
+    hp: 220
+    atk: 18
+    attackSpeed: 0.8
+    range: 32
+    speed: 40
+    armor: 60
+    mr: 20
+    damageType: physical
+
+  reward:
+    gold: 32
+
+  visual:
+    shape: circle
+    color: "#bdbdbd"
+    size: 32
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: energy_shield
+      name: 能量护盾
+      cooldown: 0
+      range: 0
+      value: 200
+      description: "生成 200 HP 护盾；护盾存在期间免疫所有伤害；护盾破碎后露出本体"
+
+  lifecycle:
+    onCreate:
+      - type: add_shield
+        shieldHp: 200
+        immuneWhileShielded: true
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+    onShieldBreak:
+      - type: play_effect
+        effect: shield_break
+      - type: play_sound
+        sound: SFX_SHIELD_BREAK
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+
+# L7 精英 — 强化自爆虫（半径 150 / 100 伤害，仅伤玩家阵营）
+elite_exploder:
+  id: elite_exploder
+  name: 强化自爆虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L7
+
+  stats:
+    hp: 70
+    atk: 12
+    attackSpeed: 0.7
+    range: 32
+    speed: 75
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: circle
+    color: "#ff6f00"
+    size: 28
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: death_explosion
+        radius: 150
+        damage: 100
+        damageType: physical
+        aoeFactionFilter:
+          - Player
+      - type: play_effect
+        effect: death_explode
+      - type: play_sound
+        sound: SFX_EXPLODE
+    onHit:
+      - type: flash_color
+        color: "#ff0000"
+        duration: 0.2
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L8 精英 — 隐形刺客（出生 3s 内隐形，不被物理塔锁定）
+invisible_assassin:
+  id: invisible_assassin
+  name: 隐形刺客
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L8
+
+  stats:
+    hp: 160
+    atk: 30
+    attackSpeed: 1.1
+    range: 32
+    speed: 95
+    armor: 5
+    mr: 20
+    damageType: physical
+
+  reward:
+    gold: 35
+
+  visual:
+    shape: circle
+    color: "#1a1a2e"
+    size: 26
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      spawnInvisibleDuration: 3
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: set_invisible
+        duration: 3
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L8 精英 — 反射魔像（反弹 30% 受到伤害给攻击者）
+reflective_golem:
+  id: reflective_golem
+  name: 反射魔像
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L8
+
+  stats:
+    hp: 350
+    atk: 20
+    attackSpeed: 0.6
+    range: 32
+    speed: 35
+    armor: 50
+    mr: 50
+    damageType: physical
+
+  reward:
+    gold: 40
+
+  visual:
+    shape: circle
+    color: "#b0bec5"
+    size: 36
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      reflectDamagePct: 30
+      reflectNoLoop: true
+      reflectInvalidOnInstakill: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: reflect_damage
+        pct: 30
+      - type: flash_color
+        color: "#90caf9"
+        duration: 0.15
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# L9 终战 BOSS — 深渊领主（3 阶段切换，必须强制 immune_to_crystal_kill）
+abyss_lord:
+  id: abyss_lord
+  name: 深渊领主
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L9
+  isBoss: true
+
+  stats:
+    hp: 4000
+    atk: 80
+    attackSpeed: 0.6
+    range: 32
+    speed: 30
+    armor: 100
+    mr: 50
+    damageType: physical
+
+  reward:
+    gold: 600
+    energy: 120
+
+  visual:
+    shape: circle
+    color: "#0a0a1a"
+    size: 100
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      immune_to_crystal_kill: true
+
+  skills:
+    - id: summon_minions_p1
+      name: 召唤普通敌（阶段1）
+      cooldown: 12
+      range: 0
+      value: 3
+      description: "阶段1：每 12s 召唤 3 只 grunt"
+    - id: summon_elites_p2
+      name: 召唤精英（阶段2）
+      cooldown: 10
+      range: 0
+      value: 2
+      description: "阶段2：每 10s 召唤 2 只 shielded_warrior"
+    - id: abyss_dot_p3
+      name: 深渊腐蚀（阶段3）
+      cooldown: 8
+      range: 300
+      value: 20
+      description: "阶段3：每 8s 对 r300 内所有玩家单位施加 20 DPS 真实 DOT，持续 5s"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+      - type: play_effect
+        effect: boss_abyss_enter
+    onCondition:
+      - condition: "hp_ratio < 0.66"
+        fireOnce: true
+        phase: 2
+        effects:
+          - type: enter_phase2
+          - type: play_effect
+            effect: boss_phase_shift
+          - type: pause_world
+            duration: 1.5
+          - type: change_color
+            color: "#1a237e"
+          - type: stat_change
+            armorOverride: 60
+            mrOverride: 120
+            hpSet: 3500
+            atkOverride: 70
+            speedOverride: 25
+          - type: play_sound
+            sound: SFX_BOSS_PHASE2
+      - condition: "hp_ratio < 0.33"
+        fireOnce: true
+        phase: 3
+        effects:
+          - type: enter_phase3
+          - type: play_effect
+            effect: boss_phase_shift
+          - type: pause_world
+            duration: 1.5
+          - type: change_color
+            color: "#4a148c"
+          - type: stat_change
+            armorOverride: 0
+            mrOverride: 0
+            hpSet: 2500
+            atkOverride: 100
+            attackSpeedOverride: 0.9
+            speedOverride: 50
+          - type: apply_buff
+            buffId: immune_to_slow
+          - type: apply_buff
+            buffId: immune_to_stun
+          - type: apply_buff
+            buffId: immune_to_freeze
+          - type: play_sound
+            sound: SFX_BOSS_PHASE3
+    onKill:
+      - type: boss_death
+      - type: play_effect
+        effect: boss_death_abyss
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+      - type: final_victory
+
+---
+
+# 骷髅仆从 — 仅由 summoner_skeleton 死亡召唤，炮灰单位
+skeleton_minion:
+  id: skeleton_minion
+  name: 骷髅仆从
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L1
+
+  stats:
+    hp: 30
+    atk: 5
+    attackSpeed: 1.0
+    range: 32
+    speed: 70
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 3
+
+  visual:
+    shape: circle
+    color: "#e0e0e0"
+    size: 18
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      summonedOnly: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
