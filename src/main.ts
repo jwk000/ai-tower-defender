@@ -579,7 +579,7 @@ async function bootstrap(): Promise<void> {
   const SHOP_UNIT_CARDS = [
     { id: 'arrow_tower_card', label: '箭塔卡', costGold: 30 },
     { id: 'cannon_tower_card', label: '炮塔卡', costGold: 60 },
-    { id: 'ice_tower_card', label: '冰塔卡', costGold: 60 },
+    { id: 'elemental_tower_card', label: '元素塔卡', costGold: 60 },
     { id: 'lightning_tower_card', label: '电塔卡', costGold: 120 },
     { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
     { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },

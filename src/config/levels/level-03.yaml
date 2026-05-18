@@ -309,7 +309,7 @@ available:
   towers:
     - arrow
     - cannon
-    - ice
+    - elemental
     - lightning
     - laser
     - bat
