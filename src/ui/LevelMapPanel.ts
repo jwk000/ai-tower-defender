@@ -1,7 +1,10 @@
+import type { MapNodeKind } from '../unit-system/RunManager.js';
+
 export type LevelNodeStatus = 'completed' | 'current' | 'locked';
 
 export interface LevelNode {
   readonly levelIndex: number;
+  readonly kind: MapNodeKind;
   readonly isBoss: boolean;
   readonly status: LevelNodeStatus;
 }
@@ -10,6 +13,7 @@ export interface LevelMeta {
   readonly name: string;
   readonly description: string;
   readonly waveCount: number;
+  readonly kind?: MapNodeKind;
 }
 
 const NORMAL_NODE_SIZE = 160;
@@ -75,7 +79,26 @@ const NODE_COORDS: ReadonlyArray<readonly [number, number]> = [
   [1800, 540],
 ];
 
-const FALLBACK_META: LevelMeta = { name: '???', description: '', waveCount: 0 };
+const FALLBACK_META: LevelMeta = { name: '???', description: '', waveCount: 0, kind: 'battle' };
+
+function getNodeKind(levelIndex: number, state: LevelMapState): MapNodeKind {
+  const metaKind = state.levelMetas[levelIndex - 1]?.kind;
+  if (metaKind) return metaKind;
+  if (levelIndex === state.totalLevels) return 'boss';
+  return 'battle';
+}
+
+function formatNodeLabel(kind: MapNodeKind, levelIndex: number): string {
+  switch (kind) {
+    case 'battle': return `普通战 ${levelIndex}`;
+    case 'elite': return `精英战 ${levelIndex}`;
+    case 'shop': return '商店';
+    case 'mystic': return '事件';
+    case 'treasure': return '宝箱';
+    case 'rest': return '休整';
+    case 'boss': return '终战';
+  }
+}
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
   const nodes: LevelNode[] = [];
@@ -88,7 +111,8 @@ export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
     } else {
       status = 'locked';
     }
-    nodes.push({ levelIndex: i, isBoss: i === state.totalLevels, status });
+    const kind = getNodeKind(i, state);
+    nodes.push({ levelIndex: i, kind, isBoss: kind === 'boss', status });
   }
   return nodes;
 }
@@ -110,7 +134,7 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
       y: Math.round(cy * scaleY - scaledSize / 2),
       width: scaledSize,
       height: scaledSize,
-      label: n.isBoss ? '终战' : `关${n.levelIndex}`,
+      label: formatNodeLabel(n.kind, n.levelIndex),
       name: meta.name,
       description: meta.description,
       waveCount: meta.waveCount,
@@ -133,7 +157,7 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
       y: challengeBtnY,
       width: CHALLENGE_BTN_W,
       height: CHALLENGE_BTN_H,
-      label: `挑战关卡 ${state.currentLevelIdx}`,
+      label: `进入 ${formatNodeLabel(getNodeKind(state.currentLevelIdx, state), state.currentLevelIdx)}`,
     },
     deckBtn: {
       x: deckBtnX,

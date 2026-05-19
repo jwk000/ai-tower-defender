@@ -22,6 +22,12 @@ export const RunPhase = {
   Result: 'Result',
 } as const;
 export type RunPhase = (typeof RunPhase)[keyof typeof RunPhase];
+export type MapNodeKind = 'battle' | 'elite' | 'shop' | 'mystic' | 'treasure' | 'rest' | 'boss';
+
+export interface RunRouteNode {
+  readonly levelIndex: number;
+  readonly kind: MapNodeKind;
+}
 
 export type InterLevelChoice = 'shop' | 'mystic' | 'skilltree';
 export type RunOutcome = 'victory' | 'defeat';
@@ -34,8 +40,20 @@ const CHOICE_TO_PHASE: Readonly<Record<InterLevelChoice, RunPhase>> = {
   skilltree: RunPhase.SkillTree,
 };
 
+function buildDefaultRoute(totalLevels: number): readonly MapNodeKind[] {
+  if (totalLevels === 1) return ['boss'];
+  const base: MapNodeKind[] = ['battle', 'elite', 'shop', 'mystic', 'treasure', 'rest'];
+  const route: MapNodeKind[] = [];
+  for (let i = 0; i < totalLevels - 1; i += 1) {
+    route.push(base[i % base.length]!);
+  }
+  route.push('boss');
+  return route;
+}
+
 export interface RunManagerConfig {
   readonly totalLevels: number;
+  readonly route?: readonly MapNodeKind[];
   readonly initialGold?: number;
   readonly initialCrystalHp?: number;
 }
@@ -45,6 +63,7 @@ export class RunManager {
   private _currentLevel = 0;
   private _outcome: RunOutcome | null = null;
   private readonly totalLevels: number;
+  private readonly route: readonly MapNodeKind[];
 
   private readonly initialGold: number;
   private readonly initialCrystalHp: number;
@@ -62,6 +81,10 @@ export class RunManager {
       throw new Error(`[RunManager] totalLevels must be a positive integer, got ${config.totalLevels}`);
     }
     this.totalLevels = config.totalLevels;
+    this.route = config.route ?? buildDefaultRoute(config.totalLevels);
+    if (this.route.length !== this.totalLevels) {
+      throw new Error(`[RunManager] route length ${this.route.length} must match totalLevels ${this.totalLevels}`);
+    }
     this.initialGold = config.initialGold ?? 200;
     this.initialCrystalHp = config.initialCrystalHp ?? 20;
   }
@@ -97,6 +120,28 @@ export class RunManager {
   get progress(): number {
     if (this._phase === RunPhase.Idle) return 0;
     return Math.min(1, this._currentLevel / this.totalLevels);
+  }
+
+  getRouteNode(levelIndex: number): RunRouteNode {
+    if (!Number.isInteger(levelIndex) || levelIndex < 1 || levelIndex > this.totalLevels) {
+      throw new Error(`[RunManager] invalid levelIndex ${levelIndex}`);
+    }
+    return {
+      levelIndex,
+      kind: this.route[levelIndex - 1]!,
+    };
+  }
+
+  getRoute(): readonly RunRouteNode[] {
+    return this.route.map((kind, index) => ({
+      levelIndex: index + 1,
+      kind,
+    }));
+  }
+
+  get currentNodeKind(): MapNodeKind | null {
+    if (this._currentLevel < 1 || this._currentLevel > this.totalLevels) return null;
+    return this.route[this._currentLevel - 1] ?? null;
   }
 
   get lastSkillTreeError(): SkillTreeError | null {

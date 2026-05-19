@@ -10,13 +10,21 @@ import {
 
 function state(overrides: Partial<LevelMapState> = {}): LevelMapState {
   return {
-    totalLevels: 9,
+    totalLevels: 7,
     currentLevelIdx: 4,
     gold: 240,
     crystalHp: 850,
     crystalHpMax: 1000,
     runIndex: 1,
-    levelMetas: [],
+    levelMetas: [
+      { name: '平原入口', description: '第一场正面遭遇战', waveCount: 3, kind: 'battle' },
+      { name: '督战官', description: '精英敌人压阵', waveCount: 4, kind: 'elite' },
+      { name: '流动商队', description: '补充卡牌与资源', waveCount: 0, kind: 'shop' },
+      { name: '古树低语', description: '随机事件与代价', waveCount: 0, kind: 'mystic' },
+      { name: '遗失补给', description: '开启宝箱获取奖励', waveCount: 0, kind: 'treasure' },
+      { name: '临时营地', description: '短暂休整恢复状态', waveCount: 0, kind: 'rest' },
+      { name: '魔王前线', description: '最终决战', waveCount: 5, kind: 'boss' },
+    ],
     ...overrides,
   };
 }
@@ -37,20 +45,25 @@ describe('buildLevelNodes', () => {
   it('marks nodes after currentLevelIdx as locked', () => {
     const nodes = buildLevelNodes(state({ currentLevelIdx: 4 }));
     expect(nodes[4]!.status).toBe('locked');
-    expect(nodes[8]!.status).toBe('locked');
+    expect(nodes[6]!.status).toBe('locked');
+  });
+
+  it('derives node kinds from levelMetas', () => {
+    const nodes = buildLevelNodes(state());
+    expect(nodes.map((node) => node.kind)).toEqual(['battle', 'elite', 'shop', 'mystic', 'treasure', 'rest', 'boss']);
   });
 
   it('last node is boss', () => {
-    const nodes = buildLevelNodes(state({ totalLevels: 9 }));
-    expect(nodes[8]!.isBoss).toBe(true);
+    const nodes = buildLevelNodes(state());
+    expect(nodes[6]!.isBoss).toBe(true);
     expect(nodes[0]!.isBoss).toBe(false);
   });
 });
 
 describe('layoutLevelMap', () => {
-  it('produces 9 nodes in a straight horizontal line (all same y)', () => {
+  it('produces nodes in a straight horizontal line (all same y)', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
-    expect(layout.nodes).toHaveLength(9);
+    expect(layout.nodes).toHaveLength(7);
     const ys = layout.nodes.map((n) => n.y);
     expect(new Set(ys).size).toBe(1);
   });
@@ -64,15 +77,20 @@ describe('layoutLevelMap', () => {
 
   it('all nodes (including boss) have the same size', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
-    const bossNode = layout.nodes[8]!;
+    const bossNode = layout.nodes[6]!;
     const normalNode = layout.nodes[0]!;
     expect(bossNode.width).toBe(normalNode.width);
   });
 
-  it('node labels use 关N for normal, 终战 for boss', () => {
+  it('node labels reflect node kinds', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
-    expect(layout.nodes[0]!.label).toBe('关1');
-    expect(layout.nodes[8]!.label).toBe('终战');
+    expect(layout.nodes[0]!.label).toBe('普通战 1');
+    expect(layout.nodes[1]!.label).toBe('精英战 2');
+    expect(layout.nodes[2]!.label).toBe('商店');
+    expect(layout.nodes[3]!.label).toBe('事件');
+    expect(layout.nodes[4]!.label).toBe('宝箱');
+    expect(layout.nodes[5]!.label).toBe('休整');
+    expect(layout.nodes[6]!.label).toBe('终战');
   });
 
   it('titleLabel contains run index', () => {
@@ -96,9 +114,9 @@ describe('layoutLevelMap', () => {
     expect(layout.backBtn.label).toBe('ESC 退出');
   });
 
-  it('challengeBtn label reflects currentLevelIdx', () => {
+  it('challengeBtn label reflects current node kind', () => {
     const layout = layoutLevelMap(state({ currentLevelIdx: 5 }), 1920, 1080);
-    expect(layout.challengeBtn.label).toBe('挑战关卡 5');
+    expect(layout.challengeBtn.label).toBe('进入 宝箱');
   });
 });
 

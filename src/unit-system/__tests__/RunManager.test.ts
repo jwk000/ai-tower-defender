@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { RunManager, RunPhase } from '../RunManager.js';
+import { RunManager, RunPhase, type MapNodeKind } from '../RunManager.js';
 
-function makeManager(totalLevels = 1): RunManager {
-  return new RunManager({ totalLevels });
+function makeManager(totalLevels = 1, route?: readonly MapNodeKind[]): RunManager {
+  return new RunManager({ totalLevels, route });
 }
 
 describe('RunManager state machine', () => {
@@ -18,6 +18,15 @@ describe('RunManager state machine', () => {
     run.startRun();
     expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(1);
+  });
+
+  it('exposes route nodes and current node kind', () => {
+    const route = ['battle', 'elite', 'shop', 'mystic', 'treasure', 'rest', 'boss'] as const;
+    const run = makeManager(route.length, route);
+    run.startRun();
+    expect(run.currentNodeKind).toBe('battle');
+    expect(run.getRouteNode(2)).toEqual({ levelIndex: 2, kind: 'elite' });
+    expect(run.getRoute().map((node) => node.kind)).toEqual(route);
   });
 
   it('enterBattle transitions LevelMap -> Battle', () => {
