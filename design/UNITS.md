@@ -1,7 +1,7 @@
 # Tower Defender — 单位系统
 
 > 本文档覆盖：单位概念体系、阵营/层级、所有单位阵容（塔/兵/敌/建筑/陷阱/中立）、战斗公式骨架、技能与 Buff 系统。
-> 具体数值见 [NUMBERS.md](./NUMBERS.md)。卡牌成长详见 [TECH-TREE.md](./TECH-TREE.md)。
+> 具体数值见 [NUMBERS.md](./NUMBERS.md)。卡牌成长详见 [CARD-GROWTH.md](./CARD-GROWTH.md)。
 
 ---
 

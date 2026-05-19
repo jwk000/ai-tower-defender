@@ -243,7 +243,7 @@ Run 进行中意外退出 = Run 丢失（不支持中断续接）。
 | 完整玩法循环与手牌系统 | `GAMEPLAY.md` |
 | 8 关主题与敌人设计 | `LEVELS.md` |
 | 单位系统与战斗公式 | `UNITS.md` |
-| 卡牌成长详细节点 | `TECH-TREE.md` |
+| 卡牌成长详细节点 | `CARD-GROWTH.md` |
 | 敌人/士兵 AI | `AI.md` |
 | UI/UX 所有界面 | `UI.md` |
 | 视觉与音效 | `VISUALS.md` |
