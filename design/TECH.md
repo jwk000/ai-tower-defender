@@ -299,11 +299,11 @@ load(): if checksum mismatch → recoverFromBackup()
 | `levels` / `endless` | v2.0 | 独立关卡/无尽取消 |
 | `OngoingRun.skillPoints` | v3.5 | SP 资源废弃 |
 | `OngoingRun.crystalLevel` | v3.6 | Crystal 升级体系废弃 |
-| `OngoingRun.techTreeState` | v3.6 | 旧科技树状态收束为按卡记录的 `cardLevels` |
+| `OngoingRun.techTreeState` | v3.6 | 旧卡牌成长状态结构收束为按卡记录的 `cardLevels` |
 | `OngoingRun.deckCardIds` | v3.6 | 重命名并语义收束为 `cardPool` |
 | `RunSnapshot.skillPoints` | v3.5 | SP 资源废弃 |
 | `RunSnapshot.crystalLevel` | v3.6 | Crystal 升级体系废弃 |
-| `RunSnapshot.techTreeState` | v3.6 | 旧科技树状态收束为按卡记录的 `cardLevels` |
+| `RunSnapshot.techTreeState` | v3.6 | 旧卡牌成长状态结构收束为按卡记录的 `cardLevels` |
 | `RunSnapshot.skillTreeUnlocked` | v3.5 | 已废弃；相关成长状态统一并入按卡记录的 `cardLevels` |
 
 ### 6.6 流派识别（本会话荣誉）
