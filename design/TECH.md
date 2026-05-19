@@ -229,13 +229,13 @@ interface SaveData {
 }
 
 interface OngoingRun {
-  currentLevelIdx: number;       // 1-9
+  currentLevelIdx: number;       // 1-8
   gold: number;
   crystalHp: number;
   crystalHpMax: number;
-  crystalLevel: 1 | 2 | 3;      // v3.5：Crystal 科技树等级
-  deckCardIds: string[];
-  techTreeState: Record<string, 1 | 2 | 3>;  // v3.5：替代旧 skillTreeState
+  cardPool: string[];            // 当前 Run 已拥有的唯一卡池
+  cardLevels: Record<string, 1 | 2 | 3>;
+  removeCardCost: number;        // 当前下一次删卡所需金币
   savedAt: number;
 }
 ```
@@ -251,8 +251,9 @@ interface RunSnapshot {
   gold: number;
   crystalHp: number;
   crystalHpMax: number;
-  crystalLevel: 1 | 2 | 3;      // v3.5 新增
-  techTreeState: Record<string, 1 | 2 | 3>;  // v3.5：替代旧 skillTreeUnlocked
+  cardPool: string[];
+  cardLevels: Record<string, 1 | 2 | 3>;
+  removeCardCost: number;
   deck: {
     drawPile: string[];
     discardPile: string[];
@@ -268,7 +269,7 @@ interface RunSnapshot {
 | 时机 | 操作 |
 |------|------|
 | Run 开始 | `runHistory.totalRuns += 1` |
-| 进入 LevelMap 相位（关间/商店/秘境/科技树关闭后）| `saveProgress(RunSnapshot)` |
+| 进入 LevelMap 相位（关间/商店/秘境/卡牌成长界面关闭后）| `saveProgress(RunSnapshot)` |
 | Battle 中 | 不存档（防止死亡后加载存档绕过惩罚）|
 | Run 失败/胜利 | 更新 RunHistory；`clearRun()` |
 | 成就解锁 | 立即保存 |
@@ -296,19 +297,23 @@ load(): if checksum mismatch → recoverFromBackup()
 | `permanentUpgrades` | v3.0 | 无关外永久升级 |
 | `RunHistory.totalSparkShardsEarned` | v3.0 | 无碎片资源 |
 | `levels` / `endless` | v2.0 | 独立关卡/无尽取消 |
-| `OngoingRun.skillPoints` | v3.5 | SP 资源废弃 → 替换为 `crystalLevel` |
-| `OngoingRun.skillTreeState: string[]` | v3.5 | → 重命名为 `techTreeState: Record<string, 1\|2\|3>` |
-| `RunSnapshot.skillPoints` | v3.5 | 同上 |
-| `RunSnapshot.skillTreeUnlocked` | v3.5 | → `techTreeState` |
+| `OngoingRun.skillPoints` | v3.5 | SP 资源废弃 |
+| `OngoingRun.crystalLevel` | v3.6 | Crystal 升级体系废弃 |
+| `OngoingRun.techTreeState` | v3.6 | 旧科技树状态收束为按卡记录的 `cardLevels` |
+| `OngoingRun.deckCardIds` | v3.6 | 重命名并语义收束为 `cardPool` |
+| `RunSnapshot.skillPoints` | v3.5 | SP 资源废弃 |
+| `RunSnapshot.crystalLevel` | v3.6 | Crystal 升级体系废弃 |
+| `RunSnapshot.techTreeState` | v3.6 | 旧科技树状态收束为按卡记录的 `cardLevels` |
+| `RunSnapshot.skillTreeUnlocked` | v3.5 | 已废弃；相关成长状态统一并入按卡记录的 `cardLevels` |
 
 ### 6.6 流派识别（本会话荣誉）
 
 | 流派 | 识别规则 |
 |------|---------|
-| 近战墙流 | 近战单位卡 > 卡组 50% |
-| 法术爆发流 | 法术卡 > 卡组 40% |
+| 近战墙流 | 近战单位卡 > 卡池 50% |
+| 法术爆发流 | 法术卡 > 卡池 40% |
 | 生产抗压流 | 生产建筑 ≥ 3 张 |
-| 远程压制流 | 远程塔 > 卡组 40% |
+| 远程压制流 | 远程塔 > 卡池 40% |
 | 混合均衡流 | 其余兜底 |
 
 ---
