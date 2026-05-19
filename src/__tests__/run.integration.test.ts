@@ -985,4 +985,46 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(runManager.phase).toBe(RunPhase.Battle);
     expect(scenes.battle.visible).toBe(true);
   });
+
+  it('boss node route reaches final boss node on level map', () => {
+    const route = ['battle', 'battle', 'boss'] as const;
+    const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
+
+    runManager.startRun();
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.returnToLevelMap();
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.returnToLevelMap();
+
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(3);
+    expect(runManager.currentNodeKind).toBe('boss');
+  });
+
+  it('boss final node completes directly into Result victory without inter-level', () => {
+    const route = ['battle', 'battle', 'boss'] as const;
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
+    const scenes = makeScenes();
+    const controller = new RunController({ game, runManager, scenes });
+
+    controller.startRun();
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+
+    expect(runManager.phase).toBe(RunPhase.Result);
+    expect(runManager.outcome).toBe('victory');
+    expect(scenes.runResult.visible).toBe(true);
+    expect(scenes.interLevel.visible).toBe(false);
+  });
 });

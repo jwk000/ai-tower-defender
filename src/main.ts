@@ -23,7 +23,7 @@ import {
   type InterLevelIntent,
   type InterLevelOffer,
 } from './ui/InterLevelPanel.js';
-import { LevelMapPanel } from './ui/LevelMapPanel.js';
+import { LevelMapPanel, type LevelMeta } from './ui/LevelMapPanel.js';
 import { DeckViewPanel } from './ui/DeckViewPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
@@ -98,6 +98,7 @@ const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
 const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
+const BOSS_LEVEL_NUMBER = 8;
 const DEFAULT_DECK_SIZE = 12; // S2 替换：卡组 12 张（per 10-roguelike-loop §2.3）
 const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 0;
@@ -126,10 +127,11 @@ async function bootstrap(): Promise<void> {
     level05Yaml, level06Yaml, level07Yaml, level08Yaml,
   ].map((yaml) => parseLevelConfig(yaml));
 
-  const ALL_LEVEL_METAS = allLevelConfigs.map((cfg) => ({
+  const ALL_LEVEL_METAS: LevelMeta[] = allLevelConfigs.map((cfg, index) => ({
     name: cfg.name ?? cfg.id,
     description: cfg.description ?? '',
     waveCount: cfg.waves.length,
+    kind: index === allLevelConfigs.length - 1 ? 'boss' : undefined,
   }));
 
   const level = parseLevelConfig(level01Yaml);
@@ -401,6 +403,10 @@ async function bootstrap(): Promise<void> {
     },
   };
 
+  function resolveLevelNumberForCurrentNode(): number {
+    return runManager.currentNodeKind === 'boss' ? BOSS_LEVEL_NUMBER : runManager.currentLevel;
+  }
+
   function loadLevel(levelNumber: number): void {
     const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
     clearBattleEntities();
@@ -479,7 +485,7 @@ async function bootstrap(): Promise<void> {
     SaveSystem.clearRun();
     runController.startRun();
     deckSystem.initWithCards(STARTER_DECK);
-    loadLevel(1);
+    loadLevel(resolveLevelNumberForCurrentNode());
     runStats.enemiesKilled = 0;
     runStats.goldSpent = 0;
     runStats.runStartMs = 0;
@@ -726,6 +732,7 @@ async function bootstrap(): Promise<void> {
   levelMapPanel.setHandler((action) => {
     if (action === 'challenge') {
       if (runStats.runStartMs === 0) runStats.runStartMs = performance.now();
+      loadLevel(resolveLevelNumberForCurrentNode());
       runController.enterBattle();
       waveSystem.start();
     } else if (action === 'view-deck') {
