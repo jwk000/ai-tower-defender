@@ -85,7 +85,7 @@ interface RunManager {
 
 ---
 
-## 4. 七塔成长详设
+### 4. 七塔成长详设（元素分拆 + 新弩塔）
 
 ### 4.1 塔主动技能（关内手动触发，无能量消耗）
 
@@ -93,9 +93,12 @@ interface RunManager {
 |---|---------|------|-----|
 | 箭塔 | **齐射** | 立即向射程内所有敌人各发 1 支箭 | 12s |
 | 炮塔 | **精准轰炸** | 对当前目标发射高爆炮弹（伤害 ×2.5，AOE 半径 ×1.5）| 15s |
-| 元素塔 | **元素爆发** | 圆形元素爆炸 r80：冰→群体冻结 2s / 火→群体灼烧 / 毒→群体中毒传播 | 18s |
+| 冰塔 | **寒霜爆发** | 圆形寒霜爆炸 r80：群体冻结 2s | 18s |
+| 火塔 | **烈焰爆发** | 圆形火焰爆炸 r80：群体灼烧 | 18s |
+| 毒塔 | **毒雾爆发** | 圆形毒雾爆炸 r80：群体中毒并扩散 | 18s |
 | 电塔 | **过载放电** | 对场上所有敌人 1 跳链式闪电（普攻 60%，无限跳）| 20s |
-| 激光塔 | **全功率扫射** | 激光旋转 360° 扫射 2s，期间伤害 ×1.5 | 16s |
+| 激光塔 | **全功率聚焦** | 对当前锁定目标持续 2s 超载照射，聚焦倍率额外提高 | 16s |
+| 弩塔 | **穿云重弩** | 朝当前目标方向发射一枚强化弩箭，贯穿整条直线并伤害沿途所有敌人 | 16s |
 | 蝙蝠塔 | **召唤蝠群** | 召唤 3 只临时幽灵蝙蝠（HP 极低，存活 8s，追杀敌人）| 14s |
 | 导弹塔 | **饱和打击** | 立即发射 3 枚导弹锁定场上 HP 最高的 3 个敌人 | 25s |
 
@@ -123,19 +126,43 @@ YAML effects 引用：`add_projectile_count` / `mul_attack_interval` / `mul_atk`
 
 YAML effects 引用：`add_stun_on_hit` / `mul_attack_interval` / `mul_range` / `mul_atk` / `set_attack_mode` / `add_knockback_on_hit` / `add_pierce`
 
-### 4.4 元素塔 `elemental_tower`（原冰塔）
+### 4.4 冰塔 `ice_tower`
 
-**定位**：控制 / 元素效果。默认冰形态，高级等级并入火/毒元素能力。
+**定位**：控制塔，负责减速与冰冻。
 
 | 等级 | goldCost | 能力（差量）|
 |------|----------|------------|
-| Lv.1 | 0 | 默认冰属性；命中减速 |
-| Lv.2 | TBD | 冰系：概率冰冻；火系：切换火元素 + 灼烧 + 移除减速 |
-| Lv.3 | TBD | 毒系：切换毒元素 + 中毒传染；霜冻 Debuff + 真火击杀回能 |
+| Lv.1 | 0 | 命中叠加减速；满层冻结 |
+| Lv.2 | TBD | 减速层数更稳定，冻结阈值降低 |
+| Lv.3 | TBD | 冰冻结束触发碎裂伤害 |
 
-YAML effects 引用：`add_freeze_on_hit` / `set_element_type` / `add_burning_on_hit` / `remove_slow_on_hit` / `add_poison_on_hit` / `add_atk_debuff_on_hit` / `add_energy_on_kill` / `add_poison_contagion`
+YAML effects 引用：`slow_on_hit` / `freeze_at_max_stacks` / `add_shatter_on_freeze_end`
 
-### 4.5 电塔 `lightning_tower`
+### 4.5 火塔 `fire_tower`
+
+**定位**：持续灼烧，负责清杂与压血线。
+
+| 等级 | goldCost | 能力（差量）|
+|------|----------|------------|
+| Lv.1 | 0 | 命中附加灼烧 DOT |
+| Lv.2 | TBD | 灼烧持续时间/层数提升 |
+| Lv.3 | TBD | 灼烧可向邻近目标扩散 |
+
+YAML effects 引用：`burn_on_hit` / `mul_burn_duration` / `add_burn_spread`
+
+### 4.6 毒塔 `poison_tower`
+
+**定位**：叠毒削弱，负责持续磨血。
+
+| 等级 | goldCost | 能力（差量）|
+|------|----------|------------|
+| Lv.1 | 0 | 命中附加中毒 DOT |
+| Lv.2 | TBD | 中毒伤害与持续时间提升 |
+| Lv.3 | TBD | 中毒传播，并附带削弱效果 |
+
+YAML effects 引用：`poison_on_hit` / `mul_poison_duration` / `add_poison_contagion` / `add_atk_debuff_on_hit`
+
+### 4.7 电塔 `lightning_tower`
 
 **定位**：链式弹跳，群体压制。Lv.3 并入原终极全屏闪电。
 
@@ -147,19 +174,31 @@ YAML effects 引用：`add_freeze_on_hit` / `set_element_type` / `add_burning_on
 
 YAML effects 引用：`add_chain_bounce` / `add_global_strike`
 
-### 4.6 激光塔 `laser_tower`
+### 4.8 激光塔 `laser_tower`
 
 **定位**：聚焦 / 持续输出。
 
 | 等级 | goldCost | 能力（差量）|
 |------|----------|------------|
-| Lv.1 | 0 | 普通激光塔（1 道激光）|
-| Lv.2 | TBD | 激光道数 +1；持续锁定单体 |
-| Lv.3 | TBD | 再 +1 激光；降低攻击间隔；持续锁同一目标越久伤害越高（上限 ×5.0，目标切换重置）|
+| Lv.1 | 0 | 普通激光塔；持续锁定单体 |
+| Lv.2 | TBD | 锁定同一目标时伤害开始逐段爬升 |
+| Lv.3 | TBD | 聚焦上限更高；换目标重置；满聚焦时附带破隐/灼穿效果 |
 
-YAML effects 引用：`add_beam_count` / `set_target_lock` / `mul_attack_interval` / `add_charge_damage`
+YAML effects 引用：`set_target_lock` / `add_charge_damage` / `set_charge_reset_on_target_change` / `add_reveal_on_full_charge`
 
-### 4.7 蝙蝠塔 `bat_tower`
+### 4.9 弩塔 `crossbow_tower`
+
+**定位**：直线穿透物理输出。
+
+| 等级 | goldCost | 能力（差量）|
+|------|----------|------------|
+| Lv.1 | 0 | 对第一个目标发射弩箭，直线贯穿到棋盘边缘 |
+| Lv.2 | TBD | 弩箭宽度或伤害提升，更适合清走廊敌群 |
+| Lv.3 | TBD | 贯穿路径附带破甲/流血效果 |
+
+YAML effects 引用：`piercing` / `set_projectile_to_board_edge` / `mul_pierce_width` / `add_armor_break_on_hit`
+
+### 4.10 蝙蝠塔 `bat_tower`
 
 **定位**：群体单位类塔，受天气影响（`weather_dependent_atk`）。
 

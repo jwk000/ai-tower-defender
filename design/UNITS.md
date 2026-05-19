@@ -147,19 +147,30 @@
 |---|-------|---------|---------|---------|-------|
 | 1 | `arrow_tower` | 稳定单体输出 | `single_target` | — | Common |
 | 2 | `cannon_tower` | 群体控制 | `aoe_splash` | `stun_on_hit` | Common |
-| 3 | `elemental_tower` | 元素效果（默认冰） | `single_target` | `slow_on_hit`（冰）/`burn_on_hit`（火）/`poison_on_hit`（毒） | Rare |
-| 4 | `lightning_tower` | 群怪清剿 | `chain` | — | Rare |
-| 5 | `laser_tower` | 远程持续输出 | `piercing`（激光） | — | Epic |
-| 6 | `bat_tower` | 暗夜杀手 | 群体单位 | `weather_dependent_atk`（天气增幅） | Epic |
-| 7 | `missile_tower` | 战略打击 | `global_aoe` | 地格评分系统（见下方导弹塔说明） | Legendary |
+| 3 | `ice_tower` | 战场控制 | `single_target` | `slow_on_hit` / `freeze_at_max_stacks` | Rare |
+| 4 | `fire_tower` | 持续灼烧 | `single_target` | `burn_on_hit` | Rare |
+| 5 | `poison_tower` | 叠毒削弱 | `single_target` | `poison_on_hit` | Rare |
+| 6 | `lightning_tower` | 群怪清剿 | `chain` | — | Rare |
+| 7 | `laser_tower` | 聚焦持续输出 | `single_target` | `set_target_lock` / `add_charge_damage` | Epic |
+| 8 | `crossbow_tower` | 直线穿透物理输出 | `piercing` | 贯穿至棋盘边缘 | Epic |
+| 9 | `bat_tower` | 暗夜杀手 | 群体单位 | `weather_dependent_atk`（天气增幅） | Epic |
+| 10 | `missile_tower` | 战略打击 | `global_aoe` | 地格评分系统（见下方导弹塔说明） | Legendary |
 
-**元素塔路径切换**：火/毒形态的解锁来自该卡的成长等级（见 TECH-TREE.md）；切换时同步 `elementType` 字段（`ice` / `fire` / `poison`），规则引擎据此决定命中附加的 DOT/Debuff。
+**冰塔**：命中叠加减速层数，满层触发短冰冻，是纯控制塔。
+
+**火塔**：命中附加灼烧 DOT，偏持续清杂与压血线。
+
+**毒塔**：命中附加中毒 DOT，可承担持续削弱与磨血职责。
+
+**激光塔**：持续锁定单一目标进行聚焦攻击，**锁定同一目标时间越久伤害越高**；一旦目标死亡、脱离射程或切换目标，聚焦层数立刻重置。
+
+**弩塔**：锁定射程内第一个目标发射弩箭，弹道沿直线**一直穿透到棋盘边缘**；路径上所有敌人都受到伤害，适合打穿走廊型站位。
 
 **蝙蝠塔天气依赖**：所有天气下正常攻击，仅 ATK 倍率不同（具体倍率见 NUMBERS.md）。不再有"休眠"状态。
 
 **导弹塔**：地格评分驱动的全场 AOE 战略打击。支持手动指挥（点击地图目标格）和托管（自动按评分选格）两种模式。射程 600px，全图覆盖。评分维度：敌人密度 + 平均剩余 HP + Boss 存在加分 + 己方单位回避惩罚。到达目标格后引爆，爆炸半径 100px，对地面+空中敌人造成真实伤害。
 
-**废弃塔**：`poison_vine_tower`（毒藤塔）、`ballista_tower`（弩炮塔）已废弃，功能由元素塔毒系路径、炮塔狙击穿透路径承接。
+**废弃塔**：`elemental_tower`（元素塔）、`poison_vine_tower`（毒藤塔）、`ballista_tower`（弩炮塔）已废弃，功能分别由冰/火/毒三塔与新弩塔承接。
 
 ---
 
@@ -223,7 +234,7 @@
 
 ### 8.2 关键敌方机制说明
 
-**隐形敌**：隐形状态下不被物理塔锁定（箭塔/炮塔/导弹塔），但溅射/AOE 仍可波及。可解锁来源：电塔链击（非首目标）、激光塔高级成长等级效果、弓手狙击技能、蝙蝠塔（声波探测）。
+**隐形敌**：隐形状态下不被物理塔锁定（箭塔/炮塔/弩塔/导弹塔），但溅射/AOE 仍可波及。可解锁来源：电塔链击（非首目标）、激光塔高级成长等级效果、弓手狙击技能、蝙蝠塔（声波探测）。
 
 **飞行敌（LowAir）**：免疫地面陷阱（AboveGrid 层），所有塔均可攻击。
 
@@ -316,9 +327,12 @@
 |-------|------|--------|----------------|
 | `arrow_tower_card` | 建筑卡 | Common | `arrow_tower` |
 | `cannon_tower_card` | 建筑卡 | Common | `cannon_tower` |
-| `elemental_tower_card` | 建筑卡 | Rare | `elemental_tower` |
+| `ice_tower_card` | 建筑卡 | Rare | `ice_tower` |
+| `fire_tower_card` | 建筑卡 | Rare | `fire_tower` |
+| `poison_tower_card` | 建筑卡 | Rare | `poison_tower` |
 | `lightning_tower_card` | 建筑卡 | Rare | `lightning_tower` |
 | `laser_tower_card` | 建筑卡 | Epic | `laser_tower` |
+| `crossbow_tower_card` | 建筑卡 | Epic | `crossbow_tower` |
 | `bat_tower_card` | 建筑卡 | Epic | `bat_tower` |
 | `missile_tower_card` | 建筑卡 | Legendary | `missile_tower` |
 | `gold_mine_card` | 建筑卡 | Common | `gold_mine` |
