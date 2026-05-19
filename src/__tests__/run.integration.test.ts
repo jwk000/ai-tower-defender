@@ -1027,4 +1027,83 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(scenes.runResult.visible).toBe(true);
     expect(scenes.interLevel.visible).toBe(false);
   });
+
+  it('map flow: route node kinds progress correctly across skip/shop/mystic branches', () => {
+    const route = ['battle', 'shop', 'mystic', 'boss'] as const;
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
+    const scenes = makeScenes();
+    const controller = new RunController({ game, runManager, scenes });
+
+    controller.startRun();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(1);
+    expect(runManager.currentNodeKind).toBe('battle');
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(2);
+    expect(runManager.currentNodeKind).toBe('shop');
+    expect(scenes.levelMap.visible).toBe(true);
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.pickInterLevel('shop');
+    expect(runManager.phase).toBe(RunPhase.Shop);
+    controller.closeShop();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(3);
+    expect(runManager.currentNodeKind).toBe('mystic');
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.pickInterLevel('mystic');
+    expect(runManager.phase).toBe(RunPhase.Mystic);
+    controller.closeMystic();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(4);
+    expect(runManager.currentNodeKind).toBe('boss');
+  });
+
+  it('map flow: level map challenge enters battle and toggles scene visibility on each node', () => {
+    const route = ['battle', 'treasure', 'rest', 'boss'] as const;
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
+    const scenes = makeScenes();
+    const controller = new RunController({ game, runManager, scenes });
+
+    controller.startRun();
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+
+    controller.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(scenes.levelMap.visible).toBe(false);
+    expect(scenes.battle.visible).toBe(true);
+
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+    expect(runManager.currentNodeKind).toBe('treasure');
+    expect(scenes.levelMap.visible).toBe(true);
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+    expect(runManager.currentNodeKind).toBe('rest');
+    expect(scenes.levelMap.visible).toBe(true);
+
+    controller.enterBattle();
+    runManager.completeLevel();
+    controller.returnToLevelMap();
+    expect(runManager.currentNodeKind).toBe('boss');
+    expect(scenes.levelMap.visible).toBe(true);
+
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+    expect(runManager.phase).toBe(RunPhase.Result);
+    expect(scenes.runResult.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+  });
 });
