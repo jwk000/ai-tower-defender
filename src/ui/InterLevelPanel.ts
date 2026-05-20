@@ -34,7 +34,6 @@ export interface InterLevelState {
   readonly levelIndex: number;
   readonly nextLevel: number;
   readonly gold: number;
-  readonly spAwarded: number;
   readonly crystalHpLost: number;
   readonly offers: readonly [InterLevelOffer, InterLevelOffer, InterLevelOffer];
   readonly cardRewards?: readonly [InterLevelCardReward, InterLevelCardReward, InterLevelCardReward];
@@ -82,7 +81,6 @@ export interface InterLevelLayoutItem extends InterLevelOffer {
 export interface InterLevelLayout {
   readonly headerLabel: string;
   readonly rewardGoldLabel: string;
-  readonly rewardSpLabel: string;
   readonly crystalLostLabel: string;
   readonly items: readonly InterLevelLayoutItem[];
 }
@@ -126,7 +124,6 @@ export function layoutInterLevel(state: InterLevelState, viewportWidth: number, 
           ? `⬆ 选择 1 张卡牌升级`
         : `🏆 关卡 ${state.levelIndex} 通过！`,
     rewardGoldLabel: `● 金币 +${state.gold}`,
-    rewardSpLabel: `✦ 技能点 +${state.spAwarded}`,
     crystalLostLabel: state.crystalHpLost > 0 ? `水晶损失 -${state.crystalHpLost} HP` : '水晶无损',
     items: baseItems.map((o, i) => ({
       ...o,

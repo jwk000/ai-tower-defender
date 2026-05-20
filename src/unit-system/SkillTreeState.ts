@@ -1,13 +1,9 @@
 export type SkillTreeError =
-  | 'INSUFFICIENT_SP'
+  | 'INSUFFICIENT_GOLD'
   | 'INSTANCE_NOT_FOUND'
   | 'NODE_NOT_FOUND'
   | 'PREREQUISITE_NOT_MET'
-  | 'NODE_ALREADY_ACTIVE'
-  | 'PATH_NOT_FOUND'
-  | 'PATH_NOT_ACTIVATABLE'
-  | 'UNIT_DEPLOYED'
-  | 'ALREADY_EQUIPPED';
+  | 'NODE_ALREADY_ACTIVE';
 
 export interface SkillTreeEffect {
   readonly rule: string;
@@ -17,28 +13,21 @@ export interface SkillTreeEffect {
 export interface SkillTreeNodeConfig {
   readonly id: string;
   readonly name: string;
-  readonly depth: number;
-  readonly spCost: number;
+  readonly level: number;
+  readonly goldCost: number;
   readonly prerequisites: readonly string[];
   readonly effects: readonly SkillTreeEffect[];
 }
 
-export interface SkillTreePathConfig {
-  readonly id: string;
-  readonly name: string;
-  readonly nodes: readonly SkillTreeNodeConfig[];
-}
-
 export interface CardSkillTreeConfig {
   readonly unitCardId: string;
-  readonly paths: readonly SkillTreePathConfig[];
+  readonly nodes: readonly SkillTreeNodeConfig[];
 }
 
 export interface CardSkillTreeState {
   readonly unitCardId: string;
   readonly config: CardSkillTreeConfig;
   readonly activeNodes: Set<string>;
-  equippedPath: string | null;
 }
 
 export interface SkillTreeState {
@@ -48,7 +37,6 @@ export interface SkillTreeState {
 export interface SerializedCardSkillTreeState {
   readonly unitCardId: string;
   readonly activeNodes: readonly string[];
-  readonly equippedPath: string | null;
 }
 
 export interface SerializedSkillTreeState {
@@ -65,7 +53,6 @@ export function serializeSkillTreeState(state: SkillTreeState): SerializedSkillT
     state: {
       unitCardId: s.unitCardId,
       activeNodes: [...s.activeNodes],
-      equippedPath: s.equippedPath,
     },
   }));
   return { instances };

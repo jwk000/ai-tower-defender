@@ -1041,7 +1041,6 @@ async function bootstrap(): Promise<void> {
       levelIndex: runManager.currentLevel,
       nextLevel: runManager.currentLevel + 1,
       gold: runManager.gold,
-      spAwarded: 1,
       crystalHpLost: 0,
       offers: buildInterLevelOffers(),
       cardRewards: pendingReward ? pendingReward.options.map((option) => ({

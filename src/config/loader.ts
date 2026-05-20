@@ -467,25 +467,25 @@ export function parseMysticEventConfig(yamlText: string): MysticEventConfig {
   return MysticEventDocSchema.parse(doc);
 }
 
-const SkillEffectSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('boost_attack_speed'), multiplier: z.number() }),
-  z.object({ type: z.literal('add_extra_target'), count: z.number().int() }),
-]);
-
 const SkillNodeSchema = z.object({
   id: z.string(),
-  label: z.string(),
-  description: z.string(),
-  costSP: z.number().int().nonnegative(),
-  effect: SkillEffectSchema,
+  name: z.string(),
+  level: z.number().int().positive(),
+  goldCost: z.number().int().nonnegative(),
+  prerequisites: z.array(z.string()).default([]),
+  effects: z.array(z.object({
+    rule: z.string(),
+  }).passthrough()),
 });
 
 const SkillTreeConfigSchema = z.object({
-  unitId: z.string(),
   nodes: z.array(SkillNodeSchema),
 });
 
-export type SkillTreeConfigFromYaml = z.infer<typeof SkillTreeConfigSchema>;
+export type SkillTreeConfigFromYaml = {
+  readonly unitCardId: string;
+  readonly nodes: z.infer<typeof SkillNodeSchema>[];
+};
 
 export function parseSkillTreeFromUnitYaml(unitId: string, yamlText: string): SkillTreeConfigFromYaml | null {
   const docs = yaml.loadAll(yamlText);
@@ -496,7 +496,11 @@ export function parseSkillTreeFromUnitYaml(unitId: string, yamlText: string): Sk
     if (!unitEntry || typeof unitEntry !== 'object') continue;
     const raw = (unitEntry as Record<string, unknown>)['skillTree'];
     if (!raw) continue;
-    return SkillTreeConfigSchema.parse(raw);
+    const parsed = SkillTreeConfigSchema.parse(raw);
+    return {
+      unitCardId: unitId,
+      nodes: parsed.nodes,
+    };
   }
   return null;
 }

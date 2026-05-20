@@ -11,10 +11,10 @@ import {
 
 function state(overrides: Partial<InterLevelState> = {}): InterLevelState {
   return {
+    mode: 'branch',
     levelIndex: 3,
     nextLevel: 4,
     gold: 180,
-    spAwarded: 1,
     crystalHpLost: 50,
     offers: [
       { id: 'a', kind: 'shop', title: '🏪 商店', description: '明码标价 · 补强资源' },
@@ -31,10 +31,9 @@ describe('layoutInterLevel', () => {
     expect(layout.headerLabel).toBe('🏆 关卡 5 通过！');
   });
 
-  it('rewardGoldLabel and rewardSpLabel show awarded amounts', () => {
-    const layout = layoutInterLevel(state({ gold: 200, spAwarded: 2 }), 1920, 1080);
+  it('rewardGoldLabel shows awarded amount', () => {
+    const layout = layoutInterLevel(state({ gold: 200 }), 1920, 1080);
     expect(layout.rewardGoldLabel).toBe('● 金币 +200');
-    expect(layout.rewardSpLabel).toBe('✦ 技能点 +2');
   });
 
   it('crystalLostLabel shows damage when crystalHpLost > 0', () => {
@@ -77,6 +76,45 @@ describe('resolveInterLevelChoice', () => {
       kind: 'invalid', reason: 'no-such-offer',
     });
   });
+
+  it('returns claim-card-reward when panel is in card reward mode', () => {
+    expect(resolveInterLevelChoice(state({
+      mode: 'card-reward',
+      cardRewards: [
+        { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
+        { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+      ],
+    }), 'r2')).toEqual({
+      kind: 'claim-card-reward', rewardId: 'r2', cardId: 'fireball_card',
+    });
+  });
+
+  it('returns claim-gold-reward when panel is in gold reward mode', () => {
+    expect(resolveInterLevelChoice(state({
+      mode: 'gold-reward',
+      goldRewards: [
+        { id: 'g1', amount: 30, title: '30 金币', description: '小额补给' },
+        { id: 'g2', amount: 50, title: '50 金币', description: '标准补给' },
+        { id: 'g3', amount: 80, title: '80 金币', description: '大额补给' },
+      ],
+    }), 'g3')).toEqual({
+      kind: 'claim-gold-reward', rewardId: 'g3', amount: 80,
+    });
+  });
+
+  it('returns claim-upgrade-reward when panel is in upgrade reward mode', () => {
+    expect(resolveInterLevelChoice(state({
+      mode: 'upgrade-reward',
+      upgradeRewards: [
+        { id: 'u1', instanceId: 'arrow_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u2', instanceId: 'arrow_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u3', instanceId: 'arrow_3', cardId: 'shield_guard_card', title: '盾卫 Lv.2', description: '升级到 Lv.2' },
+      ],
+    }), 'u2')).toEqual({
+      kind: 'claim-upgrade-reward', rewardId: 'u2', instanceId: 'arrow_2', cardId: 'cannon_tower_card',
+    });
+  });
 });
 
 describe('InterLevelPanel class wrapper', () => {
@@ -105,6 +143,98 @@ describe('InterLevelPanel class wrapper', () => {
     panel.refresh(state());
     panel.trigger('nope');
     expect(got).toEqual([{ kind: 'invalid', reason: 'no-such-offer' }]);
+  });
+
+  it('returns card reward intent in reward mode', () => {
+    const panel = new InterLevelPanel();
+    const got: InterLevelIntent[] = [];
+    panel.setHandler((i) => got.push(i));
+    panel.refresh(state({
+      mode: 'card-reward',
+      cardRewards: [
+        { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
+        { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+      ],
+    }));
+    panel.trigger('r3');
+    expect(got).toEqual([{ kind: 'claim-card-reward', rewardId: 'r3', cardId: 'shield_guard_card' }]);
+  });
+
+  it('returns gold reward intent in gold reward mode', () => {
+    const panel = new InterLevelPanel();
+    const got: InterLevelIntent[] = [];
+    panel.setHandler((i) => got.push(i));
+    panel.refresh(state({
+      mode: 'gold-reward',
+      goldRewards: [
+        { id: 'g1', amount: 30, title: '30 金币', description: '小额补给' },
+        { id: 'g2', amount: 50, title: '50 金币', description: '标准补给' },
+        { id: 'g3', amount: 80, title: '80 金币', description: '大额补给' },
+      ],
+    }));
+    panel.trigger('g2');
+    expect(got).toEqual([{ kind: 'claim-gold-reward', rewardId: 'g2', amount: 50 }]);
+  });
+
+  it('returns upgrade reward intent in upgrade reward mode', () => {
+    const panel = new InterLevelPanel();
+    const got: InterLevelIntent[] = [];
+    panel.setHandler((i) => got.push(i));
+    panel.refresh(state({
+      mode: 'upgrade-reward',
+      upgradeRewards: [
+        { id: 'u1', instanceId: 'arrow_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u2', instanceId: 'arrow_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u3', instanceId: 'arrow_3', cardId: 'shield_guard_card', title: '盾卫 Lv.2', description: '升级到 Lv.2' },
+      ],
+    }));
+    panel.trigger('u1');
+    expect(got).toEqual([{ kind: 'claim-upgrade-reward', rewardId: 'u1', instanceId: 'arrow_1', cardId: 'arrow_tower_card' }]);
+  });
+});
+
+describe('card reward layout', () => {
+  it('uses reward header and reward cards in card reward mode', () => {
+    const layout = layoutInterLevel(state({
+      mode: 'card-reward',
+      cardRewards: [
+        { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
+        { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+      ],
+    }), 1920, 1080);
+
+    expect(layout.headerLabel).toBe('🃏 选择 1 张新卡牌');
+    expect(layout.items.map((item) => item.title)).toEqual(['箭塔卡', '火球术', '盾卫卡']);
+  });
+
+  it('uses gold reward header and gold reward cards in gold reward mode', () => {
+    const layout = layoutInterLevel(state({
+      mode: 'gold-reward',
+      goldRewards: [
+        { id: 'g1', amount: 30, title: '30 金币', description: '小额补给' },
+        { id: 'g2', amount: 50, title: '50 金币', description: '标准补给' },
+        { id: 'g3', amount: 80, title: '80 金币', description: '大额补给' },
+      ],
+    }), 1920, 1080);
+
+    expect(layout.headerLabel).toBe('💰 选择 1 份金币奖励');
+    expect(layout.items.map((item) => item.title)).toEqual(['30 金币', '50 金币', '80 金币']);
+  });
+
+  it('uses upgrade reward header and upgrade reward cards in upgrade reward mode', () => {
+    const layout = layoutInterLevel(state({
+      mode: 'upgrade-reward',
+      upgradeRewards: [
+        { id: 'u1', instanceId: 'arrow_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u2', instanceId: 'arrow_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u3', instanceId: 'arrow_3', cardId: 'shield_guard_card', title: '盾卫 Lv.2', description: '升级到 Lv.2' },
+      ],
+    }), 1920, 1080);
+
+    expect(layout.headerLabel).toBe('⬆ 选择 1 张卡牌升级');
+    expect(layout.items.map((item) => item.title)).toEqual(['箭塔 Lv.2', '炮塔 Lv.2', '盾卫 Lv.2']);
   });
 });
 

@@ -325,11 +325,6 @@ export class RunResultRenderer {
 
 const GOLD_COLOR = 0xffd740;
 const SP_COLOR = 0xb2ebf2;
-const NODE_PURCHASED = 0x1b5e20;
-const NODE_AFFORDABLE = 0x1565c0;
-const NODE_LOCKED = 0x37474f;
-
-
 export class ShopRenderer {
   private readonly container: Container;
   private readonly bg: Graphics;
@@ -735,7 +730,6 @@ export class LevelMapRenderer {
       const border = n.status === 'completed' ? 0x4caf50 : n.status === 'current' ? 0x4fc3f7 : 0x455a64;
       const borderWidth = n.status === 'current' ? 4 : 2;
       const cx = n.x + n.width / 2;
-      const cy = n.y + n.height / 2;
 
       this.nodesGraphics.rect(n.x, n.y, n.width, n.height).fill({ color: fill, alpha: n.status === 'locked' ? 0.5 : 0.95 });
       this.nodesGraphics.rect(n.x, n.y, n.width, n.height).stroke({ width: borderWidth, color: border });
@@ -800,6 +794,8 @@ const DECK_ITEM_H = 56;
 const DECK_ITEM_GAP = 6;
 const DECK_TOPBAR_H = 50;
 const DECK_BOTTOMBAR_H = 50;
+const DECK_ACTION_BTN_H = 44;
+const DECK_CONFIRM_BOX_H = 132;
 
 function deckLevelBorderColor(level: number | undefined): number {
   if (level === 3) return DECK_L3_BORDER;
@@ -819,11 +815,12 @@ export class DeckViewRenderer {
   private readonly leftGraphics: Graphics;
   private readonly rightGraphics: Graphics;
   private readonly titleText: Text;
-  private readonly spText: Text;
+  private readonly goldText: Text;
   private readonly closeBtnText: Text;
   private readonly rightPlaceholderText: Text;
   private readonly cardItemTexts: Text[] = [];
-  private readonly nodeTexts: Text[] = [];
+  private readonly detailTexts: Text[] = [];
+  private readonly actionBtnTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
   private readonly panel: DeckViewPanel;
@@ -839,16 +836,16 @@ export class DeckViewRenderer {
     this.bg = new Graphics();
     this.leftGraphics = new Graphics();
     this.rightGraphics = new Graphics();
-    this.titleText = new Text({ text: '📚 卡组 · 技能树', style: { fill: TITLE_COLOR, fontSize: 20, fontWeight: 'bold' } });
-    this.spText = new Text({ text: '', style: { fill: SP_COLOR, fontSize: 16 } });
-    this.spText.anchor.set(1, 0.5);
+    this.titleText = new Text({ text: '📚 卡池管理', style: { fill: TITLE_COLOR, fontSize: 20, fontWeight: 'bold' } });
+    this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 16 } });
+    this.goldText.anchor.set(1, 0.5);
     this.closeBtnText = new Text({ text: '✕ 关闭', style: { fill: TEXT_PRIMARY, fontSize: 16 } });
     this.closeBtnText.anchor.set(0.5, 0.5);
     this.rightPlaceholderText = new Text({ text: '← 选择左侧卡牌', style: { fill: TEXT_DIM, fontSize: 18 } });
     this.rightPlaceholderText.anchor.set(0.5, 0.5);
 
     this.container.addChild(this.bg, this.leftGraphics, this.rightGraphics,
-      this.titleText, this.spText, this.closeBtnText, this.rightPlaceholderText);
+      this.titleText, this.goldText, this.closeBtnText, this.rightPlaceholderText);
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
@@ -865,6 +862,69 @@ export class DeckViewRenderer {
 
   private instances(): readonly import('../ui/DeckViewPanel.js').CardInstanceEntry[] {
     return this.state?.instances ?? [];
+  }
+
+  private selectedInstance(): import('../ui/DeckViewPanel.js').CardInstanceEntry | null {
+    return this.instances().find((instance) => instance.instanceId === this.selectedInstanceId) ?? null;
+  }
+
+  private confirmationForSelected() {
+    const confirmation = this.state?.confirmation;
+    if (!confirmation) return null;
+    if (confirmation.instanceId !== this.selectedInstanceId) return null;
+    return confirmation;
+  }
+
+  private actionButtons(selected: import('../ui/DeckViewPanel.js').CardInstanceEntry) {
+    const panelX = this.rightColX + 20;
+    const panelW = this.rightColWidth - 40;
+    const gap = 16;
+    const buttonWidth = Math.floor((panelW - gap) / 2);
+    const y = DECK_TOPBAR_H + 186;
+    return [
+      {
+        kind: 'upgrade' as const,
+        x: panelX,
+        y,
+        width: buttonWidth,
+        height: DECK_ACTION_BTN_H,
+        enabled: selected.canUpgrade ?? false,
+        label: selected.upgradeLabel ?? (selected.nextUpgradeCostGold != null ? `升级 -${selected.nextUpgradeCostGold} 金币` : '无法升级'),
+      },
+      {
+        kind: 'delete' as const,
+        x: panelX + buttonWidth + gap,
+        y,
+        width: buttonWidth,
+        height: DECK_ACTION_BTN_H,
+        enabled: selected.canDelete ?? false,
+        label: selected.deleteLabel ?? '删除卡牌',
+      },
+    ];
+  }
+
+  private confirmationButtons() {
+    const box = this.confirmationBoxRect();
+    const gap = 12;
+    const buttonWidth = Math.floor((box.width - 36 - gap) / 2);
+    const y = box.y + box.height - DECK_ACTION_BTN_H - 14;
+    return {
+      confirm: { x: box.x + 18, y, width: buttonWidth, height: DECK_ACTION_BTN_H },
+      cancel: { x: box.x + 18 + buttonWidth + gap, y, width: buttonWidth, height: DECK_ACTION_BTN_H },
+    };
+  }
+
+  private confirmationBoxRect() {
+    return {
+      x: this.rightColX + 20,
+      y: DECK_TOPBAR_H + 256,
+      width: this.rightColWidth - 40,
+      height: DECK_CONFIRM_BOX_H,
+    };
+  }
+
+  private pointInRect(local: { x: number; y: number }, rect: { x: number; y: number; width: number; height: number }): boolean {
+    return local.x >= rect.x && local.x <= rect.x + rect.width && local.y >= rect.y && local.y <= rect.y + rect.height;
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {
@@ -884,6 +944,37 @@ export class DeckViewRenderer {
         this.panel.selectInstance(inst.instanceId);
         this.render();
       }
+      return;
+    }
+
+    const selected = this.selectedInstance();
+    if (!selected) return;
+    const confirmation = this.confirmationForSelected();
+    if (confirmation) {
+      const buttons = this.confirmationButtons();
+      if (this.pointInRect(local, buttons.confirm)) {
+        if (confirmation.kind === 'upgrade') {
+          this.panel.confirmUpgrade(confirmation.instanceId);
+        } else {
+          this.panel.confirmDelete(confirmation.instanceId);
+        }
+        return;
+      }
+      if (this.pointInRect(local, buttons.cancel)) {
+        this.panel.cancelConfirmation();
+        return;
+      }
+    }
+
+    for (const button of this.actionButtons(selected)) {
+      if (!button.enabled) continue;
+      if (!this.pointInRect(local, button)) continue;
+      if (button.kind === 'upgrade') {
+        this.panel.requestUpgrade(selected.instanceId);
+      } else {
+        this.panel.requestDelete(selected.instanceId);
+      }
+      return;
     }
   }
 
@@ -924,9 +1015,9 @@ export class DeckViewRenderer {
 
     this.titleText.position.set(20, DECK_TOPBAR_H / 2);
     this.titleText.anchor.set(0, 0.5);
-    const sp = this.state.sp;
-    this.spText.text = sp !== undefined ? `SP: ${sp}` : '';
-    this.spText.position.set(vw - 20, DECK_TOPBAR_H / 2);
+    const gold = this.state.gold;
+    this.goldText.text = gold !== undefined ? `金币: ${gold}` : '';
+    this.goldText.position.set(vw - 20, DECK_TOPBAR_H / 2);
 
     const cb = this.closeBtnRect;
     this.rightGraphics.clear();
@@ -954,9 +1045,8 @@ export class DeckViewRenderer {
       const ix = 8;
       const iw = lw - 16;
       const isSelected = inst.instanceId === this.selectedInstanceId;
-      const hasNodes = (inst.activeNodeCount ?? 0) > 0;
       const level = inst.level ?? 1;
-      const borderColor = isSelected ? DECK_SELECTED_BORDER : (hasNodes ? DECK_GOLD_GLOW : deckLevelBorderColor(level));
+      const borderColor = isSelected ? DECK_SELECTED_BORDER : ((inst.canUpgrade ?? false) ? DECK_GOLD_GLOW : deckLevelBorderColor(level));
       const bgColor = isSelected ? DECK_SELECTED_BG : 0x1a2a3a;
 
       this.leftGraphics.roundRect(ix, iy, iw, DECK_ITEM_H, 6).fill({ color: bgColor, alpha: 0.95 });
@@ -973,13 +1063,13 @@ export class DeckViewRenderer {
   }
 
   private renderRightPanel(rx: number, rw: number): void {
-    const instances = this.instances();
-    const selected = instances.find((i) => i.instanceId === this.selectedInstanceId);
+    const selected = this.selectedInstance();
 
     if (!selected) {
       this.rightPlaceholderText.position.set(rx + rw / 2, DECK_TOPBAR_H + this.contentH / 2);
       this.rightPlaceholderText.visible = true;
-      for (const t of this.nodeTexts) t.text = '';
+      for (const t of this.detailTexts) t.text = '';
+      for (const t of this.actionBtnTexts) t.text = '';
       return;
     }
     this.rightPlaceholderText.visible = false;
@@ -987,37 +1077,102 @@ export class DeckViewRenderer {
     const level = selected.level ?? 1;
     const cardTitle = `${selected.cardName ?? selected.cardId}${deckLevelDiamond(level)}`;
     const panelX = rx + 20;
-    const panelY = DECK_TOPBAR_H + 60;
+    const panelY = DECK_TOPBAR_H + 68;
+    const confirmation = this.confirmationForSelected();
+    const message = this.state?.message;
 
-    const MAX_SLOTS = 12;
-    while (this.nodeTexts.length < MAX_SLOTS) {
+    const MAX_SLOTS = 8;
+    while (this.detailTexts.length < MAX_SLOTS) {
       const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 13 } });
       this.container.addChild(t);
-      this.nodeTexts.push(t);
+      this.detailTexts.push(t);
     }
-    for (const t of this.nodeTexts) t.text = '';
+    while (this.actionBtnTexts.length < 4) {
+      const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 14, align: 'center' } });
+      t.anchor.set(0.5, 0.5);
+      this.container.addChild(t);
+      this.actionBtnTexts.push(t);
+    }
+    for (const t of this.detailTexts) t.text = '';
+    for (const t of this.actionBtnTexts) t.text = '';
 
     this.rightGraphics.roundRect(rx + 12, DECK_TOPBAR_H + 8, rw - 24, 32, 6)
       .fill({ color: 0x1a2a3a, alpha: 0.8 });
 
-    const titleLabel = this.nodeTexts[MAX_SLOTS - 1]!;
+    const titleLabel = this.detailTexts[MAX_SLOTS - 1]!;
     titleLabel.text = `🃏 ${cardTitle}`;
     titleLabel.style.fill = TITLE_COLOR;
     titleLabel.style.fontSize = 15;
     titleLabel.position.set(rx + 20, DECK_TOPBAR_H + 16);
 
-    const bodyLabel = this.nodeTexts[MAX_SLOTS - 2]!;
-    bodyLabel.text = '技能树开发中';
-    bodyLabel.style.fill = TEXT_DIM;
-    bodyLabel.style.fontSize = 14;
-    bodyLabel.position.set(panelX, panelY);
+    const lines = [
+      `当前等级: Lv.${level}`,
+      selected.nextUpgradeCostGold != null ? `下次升级消耗: ${selected.nextUpgradeCostGold} 金币` : '该卡牌已无法继续升级',
+      selected.canDelete === false ? '当前不可删除此卡牌' : '可在此处删除不再需要的卡牌',
+    ];
+    if (message) lines.push(message);
 
-    if (selected.equippedPath) {
-      const equippedLabel = this.nodeTexts[0]!;
-      equippedLabel.text = `已装备路径: ${selected.equippedPath}`;
-      equippedLabel.style.fill = DECK_L3_BORDER;
-      equippedLabel.style.fontSize = 13;
-      equippedLabel.position.set(panelX, panelY + 30);
+    for (let i = 0; i < lines.length && i < MAX_SLOTS - 2; i += 1) {
+      const label = this.detailTexts[i]!;
+      label.text = lines[i]!;
+      label.style.fill = i === lines.length - 1 && message ? DECK_GOLD_GLOW : TEXT_PRIMARY;
+      label.style.fontSize = 14;
+      label.position.set(panelX, panelY + i * 28);
+    }
+
+    const buttons = this.actionButtons(selected);
+    for (let i = 0; i < buttons.length; i += 1) {
+      const button = buttons[i]!;
+      const fill = button.enabled ? (button.kind === 'delete' ? 0x5d1f1f : 0x1c4f7a) : BUTTON_DISABLED;
+      const border = button.enabled ? (button.kind === 'delete' ? 0xef9a9a : BUTTON_BORDER) : BUTTON_BORDER_DISABLED;
+      this.rightGraphics.roundRect(button.x, button.y, button.width, button.height, 8)
+        .fill({ color: fill, alpha: 0.95 });
+      this.rightGraphics.roundRect(button.x, button.y, button.width, button.height, 8)
+        .stroke({ width: 2, color: border });
+      const text = this.actionBtnTexts[i]!;
+      text.text = button.label;
+      text.style.fill = button.enabled ? TEXT_PRIMARY : TEXT_DIM;
+      text.position.set(button.x + button.width / 2, button.y + button.height / 2);
+    }
+
+    if (confirmation) {
+      const box = this.confirmationBoxRect();
+      this.rightGraphics.roundRect(box.x, box.y, box.width, box.height, 10)
+        .fill({ color: 0x121b26, alpha: 0.98 });
+      this.rightGraphics.roundRect(box.x, box.y, box.width, box.height, 10)
+        .stroke({ width: 2, color: confirmation.kind === 'delete' ? 0xe57373 : DECK_GOLD_GLOW });
+
+      const confirmTitle = this.actionBtnTexts[2]!;
+      confirmTitle.text = confirmation.title;
+      confirmTitle.style.fill = confirmation.kind === 'delete' ? 0xffab91 : DECK_GOLD_GLOW;
+      confirmTitle.position.set(box.x + box.width / 2, box.y + 24);
+
+      const confirmBody = this.detailTexts[MAX_SLOTS - 2]!;
+      confirmBody.text = confirmation.description;
+      confirmBody.style.fill = TEXT_PRIMARY;
+      confirmBody.style.fontSize = 13;
+      confirmBody.position.set(box.x + 18, box.y + 52);
+
+      const confirmButtons = this.confirmationButtons();
+      this.rightGraphics.roundRect(confirmButtons.confirm.x, confirmButtons.confirm.y, confirmButtons.confirm.width, confirmButtons.confirm.height, 8)
+        .fill({ color: confirmation.kind === 'delete' ? 0x8e2d2d : 0x7b5c13, alpha: 0.96 });
+      this.rightGraphics.roundRect(confirmButtons.confirm.x, confirmButtons.confirm.y, confirmButtons.confirm.width, confirmButtons.confirm.height, 8)
+        .stroke({ width: 2, color: confirmation.kind === 'delete' ? 0xffccbc : DECK_GOLD_GLOW });
+      this.rightGraphics.roundRect(confirmButtons.cancel.x, confirmButtons.cancel.y, confirmButtons.cancel.width, confirmButtons.cancel.height, 8)
+        .fill({ color: BUTTON_ENABLED, alpha: 0.96 });
+      this.rightGraphics.roundRect(confirmButtons.cancel.x, confirmButtons.cancel.y, confirmButtons.cancel.width, confirmButtons.cancel.height, 8)
+        .stroke({ width: 2, color: BUTTON_BORDER });
+
+      const confirmLabel = this.actionBtnTexts[3]!;
+      confirmLabel.text = confirmation.confirmLabel ?? (confirmation.kind === 'delete' ? '确认删除' : '确认升级');
+      confirmLabel.style.fill = TEXT_PRIMARY;
+      confirmLabel.position.set(confirmButtons.confirm.x + confirmButtons.confirm.width / 2, confirmButtons.confirm.y + confirmButtons.confirm.height / 2);
+
+      const cancelLabel = this.detailTexts[MAX_SLOTS - 3]!;
+      cancelLabel.text = confirmation.cancelLabel ?? '取消';
+      cancelLabel.style.fill = TEXT_PRIMARY;
+      cancelLabel.style.fontSize = 14;
+      cancelLabel.position.set(confirmButtons.cancel.x + confirmButtons.cancel.width / 2 - 18, confirmButtons.cancel.y + 12);
     }
   }
 }
