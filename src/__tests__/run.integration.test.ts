@@ -9,6 +9,7 @@ import { LevelState } from '../core/LevelState.js';
 import { RunController } from '../core/RunController.js';
 import {
   Attack,
+  BossPhase,
   BossTag,
   Crystal,
   Faction,
@@ -18,6 +19,7 @@ import {
   Projectile,
   UnitCategory,
   UnitTag,
+  Visual,
 } from '../core/components.js';
 import type { UnitConfig } from '../factories/UnitFactory.js';
 import { spawnUnit } from '../factories/UnitFactory.js';
@@ -29,6 +31,7 @@ import { HandSystem } from '../unit-system/HandSystem.js';
 import { RunManager, RunPhase } from '../unit-system/RunManager.js';
 import { EconomySystem } from '../systems/EconomySystem.js';
 import { createAttackSystem } from '../systems/AttackSystem.js';
+import { createBossPhaseSystem } from '../systems/BossPhaseSystem.js';
 import { createCrystalSystem } from '../systems/CrystalSystem.js';
 import { createHealthSystem } from '../systems/HealthSystem.js';
 import { createLifecycleSystem } from '../systems/LifecycleSystem.js';
@@ -266,6 +269,72 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
 
     expect(Health.current[crystal]).toBeLessThan(10);
     expect(Health.current[boss]).toBeGreaterThan(0);
+  });
+
+  it('boss second phase switches to blue ranged pressure below 66% hp', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createBossPhaseSystem());
+    game.pipeline.register(createAttackSystem());
+    game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createCrystalSystem());
+    game.pipeline.register(createHealthSystem());
+    game.pipeline.register(createLifecycleSystem());
+
+    const crystal = spawnCrystalAt(game.world, 480, 100, 12, 24);
+    const boss = spawnUnit(game.world, OLD_ONE_WARDEN, { x: 320, y: 100 });
+
+    Health.current[boss] = 2300;
+    game.tick(0.1);
+
+    expect(BossPhase.value[boss]).toBe(2);
+    expect(Visual.color[boss]).toBe(0x1e88e5);
+    expect(Attack.range[boss]).toBe(180);
+    expect(Attack.damage[boss]).toBe(110);
+    expect(Attack.cooldown[boss]).toBeCloseTo(1 / 0.8);
+
+    for (let i = 0; i < 20; i += 1) {
+      game.tick(0.1);
+    }
+
+  });
+
+  it('boss third phase switches to red close-range frenzy below 33% hp', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createBossPhaseSystem());
+    game.pipeline.register(createAttackSystem());
+    game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createCrystalSystem());
+    game.pipeline.register(createHealthSystem());
+    game.pipeline.register(createLifecycleSystem());
+
+    const crystal = spawnCrystalAt(game.world, 360, 100, 12, 24);
+    const boss = spawnUnit(game.world, OLD_ONE_WARDEN, { x: 320, y: 100 });
+
+    Health.current[boss] = 1000;
+    game.tick(0.1);
+
+    expect(BossPhase.value[boss]).toBe(3);
+    expect(Visual.color[boss]).toBe(0xc62828);
+    expect(Attack.range[boss]).toBe(64);
+    expect(Attack.damage[boss]).toBe(180);
+
+    for (let i = 0; i < 20; i += 1) {
+      game.tick(0.1);
+    }
+
+    expect(Health.current[crystal]).toBeLessThan(12);
   });
 
   it('boss wave completes after the first-phase boss is killed', () => {

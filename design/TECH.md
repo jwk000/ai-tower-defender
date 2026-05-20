@@ -142,6 +142,7 @@ interface BehaviorRule {
 
 <!-- CODEGEN:components:START -->
 - Attack
+- BossPhase
 - BossTag
 - Crystal
 - DeadTag
@@ -163,6 +164,7 @@ interface BehaviorRule {
 
 <!-- CODEGEN:systems:START -->
 - AttackSystem [gameplay]
+- BossPhaseSystem [gameplay]
 - CrystalSystem [gameplay]
 - HealthSystem [lifecycle]
 - LifecycleSystem [lifecycle]

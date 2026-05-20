@@ -78,9 +78,9 @@
 - [x] 最终关卡与 Boss 节点已接入
 - [x] 设计并落地 1 个符合最新设计的正式 Boss
 - [x] Boss 第一阶段机制
-- [ ] Boss 第二阶段机制
-- [ ] Boss 第三阶段机制（如按 `LEVELS.md` 终战 Boss 方案执行）
-- [ ] Boss 转阶段触发与表现反馈
+- [x] Boss 第二阶段机制
+- [x] Boss 第三阶段机制（如按 `LEVELS.md` 终战 Boss 方案执行）
+- [x] Boss 转阶段触发与表现反馈
 - [ ] Boss 战流程测试与通关冒烟
 
 ### 2.3 状态系统 / Buff-Debuff

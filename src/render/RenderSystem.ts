@@ -1,7 +1,7 @@
 import { defineQuery, hasComponent } from 'bitecs';
 
 import type { TowerWorld } from '../core/World.js';
-import { BossTag, EliteTag, Position, Visual } from '../core/components.js';
+import { BossPhase, BossTag, EliteTag, Position, Visual } from '../core/components.js';
 import type { System, SystemPhase } from '../core/pipeline.js';
 
 export interface VisualSnapshot {
@@ -10,6 +10,7 @@ export interface VisualSnapshot {
   readonly size: number;
   readonly isElite: boolean;
   readonly isBoss: boolean;
+  readonly bossPhase: number;
 }
 
 export interface EntityViewSink {
@@ -45,6 +46,7 @@ export class RenderSystem implements System {
           size: Visual.size[eid]!,
           isElite: hasComponent(world, EliteTag, eid),
           isBoss: hasComponent(world, BossTag, eid),
+          bossPhase: hasComponent(world, BossPhase, eid) ? BossPhase.value[eid]! : 0,
         });
         this.tracked.add(eid);
       }

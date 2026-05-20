@@ -2,6 +2,7 @@ import { addComponent } from 'bitecs';
 
 import {
   Attack,
+  BossPhase,
   BossTag,
   Faction,
   FactionTeam,
@@ -156,6 +157,8 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
 
   if (config.isBoss) {
     addComponent(world, BossTag, eid);
+    addComponent(world, BossPhase, eid);
+    BossPhase.value[eid] = 1;
   }
 
   if (config.stats.speed > 0) {
