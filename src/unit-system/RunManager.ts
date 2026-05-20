@@ -661,9 +661,17 @@ export class RunManager {
   }
 
   private buildDemoCardRewardOptions(): readonly [CardRewardOption, CardRewardOption, CardRewardOption] {
-    const startIndex = ((this._currentLevel - 1) * 2) % DEMO_CARD_REWARD_OPTIONS.length;
+    const ownedCardIds = new Set<string>();
+    for (const instance of this._skillTree.instances.values()) {
+      ownedCardIds.add(instance.config.unitCardId.endsWith('_card') ? instance.config.unitCardId : `${instance.config.unitCardId}_card`);
+    }
+    const available = DEMO_CARD_REWARD_OPTIONS.filter((option) => !ownedCardIds.has(option.cardId));
+    if (available.length < 3) {
+      throw new Error('[RunManager] not enough unique card rewards remaining');
+    }
+    const startIndex = ((this._currentLevel - 1) * 2) % available.length;
     const options = [0, 1, 2].map((offset) => {
-      const base = DEMO_CARD_REWARD_OPTIONS[(startIndex + offset) % DEMO_CARD_REWARD_OPTIONS.length]!;
+      const base = available[(startIndex + offset) % available.length]!;
       return {
         id: `reward-${this._currentLevel}-${offset + 1}`,
         cardId: base.cardId,

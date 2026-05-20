@@ -99,4 +99,69 @@ describe('DeckSystem', () => {
     expect(deck.drawPileSize).toBe(3);
     expect(deck.discardPileSize).toBe(0);
   });
+
+  it('addCard appends a rewarded card into discard pile with an instance id', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+
+    const added = deck.addCard('reward_fireball');
+
+    expect(added).toMatchObject({ cardId: 'reward_fireball', pile: 'discard' });
+    expect(added.instanceId).toMatch(/^reward_fireball_inst_\d+$/);
+    expect(deck.discardPileSize).toBe(1);
+    expect(deck.getCardInstances()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: added.instanceId, cardId: 'reward_fireball', pile: 'discard' }),
+      ]),
+    );
+  });
+
+  it('addCard rejects duplicate card ids already present in deck', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+    const existing = deck.previewDrawPile()[0]!;
+
+    expect(() => deck.addCard(existing)).toThrow(/duplicate cardId/i);
+  });
+
+  it('removeInstance removes a specific discard-pile card instance without disturbing others', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+
+    const first = deck.addCard('reward_fireball');
+    const second = deck.addCard('reward_iceball');
+
+    expect(deck.removeInstance(first.instanceId)).toBe(true);
+    expect(deck.removeInstance(first.instanceId)).toBe(false);
+    expect(deck.getCardInstances()).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: first.instanceId }),
+      ]),
+    );
+    expect(deck.getCardInstances()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: second.instanceId, cardId: 'reward_iceball', pile: 'discard' }),
+      ]),
+    );
+  });
+
+  it('restoreFrom preserves snapshots that contain duplicate card ids from legacy decks', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+
+    expect(() => deck.restoreFrom({
+      drawPile: ['arrow_tower'],
+      discardPile: ['arrow_tower'],
+    })).not.toThrow();
+  });
+
+  it('removeInstance can delete a draw-pile card instance by id', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+    const target = deck.getCardInstances().find((instance) => instance.pile === 'draw');
+
+    expect(target).toBeDefined();
+    expect(deck.removeInstance(target!.instanceId)).toBe(true);
+    expect(deck.drawPileSize).toBe(2);
+    expect(deck.getCardInstances()).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: target!.instanceId }),
+      ]),
+    );
+  });
 });

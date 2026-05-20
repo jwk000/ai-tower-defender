@@ -42,6 +42,17 @@ describe('DeckSystem snapshot / restoreFrom', () => {
     deck.drawCard();
     expect(snap.drawPile.length).toBe(3);
   });
+
+  it('save / restore preserves unique deck without duplicates', () => {
+    const deck = makeDeck(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card'], 4);
+    deck.initWithCards(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card']);
+
+    const snap = deck.snapshot();
+    const restored = makeDeck(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card'], 4);
+    restored.restoreFrom(snap);
+
+    expect(restored.snapshot()).toEqual(snap);
+  });
 });
 
 describe('RunManager snapshot / restoreFrom', () => {

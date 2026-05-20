@@ -10,6 +10,29 @@ export interface CardInstance {
   readonly pile: 'draw' | 'discard' | 'hand';
 }
 
+export interface AddedDeckCard {
+  readonly cardId: string;
+  readonly instanceId: string;
+  readonly pile: 'discard';
+}
+
+export interface DeckSnapshot {
+  readonly drawPile: string[];
+  readonly discardPile: string[];
+  readonly drawPileInstances?: string[];
+  readonly discardPileInstances?: string[];
+}
+
+function ensureUniqueCardIds(cardIds: readonly string[], source: string): void {
+  const seen = new Set<string>();
+  for (const cardId of cardIds) {
+    if (seen.has(cardId)) {
+      throw new Error(`[DeckSystem] duplicate cardId "${cardId}" in ${source}`);
+    }
+    seen.add(cardId);
+  }
+}
+
 export class DeckSystem {
   private readonly pool: readonly string[];
   private readonly deckSize: number;
@@ -57,6 +80,36 @@ export class DeckSystem {
     this.discardPileInstances.push(instId);
   }
 
+  addCard(cardId: string): AddedDeckCard {
+    if (this.hasCard(cardId)) {
+      throw new Error(`[DeckSystem] duplicate cardId "${cardId}" already exists in deck`);
+    }
+    const instanceId = this.allocateInstance(cardId);
+    this.discardPile.push(cardId);
+    this.discardPileInstances.push(instanceId);
+    return { cardId, instanceId, pile: 'discard' };
+  }
+
+  removeInstance(instanceId: string): boolean {
+    const drawIndex = this.drawPileInstances.indexOf(instanceId);
+    if (drawIndex >= 0) {
+      this.drawPile.splice(drawIndex, 1);
+      this.drawPileInstances.splice(drawIndex, 1);
+      this.instanceCardMap.delete(instanceId);
+      return true;
+    }
+
+    const discardIndex = this.discardPileInstances.indexOf(instanceId);
+    if (discardIndex >= 0) {
+      this.discardPile.splice(discardIndex, 1);
+      this.discardPileInstances.splice(discardIndex, 1);
+      this.instanceCardMap.delete(instanceId);
+      return true;
+    }
+
+    return false;
+  }
+
   previewDrawPile(): string[] {
     return [...this.drawPile];
   }
@@ -80,6 +133,7 @@ export class DeckSystem {
     if (cards.length === 0) {
       throw new Error('[DeckSystem] initWithCards: cards must not be empty');
     }
+    ensureUniqueCardIds(cards, 'initWithCards');
     this.drawPile = [];
     this.drawPileInstances = [];
     this.discardPile = [];
@@ -96,15 +150,25 @@ export class DeckSystem {
     this.buildDeck();
   }
 
-  snapshot(): { drawPile: string[]; discardPile: string[] } {
-    return { drawPile: [...this.drawPile], discardPile: [...this.discardPile] };
+  snapshot(): DeckSnapshot {
+    return {
+      drawPile: [...this.drawPile],
+      discardPile: [...this.discardPile],
+      drawPileInstances: [...this.drawPileInstances],
+      discardPileInstances: [...this.discardPileInstances],
+    };
   }
 
-  restoreFrom(snap: { drawPile: string[]; discardPile: string[] }): void {
+  restoreFrom(snap: DeckSnapshot): void {
     this.drawPile = [...snap.drawPile];
     this.discardPile = [...snap.discardPile];
-    this.drawPileInstances = this.drawPile.map((c) => this.allocateInstance(c));
-    this.discardPileInstances = this.discardPile.map((c) => this.allocateInstance(c));
+    this.drawPileInstances = this.restoreInstances(this.drawPile, snap.drawPileInstances);
+    this.discardPileInstances = this.restoreInstances(this.discardPile, snap.discardPileInstances);
+    this.rebaseInstanceCounter();
+  }
+
+  private hasCard(cardId: string): boolean {
+    return this.drawPile.includes(cardId) || this.discardPile.includes(cardId);
   }
 
   private allocateInstance(cardId: string): string {
@@ -143,5 +207,26 @@ export class DeckSystem {
     this.drawPileInstances = instArr;
     this.discardPile = [];
     this.discardPileInstances = [];
+  }
+
+  private restoreInstances(cards: readonly string[], savedInstances: readonly string[] | undefined): string[] {
+    if (savedInstances && savedInstances.length === cards.length) {
+      for (let i = 0; i < cards.length; i += 1) {
+        this.instanceCardMap.set(savedInstances[i]!, cards[i]!);
+      }
+      return [...savedInstances];
+    }
+    return cards.map((cardId) => this.allocateInstance(cardId));
+  }
+
+  private rebaseInstanceCounter(): void {
+    const allInstances = [...this.drawPileInstances, ...this.discardPileInstances];
+    let maxCounter = this.instanceCounter;
+    for (const instanceId of allInstances) {
+      const match = instanceId.match(/_inst_(\d+)$/);
+      if (!match) continue;
+      maxCounter = Math.max(maxCounter, Number(match[1]));
+    }
+    this.instanceCounter = maxCounter;
   }
 }

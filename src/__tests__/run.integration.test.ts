@@ -413,6 +413,33 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(() => controller.claimUpgradeReward('u1')).toThrow(/INSTANCE_NOT_FOUND/i);
   });
 
+  it('non-final battle completion only offers unique cards not already owned', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({
+      pool: ['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card'],
+      deckSize: 4,
+      rng: makeRng(12),
+    });
+    deckSystem.initWithCards(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card']);
+    runManager.registerCardInstance('arrow_tower_card_inst_1', { unitCardId: 'arrow_tower', nodes: [] });
+    runManager.registerCardInstance('shield_guard_card_inst_2', { unitCardId: 'shield_guard', nodes: [] });
+    runManager.registerCardInstance('fireball_card_inst_3', { unitCardId: 'fireball', nodes: [] });
+    runManager.registerCardInstance('cannon_tower_card_inst_4', { unitCardId: 'cannon_tower', nodes: [] });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+
+    expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'elemental_tower_card',
+      'lightning_tower_card',
+      'laser_tower_card',
+    ]);
+  });
+
   it('non-final battle completion can grant card -> gold -> upgrade -> branch in sequence', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
@@ -466,7 +493,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
     const scenes = makeScenes();
     const deckSystem = new DeckSystem({
-      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      pool: ['lightning_tower_card', 'laser_tower_card', 'bat_tower_card'],
       deckSize: 3,
       rng: makeRng(41),
     });
