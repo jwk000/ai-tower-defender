@@ -153,6 +153,9 @@ describe('SaveSystem save / load round-trip', () => {
     expect(loaded?.version).toBe(3);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
+    expect(loaded).not.toBeNull();
+    expect('skillPoints' in loaded!).toBe(false);
+    expect('skillTree' in loaded!).toBe(false);
   });
 
   it('loadRun migrates v1 save to v3 format', () => {
@@ -173,6 +176,39 @@ describe('SaveSystem save / load round-trip', () => {
     expect(loaded?.version).toBe(3);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
+    expect(loaded).not.toBeNull();
+    expect('skillPoints' in loaded!).toBe(false);
+    expect('skillTreeUnlocked' in loaded!).toBe(false);
+  });
+
+  it('RunManager restoreFrom keeps migrated save free of legacy SP', () => {
+    const v2Save: RunSnapshotV2 = {
+      version: 2,
+      savedAt: 999,
+      phase: 'InterLevel',
+      currentLevelIdx: 3,
+      gold: 145,
+      skillPoints: 9,
+      crystalHp: 16,
+      crystalHpMax: 20,
+      skillTree: { instances: [{ id: 'legacy-node' }] },
+      pendingCardReward: null,
+      pendingGoldReward: null,
+      pendingUpgradeReward: null,
+      deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
+    };
+    localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
+
+    const loaded = SaveSystem.loadRun()!;
+    const mgr = makeManager(4);
+    mgr.restoreFrom(loaded);
+
+    expect(mgr.phase).toBe(RunPhase.InterLevel);
+    expect(mgr.currentLevel).toBe(3);
+    expect(mgr.gold).toBe(145);
+    expect(mgr.crystalHp).toBe(16);
+    expect(mgr.sp).toBe(0);
+    expect(mgr.skillTreeState.size).toBe(0);
   });
 
   it('clearRun removes save and legacy keys', () => {
