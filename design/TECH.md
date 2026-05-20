@@ -144,6 +144,7 @@ interface BehaviorRule {
 - Attack
 - Crystal
 - DeadTag
+- EliteTag
 - Faction
 - Health
 - JustSpawnedTag

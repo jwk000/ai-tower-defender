@@ -10,6 +10,7 @@ import {
   Position,
   SupportAura,
   SummonAura,
+  EliteTag,
   UnitCategory,
   type UnitCategoryValue,
   UnitTag,
@@ -146,6 +147,10 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
 
   addComponent(world, UnitTag, eid);
   UnitTag.category[eid] = category;
+
+  if (config.id.endsWith('_elite')) {
+    addComponent(world, EliteTag, eid);
+  }
 
   if (config.stats.speed > 0) {
     addComponent(world, Movement, eid);

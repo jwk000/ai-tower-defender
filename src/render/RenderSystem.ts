@@ -1,13 +1,14 @@
-import { defineQuery } from 'bitecs';
+import { defineQuery, hasComponent } from 'bitecs';
 
 import type { TowerWorld } from '../core/World.js';
-import { Position, Visual } from '../core/components.js';
+import { EliteTag, Position, Visual } from '../core/components.js';
 import type { System, SystemPhase } from '../core/pipeline.js';
 
 export interface VisualSnapshot {
   readonly shape: number;
   readonly color: number;
   readonly size: number;
+  readonly isElite: boolean;
 }
 
 export interface EntityViewSink {
@@ -41,6 +42,7 @@ export class RenderSystem implements System {
           shape: Visual.shape[eid]!,
           color: Visual.color[eid]!,
           size: Visual.size[eid]!,
+          isElite: hasComponent(world, EliteTag, eid),
         });
         this.tracked.add(eid);
       }

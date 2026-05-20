@@ -62,6 +62,8 @@ export const SummonAura = defineComponent({
   summonUnitKind: Types.ui16,
 });
 
+export const EliteTag = defineComponent();
+
 export const Visual = defineComponent({
   shape: Types.ui8,
   color: Types.ui32,

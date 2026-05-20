@@ -50,6 +50,10 @@ export class EntityRenderer implements EntityViewSink {
 
 function drawShape(g: Graphics, visual: VisualSnapshot): void {
   const half = visual.size / 2;
+  if (visual.isElite) {
+    g.circle(0, 0, half + 4);
+    g.stroke({ width: 3, color: 0xffd54f, alpha: 0.95 });
+  }
   switch (visual.shape) {
     case VisualShape.Square:
       g.rect(-half, -half, visual.size, visual.size);

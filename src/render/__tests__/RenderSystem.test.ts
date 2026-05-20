@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { addComponent } from 'bitecs';
 
 import { createTowerWorld, type TowerWorld } from '../../core/World.js';
-import { Position, Visual, VisualShape } from '../../core/components.js';
+import { Position, Visual, VisualShape, EliteTag } from '../../core/components.js';
 import { RenderSystem, type EntityViewSink } from '../RenderSystem.js';
 
 interface ViewRecord {
@@ -20,6 +20,7 @@ interface ViewRecord {
   shape: number;
   color: number;
   size: number;
+  isElite: boolean;
   destroyed: boolean;
 }
 
@@ -39,6 +40,7 @@ function createStubSink(): EntityViewSink & { views: Map<number, ViewRecord>; so
         shape: visual.shape,
         color: visual.color,
         size: visual.size,
+        isElite: visual.isElite,
         destroyed: false,
       });
     },
@@ -97,6 +99,15 @@ describe('RenderSystem — view lifecycle', () => {
     expect(v.y).toBe(200);
     expect(v.color).toBe(0xabcdef);
     expect(v.size).toBe(16);
+  });
+
+  it('passes elite marker to view sink for elite entities', () => {
+    const eid = spawnEntity(world, 120, 80, 0xffd54f);
+    addComponent(world, EliteTag, eid);
+
+    system.update(world, 0.016);
+
+    expect(sink.views.get(eid)?.isElite).toBe(true);
   });
 
   it('syncs position to existing view on subsequent frames without recreating', () => {
