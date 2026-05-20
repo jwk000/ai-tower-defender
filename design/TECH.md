@@ -161,6 +161,7 @@ interface BehaviorRule {
 - SupportAura
 - UnitTag
 - Visual
+- Vulnerable
 <!-- CODEGEN:components:END -->
 
 ### 4.2 已注册系统

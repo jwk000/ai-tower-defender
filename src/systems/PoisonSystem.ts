@@ -3,6 +3,7 @@ import { defineQuery } from 'bitecs';
 import { Health, Poison } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
+import { applyDamage } from './damage.js';
 
 export function createPoisonSystem(): System {
   const query = defineQuery([Poison, Health]);
@@ -30,7 +31,7 @@ export function createPoisonSystem(): System {
         tickTimer -= dt;
 
         while (tickTimer <= 0 && duration > 0 && Health.current[eid]! > 0) {
-          Health.current[eid] = Health.current[eid]! - Math.round(damagePerTick);
+          applyDamage(world, eid, Math.round(damagePerTick));
           tickTimer += tickInterval;
         }
 

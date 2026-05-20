@@ -70,6 +70,11 @@ export const Shield = defineComponent({
   duration: Types.f32,
 });
 
+export const Vulnerable = defineComponent({
+  multiplier: Types.f32,
+  duration: Types.f32,
+});
+
 export const SupportAura = defineComponent({
   radius: Types.f32,
   shieldAmount: Types.i32,

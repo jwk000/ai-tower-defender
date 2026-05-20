@@ -1,8 +1,9 @@
 import { addComponent, defineQuery, hasComponent } from 'bitecs';
 
-import { DeadTag, Health, Position, Projectile, Shield } from '../core/components.js';
+import { DeadTag, Health, Position, Projectile } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
+import { applyDamage } from './damage.js';
 
 export function createProjectileSystem(): System {
   const projectileQuery = defineQuery([Projectile, Position]);
@@ -44,19 +45,7 @@ export function createProjectileSystem(): System {
           const ddx = Position.x[target]! - Position.x[eid]!;
           const ddy = Position.y[target]! - Position.y[eid]!;
           if (ddx * ddx + ddy * ddy <= hitR * hitR) {
-            let damageLeft = Projectile.damage[eid]!;
-            if (hasComponent(world, Shield, target) && Shield.current[target]! > 0) {
-              const absorbed = Math.min(Shield.current[target]!, damageLeft);
-              Shield.current[target] = Shield.current[target]! - absorbed;
-              damageLeft -= absorbed;
-              if (Shield.current[target]! <= 0) {
-                Shield.current[target] = 0;
-                Shield.duration[target] = 0;
-              }
-            }
-            if (damageLeft > 0) {
-              Health.current[target] = Health.current[target]! - damageLeft;
-            }
+            applyDamage(world, target, Projectile.damage[eid]!);
             addComponent(world, DeadTag, eid);
             continue;
           }
