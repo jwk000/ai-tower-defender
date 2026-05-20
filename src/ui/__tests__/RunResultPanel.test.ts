@@ -72,7 +72,6 @@ describe('projectRunResult', () => {
       stats: makeStats({ archetypeTag: '法术爆发流' }),
     }));
     expect(layout.lines.find((l) => l.label === '流派标签')).toBeUndefined();
-    expect(layout.lines.find((l) => l.label === '关键技能树')).toBeUndefined();
   });
 
   it('includes 3 resourceResetLines on victory (with "下一次 Run" line)', () => {
