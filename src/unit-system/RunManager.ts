@@ -78,7 +78,9 @@ const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
   { cardId: 'poison_tower_card', title: '毒塔卡', description: '中毒磨血，适合应对长线波次。' },
   { cardId: 'lightning_tower_card', title: '电塔卡', description: '高爆发连锁火力，适合压制精英。' },
   { cardId: 'laser_tower_card', title: '激光塔卡', description: '持续穿透输出，适合后期补强。' },
+  { cardId: 'crossbow_tower_card', title: '弩塔卡', description: '直线穿透输出，适合走廊型关卡。' },
   { cardId: 'bat_tower_card', title: '蝙蝠塔卡', description: '高阶召唤塔，提供更强后期上限。' },
+  { cardId: 'missile_tower_card', title: '导弹塔卡', description: '战略级范围打击，适合作为后期终结手段。' },
 ] as const;
 
 const DEMO_GOLD_REWARD_AMOUNTS = [30, 50, 80] as const;

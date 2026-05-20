@@ -324,7 +324,9 @@ available:
     - poison
     - lightning
     - laser
+    - crossbow
     - bat
+    - missile
   units:
     - swordsman
     - archer

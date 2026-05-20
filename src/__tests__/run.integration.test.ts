@@ -493,7 +493,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
     const scenes = makeScenes();
     const deckSystem = new DeckSystem({
-      pool: ['lightning_tower_card', 'laser_tower_card', 'bat_tower_card'],
+      pool: ['lightning_tower_card', 'laser_tower_card', 'bat_tower_card', 'missile_tower_card'],
       deckSize: 3,
       rng: makeRng(41),
     });

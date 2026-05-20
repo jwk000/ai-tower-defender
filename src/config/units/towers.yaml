@@ -12,6 +12,164 @@
 # ============================================================
 
 # ────────────────────────────────────────────────
+# 弩塔 Lv.1 — 直线穿透物理输出
+# ────────────────────────────────────────────────
+crossbow_tower:
+  id: crossbow_tower
+  name: 弩塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: crossbow_tower_lv2
+  cardLevel: 1
+
+  stats:
+    hp: 110
+    atk: 18
+    attackSpeed: 0.7
+    range: 240
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 90
+
+  visual:
+    shape: rect
+    color: "#8d6e63"
+    size: 40
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      pierceToBoardEdge: true
+
+  lifecycle:
+    onDeath:
+      - type: leave_ruins
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: bolt
+      - type: play_sound
+        sound: SFX_ARROW_SHOOT
+
+---
+# 弩塔 Lv.2 — 穿云重弩（伤害与射程提升）
+crossbow_tower_lv2:
+  id: crossbow_tower_lv2
+  name: 穿云重弩
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: crossbow_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 120
+    atk: 25
+    attackSpeed: 0.7
+    range: 255
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 90
+
+  visual:
+    shape: rect
+    color: "#795548"
+    size: 42
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      pierceToBoardEdge: true
+
+  lifecycle:
+    onDeath:
+      - type: leave_ruins
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: bolt
+      - type: play_sound
+        sound: SFX_ARROW_SHOOT
+
+---
+# 弩塔 Lv.3 — 裂风弩塔（高伤穿透，附带破甲）
+crossbow_tower_lv3:
+  id: crossbow_tower_lv3
+  name: 裂风弩塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 130
+    atk: 34
+    attackSpeed: 0.7
+    range: 275
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 90
+
+  visual:
+    shape: rect
+    color: "#5d4037"
+    size: 44
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      pierceToBoardEdge: true
+      armorBreakOnHit:
+        ratio: 0.2
+        duration: 3.0
+
+  lifecycle:
+    onDeath:
+      - type: leave_ruins
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: bolt
+      - type: play_sound
+        sound: SFX_ARROW_SHOOT
+
+---
+
+# ────────────────────────────────────────────────
 # 箭塔 Lv.1 — 基础单体物理远程
 # ────────────────────────────────────────────────
 arrow_tower:

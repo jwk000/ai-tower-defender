@@ -54,6 +54,7 @@ const VFX_STUBS = [
   'spawn_lightning_bolt',
   'spawn_laser_beam',
   'spawn_bat_swarm',
+  'spawn_missile',
 ];
 
 function makeRng(seed = 0): () => number {

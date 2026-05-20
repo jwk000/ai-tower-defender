@@ -80,6 +80,16 @@ laser_tower_card:
   placement:
     targetType: tile
 
+crossbow_tower_card:
+  name: 弩塔
+  description: 直线穿透物理输出，适合打穿走廊敌群
+  type: unit
+  rarity: epic
+  energyCost: 6
+  unitConfigId: crossbow_tower
+  placement:
+    targetType: tile
+
 bat_tower_card:
   name: 蝙蝠塔
   description: 召唤蝙蝠群，天气影响攻击力，夜间/大雾翻倍

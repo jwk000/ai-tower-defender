@@ -278,6 +278,7 @@ async function bootstrap(): Promise<void> {
     'spawn_unit', 'split_into', 'release_spore_cloud', 'create_poison_pool',
     'spawn_portal', 'cancel_marks', 'boss_death', 'final_victory', 'deal_aoe_damage',
     'spawn_projectile', 'spawn_lightning_bolt', 'spawn_laser_beam', 'spawn_bat_swarm',
+    'spawn_missile',
     'pause_world', 'start_timer', 'leave_ruins',
   ];
   for (const name of noopHandlers) {
@@ -736,7 +737,9 @@ async function bootstrap(): Promise<void> {
     { id: 'poison_tower_card', label: '毒塔卡', costGold: 60 },
     { id: 'lightning_tower_card', label: '电塔卡', costGold: 120 },
     { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
+    { id: 'crossbow_tower_card', label: '弩塔卡', costGold: 120 },
     { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },
+    { id: 'missile_tower_card', label: '导弹塔卡', costGold: 320 },
   ];
 
   const CARD_REWARD_POOL = [
@@ -748,6 +751,10 @@ async function bootstrap(): Promise<void> {
     { id: 'fire_tower_card', title: '火塔卡', description: '灼烧法系塔牌，适合持续压低敌方血线。' },
     { id: 'poison_tower_card', title: '毒塔卡', description: '中毒消耗塔牌，适合应对长线高血波次。' },
     { id: 'lightning_tower_card', title: '电塔卡', description: '连锁打击能力，适合处理中后期群怪。' },
+    { id: 'laser_tower_card', title: '激光塔卡', description: '持续穿透输出，适合后期补强。' },
+    { id: 'crossbow_tower_card', title: '弩塔卡', description: '直线穿透输出，适合走廊型关卡。' },
+    { id: 'bat_tower_card', title: '蝙蝠塔卡', description: '召唤蝠群牵制战场，适合补足后期站场。' },
+    { id: 'missile_tower_card', title: '导弹塔卡', description: '战略级范围打击，适合作为后期终结手段。' },
   ] as const;
 
   function buildShopState(): ShopState {

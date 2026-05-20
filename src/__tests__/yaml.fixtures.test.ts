@@ -27,6 +27,7 @@ const VFX_STUBS = [
   'spawn_lightning_bolt',
   'spawn_laser_beam',
   'spawn_bat_swarm',
+  'spawn_missile',
   'drop_gold',
 ];
 
@@ -194,12 +195,15 @@ describe('loadUnitConfigsForLevel: aggregate UnitConfigs across yaml files', () 
 });
 
 describe('parseCardConfigsFromYaml: batch parse multi-entry card yaml', () => {
-  it('parses all 6 tower cards from cards/towers.yaml using YAML keys as id fallback', () => {
+  it('parses all 10 tower cards from cards/towers.yaml using YAML keys as id fallback', () => {
     const text = readFileSync(resolve(CONFIG, 'cards/towers.yaml'), 'utf8');
     const cards = parseCardConfigsFromYaml(text);
     const ids = new Set(cards.map((c) => c.id));
+    expect(cards).toHaveLength(10);
     expect(ids.has('arrow_tower_card')).toBe(true);
     expect(ids.has('cannon_tower_card')).toBe(true);
+    expect(ids.has('bat_tower_card')).toBe(true);
+    expect(ids.has('missile_tower_card')).toBe(true);
     expect(cards.every((c) => c.type === 'unit')).toBe(true);
     expect(cards.find((c) => c.id === 'arrow_tower_card')?.unitConfigId).toBe('arrow_tower');
   });
@@ -216,6 +220,8 @@ describe('loadCardConfigsForLevel: derive cards from level.available', () => {
     const ids = cards.map((c) => c.id);
     expect(ids).toContain('arrow_tower_card');
     expect(ids).toContain('cannon_tower_card');
+    expect(ids).toContain('bat_tower_card');
+    expect(ids).toContain('missile_tower_card');
     expect(cards.length).toBe(level.available.towers.length);
   });
 
