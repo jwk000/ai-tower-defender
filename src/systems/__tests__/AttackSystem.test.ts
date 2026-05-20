@@ -4,6 +4,7 @@ import { addComponent } from 'bitecs';
 import { Game } from '../../core/Game.js';
 import {
   Attack,
+  Burn,
   Faction,
   FactionTeam,
   Health,
@@ -16,6 +17,7 @@ import { createAttackSystem } from '../AttackSystem.js';
 import { createHealthSystem } from '../HealthSystem.js';
 import { createLifecycleSystem } from '../LifecycleSystem.js';
 import { createProjectileSystem } from '../ProjectileSystem.js';
+import { createBurnSystem } from '../BurnSystem.js';
 
 const ICE_TOWER = (() => {
   const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'ice_tower');
@@ -23,10 +25,17 @@ const ICE_TOWER = (() => {
   return cfg;
 })();
 
+const FIRE_TOWER = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'fire_tower');
+  if (!cfg) throw new Error('fire_tower config not found');
+  return cfg;
+})();
+
 function setupGame(): Game {
   const game = new Game();
   game.pipeline.register(createAttackSystem());
   game.pipeline.register(createProjectileSystem());
+  game.pipeline.register(createBurnSystem());
   game.pipeline.register(createHealthSystem());
   game.pipeline.register(createLifecycleSystem());
   return game;
@@ -219,6 +228,24 @@ describe('AttackSystem (projectile-based)', () => {
 
     expect(Movement.slowMultiplier[enemy]).toBeCloseTo(0.75, 5);
     expect(Movement.slowDuration[enemy]).toBeCloseTo(3, 5);
+  });
+
+  it('applies fire tower burn from config to enemies over time', () => {
+    const game = setupGame();
+    spawnTower(game, 100, 100, {
+      damage: FIRE_TOWER.stats.atk,
+      range: FIRE_TOWER.stats.range,
+      cooldown: 1 / FIRE_TOWER.stats.attackSpeed,
+    });
+    const enemy = spawnEnemy(game, 130, 100, 100, 80);
+
+    game.tick(0.05);
+
+    expect(Burn.duration[enemy]).toBeCloseTo(2.95, 5);
+    expect(Burn.damagePerTick[enemy]).toBeCloseTo(2.5, 5);
+
+    for (let i = 0; i < 50; i += 1) game.tick(0.02);
+    expect(Health.current[enemy]).toBe(87);
   });
 
   it('hits 2 targets simultaneously when extraTargets=1', () => {

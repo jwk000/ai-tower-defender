@@ -50,6 +50,13 @@ export const Movement = defineComponent({
   slowDuration: Types.f32,
 });
 
+export const Burn = defineComponent({
+  damagePerTick: Types.f32,
+  tickInterval: Types.f32,
+  tickTimer: Types.f32,
+  duration: Types.f32,
+});
+
 export const SupportAura = defineComponent({
   radius: Types.f32,
   healAmount: Types.i32,

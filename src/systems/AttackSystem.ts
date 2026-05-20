@@ -1,7 +1,7 @@
-import { defineQuery } from 'bitecs';
+import { defineQuery, addComponent, hasComponent } from 'bitecs';
 import { parseUnitConfigsFromYaml } from '../config/loader.js';
 import towersYaml from '../config/units/towers.yaml?raw';
-import { Attack, Faction, Health, Movement, Position } from '../core/components.js';
+import { Attack, Burn, Faction, Health, Movement, Position } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
 import { spawnProjectile } from './ProjectileSystem.js';
@@ -21,6 +21,23 @@ const ICE_TOWER_CONFIG = (() => {
     range: cfg.stats.range,
     slowMultiplier: Math.max(0, 1 - slowPercent / 100),
     slowDuration: duration,
+  };
+})();
+
+const FIRE_TOWER_CONFIG = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'fire_tower');
+  if (!cfg) {
+    throw new Error('[AttackSystem] fire_tower config not found');
+  }
+  const onHitRule = cfg.lifecycle?.onHit?.find((rule) => rule.handler === 'apply_burn');
+  const duration = Number(onHitRule?.params?.duration ?? 0);
+  const tickRatio = Number(onHitRule?.params?.tickRatio ?? 0);
+  return {
+    damage: cfg.stats.atk,
+    range: cfg.stats.range,
+    duration,
+    tickInterval: 1,
+    damagePerTick: cfg.stats.atk * tickRatio,
   };
 })();
 
@@ -92,6 +109,19 @@ export function createAttackSystem(): System {
                 Movement.slowDuration[targetEid] ?? 0,
                 ICE_TOWER_CONFIG.slowDuration,
               );
+            }
+
+            const isFireTower =
+              Math.abs(range - FIRE_TOWER_CONFIG.range) < 1e-3 &&
+              Attack.damage[attacker] === FIRE_TOWER_CONFIG.damage;
+            if (isFireTower) {
+              if (!hasComponent(world, Burn, targetEid)) {
+                addComponent(world, Burn, targetEid);
+              }
+              Burn.damagePerTick[targetEid] = FIRE_TOWER_CONFIG.damagePerTick;
+              Burn.tickInterval[targetEid] = FIRE_TOWER_CONFIG.tickInterval;
+              Burn.tickTimer[targetEid] = FIRE_TOWER_CONFIG.tickInterval;
+              Burn.duration[targetEid] = Math.max(Burn.duration[targetEid] ?? 0, FIRE_TOWER_CONFIG.duration);
             }
           }
         }
