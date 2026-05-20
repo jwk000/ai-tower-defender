@@ -59,18 +59,17 @@ describe('projectRunResult', () => {
     expect(labels).toContain('共花费金币');
   });
 
-  it('shows archetypeTag and skillTreeHighlights on victory when provided', () => {
+  it('shows archetypeTag on victory when provided', () => {
     const layout = projectRunResult(state({
-      stats: makeStats({ archetypeTag: '法术爆发流', skillTreeHighlights: ['电塔「贯穿」', '箭塔「急速」'] }),
+      stats: makeStats({ archetypeTag: '法术爆发流' }),
     }));
     expect(layout.lines.find((l) => l.label === '流派标签')?.value).toBe('法术爆发流');
-    expect(layout.lines.find((l) => l.label === '关键技能树')?.value).toBe('电塔「贯穿」 + 箭塔「急速」');
   });
 
-  it('omits archetypeTag and skillTreeHighlights on defeat', () => {
+  it('omits archetypeTag on defeat', () => {
     const layout = projectRunResult(state({
       outcome: 'defeat',
-      stats: makeStats({ archetypeTag: '法术爆发流', skillTreeHighlights: ['电塔「贯穿」'] }),
+      stats: makeStats({ archetypeTag: '法术爆发流' }),
     }));
     expect(layout.lines.find((l) => l.label === '流派标签')).toBeUndefined();
     expect(layout.lines.find((l) => l.label === '关键技能树')).toBeUndefined();
@@ -79,6 +78,7 @@ describe('projectRunResult', () => {
   it('includes 3 resourceResetLines on victory (with "下一次 Run" line)', () => {
     const layout = projectRunResult(state());
     expect(layout.resourceResetLines.length).toBe(3);
+    expect(layout.resourceResetLines[1]).toContain('金币 / 水晶 HP / 卡组状态已重置');
     expect(layout.resourceResetLines[2]).toContain('下一次 Run');
   });
 

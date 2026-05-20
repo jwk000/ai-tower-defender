@@ -10,7 +10,6 @@ export interface RunResultStats {
   readonly crystalHpMax: number;
   readonly elapsedSeconds: number;
   readonly archetypeTag?: string;
-  readonly skillTreeHighlights?: readonly string[];
 }
 
 export interface RunResultState {
@@ -90,13 +89,10 @@ export function projectRunResult(state: RunResultState, viewportWidth = 1920, vi
   if (state.outcome === 'victory' && s.archetypeTag) {
     lines.push({ label: '流派标签', value: s.archetypeTag });
   }
-  if (state.outcome === 'victory' && s.skillTreeHighlights && s.skillTreeHighlights.length > 0) {
-    lines.push({ label: '关键技能树', value: s.skillTreeHighlights.join(' + ') });
-  }
 
   const resourceResetLines: string[] = [
     '⚪ 本次 Run 所有资源已清零',
-    '   金币 / 技能点 / 水晶 HP / 卡组 / 技能树节点',
+    '   金币 / 水晶 HP / 卡组状态已重置',
   ];
   if (state.outcome === 'victory') {
     resourceResetLines.push('   下一次 Run 从初始状态出发');
