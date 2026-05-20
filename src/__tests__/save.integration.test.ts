@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DeckSystem } from '../unit-system/DeckSystem.js';
 import { RunManager, RunPhase } from '../unit-system/RunManager.js';
-import { SaveSystem, type RunSnapshot } from '../core/SaveSystem.js';
+import { SaveSystem, type RunSnapshot, type RunSnapshotV2 } from '../core/SaveSystem.js';
 
 function makeLocalStorageMock() {
   const store: Record<string, string> = {};
@@ -45,7 +45,7 @@ describe('DeckSystem snapshot / restoreFrom', () => {
 });
 
 describe('RunManager snapshot / restoreFrom', () => {
-  it('captures all run resources and restores them', () => {
+  it('captures current run resources and restores them', () => {
     const mgr = makeManager();
     const deck = makeDeck();
     mgr.startRun();
@@ -54,28 +54,32 @@ describe('RunManager snapshot / restoreFrom', () => {
     mgr.damageCrystal(3);
 
     const snap = mgr.snapshot(deck);
-    expect(snap.version).toBe(2);
+    expect(snap.version).toBe(3);
     expect(snap.phase).toBe('LevelMap');
     expect(snap.currentLevelIdx).toBe(1);
     expect(snap.gold).toBe(150);
-    expect(snap.skillPoints).toBe(5);
     expect(snap.crystalHp).toBe(17);
     expect(snap.crystalHpMax).toBe(20);
-    expect(snap.skillTree).toBeDefined();
-  });
 
-  it('restoreFrom sets phase to LevelMap and restores all fields', () => {
-    const mgr = makeManager(5);
-    mgr.startRun();
-    mgr.addGold(80);
-    const deck = makeDeck();
-    const snap = mgr.snapshot(deck);
-
-    const mgr2 = makeManager(5);
+    const mgr2 = makeManager();
     mgr2.restoreFrom(snap);
     expect(mgr2.phase).toBe(RunPhase.LevelMap);
     expect(mgr2.currentLevel).toBe(1);
-    expect(mgr2.gold).toBe(180);
+    expect(mgr2.gold).toBe(150);
+    expect(mgr2.crystalHp).toBe(17);
+    expect(mgr2.sp).toBe(0);
+  });
+
+  it('restoreFrom preserves InterLevel phase for pending reward resume', () => {
+    const mgr = makeManager(5);
+    mgr.startRun();
+    mgr.enterBattle();
+    mgr.completeLevel();
+    const snap = mgr.snapshot(makeDeck());
+
+    const mgr2 = makeManager(5);
+    mgr2.restoreFrom(snap);
+    expect(mgr2.phase).toBe(RunPhase.InterLevel);
   });
 });
 
@@ -90,15 +94,16 @@ describe('SaveSystem save / load round-trip', () => {
 
   it('saves and loads a RunSnapshot round-trip', () => {
     const snap: RunSnapshot = {
-      version: 2,
+      version: 3,
       savedAt: 1000,
       phase: 'LevelMap',
       currentLevelIdx: 3,
       gold: 220,
-      skillPoints: 4,
       crystalHp: 15,
       crystalHpMax: 20,
-      skillTree: { instances: [] },
+      pendingCardReward: null,
+      pendingGoldReward: null,
+      pendingUpgradeReward: null,
       deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
     };
 
@@ -110,11 +115,34 @@ describe('SaveSystem save / load round-trip', () => {
   });
 
   it('loadRun returns null for unknown version', () => {
-    localStorage.setItem('td_run_v2', JSON.stringify({ version: 99, phase: 'LevelMap' }));
+    localStorage.setItem('td_run_v3', JSON.stringify({ version: 99, phase: 'LevelMap' }));
     expect(SaveSystem.loadRun()).toBeNull();
   });
 
-  it('loadRun migrates v1 save to v2 format', () => {
+  it('loadRun migrates v2 save to v3 format', () => {
+    const v2Save: RunSnapshotV2 = {
+      version: 2,
+      savedAt: 999,
+      phase: 'LevelMap',
+      currentLevelIdx: 2,
+      gold: 100,
+      skillPoints: 3,
+      crystalHp: 18,
+      crystalHpMax: 20,
+      skillTree: { instances: [] },
+      pendingCardReward: null,
+      pendingGoldReward: null,
+      pendingUpgradeReward: null,
+      deck: { drawPile: ['c1'], discardPile: [] },
+    };
+    localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
+    const loaded = SaveSystem.loadRun();
+    expect(loaded?.version).toBe(3);
+    expect(loaded?.gold).toBe(100);
+    expect(loaded?.crystalHp).toBe(18);
+  });
+
+  it('loadRun migrates v1 save to v3 format', () => {
     const v1Save = {
       version: 1,
       savedAt: 999,
@@ -129,16 +157,18 @@ describe('SaveSystem save / load round-trip', () => {
     };
     localStorage.setItem('td_run_v1', JSON.stringify(v1Save));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(2);
-    expect(loaded?.skillTree).toBeDefined();
+    expect(loaded?.version).toBe(3);
     expect(loaded?.gold).toBe(100);
+    expect(loaded?.crystalHp).toBe(18);
   });
 
   it('clearRun removes save and legacy keys', () => {
+    localStorage.setItem('td_run_v3', '{}');
     localStorage.setItem('td_run_v2', '{}');
     localStorage.setItem('td_run_v1', '{}');
     localStorage.setItem('td_ongoing_run', '{}');
     SaveSystem.clearRun();
+    expect(localStorage.getItem('td_run_v3')).toBeNull();
     expect(localStorage.getItem('td_run_v2')).toBeNull();
     expect(localStorage.getItem('td_run_v1')).toBeNull();
     expect(localStorage.getItem('td_ongoing_run')).toBeNull();
@@ -150,7 +180,7 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     vi.stubGlobal('localStorage', makeLocalStorageMock());
   });
 
-  it('restores run state and deck piles after save/load', () => {
+  it('restores run state and deck piles after save/load without恢复旧 SP', () => {
     const mgr = makeManager(4);
     const deck = makeDeck(['c1', 'c2', 'c3'], 3);
     mgr.startRun();
@@ -170,7 +200,7 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
 
     expect(mgr2.phase).toBe(RunPhase.LevelMap);
     expect(mgr2.gold).toBe(160);
-    expect(mgr2.sp).toBe(2);
+    expect(mgr2.sp).toBe(0);
     expect(deck2.snapshot()).toEqual(deck.snapshot());
   });
 });

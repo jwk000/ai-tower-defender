@@ -8,6 +8,7 @@ import {
   type SerializedSkillTreeState,
   type SkillTreeEffect,
   type SkillTreeError,
+  type SkillTreeNodeConfig,
   type SkillTreeState,
 } from './SkillTreeState.js';
 
@@ -29,15 +30,62 @@ export interface RunRouteNode {
   readonly kind: MapNodeKind;
 }
 
-export type InterLevelChoice = 'shop' | 'mystic' | 'skilltree';
+export interface CardRewardOption {
+  readonly id: string;
+  readonly cardId: string;
+  readonly title: string;
+  readonly description: string;
+}
+
+export interface PendingCardReward {
+  readonly sourceLevel: number;
+  readonly options: readonly [CardRewardOption, CardRewardOption, CardRewardOption];
+}
+
+export interface GoldRewardOption {
+  readonly id: string;
+  readonly amount: number;
+  readonly title: string;
+  readonly description: string;
+}
+
+export interface PendingGoldReward {
+  readonly sourceLevel: number;
+  readonly options: readonly [GoldRewardOption, GoldRewardOption, GoldRewardOption];
+}
+
+export interface UpgradeRewardOption {
+  readonly id: string;
+  readonly instanceId: string;
+  readonly cardId: string;
+  readonly title: string;
+  readonly description: string;
+}
+
+export interface PendingUpgradeReward {
+  readonly sourceLevel: number;
+  readonly options: readonly [UpgradeRewardOption, UpgradeRewardOption, UpgradeRewardOption];
+}
+
+export type InterLevelChoice = 'shop' | 'mystic';
 export type RunOutcome = 'victory' | 'defeat';
 
-const VALID_INTER_LEVEL_CHOICES: ReadonlySet<string> = new Set(['shop', 'mystic', 'skilltree']);
+const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
+  { cardId: 'arrow_tower_card', title: '箭塔卡', description: '低费稳定输出，适合补足前期站场。' },
+  { cardId: 'cannon_tower_card', title: '炮塔卡', description: '范围火力更强，适合清理成群敌人。' },
+  { cardId: 'elemental_tower_card', title: '元素塔卡', description: '补一个中期法系输出点。' },
+  { cardId: 'lightning_tower_card', title: '电塔卡', description: '高爆发连锁火力，适合压制精英。' },
+  { cardId: 'laser_tower_card', title: '激光塔卡', description: '持续穿透输出，适合后期补强。' },
+  { cardId: 'bat_tower_card', title: '蝙蝠塔卡', description: '高阶召唤塔，提供更强后期上限。' },
+] as const;
+
+const DEMO_GOLD_REWARD_AMOUNTS = [30, 50, 80] as const;
+
+const VALID_INTER_LEVEL_CHOICES: ReadonlySet<string> = new Set(['shop', 'mystic']);
 
 const CHOICE_TO_PHASE: Readonly<Record<InterLevelChoice, RunPhase>> = {
   shop: RunPhase.Shop,
   mystic: RunPhase.Mystic,
-  skilltree: RunPhase.SkillTree,
 };
 
 function buildDefaultRoute(totalLevels: number): readonly MapNodeKind[] {
@@ -75,6 +123,9 @@ export class RunManager {
   private _skillTree: SkillTreeState = createSkillTreeState();
   private _lastSkillTreeError: SkillTreeError | null = null;
   private _legacyUnlockedNodes: Set<string> = new Set();
+  private _pendingCardReward: PendingCardReward | null = null;
+  private _pendingGoldReward: PendingGoldReward | null = null;
+  private _pendingUpgradeReward: PendingUpgradeReward | null = null;
 
   constructor(config: RunManagerConfig) {
     if (!Number.isInteger(config.totalLevels) || config.totalLevels < 1) {
@@ -148,6 +199,18 @@ export class RunManager {
     return this._lastSkillTreeError;
   }
 
+  get pendingCardReward(): PendingCardReward | null {
+    return this._pendingCardReward;
+  }
+
+  get pendingGoldReward(): PendingGoldReward | null {
+    return this._pendingGoldReward;
+  }
+
+  get pendingUpgradeReward(): PendingUpgradeReward | null {
+    return this._pendingUpgradeReward;
+  }
+
   addGold(amount: number): void {
     if (amount < 0) throw new Error(`[RunManager] addGold requires non-negative amount, got ${amount}`);
     this._gold += amount;
@@ -193,6 +256,9 @@ export class RunManager {
     this._sp = 0;
     this._crystalHp = this.initialCrystalHp;
     this._crystalHpMax = this.initialCrystalHp;
+    this._pendingCardReward = null;
+    this._pendingGoldReward = null;
+    this._pendingUpgradeReward = null;
   }
 
   enterBattle(): void {
@@ -206,6 +272,15 @@ export class RunManager {
     if (this._phase !== RunPhase.InterLevel) {
       throw new Error(`[RunManager] illegal transition: returnToLevelMap from ${this._phase}`);
     }
+    if (this._pendingCardReward) {
+      throw new Error('[RunManager] cannot returnToLevelMap while card reward is pending');
+    }
+    if (this._pendingGoldReward) {
+      throw new Error('[RunManager] cannot returnToLevelMap while gold reward is pending');
+    }
+    if (this._pendingUpgradeReward) {
+      throw new Error('[RunManager] cannot returnToLevelMap while upgrade reward is pending');
+    }
     this._currentLevel += 1;
     this._phase = RunPhase.LevelMap;
   }
@@ -217,19 +292,111 @@ export class RunManager {
     if (this._currentLevel >= this.totalLevels) {
       this._phase = RunPhase.Result;
       this._outcome = 'victory';
+      this._pendingCardReward = null;
+      this._pendingGoldReward = null;
+      this._pendingUpgradeReward = null;
       return;
     }
     this._phase = RunPhase.InterLevel;
+    this._pendingCardReward = {
+      sourceLevel: this._currentLevel,
+      options: this.buildDemoCardRewardOptions(),
+    };
+    this._pendingGoldReward = {
+      sourceLevel: this._currentLevel,
+      options: this.buildDemoGoldRewardOptions(),
+    };
+    this._pendingUpgradeReward = null;
   }
 
   pickInterLevelChoice(choice: InterLevelChoice): void {
     if (this._phase !== RunPhase.InterLevel) {
       throw new Error(`[RunManager] illegal transition: pickInterLevelChoice from ${this._phase}`);
     }
+    if (this._pendingCardReward) {
+      throw new Error('[RunManager] cannot pick inter-level branch while card reward is pending');
+    }
+    if (this._pendingGoldReward) {
+      throw new Error('[RunManager] cannot pick inter-level branch while gold reward is pending');
+    }
+    if (this._pendingUpgradeReward) {
+      throw new Error('[RunManager] cannot pick inter-level branch while upgrade reward is pending');
+    }
     if (!VALID_INTER_LEVEL_CHOICES.has(choice)) {
       throw new Error(`[RunManager] unknown choice: ${choice}`);
     }
     this._phase = CHOICE_TO_PHASE[choice];
+  }
+
+  setPendingCardReward(reward: PendingCardReward): void {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: setPendingCardReward from ${this._phase}`);
+    }
+    this._pendingCardReward = reward;
+  }
+
+  setPendingGoldReward(reward: PendingGoldReward): void {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: setPendingGoldReward from ${this._phase}`);
+    }
+    this._pendingGoldReward = reward;
+  }
+
+  setPendingUpgradeReward(reward: PendingUpgradeReward): void {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: setPendingUpgradeReward from ${this._phase}`);
+    }
+    this._pendingUpgradeReward = reward;
+  }
+
+  claimCardReward(optionId: string): CardRewardOption {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: claimCardReward from ${this._phase}`);
+    }
+    if (!this._pendingCardReward) {
+      throw new Error('[RunManager] no pending card reward');
+    }
+    const option = this._pendingCardReward.options.find((entry) => entry.id === optionId);
+    if (!option) {
+      throw new Error(`[RunManager] unknown card reward option: ${optionId}`);
+    }
+    this._pendingCardReward = null;
+    return option;
+  }
+
+  claimGoldReward(optionId: string): GoldRewardOption {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: claimGoldReward from ${this._phase}`);
+    }
+    if (!this._pendingGoldReward) {
+      throw new Error('[RunManager] no pending gold reward');
+    }
+    const option = this._pendingGoldReward.options.find((entry) => entry.id === optionId);
+    if (!option) {
+      throw new Error(`[RunManager] unknown gold reward option: ${optionId}`);
+    }
+    this._gold += option.amount;
+    this._pendingGoldReward = null;
+    return option;
+  }
+
+  claimUpgradeReward(optionId: string): UpgradeRewardOption {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: claimUpgradeReward from ${this._phase}`);
+    }
+    if (!this._pendingUpgradeReward) {
+      throw new Error('[RunManager] no pending upgrade reward');
+    }
+    const option = this._pendingUpgradeReward.options.find((entry) => entry.id === optionId);
+    if (!option) {
+      throw new Error(`[RunManager] unknown upgrade reward option: ${optionId}`);
+    }
+    if (!this.applyUpgradeReward(option.instanceId)) {
+      const reason = this._lastSkillTreeError ?? 'unknown';
+      throw new Error(`[RunManager] failed to apply upgrade reward for ${option.instanceId}: ${reason}`);
+    }
+    this._pendingUpgradeReward = null;
+    return option;
   }
 
   closeShop(): void {
@@ -262,6 +429,9 @@ export class RunManager {
     }
     this._phase = RunPhase.Result;
     this._outcome = 'defeat';
+    this._pendingCardReward = null;
+    this._pendingGoldReward = null;
+    this._pendingUpgradeReward = null;
   }
 
   resetToIdle(): void {
@@ -275,20 +445,55 @@ export class RunManager {
     this._sp = 0;
     this._crystalHp = 0;
     this._crystalHpMax = 0;
+    this._pendingCardReward = null;
+    this._pendingGoldReward = null;
+    this._pendingUpgradeReward = null;
     this.resetSkillTreeState();
   }
 
   registerCardInstance(instanceId: string, config: CardSkillTreeConfig): void {
+    const activeNodes = new Set<string>();
+    const baseNode = config.nodes.find((node) => node.level === 1) ?? config.nodes[0];
+    if (baseNode) {
+      activeNodes.add(baseNode.id);
+    }
     this._skillTree.instances.set(instanceId, {
       unitCardId: config.unitCardId,
       config,
-      activeNodes: new Set(),
-      equippedPath: null,
+      activeNodes,
     });
   }
 
   getCardSkillTreeState(instanceId: string): CardSkillTreeState | null {
     return this._skillTree.instances.get(instanceId) ?? null;
+  }
+
+  ensureCardInstanceConfig(instanceId: string, config: CardSkillTreeConfig): void {
+    const state = this._skillTree.instances.get(instanceId);
+    if (!state) {
+      this.registerCardInstance(instanceId, config);
+      return;
+    }
+    if (state.config.nodes.length > 0) return;
+    this._skillTree.instances.set(instanceId, {
+      unitCardId: state.unitCardId,
+      config,
+      activeNodes: new Set(state.activeNodes),
+    });
+  }
+
+  removeCardInstance(instanceId: string): void {
+    this._skillTree.instances.delete(instanceId);
+    if (this._pendingUpgradeReward) {
+      const remainingOptions = this._pendingUpgradeReward.options.filter((option) => option.instanceId !== instanceId);
+      this._pendingUpgradeReward = remainingOptions.length === 3
+        ? this._pendingUpgradeReward
+        : null;
+    }
+  }
+
+  clearPendingUpgradeReward(): void {
+    this._pendingUpgradeReward = null;
   }
 
   activateNode(cardInstanceId: string, nodeId: string): boolean {
@@ -299,14 +504,7 @@ export class RunManager {
       return false;
     }
 
-    let foundNode: { id: string; spCost: number; prerequisites: readonly string[] } | null = null;
-    for (const path of inst.config.paths) {
-      const n = path.nodes.find((node) => node.id === nodeId);
-      if (n) {
-        foundNode = n;
-        break;
-      }
-    }
+    const foundNode = inst.config.nodes.find((node) => node.id === nodeId) ?? null;
     if (!foundNode) {
       this._lastSkillTreeError = 'NODE_NOT_FOUND';
       return false;
@@ -324,59 +522,22 @@ export class RunManager {
       }
     }
 
-    if (this._sp < foundNode.spCost) {
-      this._lastSkillTreeError = 'INSUFFICIENT_SP';
+    if (this._gold < foundNode.goldCost) {
+      this._lastSkillTreeError = 'INSUFFICIENT_GOLD';
       return false;
     }
 
-    this._sp -= foundNode.spCost;
+    this._gold -= foundNode.goldCost;
     inst.activeNodes.add(nodeId);
-    return true;
-  }
-
-  equipPath(cardInstanceId: string, pathId: string | null): boolean {
-    this._lastSkillTreeError = null;
-    const inst = this._skillTree.instances.get(cardInstanceId);
-    if (!inst) {
-      this._lastSkillTreeError = 'INSTANCE_NOT_FOUND';
-      return false;
-    }
-
-    if (pathId === null) {
-      inst.equippedPath = null;
-      return true;
-    }
-
-    const path = inst.config.paths.find((p) => p.id === pathId);
-    if (!path) {
-      this._lastSkillTreeError = 'PATH_NOT_FOUND';
-      return false;
-    }
-
-    if (inst.equippedPath === pathId) {
-      this._lastSkillTreeError = 'ALREADY_EQUIPPED';
-      return false;
-    }
-
-    const hasActivatedNonBaseNode = path.nodes.some((n) => n.depth >= 2 && inst.activeNodes.has(n.id));
-    if (!hasActivatedNonBaseNode) {
-      this._lastSkillTreeError = 'PATH_NOT_ACTIVATABLE';
-      return false;
-    }
-
-    inst.equippedPath = pathId;
     return true;
   }
 
   resolveCardEffects(cardInstanceId: string): SkillTreeEffect[] {
     const inst = this._skillTree.instances.get(cardInstanceId);
-    if (!inst || !inst.equippedPath) return [];
-
-    const path = inst.config.paths.find((p) => p.id === inst.equippedPath);
-    if (!path) return [];
+    if (!inst) return [];
 
     const effects: SkillTreeEffect[] = [];
-    for (const node of path.nodes) {
+    for (const node of inst.config.nodes) {
       if (inst.activeNodes.has(node.id)) {
         effects.push(...node.effects);
       }
@@ -390,41 +551,64 @@ export class RunManager {
     this._lastSkillTreeError = null;
   }
 
+  upgradeCardInstance(instanceId: string): boolean {
+    const state = this._skillTree.instances.get(instanceId);
+    if (!state) {
+      this._lastSkillTreeError = 'INSTANCE_NOT_FOUND';
+      return false;
+    }
+    const nextNode = this.findNextUpgradeNode(state);
+    if (!nextNode) {
+      this._lastSkillTreeError = 'NODE_ALREADY_ACTIVE';
+      return false;
+    }
+    return this.activateNode(instanceId, nextNode.id);
+  }
+
+  getNextUpgradeNode(instanceId: string): SkillTreeNodeConfig | null {
+    const state = this._skillTree.instances.get(instanceId);
+    if (!state) return null;
+    return this.findNextUpgradeNode(state);
+  }
+
+  getCardLevel(instanceId: string): number {
+    const state = this._skillTree.instances.get(instanceId);
+    if (!state) return 1;
+    const activeLevels = state.config.nodes
+      .filter((node) => state.activeNodes.has(node.id))
+      .map((node) => node.level);
+    return activeLevels.length > 0 ? Math.max(...activeLevels) : 1;
+  }
+
   snapshot(deckSystem: DeckSystem): RunSnapshot {
     return {
-      version: 2,
+      version: 3,
       savedAt: Date.now(),
-      phase: 'LevelMap',
+      phase: this._phase === RunPhase.InterLevel ? 'InterLevel' : 'LevelMap',
       currentLevelIdx: this._currentLevel,
       gold: this._gold,
-      skillPoints: this._sp,
       crystalHp: this._crystalHp,
       crystalHpMax: this._crystalHpMax,
-      skillTree: serializeSkillTreeState(this._skillTree),
+      pendingCardReward: this._pendingCardReward,
+      pendingGoldReward: this._pendingGoldReward,
+      pendingUpgradeReward: this._pendingUpgradeReward,
       deck: deckSystem.snapshot(),
     };
   }
 
-  restoreFrom(snap: RunSnapshot): void {
-    this._phase = RunPhase.LevelMap;
+  restoreFrom(snap: RunSnapshot, resolveSkillTreeConfig?: (unitCardId: string) => CardSkillTreeConfig | null): void {
+    void resolveSkillTreeConfig;
+    this._phase = snap.phase === 'InterLevel' ? RunPhase.InterLevel : RunPhase.LevelMap;
     this._currentLevel = snap.currentLevelIdx;
     this._outcome = null;
     this._gold = snap.gold;
-    this._sp = snap.skillPoints;
+    this._sp = 0;
     this._crystalHp = snap.crystalHp;
     this._crystalHpMax = snap.crystalHpMax;
-    this._skillTree = createSkillTreeState();
-    if ('skillTree' in snap && snap.skillTree) {
-      const serialized = snap.skillTree as SerializedSkillTreeState;
-      for (const entry of serialized.instances) {
-        this._skillTree.instances.set(entry.instanceId, {
-          unitCardId: entry.state.unitCardId,
-          config: { unitCardId: entry.state.unitCardId, paths: [] },
-          activeNodes: new Set(entry.state.activeNodes),
-          equippedPath: entry.state.equippedPath,
-        });
-      }
-    }
+    this._pendingCardReward = 'pendingCardReward' in snap ? snap.pendingCardReward : null;
+    this._pendingGoldReward = 'pendingGoldReward' in snap ? snap.pendingGoldReward : null;
+    this._pendingUpgradeReward = 'pendingUpgradeReward' in snap ? snap.pendingUpgradeReward : null;
+    this.resetSkillTreeState();
   }
 
   hasSkillNode(nodeId: string): boolean {
@@ -448,5 +632,59 @@ export class RunManager {
       for (const n of inst.activeNodes) all.add(n);
     }
     return all;
+  }
+
+  private findNextUpgradeNode(state: CardSkillTreeState): SkillTreeNodeConfig | null {
+    return state.config.nodes.find((node) => !state.activeNodes.has(node.id)) ?? null;
+  }
+
+  private applyUpgradeReward(instanceId: string): boolean {
+    this._lastSkillTreeError = null;
+    const state = this._skillTree.instances.get(instanceId);
+    if (!state) {
+      this._lastSkillTreeError = 'INSTANCE_NOT_FOUND';
+      return false;
+    }
+    const nextNode = this.findNextUpgradeNode(state);
+    if (!nextNode) {
+      this._lastSkillTreeError = 'NODE_ALREADY_ACTIVE';
+      return false;
+    }
+    for (const prereq of nextNode.prerequisites) {
+      if (!state.activeNodes.has(prereq)) {
+        this._lastSkillTreeError = 'PREREQUISITE_NOT_MET';
+        return false;
+      }
+    }
+    state.activeNodes.add(nextNode.id);
+    return true;
+  }
+
+  private buildDemoCardRewardOptions(): readonly [CardRewardOption, CardRewardOption, CardRewardOption] {
+    const startIndex = ((this._currentLevel - 1) * 2) % DEMO_CARD_REWARD_OPTIONS.length;
+    const options = [0, 1, 2].map((offset) => {
+      const base = DEMO_CARD_REWARD_OPTIONS[(startIndex + offset) % DEMO_CARD_REWARD_OPTIONS.length]!;
+      return {
+        id: `reward-${this._currentLevel}-${offset + 1}`,
+        cardId: base.cardId,
+        title: base.title,
+        description: base.description,
+      };
+    });
+    return options as [CardRewardOption, CardRewardOption, CardRewardOption];
+  }
+
+  private buildDemoGoldRewardOptions(): readonly [GoldRewardOption, GoldRewardOption, GoldRewardOption] {
+    const amountBias = Math.max(0, this._currentLevel - 1) * 5;
+    const options = DEMO_GOLD_REWARD_AMOUNTS.map((baseAmount, index) => {
+      const amount = baseAmount + amountBias;
+      return {
+        id: `gold-${this._currentLevel}-${index + 1}`,
+        amount,
+        title: `${amount} 金币`,
+        description: `立刻获得 ${amount} 金币，为下一个节点补充资源。`,
+      };
+    });
+    return options as [GoldRewardOption, GoldRewardOption, GoldRewardOption];
   }
 }

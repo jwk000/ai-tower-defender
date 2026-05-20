@@ -45,7 +45,7 @@
 ### 1.1 v3.6 核心循环对齐
 - [x] 地图 8 关路线与终战 Boss 节点已接入
 - [x] 关后基础奖励链路已接入（card → gold → upgrade）
-- [ ] 移除/替换旧 `skilltree / sp` 路线，统一为文档定义的商店 / 秘境 / 过关奖励成长闭环
+- [x] 移除/替换旧 `skilltree / sp` 路线，统一为文档定义的商店 / 秘境 / 过关奖励成长闭环
 - [ ] 起始卡池改为文档定义的“4 张基础卡且每种唯一”
 - [ ] 卡池唯一性规则全链路校验（获卡、商店、奖励、存档恢复）
 - [ ] 手牌 / 抽卡 / 能量节奏逐项核对并补齐与 `design/OVERVIEW.md` 一致的验证项
@@ -58,8 +58,8 @@
 
 ### 1.3 存档策略对齐
 - [x] 已有 Run 存档与恢复闭环
-- [ ] 按最新设计决定是否保留“进行中 Run 存档”；若以 `OVERVIEW.md` 为准，则改成仅保存历史数据/设置
-- [ ] `SaveSystem` / `RunSnapshot` 字段与 `TECH.md` / `OVERVIEW.md` 统一（移除或迁移 skillPoints、skillTree 等旧字段）
+- [x] 按最新设计决定是否保留“进行中 Run 存档”；若以 `OVERVIEW.md` 为准，则改成仅保存历史数据/设置
+- [-] `SaveSystem` / `RunSnapshot` 字段与 `TECH.md` / `OVERVIEW.md` 统一（移除或迁移 skillPoints、skillTree 等旧字段）
 - [ ] 补一轮存档兼容/迁移回归测试
 
 ---

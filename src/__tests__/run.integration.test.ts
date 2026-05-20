@@ -344,6 +344,8 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
 
     controller.completeCurrentLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
 
@@ -361,6 +363,166 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(onLevelStart).toHaveBeenCalledTimes(1);
     expect(onLevelStart).toHaveBeenCalledWith(2);
     expect(scenes.battle.visible).toBe(true);
+  });
+
+  it('non-final battle completion can grant a three-card reward before normal inter-level branching', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(11) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+    expect(runManager.phase).toBe(RunPhase.InterLevel);
+
+    expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'arrow_tower_card',
+      'cannon_tower_card',
+      'elemental_tower_card',
+    ]);
+    expect(() => controller.pickInterLevel('shop')).toThrow(/card reward is pending/i);
+
+    const rewarded = controller.claimCardReward(runManager.pendingCardReward!.options[1]!.id);
+
+    expect(rewarded.cardId).toBe('cannon_tower_card');
+    expect(runManager.pendingCardReward).toBeNull();
+    expect(deckSystem.getCardInstances()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ cardId: 'cannon_tower_card', pile: 'discard' }),
+      ]),
+    );
+
+    const goldBefore = runManager.gold;
+    expect(runManager.pendingGoldReward?.options.map((option) => option.amount)).toEqual([30, 50, 80]);
+    expect(() => controller.pickInterLevel('shop')).toThrow(/gold reward is pending/i);
+
+    const goldReward = controller.claimGoldReward(runManager.pendingGoldReward!.options[2]!.id);
+    expect(goldReward.amount).toBe(80);
+    expect(runManager.gold).toBe(goldBefore + 80);
+    expect(runManager.pendingGoldReward).toBeNull();
+
+    controller.setPendingUpgradeReward([
+      { id: 'u1', instanceId: 'cannon_tower_card_inst_1', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u2', instanceId: 'elemental_tower_card_inst_2', cardId: 'elemental_tower_card', title: '元素塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u3', instanceId: 'arrow_tower_card_inst_3', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+    ]);
+    expect(() => controller.pickInterLevel('shop')).toThrow(/upgrade reward is pending/i);
+
+    expect(() => controller.claimUpgradeReward('u1')).toThrow(/INSTANCE_NOT_FOUND/i);
+  });
+
+  it('non-final battle completion can grant card -> gold -> upgrade -> branch in sequence', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({
+      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      deckSize: 3,
+      rng: makeRng(31),
+    });
+    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card']);
+    runManager.registerCardInstance('arrow_tower_card_inst_1', { unitCardId: 'arrow_tower', nodes: [
+      { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['arrow_lv1'], effects: [] },
+    ] });
+    runManager.registerCardInstance('cannon_tower_card_inst_2', { unitCardId: 'cannon_tower', nodes: [
+      { id: 'cannon_lv1', name: '炮塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'cannon_lv2', name: '炮塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['cannon_lv1'], effects: [] },
+    ] });
+    runManager.registerCardInstance('elemental_tower_card_inst_3', { unitCardId: 'elemental_tower', nodes: [
+      { id: 'elemental_lv1', name: '元素塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'elemental_lv2', name: '元素塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['elemental_lv1'], effects: [] },
+    ] });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    controller.setPendingUpgradeReward([
+      { id: 'u1', instanceId: 'arrow_tower_card_inst_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u2', instanceId: 'cannon_tower_card_inst_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u3', instanceId: 'elemental_tower_card_inst_3', cardId: 'elemental_tower_card', title: '元素塔 Lv.2', description: '升级到 Lv.2' },
+    ]);
+
+    expect(runManager.phase).toBe(RunPhase.InterLevel);
+    expect(runManager.getCardLevel('cannon_tower_card_inst_2')).toBe(1);
+    expect(() => controller.pickInterLevel('shop')).toThrow(/upgrade reward is pending/i);
+
+    const upgraded = controller.claimUpgradeReward('u2');
+    expect(upgraded.instanceId).toBe('cannon_tower_card_inst_2');
+    expect(runManager.pendingUpgradeReward).toBeNull();
+    expect(runManager.getCardLevel('cannon_tower_card_inst_2')).toBe(2);
+
+    controller.pickInterLevel('shop');
+    expect(runManager.phase).toBe(RunPhase.Shop);
+  });
+
+  it('inter-level now stops after card and gold rewards without auto-generating upgrade rewards', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({
+      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      deckSize: 3,
+      rng: makeRng(41),
+    });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+
+    expect(runManager.pendingUpgradeReward).toBeNull();
+    controller.returnToLevelMap();
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+  });
+
+  it('deck management APIs upgrade and delete card instances in-place', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({
+      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      deckSize: 3,
+      rng: makeRng(51),
+    });
+    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card']);
+    runManager.startRun();
+
+    const [arrowInst, cannonInst, elementalInst] = deckSystem.getCardInstances();
+    runManager.registerCardInstance(arrowInst!.instanceId, { unitCardId: 'arrow_tower', nodes: [
+      { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
+    ] });
+    runManager.registerCardInstance(cannonInst!.instanceId, { unitCardId: 'cannon_tower', nodes: [
+      { id: 'cannon_lv1', name: '炮塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'cannon_lv2', name: '炮塔 Lv.2', level: 2, goldCost: 60, prerequisites: ['cannon_lv1'], effects: [] },
+    ] });
+    runManager.registerCardInstance(elementalInst!.instanceId, { unitCardId: 'elemental_tower', nodes: [
+      { id: 'elemental_lv1', name: '元素塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'elemental_lv2', name: '元素塔 Lv.2', level: 2, goldCost: 80, prerequisites: ['elemental_lv1'], effects: [] },
+    ] });
+
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    expect(controller.upgradeDeckCard(arrowInst!.instanceId)).toBe(true);
+    expect(runManager.getCardLevel(arrowInst!.instanceId)).toBe(2);
+    expect(runManager.gold).toBe(160);
+
+    expect(controller.removeDeckCard(cannonInst!.instanceId)).toBe(true);
+    expect(deckSystem.getCardInstances()).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ instanceId: cannonInst!.instanceId }),
+      ]),
+    );
+    expect(runManager.getCardSkillTreeState(cannonInst!.instanceId)).toBeNull();
   });
 
   it('debug victory on level 1 → InterLevel → skip → LevelMap → enterBattle triggers onLevelStart(2)', () => {
@@ -382,6 +544,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.currentLevel).toBe(1);
     expect(scenes.interLevel.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
 
     controller.returnToLevelMap();
     expect(controller.phase).toBe(RunPhase.LevelMap);
@@ -821,7 +986,7 @@ describe('Projectile integration: AttackSystem fires, ProjectileSystem travels a
   });
 });
 
-describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
+describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
   function makeScenes() {
     return {
       mainMenu: { visible: false },
@@ -838,12 +1003,16 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 2, initialGold: 200 });
     const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(21) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
 
     controller.startRun();
     controller.enterBattle();
     runManager.completeLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
+
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
 
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
@@ -893,11 +1062,14 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 2, initialGold: 100 });
     const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(22) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
 
     controller.startRun();
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.pickInterLevel('mystic');
     expect(runManager.phase).toBe(RunPhase.Mystic);
 
@@ -935,45 +1107,20 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(runManager.phase).toBe(RunPhase.Battle);
   });
 
-  it('skilltree: 选 skilltree → 进 SkillTree 相位 → 解锁节点 → sp 减少 → closeSkillTree → Battle', () => {
-    const game = new Game();
-    const runManager = new RunManager({ totalLevels: 2, initialGold: 200 });
-    const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
-
-    controller.startRun();
-    controller.enterBattle();
-    runManager.grantSp(5);
-    runManager.completeLevel();
-    controller.pickInterLevel('skilltree');
-    expect(runManager.phase).toBe(RunPhase.SkillTree);
-
-    const spBefore = runManager.sp;
-    const nodeId = ARROW_TOWER_SKILL_TREE.nodes[0]!.id;
-    const nodeCost = ARROW_TOWER_SKILL_TREE.nodes[0]!.costSP;
-    runManager.spendSp(nodeCost);
-    runManager.unlockSkillNode(nodeId);
-    expect(runManager.sp).toBe(spBefore - nodeCost);
-    expect(runManager.hasSkillNode(nodeId)).toBe(true);
-
-    controller.closeSkillTree();
-    expect(runManager.phase).toBe(RunPhase.LevelMap);
-    expect(runManager.currentLevel).toBe(2);
-
-    controller.enterBattle();
-    expect(runManager.phase).toBe(RunPhase.Battle);
-  });
-
   it('skip: 选 skip → InterLevel 直接回 LevelMap → level++', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 2, initialGold: 100 });
     const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(24) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
 
     controller.startRun();
     controller.enterBattle();
     runManager.completeLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
+
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
 
     controller.returnToLevelMap();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
@@ -993,9 +1140,13 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     runManager.startRun();
     runManager.enterBattle();
     runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     runManager.returnToLevelMap();
     runManager.enterBattle();
     runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     runManager.returnToLevelMap();
 
     expect(runManager.phase).toBe(RunPhase.LevelMap);
@@ -1013,10 +1164,14 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     controller.startRun();
     controller.enterBattle();
     runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
 
     controller.enterBattle();
     runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
 
     controller.enterBattle();
@@ -1033,7 +1188,8 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
     const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(25) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
 
     controller.startRun();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
@@ -1042,6 +1198,8 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
@@ -1050,6 +1208,8 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
     controller.closeShop();
@@ -1059,6 +1219,8 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.pickInterLevel('mystic');
     expect(runManager.phase).toBe(RunPhase.Mystic);
     controller.closeMystic();
@@ -1072,7 +1234,8 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: route.length, route, initialGold: 100 });
     const scenes = makeScenes();
-    const controller = new RunController({ game, runManager, scenes });
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(26) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
 
     controller.startRun();
     expect(scenes.levelMap.visible).toBe(true);
@@ -1084,18 +1247,24 @@ describe('MVP-acceptance: Shop/Mystic/SkillTree 三面板 smoke', () => {
     expect(scenes.battle.visible).toBe(true);
 
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('treasure');
     expect(scenes.levelMap.visible).toBe(true);
 
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('rest');
     expect(scenes.levelMap.visible).toBe(true);
 
     controller.enterBattle();
     runManager.completeLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('boss');
     expect(scenes.levelMap.visible).toBe(true);

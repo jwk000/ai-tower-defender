@@ -1,10 +1,10 @@
 import type { Game } from './Game.js';
 import type { LevelState } from './LevelState.js';
 import type { WaveSystem } from '../systems/WaveSystem.js';
-import type { InterLevelChoice, RunManager } from '../unit-system/RunManager.js';
+import type { CardRewardOption, GoldRewardOption, InterLevelChoice, RunManager, UpgradeRewardOption } from '../unit-system/RunManager.js';
+import type { CardSkillTreeConfig } from '../unit-system/SkillTreeState.js';
 import { RunPhase } from '../unit-system/RunManager.js';
 import type { DeckSystem } from '../unit-system/DeckSystem.js';
-import { SaveSystem } from './SaveSystem.js';
 
 export interface RunSceneContainers {
   readonly mainMenu: { visible: boolean };
@@ -24,6 +24,7 @@ export interface RunControllerConfig {
   readonly levelState?: LevelState;
   readonly deckSystem?: DeckSystem;
   readonly onLevelStart?: (levelNumber: number) => void;
+  readonly resolveSkillTreeConfig?: (unitCardId: string) => CardSkillTreeConfig | null;
 }
 
 /**
@@ -51,6 +52,7 @@ export class RunController {
   private readonly levelState: LevelState | undefined;
   private readonly deckSystem: DeckSystem | undefined;
   private readonly onLevelStart: ((levelNumber: number) => void) | undefined;
+  private readonly resolveSkillTreeConfig: ((unitCardId: string) => CardSkillTreeConfig | null) | undefined;
 
   constructor(config: RunControllerConfig) {
     this.game = config.game;
@@ -60,6 +62,7 @@ export class RunController {
     this.levelState = config.levelState;
     this.deckSystem = config.deckSystem;
     this.onLevelStart = config.onLevelStart;
+    this.resolveSkillTreeConfig = config.resolveSkillTreeConfig;
     this.syncSceneVisibility();
   }
 
@@ -103,6 +106,53 @@ export class RunController {
     this.syncSceneVisibility();
   }
 
+  setPendingCardReward(options: readonly [CardRewardOption, CardRewardOption, CardRewardOption]): void {
+    this.runManager.setPendingCardReward({
+      sourceLevel: this.runManager.currentLevel,
+      options,
+    });
+    this.syncSceneVisibility();
+  }
+
+  claimCardReward(optionId: string): CardRewardOption {
+    const reward = this.runManager.claimCardReward(optionId);
+    this.deckSystem?.addCard(reward.cardId);
+    this.syncSceneVisibility();
+    return reward;
+  }
+
+  claimGoldReward(optionId: string): GoldRewardOption {
+    const reward = this.runManager.claimGoldReward(optionId);
+    this.syncSceneVisibility();
+    return reward;
+  }
+
+  claimUpgradeReward(optionId: string): UpgradeRewardOption {
+    const reward = this.runManager.claimUpgradeReward(optionId);
+    this.syncSceneVisibility();
+    return reward;
+  }
+
+  upgradeDeckCard(instanceId: string): boolean {
+    return this.runManager.upgradeCardInstance(instanceId);
+  }
+
+  removeDeckCard(instanceId: string): boolean {
+    if (!this.deckSystem) return false;
+    const removed = this.deckSystem.removeInstance(instanceId);
+    if (!removed) return false;
+    this.runManager.removeCardInstance(instanceId);
+    return true;
+  }
+
+  setPendingUpgradeReward(options: readonly [UpgradeRewardOption, UpgradeRewardOption, UpgradeRewardOption]): void {
+    this.runManager.setPendingUpgradeReward({
+      sourceLevel: this.runManager.currentLevel,
+      options,
+    });
+    this.syncSceneVisibility();
+  }
+
   closeShop(): void {
     this.runManager.closeShop();
     this.syncSceneVisibility();
@@ -132,16 +182,11 @@ export class RunController {
   }
 
   saveProgress(): void {
-    if (!this.deckSystem) return;
-    SaveSystem.saveRun(this.runManager.snapshot(this.deckSystem));
+    return;
   }
 
   loadProgress(): boolean {
-    const snap = SaveSystem.loadRun();
-    if (!snap) return false;
-    this.runManager.restoreFrom(snap);
-    this.syncSceneVisibility();
-    return true;
+    return false;
   }
 
   private syncLevelStateFromWaveSystem(): void {
