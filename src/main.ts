@@ -3,7 +3,7 @@ import { Container } from 'pixi.js';
 import { Game } from './core/Game.js';
 import { LevelState } from './core/LevelState.js';
 import { RunController } from './core/RunController.js';
-import { Attack, Crystal, Projectile, UnitCategory, UnitTag } from './core/components.js';
+import { Crystal, Projectile, UnitTag } from './core/components.js';
 import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
@@ -22,12 +22,12 @@ import {
   InterLevelPanel,
   type InterLevelIntent,
   type InterLevelOffer,
+  type InterLevelState,
 } from './ui/InterLevelPanel.js';
 import { LevelMapPanel, type LevelMeta } from './ui/LevelMapPanel.js';
-import { DeckViewPanel } from './ui/DeckViewPanel.js';
+import { DeckViewPanel, type CardInstanceEntry, type DeckViewConfirmationState } from './ui/DeckViewPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
-import { ARROW_TOWER_SKILL_TREE } from './ui/ArrowTowerConfig.js';
 import { RunResultPanel, type RunResultState } from './ui/RunResultPanel.js';
 import { createAttackSystem } from './systems/AttackSystem.js';
 import { createCrystalSystem } from './systems/CrystalSystem.js';
@@ -49,6 +49,8 @@ import { DeckSystem } from './unit-system/DeckSystem.js';
 import { EnergySystem } from './unit-system/EnergySystem.js';
 import { HandSystem } from './unit-system/HandSystem.js';
 import { RunManager } from './unit-system/RunManager.js';
+import type { CardSkillTreeConfig } from './unit-system/SkillTreeState.js';
+import type { SkillTreeError } from './unit-system/SkillTreeState.js';
 import { SaveSystem } from './core/SaveSystem.js';
 import {
   loadCardConfigsForLevel,
@@ -99,7 +101,6 @@ const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const BOSS_LEVEL_NUMBER = 8;
-const DEFAULT_DECK_SIZE = 12; // S2 替换：卡组 12 张（per 10-roguelike-loop §2.3）
 const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 0;
 const ENERGY_RESTORE_PER_WAVE = 5;
@@ -147,7 +148,17 @@ async function bootstrap(): Promise<void> {
   ]);
   const unitConfigs = loadUnitConfigsForLevel(level, unitYamlFiles);
   const cardConfigs = loadCardConfigsForLevel(level, cardYamlFiles);
-  const arrowTowerSkillTree = parseSkillTreeFromUnitYaml('arrow_tower', towerUnitsYaml) ?? ARROW_TOWER_SKILL_TREE;
+  const skillTreeConfigByUnitId = new Map<string, CardSkillTreeConfig>();
+  const towerUnitIds = ['arrow_tower', 'cannon_tower', 'elemental_tower', 'lightning_tower', 'laser_tower', 'bat_tower'];
+  const soldierUnitIds = ['shield_guard', 'swordsman', 'archer', 'healer', 'mage_apprentice', 'rogue'];
+  for (const unitId of towerUnitIds) {
+    const config = parseSkillTreeFromUnitYaml(unitId, towerUnitsYaml);
+    if (config) skillTreeConfigByUnitId.set(unitId, config);
+  }
+  for (const unitId of soldierUnitIds) {
+    const config = parseSkillTreeFromUnitYaml(unitId, soldiersYaml);
+    if (config) skillTreeConfigByUnitId.set(unitId, config);
+  }
 
   const renderer = new Renderer({
     canvas,
@@ -208,9 +219,10 @@ async function bootstrap(): Promise<void> {
   }
 
   const STARTER_DECK = [
-    'arrow_tower_card', 'arrow_tower_card', 'arrow_tower_card', 'arrow_tower_card',
-    'shield_guard_card', 'shield_guard_card',
-    'fireball_card', 'fireball_card',
+    'arrow_tower_card',
+    'shield_guard_card',
+    'fireball_card',
+    'cannon_tower_card',
   ] as const;
   let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
   deckSystem.initWithCards(STARTER_DECK);
@@ -256,19 +268,9 @@ async function bootstrap(): Promise<void> {
     runStats.enemiesKilled += 1;
   });
 
-  game.ruleEngine.registerHandler('boost_attack_speed', (eid, params) => {
-    const multiplier = typeof params?.multiplier === 'number' ? params.multiplier : 1;
-    if (multiplier > 0 && hasComponent(game.world, Attack, eid)) {
-      Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
-    }
-  });
+  game.ruleEngine.registerHandler('boost_attack_speed', () => {});
 
-  game.ruleEngine.registerHandler('add_extra_target', (eid, params) => {
-    const count = typeof params?.count === 'number' ? params.count : 0;
-    if (count > 0 && hasComponent(game.world, Attack, eid)) {
-      Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
-    }
-  });
+  game.ruleEngine.registerHandler('add_extra_target', () => {});
 
   const noopHandlers = [
     'play_sound', 'play_effect', 'flash_color', 'change_color', 'visual_flash_loop',
@@ -453,6 +455,7 @@ async function bootstrap(): Promise<void> {
     waveSystem,
     levelState,
     deckSystem,
+    resolveSkillTreeConfig: (unitCardId) => skillTreeConfigByUnitId.get(unitCardId) ?? null,
     onLevelStart: (levelNumber: number) => {
       loadLevel(levelNumber);
       waveSystem.start();
@@ -541,9 +544,6 @@ async function bootstrap(): Promise<void> {
     const snapY = row * CELL_SIZE + CELL_SIZE / 2;
     const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
     if (newEid !== null) {
-      if (hasComponent(game.world, Attack, newEid)) {
-        applyPurchasedSkillsToTower(newEid);
-      }
       game.world.ruleEngine.attachRules(newEid, 'onDeath', [
         { handler: 'return_card_to_deck', params: { cardId: intent.cardId } },
       ]);
@@ -558,16 +558,127 @@ async function bootstrap(): Promise<void> {
   let mysticRenderer!: MysticRenderer;
   let levelMapRenderer!: LevelMapRenderer;
   let deckViewRenderer!: DeckViewRenderer;
+  let deckViewSelectedInstanceId: string | null = null;
+  let deckViewConfirmation: DeckViewConfirmationState | null = null;
+  let deckViewMessage: string | null = null;
 
   const deckViewPanel = new DeckViewPanel();
   deckViewPanel.setHandler((action) => {
     if (action === 'close') {
+      deckViewConfirmation = null;
+      deckViewMessage = null;
       deckViewContainer.visible = false;
+      return;
     }
+
+    if (action.kind === 'select-instance') {
+      deckViewSelectedInstanceId = action.instanceId;
+      deckViewConfirmation = null;
+      deckViewMessage = null;
+      deckViewRenderer.refresh(buildDeckViewState());
+      return;
+    }
+
+    if ('kind' in action && action.kind === 'cancel-confirmation') {
+      deckViewConfirmation = null;
+      deckViewMessage = null;
+      deckViewRenderer.refresh(buildDeckViewState());
+      return;
+    }
+
+    const currentState = buildDeckViewState();
+    const selected = currentState.instances?.find((instance) => instance.instanceId === action.instanceId);
+    if (!selected) {
+      deckViewConfirmation = null;
+      deckViewMessage = '未找到目标卡牌。';
+      deckViewRenderer.refresh(buildDeckViewState());
+      return;
+    }
+
+    if (action.kind === 'request-upgrade') {
+      if (!selected.canUpgrade || selected.nextUpgradeCostGold == null) {
+        deckViewConfirmation = null;
+        deckViewMessage = '该卡牌当前无法升级。';
+        deckViewRenderer.refresh(buildDeckViewState());
+        return;
+      }
+      deckViewConfirmation = {
+        kind: 'upgrade',
+        instanceId: selected.instanceId,
+        title: `确认升级 ${selected.cardName ?? selected.cardId}？`,
+        description: `将消耗 ${selected.nextUpgradeCostGold} 金币，并把这张卡牌提升到下一等级。`,
+        confirmLabel: `确认消耗 ${selected.nextUpgradeCostGold} 金币`,
+        cancelLabel: '暂不升级',
+      };
+      deckViewMessage = null;
+      deckViewRenderer.refresh(buildDeckViewState());
+      return;
+    }
+
+    if (action.kind === 'request-delete') {
+      if (!selected.canDelete) {
+        deckViewConfirmation = null;
+        deckViewMessage = '至少要保留 1 张卡牌。';
+        deckViewRenderer.refresh(buildDeckViewState());
+        return;
+      }
+      deckViewConfirmation = {
+        kind: 'delete',
+        instanceId: selected.instanceId,
+        title: `确认删除 ${selected.cardName ?? selected.cardId}？`,
+        description: '删除后不会返还已投入的资源，并且本次 run 内无法撤销。',
+        confirmLabel: '确认删除',
+        cancelLabel: '保留这张卡',
+      };
+      deckViewMessage = null;
+      deckViewRenderer.refresh(buildDeckViewState());
+      return;
+    }
+
+    if (action.kind === 'confirm-upgrade') {
+      const upgraded = runController.upgradeDeckCard(action.instanceId);
+      deckViewConfirmation = null;
+      deckViewMessage = upgraded
+        ? `${selected.cardName ?? selected.cardId} 已升级。`
+        : formatUpgradeFailure(runManager.lastSkillTreeError);
+      deckViewRenderer.refresh(buildDeckViewState());
+      runController.saveProgress();
+      return;
+    }
+
+    const removed = runController.removeDeckCard(action.instanceId);
+    deckViewConfirmation = null;
+    deckViewMessage = removed
+      ? `${selected.cardName ?? selected.cardId} 已从卡池移除。`
+      : '删除失败，目标卡牌不存在。';
+    const nextState = buildDeckViewState();
+    if (!nextState.instances?.some((instance) => instance.instanceId === deckViewSelectedInstanceId)) {
+      deckViewSelectedInstanceId = nextState.instances?.[0]?.instanceId ?? null;
+    }
+    deckViewRenderer.refresh(buildDeckViewState());
+    runController.saveProgress();
   });
 
   const interLevelPanel = new InterLevelPanel();
   interLevelPanel.setHandler((intent: InterLevelIntent) => {
+    if (intent.kind === 'claim-card-reward') {
+      runController.claimCardReward(intent.rewardId);
+      interLevelRenderer.refresh(buildInterLevelState());
+      runController.saveProgress();
+      return;
+    }
+    if (intent.kind === 'claim-gold-reward') {
+      runController.claimGoldReward(intent.rewardId);
+      interLevelRenderer.refresh(buildInterLevelState());
+      runController.saveProgress();
+      return;
+    }
+    if (intent.kind === 'claim-upgrade-reward') {
+      runController.claimUpgradeReward(intent.rewardId);
+      interLevelRenderer.refresh(buildInterLevelState());
+      runController.saveProgress();
+      return;
+    }
     if (intent.kind === 'skip') {
       runController.returnToLevelMap();
       runController.saveProgress();
@@ -590,6 +701,15 @@ async function bootstrap(): Promise<void> {
     { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
     { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },
   ];
+
+  const CARD_REWARD_POOL = [
+    { id: 'arrow_tower_card', title: '箭塔卡', description: '稳定单体输出，适合作为基础防线。' },
+    { id: 'shield_guard_card', title: '盾卫卡', description: '召唤前排单位，帮助拦截高压波次。' },
+    { id: 'fireball_card', title: '火球术', description: '范围法术爆发，适合清理密集敌群。' },
+    { id: 'cannon_tower_card', title: '炮塔卡', description: '高伤害塔牌，擅长处理中甲目标。' },
+    { id: 'elemental_tower_card', title: '元素塔卡', description: '偏法术向塔牌，适合补充流派变化。' },
+    { id: 'lightning_tower_card', title: '电塔卡', description: '连锁打击能力，适合处理中后期群怪。' },
+  ] as const;
 
   function buildShopState(): ShopState {
     const shuffled = [...SHOP_UNIT_CARDS].sort(() => Math.random() - 0.5);
@@ -677,37 +797,6 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  const towerQuery = defineQuery([UnitTag, Attack]);
-
-  function applySkillEffectToExistingTowers(effect: { type: string; [k: string]: unknown }): void {
-    for (const eid of towerQuery(game.world)) {
-      if (UnitTag.category[eid] !== UnitCategory.Tower) continue;
-      if (effect.type === 'boost_attack_speed') {
-        const multiplier = typeof effect.multiplier === 'number' ? effect.multiplier : 1;
-        if (multiplier > 0) Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
-      } else if (effect.type === 'add_extra_target') {
-        const count = typeof effect.count === 'number' ? effect.count : 0;
-        if (count > 0) Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
-      }
-    }
-  }
-
-  function applyPurchasedSkillsToTower(eid: number): void {
-    const config = arrowTowerSkillTree;
-    for (const nodeId of runManager.skillTreeState) {
-      const node = config.nodes.find((n) => n.id === nodeId);
-      if (!node) continue;
-      const effect = node.effect as { type: string; [k: string]: unknown };
-      if (effect.type === 'boost_attack_speed') {
-        const multiplier = typeof effect.multiplier === 'number' ? effect.multiplier : 1;
-        if (multiplier > 0) Attack.cooldown[eid] = Attack.cooldown[eid]! / multiplier;
-      } else if (effect.type === 'add_extra_target') {
-        const count = typeof effect.count === 'number' ? effect.count : 0;
-        if (count > 0) Attack.extraTargets[eid] = (Attack.extraTargets[eid] ?? 0) + count;
-      }
-    }
-  }
-
   const runResultPanel = new RunResultPanel({
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
@@ -736,7 +825,7 @@ async function bootstrap(): Promise<void> {
       runController.enterBattle();
       waveSystem.start();
     } else if (action === 'view-deck') {
-      deckViewRenderer.refresh({ cardIds: deckSystem.getCardInstances().map((i) => i.cardId) });
+      deckViewRenderer.refresh(buildDeckViewState());
       deckViewContainer.visible = true;
     } else if (action === 'back-to-menu') {
       runController.returnToMainMenu();
@@ -821,6 +910,128 @@ async function bootstrap(): Promise<void> {
     ];
   }
 
+  function cardIdToLabel(cardId: string): string {
+    return CARD_REWARD_POOL.find((entry) => entry.id === cardId)?.title
+      ?? SHOP_UNIT_CARDS.find((entry) => entry.id === cardId)?.label
+      ?? cardId;
+  }
+
+  function cardIdToUnitCardId(cardId: string): string | null {
+    return cardRegistry.getCard(cardId)?.unitConfigId ?? null;
+  }
+
+  function buildDeckViewInstances(): CardInstanceEntry[] {
+    const rawInstances = deckSystem.getCardInstances();
+    const canDeleteAny = rawInstances.length > 1;
+    return rawInstances.map((instance) => {
+      const unitCardId = cardIdToUnitCardId(instance.cardId);
+      const config = unitCardId ? skillTreeConfigByUnitId.get(unitCardId) ?? null : null;
+      if (config) {
+        runManager.ensureCardInstanceConfig(instance.instanceId, config);
+      }
+      const nextNode = config ? runManager.getNextUpgradeNode(instance.instanceId) : null;
+      const goldCost = nextNode?.goldCost ?? null;
+      const canAffordUpgrade = goldCost != null && runManager.gold >= goldCost;
+      return {
+        instanceId: instance.instanceId,
+        cardId: instance.cardId,
+        cardName: cardIdToLabel(instance.cardId),
+        level: runManager.getCardLevel(instance.instanceId),
+        canUpgrade: nextNode !== null && canAffordUpgrade,
+        canDelete: canDeleteAny,
+        nextUpgradeCostGold: goldCost,
+        upgradeLabel: nextNode
+          ? canAffordUpgrade
+            ? `升级（-${goldCost} 金币）`
+            : `金币不足（需 ${goldCost}）`
+          : '已满级',
+        deleteLabel: canDeleteAny ? '删除卡牌' : '至少保留 1 张',
+      };
+    });
+  }
+
+  function buildDeckViewState() {
+    const instances = buildDeckViewInstances();
+    const selectedInstanceId = instances.some((instance) => instance.instanceId === deckViewSelectedInstanceId)
+      ? deckViewSelectedInstanceId
+      : instances[0]?.instanceId ?? null;
+    deckViewSelectedInstanceId = selectedInstanceId;
+    if (deckViewConfirmation && deckViewConfirmation.instanceId !== selectedInstanceId) {
+      deckViewConfirmation = null;
+    }
+    return {
+      cardIds: instances.map((instance) => instance.cardId),
+      instances,
+      selectedInstanceId,
+      gold: runManager.gold,
+      message: deckViewMessage ?? undefined,
+      confirmation: deckViewConfirmation,
+    };
+  }
+
+  function formatUpgradeFailure(reason: SkillTreeError | null): string {
+    switch (reason) {
+      case 'INSUFFICIENT_GOLD':
+        return '金币不足，无法完成升级。';
+      case 'NODE_ALREADY_ACTIVE':
+        return '该卡牌已经升到当前路径的最高等级。';
+      case 'PREREQUISITE_NOT_MET':
+        return '升级前置条件未满足。';
+      case 'INSTANCE_NOT_FOUND':
+        return '目标卡牌不存在。';
+      case 'NODE_NOT_FOUND':
+        return '升级节点不存在。';
+      default:
+        return '升级失败，请稍后再试。';
+    }
+  }
+
+  function buildInterLevelState(): InterLevelState {
+    const pendingReward = runManager.pendingCardReward;
+    const pendingGoldReward = runManager.pendingGoldReward;
+    const pendingUpgradeReward = runManager.pendingUpgradeReward;
+    return {
+      mode: pendingReward ? 'card-reward' : pendingGoldReward ? 'gold-reward' : pendingUpgradeReward ? 'upgrade-reward' : 'branch',
+      levelIndex: runManager.currentLevel,
+      nextLevel: runManager.currentLevel + 1,
+      gold: runManager.gold,
+      spAwarded: 1,
+      crystalHpLost: 0,
+      offers: buildInterLevelOffers(),
+      cardRewards: pendingReward ? pendingReward.options.map((option) => ({
+        id: option.id,
+        cardId: option.cardId,
+        title: option.title,
+        description: option.description,
+      })) as [
+        { id: string; cardId: string; title: string; description: string },
+        { id: string; cardId: string; title: string; description: string },
+        { id: string; cardId: string; title: string; description: string },
+      ] : undefined,
+      goldRewards: pendingGoldReward ? pendingGoldReward.options.map((option) => ({
+        id: option.id,
+        amount: option.amount,
+        title: option.title,
+        description: option.description,
+      })) as [
+        { id: string; amount: number; title: string; description: string },
+        { id: string; amount: number; title: string; description: string },
+        { id: string; amount: number; title: string; description: string },
+      ] : undefined,
+      upgradeRewards: pendingUpgradeReward ? pendingUpgradeReward.options.map((option) => ({
+        id: option.id,
+        instanceId: option.instanceId,
+        cardId: option.cardId,
+        title: option.title,
+        description: option.description,
+      })) as [
+        { id: string; instanceId: string; cardId: string; title: string; description: string },
+        { id: string; instanceId: string; cardId: string; title: string; description: string },
+        { id: string; instanceId: string; cardId: string; title: string; description: string },
+      ] : undefined,
+    };
+  }
+
   function buildRunResultState(): RunResultState {
     const outcome = runManager.outcome ?? 'defeat';
     const elapsedSeconds = Math.max(
@@ -881,14 +1092,7 @@ async function bootstrap(): Promise<void> {
           levelMetas: ALL_LEVEL_METAS,
         });
       } else if (phase === 'InterLevel') {
-        interLevelRenderer.refresh({
-          levelIndex: runManager.currentLevel,
-          nextLevel: runManager.currentLevel + 1,
-          gold: runManager.gold,
-          spAwarded: 1,
-          crystalHpLost: 0,
-          offers: buildInterLevelOffers(),
-        });
+        interLevelRenderer.refresh(buildInterLevelState());
       } else if (phase === 'Result') {
         if (runStats.runEndMs === 0) runStats.runEndMs = now;
         runResultRenderer.refresh(buildRunResultState());
@@ -905,6 +1109,10 @@ async function bootstrap(): Promise<void> {
       const uiFrame = projectUIFrame(runManager, levelState, handSystem, energySystem, cardRegistry);
       handPanel.refresh(uiFrame.hand);
       presenter.present(uiFrame);
+    }
+
+    if (deckViewContainer.visible) {
+      deckViewRenderer.refresh(buildDeckViewState());
     }
   });
 }
