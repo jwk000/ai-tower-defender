@@ -56,15 +56,6 @@ export interface RunSnapshotV1 {
   };
 }
 
-/** @deprecated 旧格式，迁移期保留 */
-export interface OngoingRun {
-  readonly currentLevelIdx: number;
-  readonly gold: number;
-  readonly skillPoints: number;
-  readonly crystalHp: number;
-  readonly savedAt: number;
-}
-
 const STORAGE_KEY = 'td_run_v3';
 const LEGACY_KEY_V2 = 'td_run_v2';
 const LEGACY_KEY_V1 = 'td_run_v1';
@@ -109,11 +100,6 @@ export const SaveSystem = {
       || localStorage.getItem(LEGACY_KEY_V1) !== null;
   },
 
-  /** @deprecated 用 hasSavedRun() */
-  hasOngoingRun(): boolean {
-    return SaveSystem.hasSavedRun();
-  },
-
   loadRun(): RunSnapshot | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -148,38 +134,8 @@ export const SaveSystem = {
     return null;
   },
 
-  /** @deprecated 用 loadRun() */
-  loadOngoingRun(): OngoingRun | null {
-    const snap = SaveSystem.loadRun();
-    if (!snap) return null;
-    return {
-      currentLevelIdx: snap.currentLevelIdx,
-      gold: snap.gold,
-      skillPoints: 0,
-      crystalHp: snap.crystalHp,
-      savedAt: snap.savedAt,
-    };
-  },
-
   saveRun(snapshot: RunSnapshot): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-  },
-
-  /** @deprecated 用 saveRun() */
-  saveOngoingRun(run: OngoingRun): void {
-    SaveSystem.saveRun({
-      version: 3,
-      savedAt: run.savedAt,
-      phase: 'LevelMap',
-      currentLevelIdx: run.currentLevelIdx,
-      gold: run.gold,
-      crystalHp: run.crystalHp,
-      crystalHpMax: run.crystalHp,
-      pendingCardReward: null,
-      pendingGoldReward: null,
-      pendingUpgradeReward: null,
-      deck: { drawPile: [], discardPile: [] },
-    });
   },
 
   clearRun(): void {
@@ -188,9 +144,5 @@ export const SaveSystem = {
     localStorage.removeItem(LEGACY_KEY_V1);
     localStorage.removeItem(LEGACY_KEY);
   },
-
-  /** @deprecated 用 clearRun() */
-  clearOngoingRun(): void {
-    SaveSystem.clearRun();
-  },
 };
+

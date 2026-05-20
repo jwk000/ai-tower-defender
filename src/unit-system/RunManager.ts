@@ -257,7 +257,6 @@ export class RunManager {
     this._currentLevel = 1;
     this._outcome = null;
     this._gold = this.initialGold;
-    this._sp = 0;
     this._crystalHp = this.initialCrystalHp;
     this._crystalHpMax = this.initialCrystalHp;
     this._pendingCardReward = null;
@@ -446,7 +445,6 @@ export class RunManager {
     this._currentLevel = 0;
     this._outcome = null;
     this._gold = 0;
-    this._sp = 0;
     this._crystalHp = 0;
     this._crystalHpMax = 0;
     this._pendingCardReward = null;
@@ -606,7 +604,6 @@ export class RunManager {
     this._currentLevel = snap.currentLevelIdx;
     this._outcome = null;
     this._gold = snap.gold;
-    this._sp = 0;
     this._crystalHp = snap.crystalHp;
     this._crystalHpMax = snap.crystalHpMax;
     this._pendingCardReward = 'pendingCardReward' in snap ? snap.pendingCardReward : null;

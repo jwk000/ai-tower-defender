@@ -61,7 +61,6 @@ describe('RunManager snapshot / restoreFrom', () => {
     const deck = makeDeck();
     mgr.startRun();
     mgr.addGold(50);
-    mgr.grantSp(5);
     mgr.damageCrystal(3);
 
     const snap = mgr.snapshot(deck);
@@ -78,7 +77,6 @@ describe('RunManager snapshot / restoreFrom', () => {
     expect(mgr2.currentLevel).toBe(1);
     expect(mgr2.gold).toBe(150);
     expect(mgr2.crystalHp).toBe(17);
-    expect(mgr2.sp).toBe(0);
   });
 
   it('restoreFrom preserves InterLevel phase for pending reward resume', () => {
@@ -207,8 +205,6 @@ describe('SaveSystem save / load round-trip', () => {
     expect(mgr.currentLevel).toBe(3);
     expect(mgr.gold).toBe(145);
     expect(mgr.crystalHp).toBe(16);
-    expect(mgr.sp).toBe(0);
-    expect(mgr.skillTreeState.size).toBe(0);
   });
 
   it('clearRun removes save and legacy keys', () => {
@@ -234,7 +230,6 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     const deck = makeDeck(['c1', 'c2', 'c3'], 3);
     mgr.startRun();
     mgr.addGold(60);
-    mgr.grantSp(2);
     deck.drawCard();
     deck.discard('c1');
 
@@ -251,7 +246,6 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
 
     expect(mgr2.phase).toBe(RunPhase.LevelMap);
     expect(mgr2.gold).toBe(160);
-    expect(mgr2.sp).toBe(0);
     expect(deck2.snapshot()).toEqual(deck.snapshot());
   });
 });

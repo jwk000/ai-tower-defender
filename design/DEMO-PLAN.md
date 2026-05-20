@@ -59,7 +59,7 @@
 ### 1.3 存档策略对齐
 - [x] 已有 Run 存档与恢复闭环
 - [x] 按最新设计决定是否保留“进行中 Run 存档”；若以 `OVERVIEW.md` 为准，则改成仅保存历史数据/设置
-- [-] `SaveSystem` / `RunSnapshot` 字段与 `TECH.md` / `OVERVIEW.md` 统一（移除或迁移 skillPoints、skillTree 等旧字段）
+- [x] `SaveSystem` / `RunSnapshot` 字段与 `TECH.md` / `OVERVIEW.md` 统一（移除或迁移 skillPoints、skillTree 等旧字段）
 - [ ] 补一轮存档兼容/迁移回归测试
 
 ---
