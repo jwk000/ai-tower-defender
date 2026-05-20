@@ -240,6 +240,83 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Position.x[charger]!).toBeGreaterThan(Position.x[grunt]!);
   });
 
+  it('boss first phase acts as a high-pressure ranged attacker against the crystal', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createAttackSystem());
+    game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createCrystalSystem());
+    game.pipeline.register(createHealthSystem());
+    game.pipeline.register(createLifecycleSystem());
+
+    const crystal = spawnCrystalAt(game.world, 400, 100, 10, 24);
+    const boss = spawnUnit(game.world, OLD_ONE_WARDEN, { x: 320, y: 100 });
+
+    expect(hasComponent(game.world, BossTag, boss)).toBe(true);
+    expect(Health.current[crystal]).toBe(10);
+
+    for (let i = 0; i < 20; i += 1) {
+      game.tick(0.1);
+    }
+
+    expect(Health.current[crystal]).toBeLessThan(10);
+    expect(Health.current[boss]).toBeGreaterThan(0);
+  });
+
+  it('boss wave completes after the first-phase boss is killed', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createAttackSystem());
+    game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createCrystalSystem());
+    game.pipeline.register(createHealthSystem());
+    game.pipeline.register(createLifecycleSystem());
+
+    const waves: WaveConfig[] = [
+      {
+        waveNumber: 1,
+        spawnDelayMs: 0,
+        isBossWave: true,
+        groups: [{ enemyId: 'e_old_one_warden', count: 1, intervalMs: 0 }],
+      },
+    ];
+    const spawns: SpawnConfig[] = [{ id: 'spawn_0', x: 0, y: 100 }];
+    const onAllWavesComplete = vi.fn();
+    const waveSystem = createWaveSystem({
+      waves,
+      spawns,
+      unitConfigs: new Map([['e_old_one_warden', OLD_ONE_WARDEN]]),
+      waveBreakMs: 0,
+      onAllWavesComplete,
+    });
+    game.pipeline.register(waveSystem);
+    waveSystem.start();
+
+    game.tick(0.1);
+
+    const enemyQuery = defineQuery([BossTag, Health]);
+    const bosses = enemyQuery(game.world);
+    expect(bosses.length).toBe(1);
+    const boss = bosses[0]!;
+    Health.current[boss] = 0;
+
+    game.tick(0.1);
+    game.tick(0.1);
+
+    expect(waveSystem.currentPhase).toBe('completed');
+    expect(onAllWavesComplete).toHaveBeenCalledTimes(1);
+  });
+
   it('support elite periodically heals nearby allied enemies', () => {
     const game = new Game();
     game.world.ruleEngine.registerHandler('drop_gold', () => {});
@@ -296,50 +373,6 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
     expect(Health.current[summoner]).toBe(SUMMONER_ELITE.stats.hp);
   });
-  it('boss wave spawns a boss unit and boss death can clear the wave', () => {
-    const game = new Game();
-    game.world.ruleEngine.registerHandler('drop_gold', () => {});
-    const path = [
-      { x: 0, y: 100 },
-      { x: 400, y: 100 },
-    ];
-    game.pipeline.register(createMovementSystem({ path }));
-    game.pipeline.register(createHealthSystem());
-    game.pipeline.register(createLifecycleSystem());
-
-    const waves: WaveConfig[] = [
-      {
-        waveNumber: 1,
-        spawnDelayMs: 0,
-        isBossWave: true,
-        groups: [{ enemyId: 'e_old_one_warden', count: 1, intervalMs: 0 }],
-      },
-    ];
-    const spawns: SpawnConfig[] = [{ id: 'boss_spawn', x: 0, y: 100 }];
-    const unitConfigs = new Map([['e_old_one_warden', OLD_ONE_WARDEN]]);
-    const waveSystem = createWaveSystem({ waves, spawns, unitConfigs, waveBreakMs: 0 });
-    game.pipeline.register(waveSystem);
-    waveSystem.start();
-
-    game.tick(0.1);
-
-    const enemyQuery = defineQuery([Faction, Health, UnitTag]);
-    const aliveBosses = enemyQuery(game.world).filter(
-      (eid) => Faction.team[eid] === FactionTeam.Enemy && Health.current[eid]! > 0 && UnitTag.category[eid] === UnitCategory.Enemy,
-    );
-    expect(aliveBosses).toHaveLength(1);
-    const bossEid = aliveBosses[0]!;
-    expect(hasComponent(game.world, BossTag, bossEid)).toBe(true);
-    expect(Health.max[bossEid]).toBe(3500);
-
-    game.world.destroyEntity(bossEid);
-    game.tick(0.1);
-    expect(waveSystem.aliveEnemyCount(game.world)).toBe(0);
-    game.tick(0.1);
-    game.tick(0.1);
-    expect(waveSystem.currentPhase).toBe('completed');
-  });
-
   it('summoner elite periodically summons allied enemies', () => {
     const game = new Game();
     game.world.ruleEngine.registerHandler('drop_gold', () => {});
