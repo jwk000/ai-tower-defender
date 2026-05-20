@@ -7,12 +7,21 @@ import {
   Faction,
   FactionTeam,
   Health,
+  Movement,
   Position,
 } from '../../core/components.js';
+import { parseUnitConfigsFromYaml } from '../../config/loader.js';
+import towersYaml from '../../config/units/towers.yaml?raw';
 import { createAttackSystem } from '../AttackSystem.js';
 import { createHealthSystem } from '../HealthSystem.js';
 import { createLifecycleSystem } from '../LifecycleSystem.js';
 import { createProjectileSystem } from '../ProjectileSystem.js';
+
+const ICE_TOWER = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'ice_tower');
+  if (!cfg) throw new Error('ice_tower config not found');
+  return cfg;
+})();
 
 function setupGame(): Game {
   const game = new Game();
@@ -44,16 +53,22 @@ function spawnTower(
   return eid;
 }
 
-function spawnEnemy(game: Game, x: number, y: number, hp: number): number {
+function spawnEnemy(game: Game, x: number, y: number, hp: number, speed = 80): number {
   const eid = game.world.addEntity();
   addComponent(game.world, Position, eid);
   addComponent(game.world, Faction, eid);
   addComponent(game.world, Health, eid);
+  addComponent(game.world, Movement, eid);
   Position.x[eid] = x;
   Position.y[eid] = y;
   Faction.team[eid] = FactionTeam.Enemy;
   Health.current[eid] = hp;
   Health.max[eid] = hp;
+  Movement.speed[eid] = speed;
+  Movement.baseSpeed[eid] = speed;
+  Movement.pathIndex[eid] = 0;
+  Movement.slowMultiplier[eid] = 1;
+  Movement.slowDuration[eid] = 0;
   return eid;
 }
 
@@ -191,6 +206,21 @@ describe('AttackSystem (projectile-based)', () => {
     expect(Health.current[alive]).toBe(90);
   });
 
+  it('applies ice tower slow from config to moving enemies', () => {
+    const game = setupGame();
+    spawnTower(game, 100, 100, {
+      damage: ICE_TOWER.stats.atk,
+      range: ICE_TOWER.stats.range,
+      cooldown: 1 / ICE_TOWER.stats.attackSpeed,
+    });
+    const enemy = spawnEnemy(game, 130, 100, 100, 80);
+
+    game.tick(0.05);
+
+    expect(Movement.slowMultiplier[enemy]).toBeCloseTo(0.75, 5);
+    expect(Movement.slowDuration[enemy]).toBeCloseTo(3, 5);
+  });
+
   it('hits 2 targets simultaneously when extraTargets=1', () => {
     const game = setupGame();
     const tower = spawnTower(game, 100, 100, { damage: 10, range: 500, cooldown: 1 });
@@ -216,5 +246,6 @@ describe('AttackSystem (projectile-based)', () => {
 
     expect(Health.current[near]).toBe(90);
     expect(Health.current[mid]).toBe(100);
+    expect(Attack.extraTargets[tower]).toBe(0);
   });
 });

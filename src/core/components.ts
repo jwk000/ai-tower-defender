@@ -46,6 +46,8 @@ export const Movement = defineComponent({
   chargeCooldown: Types.f32,
   chargeTimer: Types.f32,
   chargeCooldownLeft: Types.f32,
+  slowMultiplier: Types.f32,
+  slowDuration: Types.f32,
 });
 
 export const SupportAura = defineComponent({

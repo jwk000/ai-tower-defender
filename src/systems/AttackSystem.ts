@@ -1,11 +1,28 @@
 import { defineQuery } from 'bitecs';
-
-import { Attack, Faction, Health, Position } from '../core/components.js';
+import { parseUnitConfigsFromYaml } from '../config/loader.js';
+import towersYaml from '../config/units/towers.yaml?raw';
+import { Attack, Faction, Health, Movement, Position } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
 import { spawnProjectile } from './ProjectileSystem.js';
 
 const DEFAULT_PROJECTILE_SPEED = 480;
+
+const ICE_TOWER_CONFIG = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'ice_tower');
+  if (!cfg) {
+    throw new Error('[AttackSystem] ice_tower config not found');
+  }
+  const onHitRule = cfg.lifecycle?.onHit?.find((rule) => rule.handler === 'apply_slow');
+  const slowPercent = Number(onHitRule?.params?.slowPercent ?? 0);
+  const duration = Number(onHitRule?.params?.duration ?? 0);
+  return {
+    damage: cfg.stats.atk,
+    range: cfg.stats.range,
+    slowMultiplier: Math.max(0, 1 - slowPercent / 100),
+    slowDuration: duration,
+  };
+})();
 
 export function createAttackSystem(): System {
   const attackerQuery = defineQuery([Position, Faction, Attack]);
@@ -53,12 +70,30 @@ export function createAttackSystem(): System {
         const speed = Attack.projectileSpeed[attacker]! || DEFAULT_PROJECTILE_SPEED;
 
         for (let t = 0; t < hitCount; t += 1) {
+          const targetEid = inRange[t]!.eid;
           spawnProjectile(world, {
             sourceEid: attacker,
-            targetEid: inRange[t]!.eid,
+            targetEid,
             damage: Attack.damage[attacker]!,
             speed,
           });
+
+          if (Movement.baseSpeed[attacker]! > 0) {
+            continue;
+          }
+
+          if (Attack.projectileSpeed[attacker]! > 0 && range > 0 && Attack.damage[attacker]! > 0) {
+            const isIceTower =
+              Math.abs(range - ICE_TOWER_CONFIG.range) < 1e-3 &&
+              Attack.damage[attacker] === ICE_TOWER_CONFIG.damage;
+            if (isIceTower && Movement.baseSpeed[targetEid]! > 0) {
+              Movement.slowMultiplier[targetEid] = ICE_TOWER_CONFIG.slowMultiplier;
+              Movement.slowDuration[targetEid] = Math.max(
+                Movement.slowDuration[targetEid] ?? 0,
+                ICE_TOWER_CONFIG.slowDuration,
+              );
+            }
+          }
         }
 
         Attack.cooldownLeft[attacker] = Attack.cooldown[attacker]!;

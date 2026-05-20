@@ -12,6 +12,9 @@ function spawnWalker(game: Game, x: number, y: number, speed: number): number {
   Position.x[eid] = x;
   Position.y[eid] = y;
   Movement.speed[eid] = speed;
+  Movement.baseSpeed[eid] = speed;
+  Movement.slowMultiplier[eid] = 1;
+  Movement.slowDuration[eid] = 0;
   Movement.pathIndex[eid] = 0;
   return eid;
 }
@@ -75,6 +78,31 @@ describe('MovementSystem', () => {
 
     expect(Position.x[eid]).toBeCloseTo(15, 3);
     expect(Position.y[eid]).toBeCloseTo(20, 3);
+  });
+
+  it('applies slow multiplier for its duration and then restores base speed', () => {
+    const game = new Game();
+    const path = [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    const eid = spawnWalker(game, 0, 0, 100);
+    Movement.pathIndex[eid] = 1;
+    Movement.slowMultiplier[eid] = 0.5;
+    Movement.slowDuration[eid] = 0.5;
+
+    game.tick(0.25);
+    expect(Position.x[eid]).toBeCloseTo(12.5, 5);
+    expect(Movement.speed[eid]).toBeCloseTo(50, 5);
+
+    game.tick(0.25);
+    expect(Position.x[eid]).toBeCloseTo(25, 5);
+    expect(Movement.slowDuration[eid]).toBeCloseTo(0, 5);
+
+    game.tick(0.25);
+    expect(Position.x[eid]).toBeCloseTo(50, 5);
+    expect(Movement.speed[eid]).toBeCloseTo(100, 5);
   });
 
   it('dispatches onEnter once when an entity reaches the final node', () => {

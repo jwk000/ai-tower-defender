@@ -173,6 +173,8 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
     Movement.chargeCooldown[eid] = config.charge?.cooldown ?? 0;
     Movement.chargeTimer[eid] = config.charge?.duration ?? 0;
     Movement.chargeCooldownLeft[eid] = 0;
+    Movement.slowMultiplier[eid] = 1;
+    Movement.slowDuration[eid] = 0;
   }
 
   if (config.support) {

@@ -39,6 +39,8 @@ export function createMovementSystem(config: MovementSystemConfig): System {
         const chargeCooldown = Movement.chargeCooldown[eid] ?? 0;
         let chargeTimer = Movement.chargeTimer[eid] ?? 0;
         let chargeCooldownLeft = Movement.chargeCooldownLeft[eid] ?? 0;
+        let slowDuration = Movement.slowDuration[eid] ?? 0;
+        let slowMultiplier = Movement.slowMultiplier[eid] ?? 1;
 
         if (chargeDuration > 0 && chargeMultiplier > 1) {
           if (chargeTimer > 0) {
@@ -62,6 +64,19 @@ export function createMovementSystem(config: MovementSystemConfig): System {
         } else {
           Movement.speed[eid] = baseSpeed;
         }
+
+        if (slowDuration > 0) {
+          slowDuration = Math.max(0, slowDuration - dt);
+          Movement.speed[eid] = Movement.speed[eid]! * slowMultiplier;
+          if (slowDuration === 0) {
+            slowMultiplier = 1;
+          }
+        } else {
+          slowMultiplier = 1;
+        }
+
+        Movement.slowDuration[eid] = slowDuration;
+        Movement.slowMultiplier[eid] = slowMultiplier;
 
         Movement.chargeTimer[eid] = chargeTimer;
         Movement.chargeCooldownLeft[eid] = chargeCooldownLeft;
