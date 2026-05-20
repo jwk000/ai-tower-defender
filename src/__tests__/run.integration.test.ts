@@ -33,6 +33,7 @@ import { createHealthSystem } from '../systems/HealthSystem.js';
 import { createLifecycleSystem } from '../systems/LifecycleSystem.js';
 import { createMovementSystem } from '../systems/MovementSystem.js';
 import { createProjectileSystem } from '../systems/ProjectileSystem.js';
+import { createSupportAuraSystem } from '../systems/SupportAuraSystem.js';
 import {
   createWaveSystem,
   type WaveConfig,
@@ -67,6 +68,15 @@ const CHARGER_ELITE: UnitConfig = {
   stats: { hp: 140, atk: 0, attackSpeed: 0, range: 0, speed: 90 },
   visual: { shape: 'circle', color: 0xff7043, size: 32 },
   charge: { multiplier: 2.4, duration: 1.4, cooldown: 3.2 },
+};
+
+const SUPPORT_ELITE: UnitConfig = {
+  id: 'support_elite',
+  category: 'Enemy',
+  faction: 'Enemy',
+  stats: { hp: 120, atk: 0, attackSpeed: 0, range: 0, speed: 70 },
+  visual: { shape: 'circle', color: 0x81c784, size: 30 },
+  support: { radius: 120, healAmount: 12, interval: 1 },
 };
 
 const SPIKE_CARD: CardConfig = {
@@ -115,6 +125,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
       { x: 400, y: 100 },
     ];
     game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createSupportAuraSystem());
     game.pipeline.register(createCrystalSystem());
     game.pipeline.register(createHealthSystem());
     game.pipeline.register(createLifecycleSystem());
@@ -206,6 +217,29 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Position.x[charger]!).toBeGreaterThan(Position.x[grunt]!);
   });
 
+  it('support elite periodically heals nearby allied enemies', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createSupportAuraSystem());
+
+    const support = spawnUnit(game.world, SUPPORT_ELITE, { x: 0, y: 100 });
+    const ally = spawnUnit(game.world, GRUNT, { x: 40, y: 100 });
+    Health.current[ally] = 10;
+
+    game.tick(0.25);
+    game.tick(0.25);
+    expect(Health.current[ally]).toBe(10);
+
+    game.tick(0.25);
+    game.tick(0.25);
+    expect(Health.current[ally]).toBe(22);
+    expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
+  });
   it('Run can be replayed by resetting RunManager, deck, hand, energy, and economy', () => {
     const econ = new EconomySystem();
     const run = new RunManager({ totalLevels: 1 });

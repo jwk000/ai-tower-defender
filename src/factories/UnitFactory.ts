@@ -8,6 +8,7 @@ import {
   Health,
   Movement,
   Position,
+  SupportAura,
   UnitCategory,
   type UnitCategoryValue,
   UnitTag,
@@ -43,6 +44,12 @@ export interface UnitChargeBehavior {
   cooldown: number;
 }
 
+export interface UnitSupportBehavior {
+  radius: number;
+  healAmount: number;
+  interval: number;
+}
+
 export interface UnitVisual {
   shape: UnitVisualShapeString;
   color: number;
@@ -58,6 +65,7 @@ export interface UnitConfig {
   stats: UnitStats;
   visual: UnitVisual;
   charge?: UnitChargeBehavior;
+  support?: UnitSupportBehavior;
   lifecycle?: UnitLifecycle;
 }
 
@@ -139,6 +147,14 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
     Movement.chargeCooldown[eid] = config.charge?.cooldown ?? 0;
     Movement.chargeTimer[eid] = config.charge?.duration ?? 0;
     Movement.chargeCooldownLeft[eid] = 0;
+  }
+
+  if (config.support) {
+    addComponent(world, SupportAura, eid);
+    SupportAura.radius[eid] = config.support.radius;
+    SupportAura.healAmount[eid] = config.support.healAmount;
+    SupportAura.interval[eid] = config.support.interval;
+    SupportAura.cooldownLeft[eid] = config.support.interval;
   }
 
   if (config.stats.range > 0) {

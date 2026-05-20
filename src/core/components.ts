@@ -48,6 +48,13 @@ export const Movement = defineComponent({
   chargeCooldownLeft: Types.f32,
 });
 
+export const SupportAura = defineComponent({
+  radius: Types.f32,
+  healAmount: Types.i32,
+  interval: Types.f32,
+  cooldownLeft: Types.f32,
+});
+
 export const Visual = defineComponent({
   shape: Types.ui8,
   color: Types.ui32,

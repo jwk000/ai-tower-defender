@@ -96,6 +96,14 @@ const ChargeSchema = z
   })
   .passthrough();
 
+const SupportSchema = z
+  .object({
+    radius: z.number().positive(),
+    healAmount: z.number().int().positive(),
+    interval: z.number().positive(),
+  })
+  .passthrough();
+
 const UnitDocSchema = z
   .object({
     id: z.string(),
@@ -104,6 +112,7 @@ const UnitDocSchema = z
     stats: StatsSchema,
     visual: VisualSchema,
     charge: ChargeSchema.optional(),
+    support: SupportSchema.optional(),
     lifecycle: LifecycleSchema.optional(),
   })
   .passthrough();
@@ -139,6 +148,7 @@ export function parseUnitConfig(yamlText: string): UnitConfig {
       size: parsed.visual.size,
     },
     ...(parsed.charge ? { charge: parsed.charge } : {}),
+    ...(parsed.support ? { support: parsed.support } : {}),
     ...(lifecycle ? { lifecycle: lifecycle as UnitConfig['lifecycle'] } : {}),
   };
 }

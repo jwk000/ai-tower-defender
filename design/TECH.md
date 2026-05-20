@@ -151,6 +151,7 @@ interface BehaviorRule {
 - Owner
 - Position
 - Projectile
+- SupportAura
 - UnitTag
 - Visual
 <!-- CODEGEN:components:END -->
@@ -164,6 +165,7 @@ interface BehaviorRule {
 - LifecycleSystem [lifecycle]
 - MovementSystem [gameplay]
 - ProjectileSystem [gameplay]
+- SupportAuraSystem [gameplay]
 - WaveSystem [gameplay]
 <!-- CODEGEN:systems:END -->
 

@@ -167,6 +167,16 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     expect(charger!.charge).toEqual({ multiplier: 2.4, duration: 1.4, cooldown: 3.2 });
     expect(charger!.stats.speed).toBeGreaterThan(0);
   });
+
+  it('supports support elite config from enemies yaml', () => {
+    const text = readFileSync(resolve(CONFIG, 'units/enemies.yaml'), 'utf8');
+    const cfgs = parseUnitConfigsFromYaml(text);
+    const support = cfgs.find((c) => c.id === 'support_elite');
+    expect(support).toBeDefined();
+    expect(support!.category).toBe('Enemy');
+    expect(support!.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
+    expect(support!.stats.speed).toBeGreaterThan(0);
+  });
 });
 
 describe('loadUnitConfigsForLevel: aggregate UnitConfigs across yaml files', () => {

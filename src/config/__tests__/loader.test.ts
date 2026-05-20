@@ -92,6 +92,32 @@ lifecycle:
     expect(cfg.lifecycle?.onDeath?.[0]?.params).toEqual({ amount: 5 });
   });
 
+  it('reads enemy YAML with support heal behavior', () => {
+    const yaml = `
+id: support_elite
+category: Enemy
+faction: Enemy
+stats:
+  hp: 120
+  atk: 8
+  attackSpeed: 0.6
+  range: 24
+  speed: 70
+visual:
+  shape: circle
+  color: "#81c784"
+  size: 30
+support:
+  radius: 120
+  healAmount: 12
+  interval: 1
+`;
+    const cfg = parseUnitConfig(yaml);
+    expect(cfg.id).toBe('support_elite');
+    expect(cfg.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
+    expect(cfg.stats.speed).toBe(70);
+  });
+
   it('numeric color values pass through unchanged', () => {
     const yaml = `
 id: t
