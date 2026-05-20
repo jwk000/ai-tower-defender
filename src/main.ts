@@ -30,6 +30,8 @@ import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
 import { RunResultPanel, type RunResultState } from './ui/RunResultPanel.js';
 import { createAttackSystem } from './systems/AttackSystem.js';
+import { createBurnSystem } from './systems/BurnSystem.js';
+import { createPoisonSystem } from './systems/PoisonSystem.js';
 import { createCrystalSystem } from './systems/CrystalSystem.js';
 import { createHealthSystem } from './systems/HealthSystem.js';
 import { createLifecycleSystem } from './systems/LifecycleSystem.js';
@@ -460,6 +462,8 @@ async function bootstrap(): Promise<void> {
   game.pipeline.register(movementSystem);
   game.pipeline.register(createAttackSystem());
   game.pipeline.register(createProjectileSystem());
+  game.pipeline.register(createBurnSystem());
+  game.pipeline.register(createPoisonSystem());
   game.pipeline.register(createCrystalSystem());
   game.pipeline.register(createHealthSystem());
   game.pipeline.register(createLifecycleSystem());

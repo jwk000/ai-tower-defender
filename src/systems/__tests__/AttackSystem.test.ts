@@ -9,6 +9,7 @@ import {
   FactionTeam,
   Health,
   Movement,
+  Poison,
   Position,
 } from '../../core/components.js';
 import { parseUnitConfigsFromYaml } from '../../config/loader.js';
@@ -18,6 +19,7 @@ import { createHealthSystem } from '../HealthSystem.js';
 import { createLifecycleSystem } from '../LifecycleSystem.js';
 import { createProjectileSystem } from '../ProjectileSystem.js';
 import { createBurnSystem } from '../BurnSystem.js';
+import { createPoisonSystem } from '../PoisonSystem.js';
 
 const ICE_TOWER = (() => {
   const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'ice_tower');
@@ -31,11 +33,18 @@ const FIRE_TOWER = (() => {
   return cfg;
 })();
 
+const POISON_TOWER = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'poison_tower');
+  if (!cfg) throw new Error('poison_tower config not found');
+  return cfg;
+})();
+
 function setupGame(): Game {
   const game = new Game();
   game.pipeline.register(createAttackSystem());
   game.pipeline.register(createProjectileSystem());
   game.pipeline.register(createBurnSystem());
+  game.pipeline.register(createPoisonSystem());
   game.pipeline.register(createHealthSystem());
   game.pipeline.register(createLifecycleSystem());
   return game;
@@ -247,6 +256,25 @@ describe('AttackSystem (projectile-based)', () => {
     for (let i = 0; i < 50; i += 1) game.tick(0.02);
     expect(Health.current[enemy]).toBe(87);
   });
+
+  it('applies poison tower poison from config to enemies over time', () => {
+    const game = setupGame();
+    spawnTower(game, 100, 100, {
+      damage: POISON_TOWER.stats.atk,
+      range: POISON_TOWER.stats.range,
+      cooldown: 1 / POISON_TOWER.stats.attackSpeed,
+    });
+    const enemy = spawnEnemy(game, 130, 100, 100, 80);
+
+    game.tick(0.05);
+
+    expect(Poison.duration[enemy]).toBeCloseTo(3.95, 5);
+    expect(Poison.damagePerTick[enemy]).toBeCloseTo(1.8, 5);
+
+    for (let i = 0; i < 50; i += 1) game.tick(0.1);
+    expect(Health.current[enemy]).toBeLessThan(91);
+  });
+
 
   it('hits 2 targets simultaneously when extraTargets=1', () => {
     const game = setupGame();

@@ -32,6 +32,8 @@ import { RunManager, RunPhase } from '../unit-system/RunManager.js';
 import { EconomySystem } from '../systems/EconomySystem.js';
 import { createAttackSystem } from '../systems/AttackSystem.js';
 import { createBossPhaseSystem } from '../systems/BossPhaseSystem.js';
+import { createBurnSystem } from '../systems/BurnSystem.js';
+import { createPoisonSystem } from '../systems/PoisonSystem.js';
 import { createCrystalSystem } from '../systems/CrystalSystem.js';
 import { createHealthSystem } from '../systems/HealthSystem.js';
 import { createLifecycleSystem } from '../systems/LifecycleSystem.js';
@@ -1225,6 +1227,8 @@ describe('Projectile integration: AttackSystem fires, ProjectileSystem travels a
     const game = new Game();
     game.pipeline.register(createAttackSystem());
     game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createBurnSystem());
+    game.pipeline.register(createPoisonSystem());
     game.pipeline.register(createHealthSystem());
     game.pipeline.register(createLifecycleSystem());
 
@@ -1268,6 +1272,8 @@ describe('Projectile integration: AttackSystem fires, ProjectileSystem travels a
     const game = new Game();
     game.pipeline.register(createAttackSystem());
     game.pipeline.register(createProjectileSystem());
+    game.pipeline.register(createBurnSystem());
+    game.pipeline.register(createPoisonSystem());
     game.pipeline.register(createHealthSystem());
     game.pipeline.register(createLifecycleSystem());
 

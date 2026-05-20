@@ -1,7 +1,7 @@
 import { defineQuery, addComponent, hasComponent } from 'bitecs';
 import { parseUnitConfigsFromYaml } from '../config/loader.js';
 import towersYaml from '../config/units/towers.yaml?raw';
-import { Attack, Burn, Faction, Health, Movement, Position } from '../core/components.js';
+import { Attack, Burn, Faction, Health, Movement, Poison, Position } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
 import { spawnProjectile } from './ProjectileSystem.js';
@@ -30,6 +30,23 @@ const FIRE_TOWER_CONFIG = (() => {
     throw new Error('[AttackSystem] fire_tower config not found');
   }
   const onHitRule = cfg.lifecycle?.onHit?.find((rule) => rule.handler === 'apply_burn');
+  const duration = Number(onHitRule?.params?.duration ?? 0);
+  const tickRatio = Number(onHitRule?.params?.tickRatio ?? 0);
+  return {
+    damage: cfg.stats.atk,
+    range: cfg.stats.range,
+    duration,
+    tickInterval: 1,
+    damagePerTick: cfg.stats.atk * tickRatio,
+  };
+})();
+
+const POISON_TOWER_CONFIG = (() => {
+  const cfg = parseUnitConfigsFromYaml(towersYaml).find((unit) => unit.id === 'poison_tower');
+  if (!cfg) {
+    throw new Error('[AttackSystem] poison_tower config not found');
+  }
+  const onHitRule = cfg.lifecycle?.onHit?.find((rule) => rule.handler === 'apply_poison');
   const duration = Number(onHitRule?.params?.duration ?? 0);
   const tickRatio = Number(onHitRule?.params?.tickRatio ?? 0);
   return {
@@ -122,6 +139,19 @@ export function createAttackSystem(): System {
               Burn.tickInterval[targetEid] = FIRE_TOWER_CONFIG.tickInterval;
               Burn.tickTimer[targetEid] = FIRE_TOWER_CONFIG.tickInterval;
               Burn.duration[targetEid] = Math.max(Burn.duration[targetEid] ?? 0, FIRE_TOWER_CONFIG.duration);
+            }
+
+            const isPoisonTower =
+              Math.abs(range - POISON_TOWER_CONFIG.range) < 1e-3 &&
+              Attack.damage[attacker] === POISON_TOWER_CONFIG.damage;
+            if (isPoisonTower) {
+              if (!hasComponent(world, Poison, targetEid)) {
+                addComponent(world, Poison, targetEid);
+              }
+              Poison.damagePerTick[targetEid] = POISON_TOWER_CONFIG.damagePerTick;
+              Poison.tickInterval[targetEid] = POISON_TOWER_CONFIG.tickInterval;
+              Poison.tickTimer[targetEid] = POISON_TOWER_CONFIG.tickInterval;
+              Poison.duration[targetEid] = Math.max(Poison.duration[targetEid] ?? 0, POISON_TOWER_CONFIG.duration);
             }
           }
         }
