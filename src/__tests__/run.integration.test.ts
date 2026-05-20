@@ -251,6 +251,38 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
   });
 
+  it('elite suite works together in one combat loop', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createSupportAuraSystem());
+    game.pipeline.register(createSummonAuraSystem());
+
+    const charger = spawnUnit(game.world, CHARGER_ELITE, { x: 0, y: 100 });
+    const support = spawnUnit(game.world, SUPPORT_ELITE, { x: 80, y: 100 });
+    const summoner = spawnUnit(game.world, SUMMONER_ELITE, { x: 140, y: 100 });
+    const ally = spawnUnit(game.world, GRUNT, { x: 110, y: 100 });
+    Health.current[ally] = 10;
+
+    const enemyQuery = defineQuery([Faction, UnitTag, Health]);
+    const initialEnemyCount = enemyQuery(game.world).filter((eid) => Health.current[eid]! > 0).length;
+
+    for (let i = 0; i < 12; i += 1) {
+      game.tick(0.25);
+    }
+
+    expect(Position.x[charger]!).toBeGreaterThan(240);
+    expect(Health.current[ally]!).toBeGreaterThan(10);
+
+    const finalEnemyCount = enemyQuery(game.world).filter((eid) => Health.current[eid]! > 0).length;
+    expect(finalEnemyCount).toBeGreaterThan(initialEnemyCount);
+    expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
+    expect(Health.current[summoner]).toBe(SUMMONER_ELITE.stats.hp);
+  });
   it('summoner elite periodically summons allied enemies', () => {
     const game = new Game();
     game.world.ruleEngine.registerHandler('drop_gold', () => {});
