@@ -773,7 +773,6 @@ async function bootstrap(): Promise<void> {
     ];
     return {
       gold: runManager.gold,
-      sp: runManager.sp,
       energy: 0,
       energyMax: 10,
       levelIndex: runManager.currentLevel,
@@ -787,8 +786,6 @@ async function bootstrap(): Promise<void> {
       if (intent.result.kind === 'success') {
         const goldCost = runManager.gold - intent.result.newGold;
         if (goldCost > 0) runManager.spendGold(goldCost);
-        const spGain = intent.result.newSp - runManager.sp;
-        if (spGain > 0) runManager.grantSp(spGain);
         if (intent.result.itemKind === 'restore-crystal-hp') {
           const toRecover = Math.floor((runManager.crystalHpMax - runManager.crystalHp) * 0.5);
           if (toRecover > 0) runManager.healCrystal(toRecover);

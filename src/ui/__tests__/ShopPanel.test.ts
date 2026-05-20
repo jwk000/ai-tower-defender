@@ -5,7 +5,6 @@ import { attemptPurchase, applyPurchase, projectShopTopBar, type ShopState } fro
 function state(overrides: Partial<ShopState> = {}): ShopState {
   return {
     gold: 100,
-    sp: 5,
     energy: 5,
     energyMax: 10,
     levelIndex: 3,
@@ -33,16 +32,12 @@ describe('projectShopTopBar', () => {
     expect(p.goldLabel).toBe('● 金币 240');
   });
 
-  it('formats sp as ✦ 成长点 amount', () => {
-    const p = projectShopTopBar(state({ sp: 7 }));
-    expect(p.spLabel).toBe('✦ 成长点 7');
-  });
 });
 
 describe('attemptPurchase', () => {
-  it('unit card purchase does not change sp', () => {
+  it('unit card purchase only changes gold', () => {
     expect(attemptPurchase(state(), 'card_arrow')).toEqual({
-      kind: 'success', newGold: 50, newSp: 5, grantsCardId: 'arrow_tower', itemKind: 'buy-unit-card', itemId: 'card_arrow',
+      kind: 'success', newGold: 50, grantsCardId: 'arrow_tower', itemKind: 'buy-unit-card', itemId: 'card_arrow',
     });
   });
 
@@ -66,11 +61,10 @@ describe('attemptPurchase', () => {
 });
 
 describe('applyPurchase', () => {
-  it('decrements stock and keeps sp unchanged on success', () => {
+  it('decrements stock on success', () => {
     const { state: next, result } = applyPurchase(state(), 'card_arrow');
     expect(result.kind).toBe('success');
     expect(next.gold).toBe(50);
-    expect(next.sp).toBe(5);
     expect(next.items.find((i) => i.id === 'card_arrow')!.stock).toBe(0);
   });
 

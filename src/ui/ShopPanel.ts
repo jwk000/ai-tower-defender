@@ -12,7 +12,6 @@ export interface ShopItem {
 
 export interface ShopState {
   readonly gold: number;
-  readonly sp: number;
   readonly energy: number;
   readonly energyMax: number;
   readonly levelIndex: number;
@@ -23,7 +22,6 @@ export interface ShopTopBarProjection {
   readonly titleLabel: string;
   readonly energyLabel: string;
   readonly goldLabel: string;
-  readonly spLabel: string;
 }
 
 export function projectShopTopBar(state: ShopState): ShopTopBarProjection {
@@ -31,12 +29,11 @@ export function projectShopTopBar(state: ShopState): ShopTopBarProjection {
     titleLabel: `🏪 商店 ─ 关 ${state.levelIndex} 通过`,
     energyLabel: `⚡ 能量 ${state.energy}/${state.energyMax}`,
     goldLabel: `● 金币 ${state.gold}`,
-    spLabel: `✦ 成长点 ${state.sp}`,
   };
 }
 
 export type PurchaseResult =
-  | { readonly kind: 'success'; readonly newGold: number; readonly newSp: number; readonly grantsCardId?: string; readonly itemKind: ShopItemKind; readonly itemId: string }
+  | { readonly kind: 'success'; readonly newGold: number; readonly grantsCardId?: string; readonly itemKind: ShopItemKind; readonly itemId: string }
   | { readonly kind: 'rejected'; readonly reason: 'no-such-item' | 'out-of-stock' | 'insufficient-gold' };
 
 export function attemptPurchase(state: ShopState, itemId: string): PurchaseResult {
@@ -47,7 +44,6 @@ export function attemptPurchase(state: ShopState, itemId: string): PurchaseResul
   return {
     kind: 'success',
     newGold: state.gold - item.costGold,
-    newSp: state.sp,
     grantsCardId: item.grantsCardId,
     itemKind: item.kind,
     itemId,
@@ -61,7 +57,6 @@ export function applyPurchase(state: ShopState, itemId: string): { state: ShopSt
     state: {
       ...state,
       gold: result.newGold,
-      sp: result.newSp,
       items: state.items.map((i) => (i.id === itemId ? { ...i, stock: i.stock - 1 } : i)),
     },
     result,

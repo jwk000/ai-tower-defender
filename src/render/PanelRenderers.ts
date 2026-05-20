@@ -421,7 +421,7 @@ export class ShopRenderer {
 
     // Topbar
     this.headerText.position.set(20, 15);
-    this.goldText.text = `💰 ${this.state.gold}G  SP: ${this.state.sp}`;
+    this.goldText.text = `💰 ${this.state.gold}G`;
     this.goldText.anchor.set(1, 0);
     this.goldText.position.set(this.viewportWidth - 20, 15);
 
