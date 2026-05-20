@@ -343,15 +343,15 @@ cannon_tower_lv3:
 
 ---
 # ────────────────────────────────────────────────
-# 元素塔 Lv.1 — 冰系，命中减速（原 ice_tower）
+# 冰塔 Lv.1 — 纯控制塔，命中减速
 # ────────────────────────────────────────────────
-elemental_tower:
-  id: elemental_tower
-  name: 元素塔
+ice_tower:
+  id: ice_tower
+  name: 冰塔
   category: Tower
   faction: Player
   layer: Ground
-  upgradesTo: elemental_tower_lv2
+  upgradesTo: ice_tower_lv2
   cardLevel: 1
 
   stats:
@@ -406,14 +406,14 @@ elemental_tower:
         sound: SFX_ICE_SHOOT
 
 ---
-# 元素塔 Lv.2 — 冰火切换（冰冻强化 + 火焰路线并入）
-elemental_tower_lv2:
-  id: elemental_tower_lv2
-  name: 元素塔 Ⅱ
+# 冰塔 Lv.2 — 冰冻强化
+ice_tower_lv2:
+  id: ice_tower_lv2
+  name: 冰塔 Ⅱ
   category: Tower
   faction: Player
   layer: Ground
-  upgradesTo: elemental_tower_lv3
+  upgradesTo: ice_tower_lv3
   cardLevel: 2
 
   stats:
@@ -468,10 +468,297 @@ elemental_tower_lv2:
         sound: SFX_FIRE_SHOOT
 
 ---
-# 元素塔 Lv.3 — 毒系（中毒传染 + 击杀回能 + 霜冻 debuff）
-elemental_tower_lv3:
-  id: elemental_tower_lv3
-  name: 元素塔 Ⅲ
+# 火塔 Lv.1 — 灼烧持续法伤
+fire_tower:
+  id: fire_tower
+  name: 火塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: fire_tower_lv2
+  cardLevel: 1
+
+  stats:
+    hp: 100
+    atk: 10
+    attackSpeed: 1.0
+    range: 205
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+
+  visual:
+    shape: rect
+    color: "#ff8a65"
+    size: 34
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: fire
+      burnOnHit:
+        duration: 3.0
+        tickRatio: 0.25
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: flame_burst
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn
+        duration: 3.0
+        tickRatio: 0.25
+    onAttack:
+      - type: spawn_projectile
+        projectile: fire_orb
+      - type: play_sound
+        sound: SFX_FIRE_SHOOT
+
+---
+# 火塔 Lv.2 — 灼烧强化
+fire_tower_lv2:
+  id: fire_tower_lv2
+  name: 火塔 Ⅱ
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: fire_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 110
+    atk: 12
+    attackSpeed: 1.0
+    range: 220
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+
+  visual:
+    shape: rect
+    color: "#ff7043"
+    size: 36
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: fire
+      burnOnHit:
+        duration: 4.0
+        tickRatio: 0.3
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: flame_burst
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn
+        duration: 4.0
+        tickRatio: 0.3
+    onAttack:
+      - type: spawn_projectile
+        projectile: fire_orb
+      - type: play_sound
+        sound: SFX_FIRE_SHOOT
+
+---
+# 火塔 Lv.3 — 爆燃灼烧
+fire_tower_lv3:
+  id: fire_tower_lv3
+  name: 火塔 Ⅲ
+  category: Tower
+  faction: Player
+  layer: Ground
+  cardLevel: 3
+
+  stats:
+    hp: 120
+    atk: 14
+    attackSpeed: 1.0
+    range: 235
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+
+  visual:
+    shape: rect
+    color: "#f4511e"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: fire
+      burnOnHit:
+        duration: 5.0
+        tickRatio: 0.35
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: flame_burst
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_burn
+        duration: 5.0
+        tickRatio: 0.35
+    onAttack:
+      - type: spawn_projectile
+        projectile: fire_orb
+      - type: play_sound
+        sound: SFX_FIRE_SHOOT
+
+---
+# 毒塔 Lv.1 — 中毒扩散磨血
+poison_tower:
+  id: poison_tower
+  name: 毒塔
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: poison_tower_lv2
+  cardLevel: 1
+
+  stats:
+    hp: 100
+    atk: 9
+    attackSpeed: 0.95
+    range: 215
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 65
+
+  visual:
+    shape: rect
+    color: "#9ccc65"
+    size: 34
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: poison
+      poisonOnHit:
+        duration: 4.0
+        tickRatio: 0.2
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: poison_dissolve
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_poison
+        duration: 4.0
+        tickRatio: 0.2
+    onAttack:
+      - type: spawn_projectile
+        projectile: poison_orb
+      - type: play_sound
+        sound: SFX_POISON_SHOOT
+
+---
+# 毒塔 Lv.2 — 毒性扩散
+poison_tower_lv2:
+  id: poison_tower_lv2
+  name: 毒塔 Ⅱ
+  category: Tower
+  faction: Player
+  layer: Ground
+  upgradesTo: poison_tower_lv3
+  cardLevel: 2
+
+  stats:
+    hp: 110
+    atk: 12
+    attackSpeed: 0.95
+    range: 225
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 65
+
+  visual:
+    shape: rect
+    color: "#8bc34a"
+    size: 36
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      elementType: poison
+      poisonOnHit:
+        duration: 4.0
+        tickRatio: 0.24
+      poisonContagion:
+        maxJumps: 2
+        radius: 70
+        damageDecay: 0.6
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: poison_dissolve
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+      - type: apply_poison
+        duration: 4.0
+        tickRatio: 0.24
+      - type: apply_poison_contagion
+        maxJumps: 2
+        radius: 70
+        damageDecay: 0.6
+    onAttack:
+      - type: spawn_projectile
+        projectile: poison_orb
+      - type: play_sound
+        sound: SFX_POISON_SHOOT
+
+---
+# 毒塔 Lv.3 — 中毒传染 + 击杀回能 + 攻击削弱
+poison_tower_lv3:
+  id: poison_tower_lv3
+  name: 毒塔 Ⅲ
   category: Tower
   faction: Player
   layer: Ground

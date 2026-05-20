@@ -380,7 +380,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
       'arrow_tower_card',
       'cannon_tower_card',
-      'elemental_tower_card',
+      'ice_tower_card',
     ]);
     expect(() => controller.pickInterLevel('shop')).toThrow(/card reward is pending/i);
 
@@ -405,7 +405,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
 
     controller.setPendingUpgradeReward([
       { id: 'u1', instanceId: 'cannon_tower_card_inst_1', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
-      { id: 'u2', instanceId: 'elemental_tower_card_inst_2', cardId: 'elemental_tower_card', title: '元素塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u2', instanceId: 'ice_tower_card_inst_2', cardId: 'ice_tower_card', title: '冰塔 Lv.2', description: '升级到 Lv.2' },
       { id: 'u3', instanceId: 'arrow_tower_card_inst_3', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
     ]);
     expect(() => controller.pickInterLevel('shop')).toThrow(/upgrade reward is pending/i);
@@ -434,9 +434,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.completeCurrentLevel();
 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
-      'elemental_tower_card',
-      'lightning_tower_card',
-      'laser_tower_card',
+      'ice_tower_card',
+      'fire_tower_card',
+      'poison_tower_card',
     ]);
   });
 
@@ -445,11 +445,11 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
     const scenes = makeScenes();
     const deckSystem = new DeckSystem({
-      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      pool: ['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card'],
       deckSize: 3,
       rng: makeRng(31),
     });
-    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card']);
+    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card']);
     runManager.registerCardInstance('arrow_tower_card_inst_1', { unitCardId: 'arrow_tower', nodes: [
       { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
       { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['arrow_lv1'], effects: [] },
@@ -458,9 +458,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
       { id: 'cannon_lv1', name: '炮塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
       { id: 'cannon_lv2', name: '炮塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['cannon_lv1'], effects: [] },
     ] });
-    runManager.registerCardInstance('elemental_tower_card_inst_3', { unitCardId: 'elemental_tower', nodes: [
-      { id: 'elemental_lv1', name: '元素塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
-      { id: 'elemental_lv2', name: '元素塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['elemental_lv1'], effects: [] },
+    runManager.registerCardInstance('ice_tower_card_inst_3', { unitCardId: 'ice_tower', nodes: [
+      { id: 'ice_lv1', name: '冰塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'ice_lv2', name: '冰塔 Lv.2', level: 2, goldCost: 0, prerequisites: ['ice_lv1'], effects: [] },
     ] });
     const controller = new RunController({ game, runManager, scenes, deckSystem });
 
@@ -472,7 +472,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.setPendingUpgradeReward([
       { id: 'u1', instanceId: 'arrow_tower_card_inst_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
       { id: 'u2', instanceId: 'cannon_tower_card_inst_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
-      { id: 'u3', instanceId: 'elemental_tower_card_inst_3', cardId: 'elemental_tower_card', title: '元素塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'u3', instanceId: 'ice_tower_card_inst_3', cardId: 'ice_tower_card', title: '冰塔 Lv.2', description: '升级到 Lv.2' },
     ]);
 
     expect(runManager.phase).toBe(RunPhase.InterLevel);
@@ -516,14 +516,14 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
     const scenes = makeScenes();
     const deckSystem = new DeckSystem({
-      pool: ['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card'],
+      pool: ['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card'],
       deckSize: 3,
       rng: makeRng(51),
     });
-    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'elemental_tower_card']);
+    deckSystem.initWithCards(['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card']);
     runManager.startRun();
 
-    const [arrowInst, cannonInst, elementalInst] = deckSystem.getCardInstances();
+    const [arrowInst, cannonInst, iceInst] = deckSystem.getCardInstances();
     runManager.registerCardInstance(arrowInst!.instanceId, { unitCardId: 'arrow_tower', nodes: [
       { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
       { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
@@ -532,9 +532,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
       { id: 'cannon_lv1', name: '炮塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
       { id: 'cannon_lv2', name: '炮塔 Lv.2', level: 2, goldCost: 60, prerequisites: ['cannon_lv1'], effects: [] },
     ] });
-    runManager.registerCardInstance(elementalInst!.instanceId, { unitCardId: 'elemental_tower', nodes: [
-      { id: 'elemental_lv1', name: '元素塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
-      { id: 'elemental_lv2', name: '元素塔 Lv.2', level: 2, goldCost: 80, prerequisites: ['elemental_lv1'], effects: [] },
+    runManager.registerCardInstance(iceInst!.instanceId, { unitCardId: 'ice_tower', nodes: [
+      { id: 'ice_lv1', name: '冰塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'ice_lv2', name: '冰塔 Lv.2', level: 2, goldCost: 80, prerequisites: ['ice_lv1'], effects: [] },
     ] });
 
     const controller = new RunController({ game, runManager, scenes, deckSystem });

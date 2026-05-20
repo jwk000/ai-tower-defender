@@ -149,8 +149,8 @@ async function bootstrap(): Promise<void> {
   const unitConfigs = loadUnitConfigsForLevel(level, unitYamlFiles);
   const cardConfigs = loadCardConfigsForLevel(level, cardYamlFiles);
   const skillTreeConfigByUnitId = new Map<string, CardSkillTreeConfig>();
-  const towerUnitIds = ['arrow_tower', 'cannon_tower', 'elemental_tower', 'lightning_tower', 'laser_tower', 'bat_tower'];
-  const soldierUnitIds = ['shield_guard', 'swordsman', 'archer', 'healer', 'mage_apprentice', 'rogue'];
+  const towerUnitIds = ['arrow_tower', 'cannon_tower', 'ice_tower', 'fire_tower', 'poison_tower', 'lightning_tower', 'laser_tower', 'bat_tower'];
+  const soldierUnitIds = ['shield_guard', 'swordsman', 'archer', 'priest', 'engineer', 'assassin'];
   for (const unitId of towerUnitIds) {
     const config = parseSkillTreeFromUnitYaml(unitId, towerUnitsYaml);
     if (config) skillTreeConfigByUnitId.set(unitId, config);
@@ -731,7 +731,9 @@ async function bootstrap(): Promise<void> {
   const SHOP_UNIT_CARDS = [
     { id: 'arrow_tower_card', label: '箭塔卡', costGold: 30 },
     { id: 'cannon_tower_card', label: '炮塔卡', costGold: 60 },
-    { id: 'elemental_tower_card', label: '元素塔卡', costGold: 60 },
+    { id: 'ice_tower_card', label: '冰塔卡', costGold: 60 },
+    { id: 'fire_tower_card', label: '火塔卡', costGold: 60 },
+    { id: 'poison_tower_card', label: '毒塔卡', costGold: 60 },
     { id: 'lightning_tower_card', label: '电塔卡', costGold: 120 },
     { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
     { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },
@@ -742,7 +744,9 @@ async function bootstrap(): Promise<void> {
     { id: 'shield_guard_card', title: '盾卫卡', description: '召唤前排单位，帮助拦截高压波次。' },
     { id: 'fireball_card', title: '火球术', description: '范围法术爆发，适合清理密集敌群。' },
     { id: 'cannon_tower_card', title: '炮塔卡', description: '高伤害塔牌，擅长处理中甲目标。' },
-    { id: 'elemental_tower_card', title: '元素塔卡', description: '偏法术向塔牌，适合补充流派变化。' },
+    { id: 'ice_tower_card', title: '冰塔卡', description: '减速控场塔牌，适合拉长怪物受击时间。' },
+    { id: 'fire_tower_card', title: '火塔卡', description: '灼烧法系塔牌，适合持续压低敌方血线。' },
+    { id: 'poison_tower_card', title: '毒塔卡', description: '中毒消耗塔牌，适合应对长线高血波次。' },
     { id: 'lightning_tower_card', title: '电塔卡', description: '连锁打击能力，适合处理中后期群怪。' },
   ] as const;
 

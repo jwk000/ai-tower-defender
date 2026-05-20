@@ -73,7 +73,9 @@ export type RunOutcome = 'victory' | 'defeat';
 const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
   { cardId: 'arrow_tower_card', title: '箭塔卡', description: '低费稳定输出，适合补足前期站场。' },
   { cardId: 'cannon_tower_card', title: '炮塔卡', description: '范围火力更强，适合清理成群敌人。' },
-  { cardId: 'elemental_tower_card', title: '元素塔卡', description: '补一个中期法系输出点。' },
+  { cardId: 'ice_tower_card', title: '冰塔卡', description: '减速控场，适合拉长怪物受击时间。' },
+  { cardId: 'fire_tower_card', title: '火塔卡', description: '灼烧压血，适合持续消耗高血目标。' },
+  { cardId: 'poison_tower_card', title: '毒塔卡', description: '中毒磨血，适合应对长线波次。' },
   { cardId: 'lightning_tower_card', title: '电塔卡', description: '高爆发连锁火力，适合压制精英。' },
   { cardId: 'laser_tower_card', title: '激光塔卡', description: '持续穿透输出，适合后期补强。' },
   { cardId: 'bat_tower_card', title: '蝙蝠塔卡', description: '高阶召唤塔，提供更强后期上限。' },

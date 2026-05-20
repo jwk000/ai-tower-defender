@@ -1,5 +1,5 @@
 # ============================================================
-# Tower Defender — 塔牌配置（v3.5，7 张基础塔卡）
+# Tower Defender — 塔牌配置（v3.6，10 张基础塔卡）
 # ============================================================
 # 设计文档:
 #   - design/20-units/21-unit-roster.md §7.1 卡牌目录
@@ -30,13 +30,33 @@ cannon_tower_card:
   placement:
     targetType: tile
 
-elemental_tower_card:
-  name: 元素塔
-  description: 元素效果塔，默认冰系减速；升级可切换火、毒元素
+ice_tower_card:
+  name: 冰塔
+  description: 纯控制塔，叠加减速并触发短冰冻
   type: unit
   rarity: rare
   energyCost: 5
-  unitConfigId: elemental_tower
+  unitConfigId: ice_tower
+  placement:
+    targetType: tile
+
+fire_tower_card:
+  name: 火塔
+  description: 灼烧持续法伤，适合压低高血目标
+  type: unit
+  rarity: rare
+  energyCost: 5
+  unitConfigId: fire_tower
+  placement:
+    targetType: tile
+
+poison_tower_card:
+  name: 毒塔
+  description: 中毒扩散磨血，擅长长线消耗
+  type: unit
+  rarity: rare
+  energyCost: 5
+  unitConfigId: poison_tower
   placement:
     targetType: tile
 
