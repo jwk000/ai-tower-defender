@@ -33,9 +33,9 @@ describe('projectShopTopBar', () => {
     expect(p.goldLabel).toBe('● 金币 240');
   });
 
-  it('formats sp as ✦ 技能点 amount', () => {
+  it('formats sp as ✦ 成长点 amount', () => {
     const p = projectShopTopBar(state({ sp: 7 }));
-    expect(p.spLabel).toBe('✦ 技能点 7');
+    expect(p.spLabel).toBe('✦ 成长点 7');
   });
 });
 

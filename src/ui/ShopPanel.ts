@@ -31,7 +31,7 @@ export function projectShopTopBar(state: ShopState): ShopTopBarProjection {
     titleLabel: `🏪 商店 ─ 关 ${state.levelIndex} 通过`,
     energyLabel: `⚡ 能量 ${state.energy}/${state.energyMax}`,
     goldLabel: `● 金币 ${state.gold}`,
-    spLabel: `✦ 技能点 ${state.sp}`,
+    spLabel: `✦ 成长点 ${state.sp}`,
   };
 }
 
