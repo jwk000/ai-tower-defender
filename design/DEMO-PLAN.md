@@ -60,7 +60,7 @@
 - [x] 已有 Run 存档与恢复闭环
 - [x] 按最新设计决定是否保留“进行中 Run 存档”；若以 `OVERVIEW.md` 为准，则改成仅保存历史数据/设置
 - [x] `SaveSystem` / `RunSnapshot` 字段与 `TECH.md` / `OVERVIEW.md` 统一（移除或迁移 skillPoints、skillTree 等旧字段）
-- [ ] 补一轮存档兼容/迁移回归测试
+- [x] 补一轮存档兼容/迁移回归测试
 
 ---
 
@@ -76,7 +76,7 @@
 
 ### 2.2 Boss 战
 - [x] 最终关卡与 Boss 节点已接入
-- [ ] 设计并落地 1 个符合最新设计的正式 Boss
+- [x] 设计并落地 1 个符合最新设计的正式 Boss
 - [ ] Boss 第一阶段机制
 - [ ] Boss 第二阶段机制
 - [ ] Boss 第三阶段机制（如按 `LEVELS.md` 终战 Boss 方案执行）

@@ -117,6 +117,7 @@ const UnitDocSchema = z
     id: z.string(),
     category: z.enum(['Tower', 'Soldier', 'Enemy', 'Building', 'Trap', 'Neutral', 'Objective']),
     faction: z.enum(['Player', 'Enemy', 'Neutral']),
+    isBoss: z.boolean().optional(),
     stats: StatsSchema,
     visual: VisualSchema,
     charge: ChargeSchema.optional(),
@@ -144,6 +145,7 @@ export function parseUnitConfig(yamlText: string): UnitConfig {
     id: parsed.id,
     category: parsed.category,
     faction: parsed.faction,
+    ...(parsed.isBoss ? { isBoss: true } : {}),
     stats: {
       hp: parsed.stats.hp,
       atk: parsed.stats.atk ?? 0,
@@ -253,6 +255,7 @@ const WaveSchema = z
     waveNumber: z.number().int().positive(),
     spawnDelay: z.number().nonnegative(),
     enemies: z.array(WaveGroupSchema).min(1),
+    isBossWave: z.boolean().optional(),
   })
   .passthrough();
 
@@ -307,6 +310,7 @@ export interface LevelWave {
   readonly waveNumber: number;
   readonly startDelay: number;
   readonly groups: LevelWaveGroup[];
+  readonly isBossWave?: boolean;
 }
 
 export interface LevelSpawnPoint {
@@ -356,6 +360,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     waveNumber: w.waveNumber,
     startDelay: w.spawnDelay,
     groups: w.enemies.map((g) => ({ enemyId: g.enemyType, count: g.count, interval: g.spawnInterval })),
+    ...(w.isBossWave ? { isBossWave: true } : {}),
   }));
   const spawns: LevelSpawnPoint[] = (parsed.map.spawns ?? []).map((s) => ({
     id: s.id,

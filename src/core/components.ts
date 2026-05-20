@@ -63,6 +63,7 @@ export const SummonAura = defineComponent({
 });
 
 export const EliteTag = defineComponent();
+export const BossTag = defineComponent();
 
 export const Visual = defineComponent({
   shape: Types.ui8,

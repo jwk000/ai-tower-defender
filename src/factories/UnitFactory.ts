@@ -2,6 +2,7 @@ import { addComponent } from 'bitecs';
 
 import {
   Attack,
+  BossTag,
   Faction,
   FactionTeam,
   type FactionTeamValue,
@@ -72,6 +73,7 @@ export interface UnitConfig {
   faction: UnitFactionString;
   stats: UnitStats;
   visual: UnitVisual;
+  isBoss?: boolean;
   charge?: UnitChargeBehavior;
   support?: UnitSupportBehavior;
   summon?: UnitSummonBehavior;
@@ -150,6 +152,10 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
 
   if (config.id.endsWith('_elite')) {
     addComponent(world, EliteTag, eid);
+  }
+
+  if (config.isBoss) {
+    addComponent(world, BossTag, eid);
   }
 
   if (config.stats.speed > 0) {

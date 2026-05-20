@@ -4,6 +4,7 @@ import { hasComponent } from 'bitecs';
 import { createTowerWorld } from '../../core/World.js';
 import {
   Attack,
+  BossTag,
   Faction,
   FactionTeam,
   Health,
@@ -174,6 +175,13 @@ describe('UnitFactory.spawnUnit', () => {
     expect(Position.x[b]).toBe(30);
     Health.current[a] = 1;
     expect(Health.current[b]).toBe(50);
+  });
+
+  it('attaches BossTag for boss units', () => {
+    const world = createTowerWorld();
+    const eid = spawnUnit(world, { ...ENEMY_GRUNT, id: 'e_old_one_warden', isBoss: true }, { x: 0, y: 0 });
+
+    expect(hasComponent(world, BossTag, eid)).toBe(true);
   });
 
   it('throws on unknown faction string to fail fast on misconfigured YAML', () => {

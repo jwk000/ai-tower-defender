@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { ShopPanel } from '../ui/ShopPanel.js';
 import { MysticPanel } from '../ui/MysticPanel.js';
 import { ARROW_TOWER_SKILL_TREE } from '../ui/ArrowTowerConfig.js';
-import { addComponent } from 'bitecs';
+import { addComponent, hasComponent } from 'bitecs';
 
 import { Game } from '../core/Game.js';
 import { LevelState } from '../core/LevelState.js';
 import { RunController } from '../core/RunController.js';
 import {
   Attack,
+  BossTag,
   Crystal,
   Faction,
   FactionTeam,
@@ -87,6 +88,18 @@ const SUMMONER_ELITE: UnitConfig = {
   stats: { hp: 110, atk: 0, attackSpeed: 0, range: 0, speed: 65 },
   visual: { shape: 'circle', color: 0xba68c8, size: 30 },
   summon: { radius: 24, interval: 1, unitId: 'grunt' },
+};
+
+const OLD_ONE_WARDEN: UnitConfig = {
+  id: 'e_old_one_warden',
+  category: 'Enemy',
+  faction: 'Enemy',
+  isBoss: true,
+  stats: { hp: 3500, atk: 70, attackSpeed: 0.5, range: 96, speed: 40 },
+  visual: { shape: 'circle', color: 0x1a0033, size: 96 },
+  lifecycle: {
+    onDeath: [{ handler: 'drop_gold', params: { amount: 500 } }],
+  },
 };
 
 const SPIKE_CARD: CardConfig = {
@@ -283,6 +296,50 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
     expect(Health.current[summoner]).toBe(SUMMONER_ELITE.stats.hp);
   });
+  it('boss wave spawns a boss unit and boss death can clear the wave', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 400, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createHealthSystem());
+    game.pipeline.register(createLifecycleSystem());
+
+    const waves: WaveConfig[] = [
+      {
+        waveNumber: 1,
+        spawnDelayMs: 0,
+        isBossWave: true,
+        groups: [{ enemyId: 'e_old_one_warden', count: 1, intervalMs: 0 }],
+      },
+    ];
+    const spawns: SpawnConfig[] = [{ id: 'boss_spawn', x: 0, y: 100 }];
+    const unitConfigs = new Map([['e_old_one_warden', OLD_ONE_WARDEN]]);
+    const waveSystem = createWaveSystem({ waves, spawns, unitConfigs, waveBreakMs: 0 });
+    game.pipeline.register(waveSystem);
+    waveSystem.start();
+
+    game.tick(0.1);
+
+    const enemyQuery = defineQuery([Faction, Health, UnitTag]);
+    const aliveBosses = enemyQuery(game.world).filter(
+      (eid) => Faction.team[eid] === FactionTeam.Enemy && Health.current[eid]! > 0 && UnitTag.category[eid] === UnitCategory.Enemy,
+    );
+    expect(aliveBosses).toHaveLength(1);
+    const bossEid = aliveBosses[0]!;
+    expect(hasComponent(game.world, BossTag, bossEid)).toBe(true);
+    expect(Health.max[bossEid]).toBe(3500);
+
+    game.world.destroyEntity(bossEid);
+    game.tick(0.1);
+    expect(waveSystem.aliveEnemyCount(game.world)).toBe(0);
+    game.tick(0.1);
+    game.tick(0.1);
+    expect(waveSystem.currentPhase).toBe('completed');
+  });
+
   it('summoner elite periodically summons allied enemies', () => {
     const game = new Game();
     game.world.ruleEngine.registerHandler('drop_gold', () => {});

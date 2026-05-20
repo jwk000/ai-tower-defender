@@ -142,6 +142,7 @@ interface BehaviorRule {
 
 <!-- CODEGEN:components:START -->
 - Attack
+- BossTag
 - Crystal
 - DeadTag
 - EliteTag

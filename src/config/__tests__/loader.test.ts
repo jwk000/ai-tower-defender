@@ -144,6 +144,52 @@ summon:
     expect(cfg.stats.speed).toBe(65);
   });
 
+  it('reads boss YAML with isBoss marker', () => {
+    const yaml = `
+id: e_old_one_warden
+category: Enemy
+faction: Enemy
+isBoss: true
+stats:
+  hp: 3500
+  atk: 70
+  attackSpeed: 0.5
+  range: 96
+  speed: 40
+visual:
+  shape: circle
+  color: "#1a0033"
+  size: 96
+`;
+    const cfg = parseUnitConfig(yaml);
+    expect(cfg.id).toBe('e_old_one_warden');
+    expect(cfg.isBoss).toBe(true);
+    expect(cfg.visual.size).toBe(96);
+  });
+
+  it('reads level boss-wave flag', () => {
+    const yaml = `
+id: level_boss
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    isBossWave: true
+    enemies:
+      - { enemyType: e_old_one_warden, count: 1, spawnInterval: 1 }
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.waves[0]?.isBossWave).toBe(true);
+  });
   it('numeric color values pass through unchanged', () => {
     const yaml = `
 id: t

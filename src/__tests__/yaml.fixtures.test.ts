@@ -146,6 +146,11 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.spawns[0]?.y).toBe(4 * 64 + 32);
     expect(cfg.available.towers).toContain('arrow');
   });
+  it('keeps boss-wave metadata from real level yaml', () => {
+    const text = readFileSync(resolve(CONFIG, 'levels/level-08.yaml'), 'utf8');
+    const cfg = parseLevelConfig(text);
+    expect(cfg.waves.some((wave) => wave.isBossWave)).toBe(true);
+  });
 });
 
 describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
@@ -177,6 +182,7 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     expect(support!.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
     expect(support!.stats.speed).toBeGreaterThan(0);
   });
+
   it('supports summoner elite config from enemies yaml', () => {
     const text = readFileSync(resolve(CONFIG, 'units/enemies.yaml'), 'utf8');
     const cfgs = parseUnitConfigsFromYaml(text);
@@ -186,7 +192,18 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     expect(summoner!.summon).toEqual({ radius: 24, interval: 1, unitId: 'grunt' });
     expect(summoner!.stats.speed).toBeGreaterThan(0);
   });
+
+  it('supports boss unit config from enemies yaml', () => {
+    const text = readFileSync(resolve(CONFIG, 'units/enemies.yaml'), 'utf8');
+    const cfgs = parseUnitConfigsFromYaml(text);
+    const boss = cfgs.find((c) => c.id === 'e_old_one_warden');
+    expect(boss).toBeDefined();
+    expect(boss!.category).toBe('Enemy');
+    expect(boss!.isBoss).toBe(true);
+    expect(boss!.visual.size).toBeGreaterThan(90);
+  });
 });
+
 
 describe('loadUnitConfigsForLevel: aggregate UnitConfigs across yaml files', () => {
   it('returns enemies referenced by waves + towers/units from available list', () => {
