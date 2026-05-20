@@ -770,8 +770,6 @@ async function bootstrap(): Promise<void> {
     const funcSlots = [
       { id: 'restore_crystal', kind: 'restore-crystal-hp' as const, label: '水晶恢复 (50%)', costGold: 100, stock: 1 },
       { id: 'recycle_card', kind: 'recycle-card' as const, label: '卡牌回收', costGold: 50, stock: 1 },
-      { id: 'buy_sp', kind: 'buy-skill-point' as const, label: '技能点 ×1', costGold: 80, grantsSP: 1, stock: 3 },
-      { id: 'sp_pack', kind: 'buy-skill-point-pack' as const, label: '技能点 ×5 限量包', costGold: 350, grantsSP: 5, stock: 1 },
     ];
     return {
       gold: runManager.gold,

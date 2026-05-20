@@ -1,11 +1,10 @@
-export type ShopItemKind = 'buy-unit-card' | 'buy-skill-point' | 'buy-skill-point-pack' | 'restore-crystal-hp' | 'recycle-card';
+export type ShopItemKind = 'buy-unit-card' | 'restore-crystal-hp' | 'recycle-card';
 
 export interface ShopItem {
   readonly id: string;
   readonly kind: ShopItemKind;
   readonly label: string;
   readonly costGold: number;
-  readonly grantsSP?: number;
   readonly grantsCardId?: string;
   readonly healCrystalPercent?: number;
   readonly stock: number;
@@ -48,7 +47,7 @@ export function attemptPurchase(state: ShopState, itemId: string): PurchaseResul
   return {
     kind: 'success',
     newGold: state.gold - item.costGold,
-    newSp: state.sp + (item.grantsSP ?? 0),
+    newSp: state.sp,
     grantsCardId: item.grantsCardId,
     itemKind: item.kind,
     itemId,

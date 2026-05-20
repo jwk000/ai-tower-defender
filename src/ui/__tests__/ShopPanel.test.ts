@@ -11,8 +11,6 @@ function state(overrides: Partial<ShopState> = {}): ShopState {
     levelIndex: 3,
     items: [
       { id: 'card_arrow', kind: 'buy-unit-card', label: '箭塔', costGold: 50, grantsCardId: 'arrow_tower', stock: 1 },
-      { id: 'sp_single', kind: 'buy-skill-point', label: '技能点卡', costGold: 80, grantsSP: 1, stock: 3 },
-      { id: 'sp_pack', kind: 'buy-skill-point-pack', label: '技能点限量包', costGold: 350, grantsSP: 5, stock: 1 },
       { id: 'card_shield', kind: 'buy-unit-card', label: '盾卫', costGold: 80, grantsCardId: 'shield_guard', stock: 0 },
     ],
     ...overrides,
@@ -35,28 +33,16 @@ describe('projectShopTopBar', () => {
     expect(p.goldLabel).toBe('● 金币 240');
   });
 
-  it('formats skillPoints as ✦ 技能点 amount', () => {
+  it('formats sp as ✦ 技能点 amount', () => {
     const p = projectShopTopBar(state({ sp: 7 }));
     expect(p.spLabel).toBe('✦ 技能点 7');
   });
 });
 
 describe('attemptPurchase', () => {
-  it('buys a unit card: deducts gold, grants card, leaves sp unchanged', () => {
+  it('unit card purchase does not change sp', () => {
     expect(attemptPurchase(state(), 'card_arrow')).toEqual({
       kind: 'success', newGold: 50, newSp: 5, grantsCardId: 'arrow_tower', itemKind: 'buy-unit-card', itemId: 'card_arrow',
-    });
-  });
-
-  it('buys skill-point single: deducts gold, grants SP', () => {
-    expect(attemptPurchase(state(), 'sp_single')).toEqual({
-      kind: 'success', newGold: 20, newSp: 6, grantsCardId: undefined, itemKind: 'buy-skill-point', itemId: 'sp_single',
-    });
-  });
-
-  it('buys skill-point pack: deducts gold, grants 5 SP', () => {
-    expect(attemptPurchase(state({ gold: 400 }), 'sp_pack')).toEqual({
-      kind: 'success', newGold: 50, newSp: 10, grantsCardId: undefined, itemKind: 'buy-skill-point-pack', itemId: 'sp_pack',
     });
   });
 
@@ -80,12 +66,12 @@ describe('attemptPurchase', () => {
 });
 
 describe('applyPurchase', () => {
-  it('decrements stock and updates gold/sp on success', () => {
-    const { state: next, result } = applyPurchase(state(), 'sp_single');
+  it('decrements stock and keeps sp unchanged on success', () => {
+    const { state: next, result } = applyPurchase(state(), 'card_arrow');
     expect(result.kind).toBe('success');
-    expect(next.gold).toBe(20);
-    expect(next.sp).toBe(6);
-    expect(next.items.find((i) => i.id === 'sp_single')!.stock).toBe(2);
+    expect(next.gold).toBe(50);
+    expect(next.sp).toBe(5);
+    expect(next.items.find((i) => i.id === 'card_arrow')!.stock).toBe(0);
   });
 
   it('returns state unchanged on rejection', () => {
