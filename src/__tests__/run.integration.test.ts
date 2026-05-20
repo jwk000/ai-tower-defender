@@ -1049,7 +1049,6 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     const shopState = {
       gold: runManager.gold,
       sp: runManager.sp,
-      skillPoints: runManager.sp,
       energy: 0,
       energyMax: 10,
       levelIndex: runManager.currentLevel,

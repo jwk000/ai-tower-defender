@@ -6,7 +6,6 @@ function state(overrides: Partial<ShopState> = {}): ShopState {
   return {
     gold: 100,
     sp: 5,
-    skillPoints: 2,
     energy: 5,
     energyMax: 10,
     levelIndex: 3,
@@ -37,7 +36,7 @@ describe('projectShopTopBar', () => {
   });
 
   it('formats skillPoints as ✦ 技能点 amount', () => {
-    const p = projectShopTopBar(state({ skillPoints: 7 }));
+    const p = projectShopTopBar(state({ sp: 7 }));
     expect(p.spLabel).toBe('✦ 技能点 7');
   });
 });

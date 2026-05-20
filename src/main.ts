@@ -776,7 +776,6 @@ async function bootstrap(): Promise<void> {
     return {
       gold: runManager.gold,
       sp: runManager.sp,
-      skillPoints: runManager.sp,
       energy: 0,
       energyMax: 10,
       levelIndex: runManager.currentLevel,
