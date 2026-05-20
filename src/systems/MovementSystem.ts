@@ -33,6 +33,39 @@ export function createMovementSystem(config: MovementSystemConfig): System {
       const entities = query(world);
       for (let i = 0; i < entities.length; i += 1) {
         const eid = entities[i]!;
+        const baseSpeed = Movement.baseSpeed[eid] ?? Movement.speed[eid] ?? 0;
+        const chargeMultiplier = Movement.chargeMultiplier[eid] ?? 1;
+        const chargeDuration = Movement.chargeDuration[eid] ?? 0;
+        const chargeCooldown = Movement.chargeCooldown[eid] ?? 0;
+        let chargeTimer = Movement.chargeTimer[eid] ?? 0;
+        let chargeCooldownLeft = Movement.chargeCooldownLeft[eid] ?? 0;
+
+        if (chargeDuration > 0 && chargeMultiplier > 1) {
+          if (chargeTimer > 0) {
+            chargeTimer = Math.max(0, chargeTimer - dt);
+            Movement.speed[eid] = baseSpeed * chargeMultiplier;
+            if (chargeTimer === 0) {
+              chargeCooldownLeft = chargeCooldown;
+              Movement.speed[eid] = baseSpeed;
+            }
+          } else if (chargeCooldownLeft > 0) {
+            chargeCooldownLeft = Math.max(0, chargeCooldownLeft - dt);
+            Movement.speed[eid] = baseSpeed;
+            if (chargeCooldownLeft === 0) {
+              chargeTimer = chargeDuration;
+              Movement.speed[eid] = baseSpeed * chargeMultiplier;
+            }
+          } else {
+            chargeTimer = chargeDuration;
+            Movement.speed[eid] = baseSpeed * chargeMultiplier;
+          }
+        } else {
+          Movement.speed[eid] = baseSpeed;
+        }
+
+        Movement.chargeTimer[eid] = chargeTimer;
+        Movement.chargeCooldownLeft[eid] = chargeCooldownLeft;
+
         if (arrived.has(eid)) {
           Position.x[eid] = finalNode.x;
           Position.y[eid] = finalNode.y;

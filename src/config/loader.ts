@@ -88,6 +88,14 @@ const LifecycleSchema = z
   })
   .passthrough();
 
+const ChargeSchema = z
+  .object({
+    multiplier: z.number().positive(),
+    duration: z.number().nonnegative(),
+    cooldown: z.number().nonnegative(),
+  })
+  .passthrough();
+
 const UnitDocSchema = z
   .object({
     id: z.string(),
@@ -95,6 +103,7 @@ const UnitDocSchema = z
     faction: z.enum(['Player', 'Enemy', 'Neutral']),
     stats: StatsSchema,
     visual: VisualSchema,
+    charge: ChargeSchema.optional(),
     lifecycle: LifecycleSchema.optional(),
   })
   .passthrough();
@@ -129,6 +138,7 @@ export function parseUnitConfig(yamlText: string): UnitConfig {
       color: normalizeColor(parsed.visual.color),
       size: parsed.visual.size,
     },
+    ...(parsed.charge ? { charge: parsed.charge } : {}),
     ...(lifecycle ? { lifecycle: lifecycle as UnitConfig['lifecycle'] } : {}),
   };
 }

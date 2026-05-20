@@ -73,6 +73,10 @@ visual:
   shape: circle
   color: "#ef5350"
   size: 24
+charge:
+  multiplier: 2
+  duration: 1.5
+  cooldown: 3
 lifecycle:
   onDeath:
     - handler: drop_gold
@@ -83,6 +87,7 @@ lifecycle:
     expect(cfg.id).toBe('grunt');
     expect(cfg.category).toBe('Enemy');
     expect(cfg.stats.speed).toBe(100);
+    expect(cfg.charge).toEqual({ multiplier: 2, duration: 1.5, cooldown: 3 });
     expect(cfg.lifecycle?.onDeath?.[0]?.handler).toBe('drop_gold');
     expect(cfg.lifecycle?.onDeath?.[0]?.params).toEqual({ amount: 5 });
   });

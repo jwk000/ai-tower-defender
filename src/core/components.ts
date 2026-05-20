@@ -37,9 +37,15 @@ export const Health = defineComponent({
 
 export const Movement = defineComponent({
   speed: Types.f32,
+  baseSpeed: Types.f32,
   vx: Types.f32,
   vy: Types.f32,
   pathIndex: Types.ui16,
+  chargeMultiplier: Types.f32,
+  chargeDuration: Types.f32,
+  chargeCooldown: Types.f32,
+  chargeTimer: Types.f32,
+  chargeCooldownLeft: Types.f32,
 });
 
 export const Visual = defineComponent({

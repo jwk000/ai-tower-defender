@@ -37,6 +37,12 @@ export interface UnitStats {
   speed: number;
 }
 
+export interface UnitChargeBehavior {
+  multiplier: number;
+  duration: number;
+  cooldown: number;
+}
+
 export interface UnitVisual {
   shape: UnitVisualShapeString;
   color: number;
@@ -51,6 +57,7 @@ export interface UnitConfig {
   faction: UnitFactionString;
   stats: UnitStats;
   visual: UnitVisual;
+  charge?: UnitChargeBehavior;
   lifecycle?: UnitLifecycle;
 }
 
@@ -126,6 +133,12 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
     Movement.vx[eid] = 0;
     Movement.vy[eid] = 0;
     Movement.pathIndex[eid] = 0;
+    Movement.baseSpeed[eid] = config.stats.speed;
+    Movement.chargeMultiplier[eid] = config.charge?.multiplier ?? 1;
+    Movement.chargeDuration[eid] = config.charge?.duration ?? 0;
+    Movement.chargeCooldown[eid] = config.charge?.cooldown ?? 0;
+    Movement.chargeTimer[eid] = config.charge?.duration ?? 0;
+    Movement.chargeCooldownLeft[eid] = 0;
   }
 
   if (config.stats.range > 0) {

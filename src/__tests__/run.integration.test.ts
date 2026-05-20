@@ -60,6 +60,15 @@ const SPIKE_TRAP: UnitConfig = {
   visual: { shape: 'rect', color: 0x9e9e9e, size: 16 },
 };
 
+const CHARGER_ELITE: UnitConfig = {
+  id: 'charger_elite',
+  category: 'Enemy',
+  faction: 'Enemy',
+  stats: { hp: 140, atk: 0, attackSpeed: 0, range: 0, speed: 90 },
+  visual: { shape: 'circle', color: 0xff7043, size: 32 },
+  charge: { multiplier: 2.4, duration: 1.4, cooldown: 3.2 },
+};
+
 const SPIKE_CARD: CardConfig = {
   id: 'card_spike',
   type: 'trap',
@@ -171,6 +180,30 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(Position.x[eid!]).toBe(200);
     expect(Position.y[eid!]).toBe(150);
     expect(UnitTag.category[eid!]).toBe(UnitCategory.Trap);
+  });
+
+  it('charger elite periodically accelerates along the path', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+
+    const charger = spawnUnit(game.world, CHARGER_ELITE, { x: 0, y: 100 });
+    const grunt = spawnUnit(game.world, GRUNT, { x: 0, y: 100 });
+
+    game.tick(1);
+    const chargerXAfter1s = Position.x[charger]!;
+    const gruntXAfter1s = Position.x[grunt]!;
+    expect(chargerXAfter1s).toBeGreaterThan(gruntXAfter1s);
+
+    for (let i = 0; i < 5; i += 1) {
+      game.tick(1);
+    }
+
+    expect(Position.x[charger]!).toBeGreaterThan(Position.x[grunt]!);
   });
 
   it('Run can be replayed by resetting RunManager, deck, hand, energy, and economy', () => {

@@ -158,13 +158,14 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     expect(cfgs.every((c) => c.category === 'Tower')).toBe(true);
   });
 
-  it('parses enemies from units/enemies.yaml with non-zero speed', () => {
+  it('supports charger elite config from enemies yaml', () => {
     const text = readFileSync(resolve(CONFIG, 'units/enemies.yaml'), 'utf8');
     const cfgs = parseUnitConfigsFromYaml(text);
-    const grunt = cfgs.find((c) => c.id === 'grunt');
-    expect(grunt).toBeDefined();
-    expect(grunt!.category).toBe('Enemy');
-    expect(grunt!.stats.speed).toBeGreaterThan(0);
+    const charger = cfgs.find((c) => c.id === 'charger_elite');
+    expect(charger).toBeDefined();
+    expect(charger!.category).toBe('Enemy');
+    expect(charger!.charge).toEqual({ multiplier: 2.4, duration: 1.4, cooldown: 3.2 });
+    expect(charger!.stats.speed).toBeGreaterThan(0);
   });
 });
 

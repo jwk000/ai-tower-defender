@@ -77,6 +77,11 @@ runner:
     size: 20
     outline: true
 
+  charge:
+    multiplier: 1.8
+    duration: 1.2
+    cooldown: 2.5
+
   behavior:
     targetSelection: nearest
     attackMode: single_target
@@ -97,6 +102,55 @@ runner:
     onCreate:
       - type: play_sound
         sound: SFX_ENEMY_SPAWN
+
+---
+# 冲锋精英 — 周期性加速突进
+charger_elite:
+  id: charger_elite
+  name: 冲锋精英
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 140
+    atk: 12
+    attackSpeed: 0.8
+    range: 24
+    speed: 90
+    armor: 20
+    mr: 10
+    damageType: physical
+
+  reward:
+    gold: 18
+
+  visual:
+    shape: circle
+    color: "#ff7043"
+    size: 32
+    outline: true
+
+  charge:
+    multiplier: 2.4
+    duration: 1.4
+    cooldown: 3.2
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_heavy
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
 
 ---
 # 重装兵 — 高护甲精英，可攻击建筑
