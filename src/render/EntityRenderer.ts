@@ -1,7 +1,17 @@
 import { Container, Graphics } from 'pixi.js';
 
 import { VisualShape } from '../core/components.js';
-import type { EntityViewSink, VisualSnapshot } from './RenderSystem.js';
+import type { EntityViewSink, StatusSnapshot, VisualSnapshot } from './RenderSystem.js';
+
+const STATUS_RING_WIDTH = 2;
+const STATUS_RING_GAP = 3;
+const STATUS_RING_COLORS = {
+  slow: 0x42a5f5,
+  burn: 0xff7043,
+  poison: 0x66bb6a,
+  shield: 0x80deea,
+  vulnerable: 0xab47bc,
+} as const;
 
 export class EntityRenderer implements EntityViewSink {
   readonly container: Container;
@@ -50,6 +60,7 @@ export class EntityRenderer implements EntityViewSink {
 
 function drawShape(g: Graphics, visual: VisualSnapshot): void {
   const half = visual.size / 2;
+  drawStatusRings(g, half, visual.status);
   if (visual.isBoss) {
     const outerColor = visual.bossPhase === 3 ? 0xff1744 : 0xffd54f;
     const innerColor = visual.bossPhase === 2 ? 0x42a5f5 : visual.bossPhase === 3 ? 0xff8a65 : 0xff7043;
@@ -74,4 +85,18 @@ function drawShape(g: Graphics, visual: VisualSnapshot): void {
       break;
   }
   g.fill({ color: visual.color, alpha: 1 });
+}
+
+function drawStatusRings(g: Graphics, half: number, status: StatusSnapshot): void {
+  const ringColors: number[] = [];
+  if (status.isSlowed) ringColors.push(STATUS_RING_COLORS.slow);
+  if (status.isBurning) ringColors.push(STATUS_RING_COLORS.burn);
+  if (status.isPoisoned) ringColors.push(STATUS_RING_COLORS.poison);
+  if (status.hasShield) ringColors.push(STATUS_RING_COLORS.shield);
+  if (status.isVulnerable) ringColors.push(STATUS_RING_COLORS.vulnerable);
+
+  for (let i = 0; i < ringColors.length; i++) {
+    g.circle(0, 0, half + 6 + i * STATUS_RING_GAP);
+    g.stroke({ width: STATUS_RING_WIDTH, color: ringColors[i]!, alpha: 0.95 });
+  }
 }

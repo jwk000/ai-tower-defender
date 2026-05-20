@@ -1,8 +1,27 @@
 import { defineQuery, hasComponent } from 'bitecs';
 
 import type { TowerWorld } from '../core/World.js';
-import { BossPhase, BossTag, EliteTag, Position, Visual } from '../core/components.js';
+import {
+  BossPhase,
+  BossTag,
+  Burn,
+  EliteTag,
+  Movement,
+  Poison,
+  Position,
+  Shield,
+  Visual,
+  Vulnerable,
+} from '../core/components.js';
 import type { System, SystemPhase } from '../core/pipeline.js';
+
+export interface StatusSnapshot {
+  readonly isSlowed: boolean;
+  readonly isBurning: boolean;
+  readonly isPoisoned: boolean;
+  readonly hasShield: boolean;
+  readonly isVulnerable: boolean;
+}
 
 export interface VisualSnapshot {
   readonly shape: number;
@@ -11,6 +30,7 @@ export interface VisualSnapshot {
   readonly isElite: boolean;
   readonly isBoss: boolean;
   readonly bossPhase: number;
+  readonly status: StatusSnapshot;
 }
 
 export interface EntityViewSink {
@@ -47,6 +67,13 @@ export class RenderSystem implements System {
           isElite: hasComponent(world, EliteTag, eid),
           isBoss: hasComponent(world, BossTag, eid),
           bossPhase: hasComponent(world, BossPhase, eid) ? BossPhase.value[eid]! : 0,
+          status: {
+            isSlowed: (Movement.slowDuration[eid] ?? 0) > 0,
+            isBurning: (Burn.duration[eid] ?? 0) > 0,
+            isPoisoned: (Poison.duration[eid] ?? 0) > 0,
+            hasShield: (Shield.duration[eid] ?? 0) > 0 && (Shield.current[eid] ?? 0) > 0,
+            isVulnerable: (Vulnerable.duration[eid] ?? 0) > 0,
+          },
         });
         this.tracked.add(eid);
       }

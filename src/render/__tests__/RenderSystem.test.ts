@@ -10,7 +10,18 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { addComponent } from 'bitecs';
 
 import { createTowerWorld, type TowerWorld } from '../../core/World.js';
-import { Position, Visual, VisualShape, EliteTag, BossTag } from '../../core/components.js';
+import {
+  Burn,
+  Movement,
+  Poison,
+  Position,
+  Shield,
+  Visual,
+  VisualShape,
+  EliteTag,
+  BossTag,
+  Vulnerable,
+} from '../../core/components.js';
 import { RenderSystem, type EntityViewSink } from '../RenderSystem.js';
 
 interface ViewRecord {
@@ -22,6 +33,14 @@ interface ViewRecord {
   size: number;
   isElite: boolean;
   isBoss: boolean;
+  bossPhase: number;
+  status: {
+    isSlowed: boolean;
+    isBurning: boolean;
+    isPoisoned: boolean;
+    hasShield: boolean;
+    isVulnerable: boolean;
+  };
   destroyed: boolean;
 }
 
@@ -43,6 +62,8 @@ function createStubSink(): EntityViewSink & { views: Map<number, ViewRecord>; so
         size: visual.size,
         isElite: visual.isElite,
         isBoss: visual.isBoss,
+        bossPhase: visual.bossPhase,
+        status: { ...visual.status },
         destroyed: false,
       });
     },
@@ -119,6 +140,46 @@ describe('RenderSystem — view lifecycle', () => {
     system.update(world, 0.016);
 
     expect(sink.views.get(eid)?.isBoss).toBe(true);
+  });
+
+  it('passes status markers to view sink for active status effects', () => {
+    const eid = spawnEntity(world, 160, 110, 0x88ccff);
+    Movement.slowDuration[eid] = 1.5;
+    Burn.duration[eid] = 2;
+    Poison.duration[eid] = 3;
+    Shield.current[eid] = 10;
+    Shield.duration[eid] = 4;
+    Vulnerable.duration[eid] = 2.5;
+
+    system.update(world, 0.016);
+
+    expect(sink.views.get(eid)?.status).toEqual({
+      isSlowed: true,
+      isBurning: true,
+      isPoisoned: true,
+      hasShield: true,
+      isVulnerable: true,
+    });
+  });
+
+  it('does not mark inactive statuses in the view sink', () => {
+    const eid = spawnEntity(world, 180, 130, 0xffffff);
+    Movement.slowDuration[eid] = 0;
+    Burn.duration[eid] = 0;
+    Poison.duration[eid] = 0;
+    Shield.current[eid] = 0;
+    Shield.duration[eid] = 0;
+    Vulnerable.duration[eid] = 0;
+
+    system.update(world, 0.016);
+
+    expect(sink.views.get(eid)?.status).toEqual({
+      isSlowed: false,
+      isBurning: false,
+      isPoisoned: false,
+      hasShield: false,
+      isVulnerable: false,
+    });
   });
 
   it('syncs position to existing view on subsequent frames without recreating', () => {
