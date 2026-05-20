@@ -202,6 +202,55 @@ support_elite:
         duration: 0.1
 
 ---
+# 召唤精英 — 周期性产出小兵
+summoner_elite:
+  id: summoner_elite
+  name: 召唤精英
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 110
+    atk: 6
+    attackSpeed: 0.5
+    range: 24
+    speed: 65
+    armor: 10
+    mr: 20
+    damageType: magic
+
+  reward:
+    gold: 20
+
+  visual:
+    shape: circle
+    color: "#ba68c8"
+    size: 30
+    outline: true
+
+  summon:
+    radius: 24
+    interval: 1.0
+    unitId: grunt
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
 # 重装兵 — 高护甲精英，可攻击建筑
 heavy:
   id: heavy

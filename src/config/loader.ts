@@ -104,6 +104,14 @@ const SupportSchema = z
   })
   .passthrough();
 
+const SummonSchema = z
+  .object({
+    radius: z.number().nonnegative(),
+    interval: z.number().positive(),
+    unitId: z.string(),
+  })
+  .passthrough();
+
 const UnitDocSchema = z
   .object({
     id: z.string(),
@@ -113,6 +121,7 @@ const UnitDocSchema = z
     visual: VisualSchema,
     charge: ChargeSchema.optional(),
     support: SupportSchema.optional(),
+    summon: SummonSchema.optional(),
     lifecycle: LifecycleSchema.optional(),
   })
   .passthrough();
@@ -149,6 +158,7 @@ export function parseUnitConfig(yamlText: string): UnitConfig {
     },
     ...(parsed.charge ? { charge: parsed.charge } : {}),
     ...(parsed.support ? { support: parsed.support } : {}),
+    ...(parsed.summon ? { summon: parsed.summon } : {}),
     ...(lifecycle ? { lifecycle: lifecycle as UnitConfig['lifecycle'] } : {}),
   };
 }

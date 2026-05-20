@@ -9,6 +9,7 @@ import {
   Movement,
   Position,
   SupportAura,
+  SummonAura,
   UnitCategory,
   type UnitCategoryValue,
   UnitTag,
@@ -50,6 +51,12 @@ export interface UnitSupportBehavior {
   interval: number;
 }
 
+export interface UnitSummonBehavior {
+  radius: number;
+  interval: number;
+  unitId: string;
+}
+
 export interface UnitVisual {
   shape: UnitVisualShapeString;
   color: number;
@@ -66,6 +73,7 @@ export interface UnitConfig {
   visual: UnitVisual;
   charge?: UnitChargeBehavior;
   support?: UnitSupportBehavior;
+  summon?: UnitSummonBehavior;
   lifecycle?: UnitLifecycle;
 }
 
@@ -95,6 +103,10 @@ const SHAPE_LOOKUP: Record<UnitVisualShapeString, VisualShapeValue> = {
   circle: VisualShape.Circle,
   triangle: VisualShape.Triangle,
 };
+
+const SUMMON_UNIT_KIND = {
+  grunt: 1,
+} as const;
 
 export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPosition): number {
   const team = FACTION_LOOKUP[config.faction];
@@ -155,6 +167,18 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
     SupportAura.healAmount[eid] = config.support.healAmount;
     SupportAura.interval[eid] = config.support.interval;
     SupportAura.cooldownLeft[eid] = config.support.interval;
+  }
+
+  if (config.summon) {
+    const summonKind = SUMMON_UNIT_KIND[config.summon.unitId as keyof typeof SUMMON_UNIT_KIND];
+    if (!summonKind) {
+      throw new Error(`UnitFactory: unknown summon.unitId "${config.summon.unitId}" on unit "${config.id}"`);
+    }
+    addComponent(world, SummonAura, eid);
+    SummonAura.radius[eid] = config.summon.radius;
+    SummonAura.interval[eid] = config.summon.interval;
+    SummonAura.cooldownLeft[eid] = config.summon.interval;
+    SummonAura.summonUnitKind[eid] = summonKind;
   }
 
   if (config.stats.range > 0) {

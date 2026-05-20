@@ -118,6 +118,32 @@ support:
     expect(cfg.stats.speed).toBe(70);
   });
 
+  it('reads enemy YAML with summon behavior', () => {
+    const yaml = `
+id: summoner_elite
+category: Enemy
+faction: Enemy
+stats:
+  hp: 110
+  atk: 0
+  attackSpeed: 0
+  range: 0
+  speed: 65
+visual:
+  shape: circle
+  color: "#ba68c8"
+  size: 30
+summon:
+  radius: 24
+  interval: 1
+  unitId: grunt
+`;
+    const cfg = parseUnitConfig(yaml);
+    expect(cfg.id).toBe('summoner_elite');
+    expect(cfg.summon).toEqual({ radius: 24, interval: 1, unitId: 'grunt' });
+    expect(cfg.stats.speed).toBe(65);
+  });
+
   it('numeric color values pass through unchanged', () => {
     const yaml = `
 id: t

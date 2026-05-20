@@ -177,6 +177,15 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     expect(support!.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
     expect(support!.stats.speed).toBeGreaterThan(0);
   });
+  it('supports summoner elite config from enemies yaml', () => {
+    const text = readFileSync(resolve(CONFIG, 'units/enemies.yaml'), 'utf8');
+    const cfgs = parseUnitConfigsFromYaml(text);
+    const summoner = cfgs.find((c) => c.id === 'summoner_elite');
+    expect(summoner).toBeDefined();
+    expect(summoner!.category).toBe('Enemy');
+    expect(summoner!.summon).toEqual({ radius: 24, interval: 1, unitId: 'grunt' });
+    expect(summoner!.stats.speed).toBeGreaterThan(0);
+  });
 });
 
 describe('loadUnitConfigsForLevel: aggregate UnitConfigs across yaml files', () => {

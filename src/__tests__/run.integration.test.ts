@@ -39,6 +39,7 @@ import {
   type WaveConfig,
   type SpawnConfig,
 } from '../systems/WaveSystem.js';
+import { createSummonAuraSystem } from '../systems/SummonAuraSystem.js';
 import { defineQuery } from 'bitecs';
 import type { TowerWorld } from '../core/World.js';
 
@@ -77,6 +78,15 @@ const SUPPORT_ELITE: UnitConfig = {
   stats: { hp: 120, atk: 0, attackSpeed: 0, range: 0, speed: 70 },
   visual: { shape: 'circle', color: 0x81c784, size: 30 },
   support: { radius: 120, healAmount: 12, interval: 1 },
+};
+
+const SUMMONER_ELITE: UnitConfig = {
+  id: 'summoner_elite',
+  category: 'Enemy',
+  faction: 'Enemy',
+  stats: { hp: 110, atk: 0, attackSpeed: 0, range: 0, speed: 65 },
+  visual: { shape: 'circle', color: 0xba68c8, size: 30 },
+  summon: { radius: 24, interval: 1, unitId: 'grunt' },
 };
 
 const SPIKE_CARD: CardConfig = {
@@ -239,6 +249,32 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     game.tick(0.25);
     expect(Health.current[ally]).toBe(22);
     expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
+  });
+
+  it('summoner elite periodically summons allied enemies', () => {
+    const game = new Game();
+    game.world.ruleEngine.registerHandler('drop_gold', () => {});
+    const path = [
+      { x: 0, y: 100 },
+      { x: 800, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    game.pipeline.register(createSummonAuraSystem());
+
+    spawnUnit(game.world, SUMMONER_ELITE, { x: 0, y: 100 });
+
+    const enemyQuery = defineQuery([Faction, Health]);
+    const countEnemies = () =>
+      enemyQuery(game.world).filter(
+        (eid) => Faction.team[eid] === FactionTeam.Enemy && Health.current[eid]! > 0,
+      ).length;
+
+    const before = countEnemies();
+    for (let i = 0; i < 5; i += 1) {
+      game.tick(0.25);
+    }
+    const after = countEnemies();
+    expect(after).toBeGreaterThan(before);
   });
   it('Run can be replayed by resetting RunManager, deck, hand, energy, and economy', () => {
     const econ = new EconomySystem();

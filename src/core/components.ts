@@ -55,6 +55,13 @@ export const SupportAura = defineComponent({
   cooldownLeft: Types.f32,
 });
 
+export const SummonAura = defineComponent({
+  radius: Types.f32,
+  interval: Types.f32,
+  cooldownLeft: Types.f32,
+  summonUnitKind: Types.ui16,
+});
+
 export const Visual = defineComponent({
   shape: Types.ui8,
   color: Types.ui32,
