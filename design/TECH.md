@@ -144,6 +144,7 @@ interface BehaviorRule {
 - Attack
 - BossPhase
 - BossTag
+- Burn
 - Crystal
 - DeadTag
 - EliteTag
@@ -152,8 +153,10 @@ interface BehaviorRule {
 - JustSpawnedTag
 - Movement
 - Owner
+- Poison
 - Position
 - Projectile
+- Shield
 - SummonAura
 - SupportAura
 - UnitTag
@@ -165,11 +168,14 @@ interface BehaviorRule {
 <!-- CODEGEN:systems:START -->
 - AttackSystem [gameplay]
 - BossPhaseSystem [gameplay]
+- BurnSystem [gameplay]
 - CrystalSystem [gameplay]
 - HealthSystem [lifecycle]
 - LifecycleSystem [lifecycle]
 - MovementSystem [gameplay]
+- PoisonSystem [gameplay]
 - ProjectileSystem [gameplay]
+- ShieldSystem [gameplay]
 - SummonAuraSystem [gameplay]
 - SupportAuraSystem [gameplay]
 - WaveSystem [gameplay]

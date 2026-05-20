@@ -1,6 +1,6 @@
-import { defineQuery } from 'bitecs';
+import { addComponent, defineQuery, hasComponent } from 'bitecs';
 
-import { Faction, FactionTeam, Health, Position, SupportAura } from '../core/components.js';
+import { Faction, FactionTeam, Health, Position, Shield, SupportAura } from '../core/components.js';
 import type { System } from '../core/pipeline.js';
 import type { TowerWorld } from '../core/World.js';
 
@@ -26,26 +26,31 @@ export function createSupportAuraSystem(): System {
         const team = Faction.team[eid]!;
         const radius = SupportAura.radius[eid]!;
         const radiusSq = radius * radius;
-        const healAmount = SupportAura.healAmount[eid]!;
+        const shieldAmount = SupportAura.shieldAmount[eid]!;
+        const duration = SupportAura.duration[eid]!;
 
-        let healed = false;
+        let shielded = false;
         for (let j = 0; j < allies.length; j += 1) {
           const target = allies[j]!;
           if (target === eid) continue;
           if (Faction.team[target] !== team) continue;
           if (team !== FactionTeam.Enemy) continue;
           if (Health.current[target]! <= 0) continue;
-          if (Health.current[target]! >= Health.max[target]!) continue;
 
           const dx = Position.x[target]! - Position.x[eid]!;
           const dy = Position.y[target]! - Position.y[eid]!;
           if (dx * dx + dy * dy > radiusSq) continue;
 
-          Health.current[target] = Math.min(Health.max[target]!, Health.current[target]! + healAmount);
-          healed = true;
+          if (!hasComponent(world, Shield, target)) {
+            addComponent(world, Shield, target);
+          }
+          Shield.max[target] = Math.max(Shield.max[target] ?? 0, shieldAmount);
+          Shield.current[target] = Math.max(Shield.current[target] ?? 0, shieldAmount);
+          Shield.duration[target] = Math.max(Shield.duration[target] ?? 0, duration);
+          shielded = true;
         }
 
-        SupportAura.cooldownLeft[eid] = healed
+        SupportAura.cooldownLeft[eid] = shielded
           ? SupportAura.interval[eid]!
           : Math.min(SupportAura.interval[eid]!, dt);
       }

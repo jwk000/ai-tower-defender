@@ -92,7 +92,7 @@ lifecycle:
     expect(cfg.lifecycle?.onDeath?.[0]?.params).toEqual({ amount: 5 });
   });
 
-  it('reads enemy YAML with support heal behavior', () => {
+  it('reads enemy YAML with support shield behavior', () => {
     const yaml = `
 id: support_elite
 category: Enemy
@@ -109,12 +109,13 @@ visual:
   size: 30
 support:
   radius: 120
-  healAmount: 12
+  shieldAmount: 12
+  duration: 3
   interval: 1
 `;
     const cfg = parseUnitConfig(yaml);
     expect(cfg.id).toBe('support_elite');
-    expect(cfg.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
+    expect(cfg.support).toEqual({ radius: 120, shieldAmount: 12, duration: 3, interval: 1 });
     expect(cfg.stats.speed).toBe(70);
   });
 

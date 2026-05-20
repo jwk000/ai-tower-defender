@@ -11,6 +11,7 @@ import {
   Movement,
   Position,
   SupportAura,
+  Shield,
   SummonAura,
   EliteTag,
   UnitCategory,
@@ -50,7 +51,8 @@ export interface UnitChargeBehavior {
 
 export interface UnitSupportBehavior {
   radius: number;
-  healAmount: number;
+  shieldAmount: number;
+  duration: number;
   interval: number;
 }
 
@@ -180,7 +182,8 @@ export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPositi
   if (config.support) {
     addComponent(world, SupportAura, eid);
     SupportAura.radius[eid] = config.support.radius;
-    SupportAura.healAmount[eid] = config.support.healAmount;
+    SupportAura.shieldAmount[eid] = config.support.shieldAmount;
+    SupportAura.duration[eid] = config.support.duration;
     SupportAura.interval[eid] = config.support.interval;
     SupportAura.cooldownLeft[eid] = config.support.interval;
   }

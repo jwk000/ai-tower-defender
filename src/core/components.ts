@@ -64,9 +64,16 @@ export const Poison = defineComponent({
   duration: Types.f32,
 });
 
+export const Shield = defineComponent({
+  current: Types.i32,
+  max: Types.i32,
+  duration: Types.f32,
+});
+
 export const SupportAura = defineComponent({
   radius: Types.f32,
-  healAmount: Types.i32,
+  shieldAmount: Types.i32,
+  duration: Types.f32,
   interval: Types.f32,
   cooldownLeft: Types.f32,
 });

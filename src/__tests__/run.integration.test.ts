@@ -17,6 +17,7 @@ import {
   Health,
   Position,
   Projectile,
+  Shield,
   UnitCategory,
   UnitTag,
   Visual,
@@ -39,6 +40,7 @@ import { createHealthSystem } from '../systems/HealthSystem.js';
 import { createLifecycleSystem } from '../systems/LifecycleSystem.js';
 import { createMovementSystem } from '../systems/MovementSystem.js';
 import { createProjectileSystem } from '../systems/ProjectileSystem.js';
+import { createShieldSystem } from '../systems/ShieldSystem.js';
 import { createSupportAuraSystem } from '../systems/SupportAuraSystem.js';
 import {
   createWaveSystem,
@@ -83,7 +85,7 @@ const SUPPORT_ELITE: UnitConfig = {
   faction: 'Enemy',
   stats: { hp: 120, atk: 0, attackSpeed: 0, range: 0, speed: 70 },
   visual: { shape: 'circle', color: 0x81c784, size: 30 },
-  support: { radius: 120, healAmount: 12, interval: 1 },
+  support: { radius: 120, shieldAmount: 12, duration: 3, interval: 1 },
 };
 
 const SUMMONER_ELITE: UnitConfig = {
@@ -154,6 +156,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     ];
     game.pipeline.register(createMovementSystem({ path }));
     game.pipeline.register(createSupportAuraSystem());
+    game.pipeline.register(createShieldSystem());
     game.pipeline.register(createCrystalSystem());
     game.pipeline.register(createHealthSystem());
     game.pipeline.register(createLifecycleSystem());
@@ -388,7 +391,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     expect(onAllWavesComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('support elite periodically heals nearby allied enemies', () => {
+  it('support elite periodically grants shield to nearby allied enemies', () => {
     const game = new Game();
     game.world.ruleEngine.registerHandler('drop_gold', () => {});
     const path = [
@@ -397,6 +400,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     ];
     game.pipeline.register(createMovementSystem({ path }));
     game.pipeline.register(createSupportAuraSystem());
+    game.pipeline.register(createShieldSystem());
 
     const support = spawnUnit(game.world, SUPPORT_ELITE, { x: 0, y: 100 });
     const ally = spawnUnit(game.world, GRUNT, { x: 40, y: 100 });
@@ -408,7 +412,8 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
 
     game.tick(0.25);
     game.tick(0.25);
-    expect(Health.current[ally]).toBe(22);
+    expect(Health.current[ally]).toBe(10);
+    expect(Shield.current[ally]).toBe(12);
     expect(Health.current[support]).toBe(SUPPORT_ELITE.stats.hp);
   });
 
@@ -421,6 +426,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     ];
     game.pipeline.register(createMovementSystem({ path }));
     game.pipeline.register(createSupportAuraSystem());
+    game.pipeline.register(createShieldSystem());
     game.pipeline.register(createSummonAuraSystem());
 
     const charger = spawnUnit(game.world, CHARGER_ELITE, { x: 0, y: 100 });
@@ -437,7 +443,7 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
     }
 
     expect(Position.x[charger]!).toBeGreaterThan(240);
-    expect(Health.current[ally]!).toBeGreaterThan(10);
+    expect(Shield.current[ally]!).toBeGreaterThan(0);
 
     const finalEnemyCount = enemyQuery(game.world).filter((eid) => Health.current[eid]! > 0).length;
     expect(finalEnemyCount).toBeGreaterThan(initialEnemyCount);

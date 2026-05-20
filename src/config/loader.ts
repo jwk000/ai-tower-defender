@@ -99,7 +99,8 @@ const ChargeSchema = z
 const SupportSchema = z
   .object({
     radius: z.number().positive(),
-    healAmount: z.number().int().positive(),
+    shieldAmount: z.number().int().positive(),
+    duration: z.number().positive(),
     interval: z.number().positive(),
   })
   .passthrough();

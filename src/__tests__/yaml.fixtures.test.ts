@@ -179,7 +179,7 @@ describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
     const support = cfgs.find((c) => c.id === 'support_elite');
     expect(support).toBeDefined();
     expect(support!.category).toBe('Enemy');
-    expect(support!.support).toEqual({ radius: 120, healAmount: 12, interval: 1 });
+    expect(support!.support).toEqual({ radius: 120, shieldAmount: 12, duration: 3, interval: 1 });
     expect(support!.stats.speed).toBeGreaterThan(0);
   });
 
