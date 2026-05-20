@@ -83,7 +83,7 @@ describe('resolveInterLevelChoice', () => {
       cardRewards: [
         { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
         { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
-        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫', description: '前排阻挡' },
       ],
     }), 'r2')).toEqual({
       kind: 'claim-card-reward', rewardId: 'r2', cardId: 'fireball_card',
@@ -154,7 +154,7 @@ describe('InterLevelPanel class wrapper', () => {
       cardRewards: [
         { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
         { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
-        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫', description: '前排阻挡' },
       ],
     }));
     panel.trigger('r3');
@@ -201,12 +201,12 @@ describe('card reward layout', () => {
       cardRewards: [
         { id: 'r1', cardId: 'arrow_tower_card', title: '箭塔卡', description: '稳健输出' },
         { id: 'r2', cardId: 'fireball_card', title: '火球术', description: '法术爆发' },
-        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫卡', description: '前排阻挡' },
+        { id: 'r3', cardId: 'shield_guard_card', title: '盾卫', description: '前排阻挡' },
       ],
     }), 1920, 1080);
 
     expect(layout.headerLabel).toBe('🃏 选择 1 张新卡牌');
-    expect(layout.items.map((item) => item.title)).toEqual(['箭塔卡', '火球术', '盾卫卡']);
+    expect(layout.items.map((item) => item.title)).toEqual(['箭塔卡', '火球术', '盾卫']);
   });
 
   it('uses gold reward header and gold reward cards in gold reward mode', () => {

@@ -744,7 +744,7 @@ async function bootstrap(): Promise<void> {
 
   const CARD_REWARD_POOL = [
     { id: 'arrow_tower_card', title: '箭塔卡', description: '稳定单体输出，适合作为基础防线。' },
-    { id: 'shield_guard_card', title: '盾卫卡', description: '召唤前排单位，帮助拦截高压波次。' },
+    { id: 'shield_guard_card', title: '盾卫', description: '召唤前排单位，帮助拦截高压波次。' },
     { id: 'fireball_card', title: '火球术', description: '范围法术爆发，适合清理密集敌群。' },
     { id: 'cannon_tower_card', title: '炮塔卡', description: '高伤害塔牌，擅长处理中甲目标。' },
     { id: 'ice_tower_card', title: '冰塔卡', description: '减速控场塔牌，适合拉长怪物受击时间。' },
