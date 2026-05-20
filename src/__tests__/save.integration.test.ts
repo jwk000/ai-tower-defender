@@ -120,6 +120,8 @@ describe('SaveSystem save / load round-trip', () => {
 
     SaveSystem.saveRun(snap);
     expect(SaveSystem.hasSavedRun()).toBe(true);
+    expect(localStorage.getItem('td_run_v3')).not.toContain('skillPoints');
+    expect(localStorage.getItem('td_run_v3')).not.toContain('skillTree');
 
     const loaded = SaveSystem.loadRun();
     expect(loaded).toEqual(snap);
@@ -201,6 +203,8 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     deck.discard('c1');
 
     const snap = mgr.snapshot(deck);
+    expect('skillPoints' in snap).toBe(false);
+    expect('skillTree' in snap).toBe(false);
     SaveSystem.saveRun(snap);
 
     const loaded = SaveSystem.loadRun()!;
