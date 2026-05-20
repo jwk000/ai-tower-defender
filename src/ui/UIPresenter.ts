@@ -48,6 +48,7 @@ export class UIPresenter {
   private readonly waveText: Text;
   private readonly phaseText: Text;
   private readonly energyText: Text;
+  private readonly drawText: Text;
   private readonly slotGraphics: Graphics;
   private readonly slotLabels: Text[] = [];
   private readonly exitBtnGraphics: Graphics;
@@ -62,7 +63,7 @@ export class UIPresenter {
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
-  private lastHandState: HandState = { cards: [], energy: 0, energyMax: 10 };
+  private lastHandState: HandState = { cards: [], energy: 0, energyMax: 10, drawState: 'ready', drawCooldownSeconds: 0 };
   private dragSlot: number | null = null;
   private ghostCard: Graphics | null = null;
   private ghostCell: Graphics | null = null;
@@ -103,8 +104,10 @@ export class UIPresenter {
 
     this.energyText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 18 } });
     this.energyText.position.set(12, this.viewportHeight - 24);
+    this.drawText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16 } });
+    this.drawText.position.set(140, this.viewportHeight - 24);
     this.slotGraphics = new Graphics();
-    this.handContainer.addChild(this.slotGraphics, this.energyText);
+    this.handContainer.addChild(this.slotGraphics, this.energyText, this.drawText);
 
     this.exitBtnGraphics = new Graphics();
     this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15 } });
@@ -266,6 +269,7 @@ export class UIPresenter {
     this.DEBUG_VICTORY_BTN.x = vw - 148;
     this.DEBUG_VICTORY_BTN.y = 56;
     this.energyText.position.set(12, vh - 24);
+    this.drawText.position.set(140, vh - 24);
     this.drawExitButton();
     this.drawDebugVictoryButton();
   }
@@ -281,6 +285,7 @@ export class UIPresenter {
 
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
     this.energyText.text = layout.energyLabel;
+    this.drawText.text = layout.drawLabel;
     this.slotGraphics.clear();
     while (this.slotLabels.length < layout.slots.length) {
       const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14 } });

@@ -28,14 +28,12 @@ describe('HandSystem', () => {
     expect(hand.size).toBe(4);
   });
 
-  it('drawTo does nothing once hand is already full', () => {
+  it('drawOne adds exactly one card when hand is not full', () => {
     const deck = makeDeck(8);
     const hand = new HandSystem({ maxSize: 4 });
-    hand.drawTo(deck);
-    const drawnFirstPass = deck.drawPileSize;
-    hand.drawTo(deck);
-    expect(hand.size).toBe(4);
-    expect(deck.drawPileSize).toBe(drawnFirstPass);
+    const result = hand.drawOne(deck);
+    expect(result.ok).toBe(true);
+    expect(hand.size).toBe(1);
   });
 
   it('drawTo stops cleanly when the deck cannot refill the hand', () => {
@@ -46,14 +44,22 @@ describe('HandSystem', () => {
     expect(deck.drawPileSize).toBe(0);
   });
 
-  it('playCard removes the card from the hand and returns it', () => {
+  it('drawOne rejects when hand is already full', () => {
     const deck = makeDeck(8);
     const hand = new HandSystem({ maxSize: 4 });
     hand.drawTo(deck);
-    const first = hand.cards[0]!;
-    const played = hand.playCard(0);
-    expect(played).toBe(first);
+    expect(hand.drawOne(deck)).toEqual({ ok: false, reason: 'full-hand' });
+  });
+
+  it('discardFromHand removes the chosen card and sends it to discard pile', () => {
+    const deck = makeDeck(8);
+    const hand = new HandSystem({ maxSize: 4 });
+    hand.drawTo(deck);
+    const beforeDiscard = deck.discardPileSize;
+    const removed = hand.discardFromHand(0, deck);
+    expect(removed).not.toBeNull();
     expect(hand.size).toBe(3);
+    expect(deck.discardPileSize).toBe(beforeDiscard + 1);
   });
 
   it('playCard with out-of-range index returns null', () => {

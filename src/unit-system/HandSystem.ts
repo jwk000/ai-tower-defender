@@ -4,9 +4,14 @@ export interface HandSystemConfig {
   readonly maxSize: number;
 }
 
+export type DrawResult =
+  | { readonly ok: true; readonly cardId: string }
+  | { readonly ok: false; readonly reason: 'full-hand' | 'empty-deck' };
+
 export class HandSystem {
   private readonly maxSize: number;
   private hand: string[] = [];
+  private lastDrawWasManual = false;
 
   constructor(config: HandSystemConfig) {
     if (!Number.isInteger(config.maxSize) || config.maxSize <= 0) {
@@ -29,6 +34,28 @@ export class HandSystem {
       if (card === null) return;
       this.hand.push(card);
     }
+    this.lastDrawWasManual = false;
+  }
+
+  drawOne(deck: DeckSystem): DrawResult {
+    if (this.hand.length >= this.maxSize) {
+      return { ok: false, reason: 'full-hand' };
+    }
+    const card = deck.drawCard();
+    if (card === null) {
+      return { ok: false, reason: 'empty-deck' };
+    }
+    this.hand.push(card);
+    this.lastDrawWasManual = true;
+    return { ok: true, cardId: card };
+  }
+
+  discardFromHand(index: number, deck: DeckSystem): string | null {
+    const removed = this.playCard(index);
+    if (removed !== null) {
+      deck.discard(removed);
+    }
+    return removed;
   }
 
   playCard(index: number): string | null {
@@ -39,5 +66,6 @@ export class HandSystem {
 
   clear(): void {
     this.hand = [];
+    this.lastDrawWasManual = false;
   }
 }

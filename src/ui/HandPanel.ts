@@ -5,10 +5,14 @@ export interface HandCard {
   readonly playable: boolean;
 }
 
+export type DrawState = 'ready' | 'cooldown' | 'full-hand' | 'reroll';
+
 export interface HandState {
   readonly cards: readonly HandCard[];
   readonly energy: number;
   readonly energyMax: number;
+  readonly drawState?: DrawState;
+  readonly drawCooldownSeconds?: number;
 }
 
 export interface HandSlotRect {
@@ -25,6 +29,7 @@ export interface HandSlotRect {
 export interface HandLayout {
   readonly slots: readonly HandSlotRect[];
   readonly energyLabel: string;
+  readonly drawLabel: string;
 }
 
 export type PlayCardIntent =
@@ -43,6 +48,7 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const totalWidth = cards.length * SLOT_WIDTH + Math.max(0, cards.length - 1) * SLOT_GAP;
   const startX = (viewportWidth - totalWidth) / 2;
   const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
+  const drawLabel = formatDrawLabel(state);
   return {
     slots: cards.map((card, i) => ({
       slot: card.slot,
@@ -55,7 +61,24 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       height: SLOT_HEIGHT,
     })),
     energyLabel: `◇ ${state.energy}/${state.energyMax}`,
+    drawLabel,
   };
+}
+
+function formatDrawLabel(state: HandState): string {
+  const drawState = state.drawState ?? 'ready';
+  switch (drawState) {
+    case 'ready':
+      return '抽卡：可抽';
+    case 'cooldown': {
+      const remain = Math.max(0, state.drawCooldownSeconds ?? 0);
+      return `抽卡：冷却 ${remain.toFixed(1)}s`;
+    }
+    case 'full-hand':
+      return '抽卡：满手';
+    case 'reroll':
+      return '抽卡：可重抽 1 次';
+  }
 }
 
 export function hitTestHandSlot(layout: HandLayout, px: number, py: number): number | null {

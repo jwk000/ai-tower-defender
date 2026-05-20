@@ -102,9 +102,9 @@ const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const BOSS_LEVEL_NUMBER = 8;
 const DEFAULT_STARTING_ENERGY = 3;
-const ENERGY_REGEN_PER_SECOND = 0;
-const ENERGY_RESTORE_PER_WAVE = 5;
+const ENERGY_REGEN_PER_SECOND = 0.5;
 const ENERGY_MAX = 10;
+const MANUAL_DRAW_COOLDOWN_SECONDS = 5;
 
 async function bootstrap(): Promise<void> {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -285,6 +285,29 @@ async function bootstrap(): Promise<void> {
   }
 
   let runController!: RunController;
+  let drawCooldownRemaining = 0;
+  let pendingReroll = false;
+
+  function tryManualDraw(): void {
+    if (handSystem.size >= 4) return;
+    if (pendingReroll) return;
+    if (drawCooldownRemaining > 0) return;
+    const result = handSystem.drawOne(deckSystem);
+    if (!result.ok) return;
+    pendingReroll = true;
+  }
+
+  function tryRerollLatestDraw(): void {
+    if (!pendingReroll) return;
+    const discardIndex = handSystem.size - 1;
+    if (discardIndex < 0) return;
+    const discarded = handSystem.discardFromHand(discardIndex, deckSystem);
+    if (discarded === null) return;
+    const redraw = handSystem.drawOne(deckSystem);
+    pendingReroll = false;
+    drawCooldownRemaining = MANUAL_DRAW_COOLDOWN_SECONDS;
+    if (!redraw.ok) return;
+  }
   const unitQuery = defineQuery([UnitTag]);
   const projectileQuery = defineQuery([Projectile]);
 
@@ -337,7 +360,6 @@ async function bootstrap(): Promise<void> {
       spawns: buildSpawnConfigs(levelConfig),
       unitConfigs: nextUnitConfigs,
       onWaveStart: () => {
-        energySystem.addEnergy(ENERGY_RESTORE_PER_WAVE);
       },
       onWaveComplete: () => {
         runManager.addGold(WAVE_COMPLETE_GOLD);
@@ -417,6 +439,8 @@ async function bootstrap(): Promise<void> {
     levelState.reset(levelConfig.waves.length);
     handSystem.clear();
     handSystem.drawTo(deckSystem);
+    drawCooldownRemaining = 0;
+    pendingReroll = false;
     energySystem = new EnergySystem({
       regenPerSecond: ENERGY_REGEN_PER_SECOND,
       max: ENERGY_MAX,
@@ -551,9 +575,20 @@ async function bootstrap(): Promise<void> {
       deckSystem.discard(intent.cardId);
     }
     handSystem.playCard(intent.slot);
-    handSystem.drawTo(deckSystem);
+    drawCooldownRemaining = MANUAL_DRAW_COOLDOWN_SECONDS;
+    pendingReroll = false;
   });
 
+  window.addEventListener('keydown', (event) => {
+    if (runManager.phase !== 'Battle') return;
+    if (event.key === 'd' || event.key === 'D') {
+      if (pendingReroll) {
+        tryRerollLatestDraw();
+      } else {
+        tryManualDraw();
+      }
+    }
+  });
   let shopRenderer!: ShopRenderer;
   let mysticRenderer!: MysticRenderer;
   let levelMapRenderer!: LevelMapRenderer;
@@ -1103,10 +1138,20 @@ async function bootstrap(): Promise<void> {
     }
 
     if (phase === 'Battle') {
+      if (drawCooldownRemaining > 0) {
+        drawCooldownRemaining = Math.max(0, drawCooldownRemaining - dt);
+      }
       if (levelState.phase === 'battle' || levelState.phase === 'wave-break') {
         energySystem.tick(dt);
       }
-      const uiFrame = projectUIFrame(runManager, levelState, handSystem, energySystem, cardRegistry);
+      const drawState = pendingReroll
+        ? 'reroll'
+        : handSystem.size >= 4
+          ? 'full-hand'
+          : drawCooldownRemaining > 0
+            ? 'cooldown'
+            : 'ready';
+      const uiFrame = projectUIFrame(runManager, levelState, handSystem, energySystem, cardRegistry, drawState, drawCooldownRemaining);
       handPanel.refresh(uiFrame.hand);
       presenter.present(uiFrame);
     }
@@ -1123,6 +1168,8 @@ function projectUIFrame(
   hand: HandSystem,
   energy: EnergySystem,
   registry: CardRegistry,
+  drawState: 'ready' | 'cooldown' | 'full-hand' | 'reroll',
+  drawCooldownSeconds: number,
 ): { run: RunState; hand: HandState } {
   const handCards: HandCard[] = hand.cards.map((cardId, i) => {
     const cfg = registry.getCard(cardId);
@@ -1153,6 +1200,8 @@ function projectUIFrame(
       cards: handCards,
       energy: energy.current,
       energyMax: energy.max,
+      drawState,
+      drawCooldownSeconds,
     },
   };
 }

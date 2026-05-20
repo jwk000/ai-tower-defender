@@ -30,6 +30,17 @@ describe('layoutHand', () => {
     expect(layout.energyLabel).toBe('◇ 3/10');
   });
 
+  it('drawLabel shows ready by default', () => {
+    const layout = layoutHand(state(), 1920, 1080);
+    expect(layout.drawLabel).toBe('抽卡：可抽');
+  });
+
+  it('drawLabel shows cooldown/full-hand/reroll states', () => {
+    expect(layoutHand(state({ drawState: 'cooldown', drawCooldownSeconds: 4.25 }), 1920, 1080).drawLabel).toBe('抽卡：冷却 4.3s');
+    expect(layoutHand(state({ drawState: 'full-hand' }), 1920, 1080).drawLabel).toBe('抽卡：满手');
+    expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('抽卡：可重抽 1 次');
+  });
+
   it('slot dimensions are 120×168 with 16px gap', () => {
     const layout = layoutHand(state(), 1920, 1080);
     expect(layout.slots[0]!.width).toBe(120);
