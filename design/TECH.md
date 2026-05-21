@@ -448,7 +448,7 @@ load(): if checksum mismatch → recoverFromBackup()
 | 字段 | 废弃版本 | 原因 |
 |------|---------|------|
 | `sparkShards` | v3.0 | 火花碎片彻底废弃 |
-| `cardCollection` | v3.0 | 所有卡开局即解锁 |
+| `cardCollection` | v3.0 | 旧版“所有卡开局即解锁”结构已废弃；当前仅新 Run 固定解锁 4 张初始卡（箭塔/火球术/盾卫/地刺），其余卡通过 Run 内获得 |
 | `permanentUpgrades` | v3.0 | 无关外永久升级 |
 | `RunHistory.totalSparkShardsEarned` | v3.0 | 无碎片资源 |
 | `levels` / `endless` | v2.0 | 独立关卡/无尽取消 |

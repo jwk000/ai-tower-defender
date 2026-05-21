@@ -15,7 +15,7 @@ import {
   UnitCategory,
   UnitTag,
 } from '../core/components.js';
-import { parseLevelConfig, parseUnitConfig } from '../config/loader.js';
+import { parseCardConfig, parseLevelConfig, parseUnitConfig } from '../config/loader.js';
 import { spawnUnit } from '../factories/UnitFactory.js';
 import { CardRegistry } from '../unit-system/CardRegistry.js';
 import { DeckSystem } from '../unit-system/DeckSystem.js';
@@ -134,6 +134,35 @@ describe('Wave 4 content integration: YAML -> full Run with combat', () => {
 
     econ.grantLevelClearReward(run.currentLevel);
     expect(econ.sp).toBe(2);
+  });
+
+  it('new run starter card pool contains exactly arrow tower, fireball, shield guard, and spike trap', () => {
+    const starterDeck = ['arrow_tower_card', 'shield_guard_card', 'spike_trap_card', 'fireball_card'] as const;
+    const deck = new DeckSystem({ pool: starterDeck, deckSize: starterDeck.length, rng: makeRng(1) });
+    deck.initWithCards(starterDeck);
+
+    const cardsById = new Map<string, string>();
+    for (const rel of ['cards/towers.yaml', 'cards/soldiers.yaml', 'cards/spells.yaml', 'cards/traps.yaml'] as const) {
+      const docs = yaml.loadAll(readFile(rel));
+      for (const doc of docs) {
+        if (!doc || typeof doc !== 'object') continue;
+        for (const [id, value] of Object.entries(doc as Record<string, unknown>)) {
+          if (!value || typeof value !== 'object') continue;
+          const parsed = parseCardConfig(yaml.dump(value, { lineWidth: -1 }), { idFallback: id });
+          cardsById.set(parsed.id, id);
+        }
+      }
+    }
+
+    const visibleCardIds = deck.getCardInstances().map((instance) => instance.cardId);
+    expect(visibleCardIds).toEqual([...starterDeck]);
+    expect(new Set(visibleCardIds)).toEqual(new Set(starterDeck));
+    expect(visibleCardIds.map((cardId) => cardsById.get(cardId))).toEqual([
+      'arrow_tower_card',
+      'shield_guard_card',
+      'spike_trap_card',
+      'fireball_card',
+    ]);
   });
 
   it('loader output drives DeckSystem when a card pool is built from cards/towers.yaml entries', () => {
