@@ -7,6 +7,12 @@ function makeManager(totalLevels = 1, route?: readonly MapNodeKind[]): RunManage
   return new RunManager({ totalLevels, route });
 }
 
+function claimBaseInterLevelRewards(run: RunManager): void {
+  run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+  run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+  run.claimRelicReward(run.pendingRelicReward!.options[0]!.id);
+}
+
 const TEST_SKILL_TREE: CardSkillTreeConfig = {
   unitCardId: 'arrow_tower',
   nodes: [
@@ -76,8 +82,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.pickInterLevelChoice('shop');
     expect(run.phase).toBe(RunPhase.Shop);
     expect(run.currentLevel).toBe(1);
@@ -88,8 +93,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.pickInterLevelChoice('mystic');
     expect(run.phase).toBe(RunPhase.Mystic);
     expect(run.currentLevel).toBe(1);
@@ -100,8 +104,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.pickInterLevelChoice('shop');
     run.closeShop();
     expect(run.phase).toBe(RunPhase.LevelMap);
@@ -113,8 +116,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.pickInterLevelChoice('mystic');
     run.closeMystic();
     expect(run.phase).toBe(RunPhase.LevelMap);
@@ -127,8 +129,7 @@ describe('RunManager state machine', () => {
     run.enterBattle();
     run.completeLevel();
     expect(run.phase).toBe(RunPhase.InterLevel);
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
     expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(2);
@@ -177,8 +178,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     expect(() => run.pickInterLevelChoice('teleport' as unknown as 'shop')).toThrow(/unknown choice/i);
   });
 
@@ -211,6 +211,271 @@ describe('RunManager state machine', () => {
     expect(run.claimGoldReward(chosen.id)).toEqual(chosen);
     expect(run.gold).toBe(goldBefore + chosen.amount);
     expect(run.pendingGoldReward).toBeNull();
+  });
+
+  it('stores and resolves pending relic reward in InterLevel phase', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+
+    expect(run.pendingRelicReward?.options).toHaveLength(3);
+    expect(() => run.pickInterLevelChoice('shop')).toThrow(/relic reward is pending/i);
+    expect(() => run.returnToLevelMap()).toThrow(/relic reward is pending/i);
+    const chosen = run.pendingRelicReward!.options[1]!;
+    expect(run.claimRelicReward(chosen.id)).toEqual(chosen);
+    expect(run.pendingRelicReward).toBeNull();
+    expect(run.relics).toContainEqual(chosen);
+  });
+
+  it('coin_purse grants immediate bonus gold when claimed', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_2', relicId: 'mana_orb', title: '法力宝珠', description: '强化能量节奏。', category: 'energy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+
+    const goldBefore = run.gold;
+    run.claimRelicReward('relic_1');
+    expect(run.gold).toBe(goldBefore + 80);
+  });
+
+  it('golden_hoard increases future gold reward options after being claimed', () => {
+    const run = makeManager(4);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'golden_hoard', title: '鎏金秘藏', description: '每次过关额外获得 25 金币。', category: 'economy' },
+        { id: 'relic_2', relicId: 'mana_orb', title: '法力宝珠', description: '强化能量节奏。', category: 'energy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+    run.returnToLevelMap();
+
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingGoldReward?.options.map((option) => option.amount)).toEqual([60, 80, 110]);
+  });
+
+  it('merchant_contract reduces shop prices by 20 percent with floor rounding', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'merchant_contract', title: '商会契约', description: '商店商品统一 8 折。', category: 'economy' },
+        { id: 'relic_2', relicId: 'mana_orb', title: '法力宝珠', description: '强化能量节奏。', category: 'energy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+
+    expect(run.applyShopDiscount(30)).toBe(24);
+    expect(run.applyShopDiscount(45)).toBe(36);
+    expect(run.applyShopDiscount(101)).toBe(80);
+  });
+
+  it('mana_orb grants +1 start energy through relic bonus getters', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+
+    expect(run.getStartEnergyBonusFromRelics()).toBe(0);
+    run.claimRelicReward('relic_1');
+    expect(run.getStartEnergyBonusFromRelics()).toBe(1);
+    expect(run.getMaxEnergyBonusFromRelics()).toBe(0);
+    expect(run.getEnergyRegenBonusFromRelics()).toBe(0);
+  });
+
+  it('energy relic getters stack max energy and regen bonuses across multiple relics', () => {
+    const run = makeManager(4);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'arcane_reservoir', title: '奥术蓄能池', description: '能量上限 +2。', category: 'energy' },
+        { id: 'relic_2', relicId: 'flowing_focus', title: '流光沙漏', description: '能量回复 +0.25/秒。', category: 'energy' },
+        { id: 'relic_3', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+    expect(run.getMaxEnergyBonusFromRelics()).toBe(2);
+    expect(run.getEnergyRegenBonusFromRelics()).toBe(0);
+
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'flowing_focus', title: '流光沙漏', description: '能量回复 +0.25/秒。', category: 'energy' },
+        { id: 'relic_5', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+        { id: 'relic_6', relicId: 'ember_seal', title: '余烬印记', description: '法术体系增益。', category: 'spell' },
+      ],
+    });
+    run.claimRelicReward('relic_4');
+
+    expect(run.getMaxEnergyBonusFromRelics()).toBe(2);
+    expect(run.getEnergyRegenBonusFromRelics()).toBe(0.25);
+    expect(run.getStartEnergyBonusFromRelics()).toBe(0);
+  });
+
+  it('war_banner grants player soldier hp bonus through summon relic getters', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+
+    expect(run.getPlayerSoldierHpBonusFromRelics()).toBe(0);
+    expect(run.getPlayerSoldierAttackBonusFromRelics()).toBe(0);
+    run.claimRelicReward('relic_1');
+    expect(run.getPlayerSoldierHpBonusFromRelics()).toBe(40);
+    expect(run.getPlayerSoldierAttackBonusFromRelics()).toBe(0);
+  });
+
+  it('summon relic getters stack player soldier hp and attack bonuses', () => {
+    const run = makeManager(4);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+        { id: 'relic_2', relicId: 'drill_sergeant_whistle', title: '教官口哨', description: '我方士兵召唤物攻击 +6。', category: 'summon' },
+        { id: 'relic_3', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+    expect(run.getPlayerSoldierHpBonusFromRelics()).toBe(40);
+    expect(run.getPlayerSoldierAttackBonusFromRelics()).toBe(0);
+
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'drill_sergeant_whistle', title: '教官口哨', description: '我方士兵召唤物攻击 +6。', category: 'summon' },
+        { id: 'relic_5', relicId: 'field_rations', title: '战地口粮', description: '我方士兵召唤物生命 +25 且攻击 +4。', category: 'summon' },
+        { id: 'relic_6', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+    run.claimRelicReward('relic_5');
+
+    expect(run.getPlayerSoldierHpBonusFromRelics()).toBe(65);
+    expect(run.getPlayerSoldierAttackBonusFromRelics()).toBe(4);
+  });
+
+  it('ember_seal grants one extra spell cast through spell relic getter', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+      ],
+    });
+
+    expect(run.getSpellExtraCastCountFromRelics()).toBe(0);
+    run.claimRelicReward('relic_1');
+    expect(run.getSpellExtraCastCountFromRelics()).toBe(1);
+  });
+
+  it('spell relic getter stacks extra cast counts across multiple spell relics', () => {
+    const run = makeManager(4);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_2', relicId: 'echo_scroll', title: '回响卷轴', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_3', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+    expect(run.getSpellExtraCastCountFromRelics()).toBe(1);
+
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'storm_codex', title: '风暴法典', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_5', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+        { id: 'relic_6', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+    run.claimRelicReward('relic_4');
+
+    expect(run.getSpellExtraCastCountFromRelics()).toBe(2);
   });
 
   it('prioritizes core cards when building upgrade reward options', () => {
@@ -270,8 +535,7 @@ describe('RunManager state machine', () => {
       'priest_card',
     ]);
 
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
     run.enterBattle();
     run.completeLevel();
@@ -292,8 +556,7 @@ describe('RunManager state machine', () => {
     const firstRound = run.pendingCardReward!.options.map((option) => option.cardId);
     expect(firstRound).toEqual(['archer_card', 'shield_guard_card', 'priest_card']);
 
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
     run.enterBattle();
     run.completeLevel();
@@ -307,8 +570,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
     run.enterBattle();
     run.completeLevel();
@@ -322,8 +584,7 @@ describe('RunManager state machine', () => {
     run.startRun();
     run.enterBattle();
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
     run.enterBattle();
     run.completeLevel();
@@ -342,6 +603,7 @@ describe('RunManager state machine', () => {
 
     run.claimCardReward(run.pendingCardReward!.options[0]!.id);
     run.claimGoldReward(run.pendingGoldReward!.options[1]!.id);
+    run.claimRelicReward(run.pendingRelicReward!.options[0]!.id);
     run.returnToLevelMap();
     run.enterBattle();
     run.completeLevel();
@@ -358,6 +620,7 @@ describe('RunManager state machine', () => {
     const summonPick = run.claimCardReward(run.pendingCardReward!.options[1]!.id);
     expect(summonPick.cardId).toBe('shield_guard_card');
     run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.claimRelicReward(run.pendingRelicReward!.options[0]!.id);
     run.returnToLevelMap();
     expect(run.phase).toBe(RunPhase.LevelMap);
     expect(run.currentLevel).toBe(2);
@@ -376,8 +639,7 @@ describe('RunManager state machine', () => {
     run.registerCardInstance('arrow_b', TEST_SKILL_TREE);
     run.registerCardInstance('arrow_c', TEST_SKILL_TREE);
     run.completeLevel();
-    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
-    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(run);
     run.setPendingUpgradeReward({
       sourceLevel: 1,
       options: [

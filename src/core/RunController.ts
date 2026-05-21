@@ -1,7 +1,7 @@
 import type { Game } from './Game.js';
 import type { LevelState } from './LevelState.js';
 import type { WaveSystem } from '../systems/WaveSystem.js';
-import type { CardRewardOption, GoldRewardOption, InterLevelChoice, RunManager, UpgradeRewardOption } from '../unit-system/RunManager.js';
+import type { CardRewardOption, GoldRewardOption, InterLevelChoice, RelicRewardOption, RunManager, UpgradeRewardOption } from '../unit-system/RunManager.js';
 import type { CardSkillTreeConfig } from '../unit-system/SkillTreeState.js';
 import { RunPhase } from '../unit-system/RunManager.js';
 import type { DeckSystem } from '../unit-system/DeckSystem.js';
@@ -126,6 +126,12 @@ export class RunController {
 
   claimGoldReward(optionId: string): GoldRewardOption {
     const reward = this.runManager.claimGoldReward(optionId);
+    this.syncSceneVisibility();
+    return reward;
+  }
+
+  claimRelicReward(optionId: string): RelicRewardOption {
+    const reward = this.runManager.claimRelicReward(optionId);
     this.syncSceneVisibility();
     return reward;
   }

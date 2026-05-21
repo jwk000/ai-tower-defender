@@ -6,8 +6,15 @@ export interface SpellCastPosition {
   readonly y: number;
 }
 
+export interface SpellCastModifiers {
+  readonly extraCasts?: number;
+}
+
 export class SpellCastSystem {
-  constructor(private readonly registry: CardRegistry) {}
+  constructor(
+    private readonly registry: CardRegistry,
+    private readonly modifiers: SpellCastModifiers = {},
+  ) {}
 
   cast(world: TowerWorld, cardId: string, position: SpellCastPosition): boolean {
     const card = this.registry.getCard(cardId);
@@ -21,7 +28,10 @@ export class SpellCastSystem {
     if (!handler) {
       throw new Error(`[SpellCastSystem] handler "${card.spellEffectId}" not registered`);
     }
-    handler(-1, { position }, world);
+    const totalCasts = 1 + Math.max(0, this.modifiers.extraCasts ?? 0);
+    for (let castIndex = 0; castIndex < totalCasts; castIndex += 1) {
+      handler(-1, { position, castIndex, totalCasts }, world);
+    }
     return true;
   }
 }

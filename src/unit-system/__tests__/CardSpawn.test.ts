@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { hasComponent } from 'bitecs';
 
 import { createTowerWorld, type TowerWorld } from '../../core/World.js';
-import { Position, UnitTag, UnitCategory } from '../../core/components.js';
+import { Attack, Health, Position, UnitTag, UnitCategory } from '../../core/components.js';
 import { type UnitConfig } from '../../factories/UnitFactory.js';
 import { CardRegistry, type CardConfig } from '../CardRegistry.js';
 import { CardSpawnSystem } from '../CardSpawnSystem.js';
@@ -14,6 +14,14 @@ const ARROW_TOWER_UNIT: UnitConfig = {
   faction: 'Player',
   stats: { hp: 100, atk: 10, attackSpeed: 1, range: 200, speed: 0 },
   visual: { shape: 'rect', color: 0x5e92f3, size: 24 },
+};
+
+const SHIELD_GUARD_UNIT: UnitConfig = {
+  id: 'shield_guard',
+  category: 'Soldier',
+  faction: 'Player',
+  stats: { hp: 350, atk: 10, attackSpeed: 0.8, range: 50, speed: 55 },
+  visual: { shape: 'rect', color: 0x4dd0e1, size: 32 },
 };
 
 const ARROW_TOWER_CARD: CardConfig = {
@@ -28,6 +36,13 @@ const FIREBALL_CARD: CardConfig = {
   type: 'spell',
   energyCost: 4,
   spellEffectId: 'cast_fireball',
+};
+
+const SHIELD_GUARD_CARD: CardConfig = {
+  id: 'shield_guard_card',
+  type: 'unit',
+  energyCost: 3,
+  unitConfigId: 'shield_guard',
 };
 
 function makeWorld(): { world: TowerWorld; spell: ReturnType<typeof vi.fn> } {
@@ -60,6 +75,43 @@ describe('CardSpawnSystem', () => {
     const system = new CardSpawnSystem(registry);
     const eid = system.play(world, 'card_does_not_exist', { x: 0, y: 0 });
     expect(eid).toBeNull();
+  });
+
+  it('applies summon relic modifiers only to player soldier spawns', () => {
+    const { world } = makeWorld();
+    const registry = new CardRegistry();
+    registry.registerCard(SHIELD_GUARD_CARD);
+    registry.registerUnit(SHIELD_GUARD_UNIT);
+
+    const system = new CardSpawnSystem(registry, {
+      playerSoldierHpBonus: 40,
+      playerSoldierAttackBonus: 6,
+    });
+    const eid = system.play(world, 'shield_guard_card', { x: 40, y: 60 });
+
+    expect(eid).not.toBeNull();
+    expect(UnitTag.category[eid!]).toBe(UnitCategory.Soldier);
+    expect(Health.current[eid!]).toBe(390);
+    expect(Health.max[eid!]).toBe(390);
+    expect(Attack.damage[eid!]).toBe(16);
+  });
+
+  it('does not apply summon relic modifiers to non-soldier player spawns', () => {
+    const { world } = makeWorld();
+    const registry = new CardRegistry();
+    registry.registerCard(ARROW_TOWER_CARD);
+    registry.registerUnit(ARROW_TOWER_UNIT);
+
+    const system = new CardSpawnSystem(registry, {
+      playerSoldierHpBonus: 40,
+      playerSoldierAttackBonus: 6,
+    });
+    const eid = system.play(world, 'card_arrow_tower', { x: 100, y: 200 });
+
+    expect(eid).not.toBeNull();
+    expect(UnitTag.category[eid!]).toBe(UnitCategory.Tower);
+    expect(Health.current[eid!]).toBe(100);
+    expect(Attack.damage[eid!]).toBe(10);
   });
 
   it('throws when a unit card references an unregistered unit config', () => {
@@ -95,6 +147,20 @@ describe('SpellCastSystem', () => {
     const callArgs = spell.mock.calls[0]!;
     expect(callArgs[1]).toMatchObject({ position: { x: 50, y: 75 } });
     expect(callArgs[2]).toBe(world);
+  });
+
+  it('dispatches extra spell casts when spell relic modifiers are present', () => {
+    const { world, spell } = makeWorld();
+    const registry = new CardRegistry();
+    registry.registerCard(FIREBALL_CARD);
+
+    const system = new SpellCastSystem(registry, { extraCasts: 1 });
+    const ok = system.cast(world, 'card_fireball', { x: 64, y: 96 });
+
+    expect(ok).toBe(true);
+    expect(spell).toHaveBeenCalledTimes(2);
+    expect(spell.mock.calls[0]![1]).toMatchObject({ position: { x: 64, y: 96 }, castIndex: 0, totalCasts: 2 });
+    expect(spell.mock.calls[1]![1]).toMatchObject({ position: { x: 64, y: 96 }, castIndex: 1, totalCasts: 2 });
   });
 
   it('returns false when card id is unknown', () => {

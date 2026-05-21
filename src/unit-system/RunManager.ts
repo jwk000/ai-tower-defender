@@ -54,6 +54,56 @@ export interface PendingGoldReward {
   readonly options: readonly [GoldRewardOption, GoldRewardOption, GoldRewardOption];
 }
 
+export interface RelicRewardOption {
+  readonly id: string;
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'economy' | 'energy' | 'summon' | 'spell' | 'defense';
+}
+
+export interface EconomyRelicDefinition {
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'economy';
+  readonly startGoldBonus?: number;
+  readonly levelClearGoldBonus?: number;
+  readonly shopDiscountPercent?: number;
+}
+
+export interface EnergyRelicDefinition {
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'energy';
+  readonly startEnergyBonus?: number;
+  readonly maxEnergyBonus?: number;
+  readonly regenPerSecondBonus?: number;
+}
+
+export interface SummonRelicDefinition {
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'summon';
+  readonly playerSoldierHpBonus?: number;
+  readonly playerSoldierAttackBonus?: number;
+}
+
+export interface SpellRelicDefinition {
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'spell';
+  readonly spellExtraCastCount?: number;
+}
+
+export interface PendingRelicReward {
+  readonly sourceLevel: number;
+  readonly options: readonly [RelicRewardOption, RelicRewardOption, RelicRewardOption];
+}
+
 export interface UpgradeRewardOption {
   readonly id: string;
   readonly instanceId: string;
@@ -97,6 +147,118 @@ const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
 ] as const;
 
 const DEMO_GOLD_REWARD_AMOUNTS = [30, 50, 80] as const;
+
+const DEMO_RELIC_REWARD_OPTIONS: readonly Omit<RelicRewardOption, 'id'>[] = [
+  { relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币，帮助更快启动构筑。', category: 'economy' },
+  { relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1，让前期开局更顺手。', category: 'energy' },
+  { relicId: 'merchant_contract', title: '商会契约', description: '商店商品统一 8 折，购买关键卡更从容。', category: 'economy' },
+  { relicId: 'arcane_reservoir', title: '奥术蓄能池', description: '下场战斗能量上限 +2，容纳更高爆发。', category: 'energy' },
+  { relicId: 'golden_hoard', title: '鎏金秘藏', description: '每次过关额外获得 25 金币，持续滚起经济优势。', category: 'economy' },
+  { relicId: 'flowing_focus', title: '流光沙漏', description: '下场战斗能量回复 +0.25/秒，节奏更平滑。', category: 'energy' },
+  { relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40，前线更稳。', category: 'summon' },
+  { relicId: 'drill_sergeant_whistle', title: '教官口哨', description: '我方士兵召唤物攻击 +6，清线更快。', category: 'summon' },
+  { relicId: 'field_rations', title: '战地口粮', description: '我方士兵召唤物生命 +25 且攻击 +4，综合强化站场。', category: 'summon' },
+  { relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次，爆发更高。', category: 'spell' },
+  { relicId: 'echo_scroll', title: '回响卷轴', description: '法术额外结算 1 次，适合滚雪球法术流。', category: 'spell' },
+  { relicId: 'storm_codex', title: '风暴法典', description: '法术额外结算 1 次，连续清线更稳定。', category: 'spell' },
+] as const;
+
+const ECONOMY_RELIC_DEFINITIONS: Readonly<Record<string, EconomyRelicDefinition>> = {
+  coin_purse: {
+    relicId: 'coin_purse',
+    title: '钱袋',
+    description: '开局额外获得 80 金币，帮助更快启动构筑。',
+    category: 'economy',
+    startGoldBonus: 80,
+  },
+  merchant_contract: {
+    relicId: 'merchant_contract',
+    title: '商会契约',
+    description: '商店商品统一 8 折，购买关键卡更从容。',
+    category: 'economy',
+    shopDiscountPercent: 20,
+  },
+  golden_hoard: {
+    relicId: 'golden_hoard',
+    title: '鎏金秘藏',
+    description: '每次过关额外获得 25 金币，持续滚起经济优势。',
+    category: 'economy',
+    levelClearGoldBonus: 25,
+  },
+} as const;
+
+const ENERGY_RELIC_DEFINITIONS: Readonly<Record<string, EnergyRelicDefinition>> = {
+  mana_orb: {
+    relicId: 'mana_orb',
+    title: '法力宝珠',
+    description: '下场战斗初始能量 +1，让前期开局更顺手。',
+    category: 'energy',
+    startEnergyBonus: 1,
+  },
+  arcane_reservoir: {
+    relicId: 'arcane_reservoir',
+    title: '奥术蓄能池',
+    description: '下场战斗能量上限 +2，容纳更高爆发。',
+    category: 'energy',
+    maxEnergyBonus: 2,
+  },
+  flowing_focus: {
+    relicId: 'flowing_focus',
+    title: '流光沙漏',
+    description: '下场战斗能量回复 +0.25/秒，节奏更平滑。',
+    category: 'energy',
+    regenPerSecondBonus: 0.25,
+  },
+} as const;
+
+const SUMMON_RELIC_DEFINITIONS: Readonly<Record<string, SummonRelicDefinition>> = {
+  war_banner: {
+    relicId: 'war_banner',
+    title: '战旗',
+    description: '我方士兵召唤物生命 +40，前线更稳。',
+    category: 'summon',
+    playerSoldierHpBonus: 40,
+  },
+  drill_sergeant_whistle: {
+    relicId: 'drill_sergeant_whistle',
+    title: '教官口哨',
+    description: '我方士兵召唤物攻击 +6，清线更快。',
+    category: 'summon',
+    playerSoldierAttackBonus: 6,
+  },
+  field_rations: {
+    relicId: 'field_rations',
+    title: '战地口粮',
+    description: '我方士兵召唤物生命 +25 且攻击 +4，综合强化站场。',
+    category: 'summon',
+    playerSoldierHpBonus: 25,
+    playerSoldierAttackBonus: 4,
+  },
+} as const;
+
+const SPELL_RELIC_DEFINITIONS: Readonly<Record<string, SpellRelicDefinition>> = {
+  ember_seal: {
+    relicId: 'ember_seal',
+    title: '余烬印记',
+    description: '法术额外结算 1 次，爆发更高。',
+    category: 'spell',
+    spellExtraCastCount: 1,
+  },
+  echo_scroll: {
+    relicId: 'echo_scroll',
+    title: '回响卷轴',
+    description: '法术额外结算 1 次，适合滚雪球法术流。',
+    category: 'spell',
+    spellExtraCastCount: 1,
+  },
+  storm_codex: {
+    relicId: 'storm_codex',
+    title: '风暴法典',
+    description: '法术额外结算 1 次，连续清线更稳定。',
+    category: 'spell',
+    spellExtraCastCount: 1,
+  },
+} as const;
 
 const DEMO_CARD_UPGRADES: Readonly<Record<string, readonly CardUpgradeOption[]>> = {
   fireball_card: [
@@ -166,7 +328,9 @@ export class RunManager {
   private _legacyUnlockedNodes: Set<string> = new Set();
   private _pendingCardReward: PendingCardReward | null = null;
   private _pendingGoldReward: PendingGoldReward | null = null;
+  private _pendingRelicReward: PendingRelicReward | null = null;
   private _pendingUpgradeReward: PendingUpgradeReward | null = null;
+  private _relics: RelicRewardOption[] = [];
 
   constructor(config: RunManagerConfig) {
     if (!Number.isInteger(config.totalLevels) || config.totalLevels < 1) {
@@ -248,8 +412,62 @@ export class RunManager {
     return this._pendingGoldReward;
   }
 
+  get pendingRelicReward(): PendingRelicReward | null {
+    return this._pendingRelicReward;
+  }
+
   get pendingUpgradeReward(): PendingUpgradeReward | null {
     return this._pendingUpgradeReward;
+  }
+
+  get relics(): readonly RelicRewardOption[] {
+    return this._relics;
+  }
+
+  getStartGoldBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.startGoldBonus ?? 0), 0);
+  }
+
+  getLevelClearGoldBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.levelClearGoldBonus ?? 0), 0);
+  }
+
+  getShopDiscountPercentFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.shopDiscountPercent ?? 0), 0);
+  }
+
+  getStartEnergyBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.startEnergyBonus ?? 0), 0);
+  }
+
+  getMaxEnergyBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.maxEnergyBonus ?? 0), 0);
+  }
+
+  getEnergyRegenBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.regenPerSecondBonus ?? 0), 0);
+  }
+
+  getPlayerSoldierHpBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (SUMMON_RELIC_DEFINITIONS[relic.relicId]?.playerSoldierHpBonus ?? 0), 0);
+  }
+
+  getPlayerSoldierAttackBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (SUMMON_RELIC_DEFINITIONS[relic.relicId]?.playerSoldierAttackBonus ?? 0), 0);
+  }
+
+  getSpellExtraCastCountFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (SPELL_RELIC_DEFINITIONS[relic.relicId]?.spellExtraCastCount ?? 0), 0);
+  }
+
+  applyShopDiscount(baseCost: number): number {
+    if (!Number.isFinite(baseCost) || baseCost < 0) {
+      throw new Error(`[RunManager] applyShopDiscount requires non-negative finite baseCost, got ${baseCost}`);
+    }
+    const discountPercent = this.getShopDiscountPercentFromRelics();
+    if (discountPercent <= 0) return Math.floor(baseCost);
+    const multiplier = Math.max(0, 100 - discountPercent) / 100;
+    return Math.max(0, Math.floor(baseCost * multiplier));
   }
 
   addGold(amount: number): void {
@@ -298,7 +516,9 @@ export class RunManager {
     this._crystalHpMax = this.initialCrystalHp;
     this._pendingCardReward = null;
     this._pendingGoldReward = null;
+    this._pendingRelicReward = null;
     this._pendingUpgradeReward = null;
+    this._relics = [];
   }
 
   enterBattle(): void {
@@ -318,6 +538,9 @@ export class RunManager {
     if (this._pendingGoldReward) {
       throw new Error('[RunManager] cannot returnToLevelMap while gold reward is pending');
     }
+    if (this._pendingRelicReward) {
+      throw new Error('[RunManager] cannot returnToLevelMap while relic reward is pending');
+    }
     if (this._pendingUpgradeReward) {
       throw new Error('[RunManager] cannot returnToLevelMap while upgrade reward is pending');
     }
@@ -334,6 +557,7 @@ export class RunManager {
       this._outcome = 'victory';
       this._pendingCardReward = null;
       this._pendingGoldReward = null;
+      this._pendingRelicReward = null;
       this._pendingUpgradeReward = null;
       return;
     }
@@ -345,6 +569,10 @@ export class RunManager {
     this._pendingGoldReward = {
       sourceLevel: this._currentLevel,
       options: this.buildDemoGoldRewardOptions(),
+    };
+    this._pendingRelicReward = {
+      sourceLevel: this._currentLevel,
+      options: this.buildDemoRelicRewardOptions(),
     };
     this._pendingUpgradeReward = null;
   }
@@ -358,6 +586,9 @@ export class RunManager {
     }
     if (this._pendingGoldReward) {
       throw new Error('[RunManager] cannot pick inter-level branch while gold reward is pending');
+    }
+    if (this._pendingRelicReward) {
+      throw new Error('[RunManager] cannot pick inter-level branch while relic reward is pending');
     }
     if (this._pendingUpgradeReward) {
       throw new Error('[RunManager] cannot pick inter-level branch while upgrade reward is pending');
@@ -380,6 +611,13 @@ export class RunManager {
       throw new Error(`[RunManager] illegal transition: setPendingGoldReward from ${this._phase}`);
     }
     this._pendingGoldReward = reward;
+  }
+
+  setPendingRelicReward(reward: PendingRelicReward): void {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: setPendingRelicReward from ${this._phase}`);
+    }
+    this._pendingRelicReward = reward;
   }
 
   setPendingUpgradeReward(reward: PendingUpgradeReward): void {
@@ -424,6 +662,23 @@ export class RunManager {
     }
     this._gold += option.amount;
     this._pendingGoldReward = null;
+    return option;
+  }
+
+  claimRelicReward(optionId: string): RelicRewardOption {
+    if (this._phase !== RunPhase.InterLevel) {
+      throw new Error(`[RunManager] illegal transition: claimRelicReward from ${this._phase}`);
+    }
+    if (!this._pendingRelicReward) {
+      throw new Error('[RunManager] no pending relic reward');
+    }
+    const option = this._pendingRelicReward.options.find((entry) => entry.id === optionId);
+    if (!option) {
+      throw new Error(`[RunManager] unknown relic reward option: ${optionId}`);
+    }
+    this._relics = [...this._relics, option];
+    this.applyRelicImmediateEffects(option);
+    this._pendingRelicReward = null;
     return option;
   }
 
@@ -478,6 +733,7 @@ export class RunManager {
     this._outcome = 'defeat';
     this._pendingCardReward = null;
     this._pendingGoldReward = null;
+    this._pendingRelicReward = null;
     this._pendingUpgradeReward = null;
   }
 
@@ -493,7 +749,9 @@ export class RunManager {
     this._crystalHpMax = 0;
     this._pendingCardReward = null;
     this._pendingGoldReward = null;
+    this._pendingRelicReward = null;
     this._pendingUpgradeReward = null;
+    this._relics = [];
     this.resetSkillTreeState();
   }
 
@@ -644,7 +902,7 @@ export class RunManager {
 
   snapshot(deckSystem: DeckSystem): RunSnapshot {
     return {
-      version: 4,
+      version: 5,
       savedAt: Date.now(),
       phase: this._phase === RunPhase.InterLevel ? 'InterLevel' : 'LevelMap',
       currentLevelIdx: this._currentLevel,
@@ -653,7 +911,9 @@ export class RunManager {
       crystalHpMax: this._crystalHpMax,
       pendingCardReward: this._pendingCardReward,
       pendingGoldReward: this._pendingGoldReward,
+      pendingRelicReward: this._pendingRelicReward,
       pendingUpgradeReward: this._pendingUpgradeReward,
+      relics: [...this._relics],
       cardLevels: this.buildCardLevelSnapshot(),
       deck: deckSystem.snapshot(),
     };
@@ -668,7 +928,9 @@ export class RunManager {
     this._crystalHpMax = snap.crystalHpMax;
     this._pendingCardReward = 'pendingCardReward' in snap ? snap.pendingCardReward : null;
     this._pendingGoldReward = 'pendingGoldReward' in snap ? snap.pendingGoldReward : null;
+    this._pendingRelicReward = 'pendingRelicReward' in snap ? snap.pendingRelicReward : null;
     this._pendingUpgradeReward = 'pendingUpgradeReward' in snap ? snap.pendingUpgradeReward : null;
+    this._relics = 'relics' in snap ? [...snap.relics] : [];
     this.resetSkillTreeState();
 
     if (!resolveSkillTreeConfig) return;
@@ -794,6 +1056,14 @@ export class RunManager {
     return true;
   }
 
+  private applyRelicImmediateEffects(relic: RelicRewardOption): void {
+    const definition = ECONOMY_RELIC_DEFINITIONS[relic.relicId];
+    if (!definition) return;
+    if (definition.startGoldBonus && definition.startGoldBonus > 0) {
+      this.addGold(definition.startGoldBonus);
+    }
+  }
+
   private buildDemoCardRewardOptions(): readonly [CardRewardOption, CardRewardOption, CardRewardOption] {
     const ownedCardIds = new Set<string>();
     for (const instance of this._skillTree.instances.values()) {
@@ -816,10 +1086,31 @@ export class RunManager {
     return options as [CardRewardOption, CardRewardOption, CardRewardOption];
   }
 
+  private buildDemoRelicRewardOptions(): readonly [RelicRewardOption, RelicRewardOption, RelicRewardOption] {
+    const ownedRelicIds = new Set(this._relics.map((relic) => relic.relicId));
+    const available = DEMO_RELIC_REWARD_OPTIONS.filter((option) => !ownedRelicIds.has(option.relicId));
+    if (available.length < 3) {
+      throw new Error('[RunManager] not enough unique relic rewards remaining');
+    }
+    const startIndex = Math.max(0, this._currentLevel - 1) % available.length;
+    const options = [0, 1, 2].map((offset) => {
+      const base = available[(startIndex + offset) % available.length]!;
+      return {
+        id: `relic-${this._currentLevel}-${offset + 1}`,
+        relicId: base.relicId,
+        title: base.title,
+        description: base.description,
+        category: base.category,
+      };
+    });
+    return options as [RelicRewardOption, RelicRewardOption, RelicRewardOption];
+  }
+
   private buildDemoGoldRewardOptions(): readonly [GoldRewardOption, GoldRewardOption, GoldRewardOption] {
     const amountBias = Math.max(0, this._currentLevel - 1) * 5;
+    const relicBonus = this.getLevelClearGoldBonusFromRelics();
     const options = DEMO_GOLD_REWARD_AMOUNTS.map((baseAmount, index) => {
-      const amount = baseAmount + amountBias;
+      const amount = baseAmount + amountBias + relicBonus;
       return {
         id: `gold-${this._currentLevel}-${index + 1}`,
         amount,

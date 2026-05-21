@@ -9,8 +9,16 @@ export interface SpawnPosition {
   readonly y: number;
 }
 
+export interface CardSpawnModifiers {
+  readonly playerSoldierHpBonus?: number;
+  readonly playerSoldierAttackBonus?: number;
+}
+
 export class CardSpawnSystem {
-  constructor(private readonly registry: CardRegistry) {}
+  constructor(
+    private readonly registry: CardRegistry,
+    private readonly modifiers: CardSpawnModifiers = {},
+  ) {}
 
   play(world: TowerWorld, cardId: string, position: SpawnPosition): number | null {
     const card = this.registry.getCard(cardId);
@@ -24,6 +32,10 @@ export class CardSpawnSystem {
     if (!unit) {
       throw new Error(`[CardSpawnSystem] unit config "${card.unitConfigId}" not registered`);
     }
-    return spawnUnit(world, unit, position, { sourceCardId: cardId } satisfies SpawnUnitMeta);
+    return spawnUnit(world, unit, position, {
+      sourceCardId: cardId,
+      playerSoldierHpBonus: this.modifiers.playerSoldierHpBonus,
+      playerSoldierAttackBonus: this.modifiers.playerSoldierAttackBonus,
+    } satisfies SpawnUnitMeta);
   }
 }

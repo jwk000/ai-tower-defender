@@ -32,6 +32,7 @@ import { DeckSystem } from '../unit-system/DeckSystem.js';
 import { EnergySystem } from '../unit-system/EnergySystem.js';
 import { HandSystem } from '../unit-system/HandSystem.js';
 import { RunManager, RunPhase } from '../unit-system/RunManager.js';
+import { SpellCastSystem } from '../unit-system/SpellCastSystem.js';
 import { EconomySystem } from '../systems/EconomySystem.js';
 import { createAttackSystem } from '../systems/AttackSystem.js';
 import { createBossPhaseSystem } from '../systems/BossPhaseSystem.js';
@@ -52,6 +53,7 @@ import {
 import { createSummonAuraSystem } from '../systems/SummonAuraSystem.js';
 import { defineQuery } from 'bitecs';
 import type { TowerWorld } from '../core/World.js';
+import { createTowerWorld } from '../core/World.js';
 
 const GRUNT: UnitConfig = {
   id: 'grunt',
@@ -120,6 +122,13 @@ const SPIKE_CARD: CardConfig = {
   unitConfigId: 'spike_trap',
 };
 
+const FIREBALL_CARD: CardConfig = {
+  id: 'card_fireball',
+  type: 'spell',
+  energyCost: 3,
+  spellEffectId: 'cast_fireball',
+};
+
 function spawnCrystalAt(world: TowerWorld, x: number, y: number, hp: number, radius: number): number {
   const eid = world.addEntity();
   addComponent(world, Position, eid);
@@ -143,6 +152,12 @@ function makeRng(seed = 0): () => number {
     s = (s * 9301 + 49297) % 233280;
     return s / 233280;
   };
+}
+
+function claimBaseInterLevelRewards(runManager: RunManager, controller: RunController): void {
+  controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+  controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+  controller.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
 }
 
 describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy + W2 systems', () => {
@@ -650,8 +665,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
 
     controller.completeCurrentLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
 
@@ -708,6 +722,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(goldReward.amount).toBe(80);
     expect(runManager.gold).toBe(goldBefore + 80);
     expect(runManager.pendingGoldReward).toBeNull();
+    controller.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
 
     controller.setPendingUpgradeReward([
       { id: 'u1', instanceId: 'cannon_tower_card_inst_1', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
@@ -773,8 +788,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.startRun();
     controller.enterBattle();
     controller.completeCurrentLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.setPendingUpgradeReward([
       { id: 'u1', instanceId: 'arrow_tower_card_inst_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
       { id: 'u2', instanceId: 'cannon_tower_card_inst_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
@@ -794,6 +808,275 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.phase).toBe(RunPhase.Shop);
   });
 
+  it('non-final battle completion can grant a shop discount relic that affects subsequent shop prices', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(29) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'merchant_contract', title: '商会契约', description: '商店商品统一 8 折。', category: 'economy' },
+        { id: 'relic_2', relicId: 'mana_orb', title: '法力宝珠', description: '强化能量节奏。', category: 'energy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+    controller.claimRelicReward('relic_1');
+
+    controller.pickInterLevel('shop');
+    expect(runManager.phase).toBe(RunPhase.Shop);
+
+    const shopPanel = new ShopPanel();
+    const discountedCost = runManager.applyShopDiscount(30);
+    const shopState = {
+      gold: runManager.gold,
+      sp: runManager.sp,
+      energy: 0,
+      energyMax: 10,
+      levelIndex: runManager.currentLevel,
+      items: [
+        { id: 'grunt_card', kind: 'buy-unit-card' as const, label: 'Grunt Card', costGold: discountedCost, grantsCardId: 'grunt_card', stock: 2 },
+      ],
+    };
+    shopPanel.refresh(shopState);
+
+    let purchaseResult: string | null = null;
+    shopPanel.setHandler((intent) => {
+      if (intent.kind === 'purchase' && intent.result.kind === 'success') {
+        const goldCost = runManager.gold - intent.result.newGold;
+        if (goldCost > 0) runManager.spendGold(goldCost);
+        purchaseResult = intent.result.itemId;
+      }
+    });
+
+    const goldBefore = runManager.gold;
+    shopPanel.triggerPurchase('grunt_card');
+    expect(purchaseResult).toBe('grunt_card');
+    expect(discountedCost).toBe(24);
+    expect(runManager.gold).toBe(goldBefore - 24);
+  });
+
+  it('claiming mana_orb increases next battle starting energy after load-level reconstruction', () => {
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const DEFAULT_STARTING_ENERGY = 3;
+    const ENERGY_REGEN_PER_SECOND = 0.5;
+    const ENERGY_MAX = 10;
+    const buildEnergySystem = () => new EnergySystem({
+      regenPerSecond: ENERGY_REGEN_PER_SECOND + runManager.getEnergyRegenBonusFromRelics(),
+      max: ENERGY_MAX + runManager.getMaxEnergyBonusFromRelics(),
+      startWith: DEFAULT_STARTING_ENERGY + runManager.getStartEnergyBonusFromRelics(),
+    });
+
+    runManager.startRun();
+    let energy = buildEnergySystem();
+    expect(energy.current).toBe(3);
+    expect(energy.max).toBe(10);
+
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+      ],
+    });
+    runManager.claimRelicReward('relic_1');
+    runManager.returnToLevelMap();
+
+    energy = buildEnergySystem();
+    expect(energy.current).toBe(4);
+    expect(energy.max).toBe(10);
+  });
+
+  it('arcane_reservoir and flowing_focus affect next battle max energy and regen', () => {
+    const runManager = new RunManager({ totalLevels: 4, initialGold: 200, initialCrystalHp: 20 });
+    const DEFAULT_STARTING_ENERGY = 3;
+    const ENERGY_REGEN_PER_SECOND = 0.5;
+    const ENERGY_MAX = 10;
+    const buildEnergySystem = () => new EnergySystem({
+      regenPerSecond: ENERGY_REGEN_PER_SECOND + runManager.getEnergyRegenBonusFromRelics(),
+      max: ENERGY_MAX + runManager.getMaxEnergyBonusFromRelics(),
+      startWith: DEFAULT_STARTING_ENERGY + runManager.getStartEnergyBonusFromRelics(),
+    });
+
+    runManager.startRun();
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'arcane_reservoir', title: '奥术蓄能池', description: '能量上限 +2。', category: 'energy' },
+        { id: 'relic_2', relicId: 'flowing_focus', title: '流光沙漏', description: '能量回复 +0.25/秒。', category: 'energy' },
+        { id: 'relic_3', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+      ],
+    });
+    runManager.claimRelicReward('relic_1');
+    runManager.returnToLevelMap();
+
+    let energy = buildEnergySystem();
+    expect(energy.current).toBe(3);
+    expect(energy.max).toBe(12);
+    energy.tick(2);
+    expect(energy.current).toBe(4);
+
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'flowing_focus', title: '流光沙漏', description: '能量回复 +0.25/秒。', category: 'energy' },
+        { id: 'relic_5', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+        { id: 'relic_6', relicId: 'ember_seal', title: '余烬印记', description: '法术体系增益。', category: 'spell' },
+      ],
+    });
+    runManager.claimRelicReward('relic_4');
+    runManager.returnToLevelMap();
+
+    energy = buildEnergySystem();
+    energy.tick(2);
+    expect(energy.max).toBe(12);
+    expect(energy.current).toBe(4.5);
+  });
+
+  it('claiming summon relics buffs player-summoned soldiers in subsequent battles', () => {
+    const game = new Game();
+    const registry = new CardRegistry();
+    const shieldGuardUnit: UnitConfig = {
+      id: 'shield_guard',
+      category: 'Soldier',
+      faction: 'Player',
+      stats: { hp: 350, atk: 10, attackSpeed: 0.8, range: 50, speed: 55 },
+      visual: { shape: 'rect', color: 0x4dd0e1, size: 32 },
+    };
+    const shieldGuardCard: CardConfig = {
+      id: 'shield_guard_card',
+      type: 'unit',
+      energyCost: 3,
+      unitConfigId: 'shield_guard',
+    };
+    registry.registerUnit(shieldGuardUnit);
+    registry.registerCard(shieldGuardCard);
+
+    const runManager = new RunManager({ totalLevels: 4, initialGold: 200, initialCrystalHp: 20 });
+    runManager.startRun();
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+        { id: 'relic_2', relicId: 'drill_sergeant_whistle', title: '教官口哨', description: '我方士兵召唤物攻击 +6。', category: 'summon' },
+        { id: 'relic_3', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+      ],
+    });
+    runManager.claimRelicReward('relic_1');
+    runManager.returnToLevelMap();
+
+    let cardSpawnSystem = new CardSpawnSystem(registry, {
+      playerSoldierHpBonus: runManager.getPlayerSoldierHpBonusFromRelics(),
+      playerSoldierAttackBonus: runManager.getPlayerSoldierAttackBonusFromRelics(),
+    });
+    let eid = cardSpawnSystem.play(game.world, 'shield_guard_card', { x: 120, y: 80 });
+    expect(eid).not.toBeNull();
+    expect(Health.current[eid!]).toBe(390);
+    expect(Attack.damage[eid!]).toBe(10);
+
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'drill_sergeant_whistle', title: '教官口哨', description: '我方士兵召唤物攻击 +6。', category: 'summon' },
+        { id: 'relic_5', relicId: 'field_rations', title: '战地口粮', description: '我方士兵召唤物生命 +25 且攻击 +4。', category: 'summon' },
+        { id: 'relic_6', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+    runManager.claimRelicReward('relic_4');
+    runManager.returnToLevelMap();
+
+    cardSpawnSystem = new CardSpawnSystem(registry, {
+      playerSoldierHpBonus: runManager.getPlayerSoldierHpBonusFromRelics(),
+      playerSoldierAttackBonus: runManager.getPlayerSoldierAttackBonusFromRelics(),
+    });
+    eid = cardSpawnSystem.play(game.world, 'shield_guard_card', { x: 160, y: 100 });
+    expect(eid).not.toBeNull();
+    expect(Health.current[eid!]).toBe(390);
+    expect(Attack.damage[eid!]).toBe(16);
+  });
+
+  it('claiming spell relics causes subsequent spell casts to echo extra times', () => {
+    const world = createTowerWorld();
+    const spell = vi.fn();
+    world.ruleEngine.registerHandler('cast_fireball', spell);
+
+    const registry = new CardRegistry();
+    registry.registerCard(FIREBALL_CARD);
+
+    const runManager = new RunManager({ totalLevels: 4, initialGold: 200, initialCrystalHp: 20 });
+    runManager.startRun();
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+      ],
+    });
+    runManager.claimRelicReward('relic_1');
+    runManager.returnToLevelMap();
+
+    let spellCastSystem = new SpellCastSystem(registry, {
+      extraCasts: runManager.getSpellExtraCastCountFromRelics(),
+    });
+    expect(spellCastSystem.cast(world, 'card_fireball', { x: 80, y: 120 })).toBe(true);
+    expect(spell).toHaveBeenCalledTimes(2);
+
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'storm_codex', title: '风暴法典', description: '法术额外结算 1 次。', category: 'spell' },
+        { id: 'relic_5', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+        { id: 'relic_6', relicId: 'field_rations', title: '战地口粮', description: '我方士兵召唤物生命 +25 且攻击 +4。', category: 'summon' },
+      ],
+    });
+    runManager.claimRelicReward('relic_4');
+    runManager.returnToLevelMap();
+
+    spell.mockClear();
+    spellCastSystem = new SpellCastSystem(registry, {
+      extraCasts: runManager.getSpellExtraCastCountFromRelics(),
+    });
+    expect(spellCastSystem.cast(world, 'card_fireball', { x: 120, y: 160 })).toBe(true);
+    expect(spell).toHaveBeenCalledTimes(3);
+  });
+
   it('inter-level now stops after card and gold rewards without auto-generating upgrade rewards', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
@@ -809,8 +1092,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.enterBattle();
     controller.completeCurrentLevel();
 
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
 
     expect(runManager.pendingUpgradeReward).toBeNull();
     controller.returnToLevelMap();
@@ -907,8 +1189,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(scenes.interLevel.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
 
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
 
     controller.returnToLevelMap();
     expect(controller.phase).toBe(RunPhase.LevelMap);
@@ -1387,8 +1668,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     runManager.completeLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
 
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
 
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
@@ -1443,8 +1723,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     controller.startRun();
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.pickInterLevel('mystic');
     expect(runManager.phase).toBe(RunPhase.Mystic);
 
@@ -1494,8 +1773,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     runManager.completeLevel();
     expect(runManager.phase).toBe(RunPhase.InterLevel);
 
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
 
     controller.returnToLevelMap();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
@@ -1517,11 +1795,13 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     runManager.completeLevel();
     runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
     runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
     runManager.returnToLevelMap();
     runManager.enterBattle();
     runManager.completeLevel();
     runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
     runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
     runManager.returnToLevelMap();
 
     expect(runManager.phase).toBe(RunPhase.LevelMap);
@@ -1541,12 +1821,14 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     runManager.completeLevel();
     runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
     runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
     controller.returnToLevelMap();
 
     controller.enterBattle();
     runManager.completeLevel();
     runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
     runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.claimRelicReward(runManager.pendingRelicReward!.options[0]!.id);
     controller.returnToLevelMap();
 
     controller.enterBattle();
@@ -1573,8 +1855,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.returnToLevelMap();
     expect(runManager.phase).toBe(RunPhase.LevelMap);
     expect(runManager.currentLevel).toBe(2);
@@ -1583,8 +1864,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.pickInterLevel('shop');
     expect(runManager.phase).toBe(RunPhase.Shop);
     controller.closeShop();
@@ -1594,8 +1874,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
 
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.pickInterLevel('mystic');
     expect(runManager.phase).toBe(RunPhase.Mystic);
     controller.closeMystic();
@@ -1622,24 +1901,21 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
     expect(scenes.battle.visible).toBe(true);
 
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('treasure');
     expect(scenes.levelMap.visible).toBe(true);
 
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('rest');
     expect(scenes.levelMap.visible).toBe(true);
 
     controller.enterBattle();
     runManager.completeLevel();
-    controller.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
-    controller.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    claimBaseInterLevelRewards(runManager, controller);
     controller.returnToLevelMap();
     expect(runManager.currentNodeKind).toBe('boss');
     expect(scenes.levelMap.visible).toBe(true);

@@ -23,6 +23,14 @@ export interface InterLevelUpgradeReward {
   readonly targetLevel?: number;
 }
 
+export interface InterLevelRelicReward {
+  readonly id: string;
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'economy' | 'energy' | 'summon' | 'spell' | 'defense';
+}
+
 export interface InterLevelOffer {
   readonly id: string;
   readonly kind: InterLevelNodeKind;
@@ -31,7 +39,7 @@ export interface InterLevelOffer {
 }
 
 export interface InterLevelState {
-  readonly mode?: 'branch' | 'card-reward' | 'gold-reward' | 'upgrade-reward';
+  readonly mode?: 'branch' | 'card-reward' | 'gold-reward' | 'relic-reward' | 'upgrade-reward';
   readonly levelIndex: number;
   readonly nextLevel: number;
   readonly gold: number;
@@ -39,6 +47,7 @@ export interface InterLevelState {
   readonly offers: readonly [InterLevelOffer, InterLevelOffer, InterLevelOffer];
   readonly cardRewards?: readonly [InterLevelCardReward, InterLevelCardReward, InterLevelCardReward];
   readonly goldRewards?: readonly [InterLevelGoldReward, InterLevelGoldReward, InterLevelGoldReward];
+  readonly relicRewards?: readonly [InterLevelRelicReward, InterLevelRelicReward, InterLevelRelicReward];
   readonly upgradeRewards?: readonly [InterLevelUpgradeReward, InterLevelUpgradeReward, InterLevelUpgradeReward];
 }
 
@@ -47,6 +56,7 @@ export type InterLevelIntent =
   | { readonly kind: 'skip' }
   | { readonly kind: 'claim-card-reward'; readonly rewardId: string; readonly cardId: string }
   | { readonly kind: 'claim-gold-reward'; readonly rewardId: string; readonly amount: number }
+  | { readonly kind: 'claim-relic-reward'; readonly rewardId: string; readonly relicId: string }
   | { readonly kind: 'claim-upgrade-reward'; readonly rewardId: string; readonly instanceId: string; readonly cardId: string }
   | { readonly kind: 'invalid'; readonly reason: 'no-such-offer' };
 
@@ -60,6 +70,11 @@ export function resolveInterLevelChoice(state: InterLevelState, offerId: string)
     const reward = state.goldRewards?.find((entry) => entry.id === offerId);
     if (!reward) return { kind: 'invalid', reason: 'no-such-offer' };
     return { kind: 'claim-gold-reward', rewardId: reward.id, amount: reward.amount };
+  }
+  if ((state.mode ?? 'branch') === 'relic-reward') {
+    const reward = state.relicRewards?.find((entry) => entry.id === offerId);
+    if (!reward) return { kind: 'invalid', reason: 'no-such-offer' };
+    return { kind: 'claim-relic-reward', rewardId: reward.id, relicId: reward.relicId };
   }
   if ((state.mode ?? 'branch') === 'upgrade-reward') {
     const reward = state.upgradeRewards?.find((entry) => entry.id === offerId);
@@ -108,6 +123,13 @@ export function layoutInterLevel(state: InterLevelState, viewportWidth: number, 
         title: reward.title,
         description: reward.description,
       }))
+      : mode === 'relic-reward'
+        ? (state.relicRewards ?? []).map((reward) => ({
+          id: reward.id,
+          kind: 'skip' as const,
+          title: reward.title,
+          description: reward.description,
+        }))
       : mode === 'upgrade-reward'
         ? (state.upgradeRewards ?? []).map((reward) => ({
           id: reward.id,
@@ -121,6 +143,8 @@ export function layoutInterLevel(state: InterLevelState, viewportWidth: number, 
       ? `🃏 选择 1 张新卡牌`
       : mode === 'gold-reward'
         ? `💰 选择 1 份金币奖励`
+        : mode === 'relic-reward'
+          ? `🧿 选择 1 个遗物`
         : mode === 'upgrade-reward'
           ? `⬆ 选择 1 张卡牌升级`
         : `🏆 关卡 ${state.levelIndex} 通过！`,
