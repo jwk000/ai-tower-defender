@@ -392,20 +392,11 @@ async function bootstrap(): Promise<void> {
   }
 
   function buildSpawnConfigs(levelConfig: LevelConfig): SpawnConfig[] {
-    const pathNodeIndexBySpawnId = new Map<string, number>();
-    for (let i = 0; i < levelConfig.path.length; i += 1) {
-      const point = levelConfig.path[i]!;
-      for (const spawn of levelConfig.spawns) {
-        if (Math.abs(spawn.x - point.x) < 0.001 && Math.abs(spawn.y - point.y) < 0.001) {
-          pathNodeIndexBySpawnId.set(spawn.id, i + 1);
-        }
-      }
-    }
     return levelConfig.spawns.map((s) => ({
       id: s.id,
       x: s.x,
       y: s.y,
-      pathIndexStart: pathNodeIndexBySpawnId.get(s.id) ?? 0,
+      pathIndexStart: s.pathIndexStart,
     }));
   }
 

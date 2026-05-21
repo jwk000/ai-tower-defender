@@ -149,6 +149,7 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.spawns[0]?.id).toBe('spawn_0');
     expect(cfg.spawns[0]?.x).toBe(0 * 64 + 32);
     expect(cfg.spawns[0]?.y).toBe(4 * 64 + 32);
+    expect(cfg.spawns[0]?.pathIndexStart).toBe(1);
     expect(cfg.available.towers).toContain('arrow');
     expect(cfg.weather?.pool).toEqual(['sunny', 'rain', 'fog']);
     expect(cfg.weather?.initial).toBe('random_from_pool');

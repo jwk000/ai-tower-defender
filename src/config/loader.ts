@@ -323,6 +323,7 @@ export interface LevelSpawnPoint {
   readonly col: number;
   readonly x: number;
   readonly y: number;
+  readonly pathIndexStart: number;
 }
 
 export interface LevelWeatherConfig {
@@ -367,6 +368,8 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
   }
   const spawnNode = parsed.map.pathGraph.nodes.find((n) => n.role === 'spawn') ?? parsed.map.pathGraph.nodes[0]!;
   const ordered = orderPath(parsed.map.pathGraph.edges, spawnNode.id, anchor.id, nodesById);
+  const orderedNodeIds = ordered.map((n) => n.id);
+  const pathNodeIndexById = new Map(orderedNodeIds.map((id, index) => [id, index]));
   const path = ordered.map((n) => ({
     x: n.col * tileSize + tileSize / 2,
     y: n.row * tileSize + tileSize / 2,
@@ -377,13 +380,19 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     groups: w.enemies.map((g) => ({ enemyId: g.enemyType, count: g.count, interval: g.spawnInterval })),
     ...(w.isBossWave ? { isBossWave: true } : {}),
   }));
-  const spawns: LevelSpawnPoint[] = (parsed.map.spawns ?? []).map((s) => ({
-    id: s.id,
-    row: s.row,
-    col: s.col,
-    x: s.col * tileSize + tileSize / 2,
-    y: s.row * tileSize + tileSize / 2,
-  }));
+  const spawns: LevelSpawnPoint[] = (parsed.map.spawns ?? []).map((s) => {
+    const pathNode = parsed.map.pathGraph.nodes.find((node) => node.spawnId === s.id)
+      ?? parsed.map.pathGraph.nodes.find((node) => node.role === 'spawn' && node.row === s.row && node.col === s.col);
+    const pathIndexStart = pathNode ? ((pathNodeIndexById.get(pathNode.id) ?? 0) + 1) : 0;
+    return {
+      id: s.id,
+      row: s.row,
+      col: s.col,
+      x: s.col * tileSize + tileSize / 2,
+      y: s.row * tileSize + tileSize / 2,
+      pathIndexStart,
+    };
+  });
   const available: LevelAvailable = {
     towers: parsed.available?.towers ?? [],
     units: parsed.available?.units ?? [],

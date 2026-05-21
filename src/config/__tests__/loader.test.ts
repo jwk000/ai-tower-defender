@@ -430,6 +430,7 @@ available:
       col: 0,
       x: 0 * 64 + 32,
       y: 4 * 64 + 32,
+      pathIndexStart: 1,
     });
     expect(cfg.spawns[1]).toEqual({
       id: 'spawn_1',
@@ -437,10 +438,38 @@ available:
       col: 9,
       x: 9 * 64 + 32,
       y: 0 * 64 + 32,
+      pathIndexStart: 0,
     });
     expect(cfg.available.towers).toEqual(['arrow', 'cannon']);
     expect(cfg.available.units).toEqual(['militia']);
     expect(cfg.available.cards).toEqual(['arrow_tower_card']);
+  });
+
+  it('uses spawnId mapping to derive pathIndexStart even when spawn coords share the same tile', () => {
+    const yaml = `
+id: multi_spawn_branch
+map:
+  cols: 6
+  rows: 6
+  tileSize: 64
+  spawns:
+    - { id: spawn_a, row: 2, col: 0 }
+    - { id: spawn_b, row: 2, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 2, col: 0, role: spawn, spawnId: spawn_a }
+      - { id: n1, row: 2, col: 2, role: spawn, spawnId: spawn_b }
+      - { id: n2, row: 2, col: 4, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.spawns.map((spawn) => spawn.pathIndexStart)).toEqual([1, 2]);
   });
 
   it('defaults spawns=[] and available={towers:[],units:[],cards:[]} when omitted', () => {

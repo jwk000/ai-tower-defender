@@ -123,6 +123,24 @@ describe('MovementSystem', () => {
     expect(Position.y[eid]).toBeCloseTo(25, 5);
   });
 
+  it('continues along the configured later path node for alternate spawns', () => {
+    const game = new Game();
+    const path = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 200, y: 0 },
+      { x: 200, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    const eid = spawnWalker(game, 100, 0, 100);
+    Movement.pathIndex[eid] = 2;
+
+    game.tick(0.5);
+
+    expect(Position.x[eid]).toBeCloseTo(125, 5);
+    expect(Position.y[eid]).toBeCloseTo(0, 5);
+  });
+
   it('dispatches onEnter once when an entity reaches the final node', () => {
     const game = new Game();
     const path = [
