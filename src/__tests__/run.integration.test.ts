@@ -1780,7 +1780,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
       title: '神秘馈赠',
       description: '获得 10 金币',
       choices: [
-        { id: 'take_gold', label: '拾取', effects: [{ type: 'add_gold', amount: 10 }] },
+        { id: 'take_gold', label: '拾取', effects: [{ type: 'grant_gold', amount: 10 }] },
       ],
     };
     mysticPanel.refresh(mvpEvent);
@@ -1788,7 +1788,7 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
       if (intent.kind === 'resolve') {
         for (const effect of intent.effects) {
           const e = effect as unknown as { type: string; amount?: number };
-          if (e.type === 'add_gold' && typeof e.amount === 'number') {
+          if (e.type === 'grant_gold' && typeof e.amount === 'number') {
             runManager.addGold(e.amount);
           }
         }
@@ -1806,6 +1806,146 @@ describe('MVP-acceptance: Shop/Mystic 两面板 smoke', () => {
 
     controller.enterBattle();
     expect(runManager.phase).toBe(RunPhase.Battle);
+  });
+
+  it('mystic smoke: payout / crystal trade / tiered sp / random risk effects all resolve and return to level map', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 5, initialGold: 100 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(222) });
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    const resolveMysticEffects = (effects: ReadonlyArray<unknown>): void => {
+      for (const effect of effects) {
+        const e = effect as {
+          type: string;
+          amount?: number;
+          successChance?: number;
+          goldAmount?: number;
+          spAmount?: number;
+          damageAmount?: number;
+          tiers?: Array<{ minLevel: number; maxLevel: number; amount: number }>;
+        };
+        switch (e.type) {
+          case 'grant_gold':
+            runManager.addGold(e.amount ?? 0);
+            break;
+          case 'heal_crystal':
+            runManager.healCrystal(e.amount ?? 0);
+            break;
+          case 'deal_crystal_damage':
+            runManager.damageCrystal(e.amount ?? 0);
+            break;
+          case 'grant_sp_tiered': {
+            const tier = e.tiers?.find((candidate) => runManager.currentLevel >= candidate.minLevel && runManager.currentLevel <= candidate.maxLevel);
+            if (tier) runManager.grantSp(tier.amount);
+            break;
+          }
+          case 'grant_gold_or_damage':
+            if ((e.successChance ?? 0.7) >= 0.7) {
+              runManager.addGold(e.goldAmount ?? 0);
+              runManager.grantSp(e.spAmount ?? 0);
+            } else {
+              runManager.damageCrystal(e.damageAmount ?? 0);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+      controller.closeMystic();
+    };
+
+    const enterMystic = (): MysticPanel => {
+      controller.enterBattle();
+      runManager.completeLevel();
+      claimBaseInterLevelRewards(runManager, controller);
+      controller.pickInterLevel('mystic');
+      expect(runManager.phase).toBe(RunPhase.Mystic);
+      const panel = new MysticPanel();
+      panel.setHandler((intent) => {
+        if (intent.kind === 'resolve') {
+          resolveMysticEffects(intent.effects as ReadonlyArray<unknown>);
+        } else if (intent.kind === 'exit') {
+          controller.closeMystic();
+        }
+      });
+      return panel;
+    };
+
+    controller.startRun();
+
+    const goldEvent = enterMystic();
+    goldEvent.refresh({
+      id: 'gold_offer',
+      title: '金币馈赠',
+      description: '获得金币',
+      choices: [{ id: 'take', label: '拿走', effects: [{ type: 'grant_gold', amount: 25 }] }],
+    });
+    const goldBefore = runManager.gold;
+    goldEvent.triggerChoice('take');
+    expect(runManager.gold).toBe(goldBefore + 25);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(2);
+
+    const healEvent = enterMystic();
+    runManager.damageCrystal(120);
+    const crystalBeforeHeal = runManager.crystalHp;
+    const expectedCrystalAfterHeal = Math.min(crystalBeforeHeal + 80, runManager.crystalHpMax);
+    healEvent.refresh({
+      id: 'healing_spring',
+      title: '治疗泉水',
+      description: '恢复水晶生命',
+      choices: [{ id: 'immerse', label: '浸入', effects: [{ type: 'heal_crystal', amount: 80 }] }],
+    });
+    healEvent.triggerChoice('immerse');
+    expect(runManager.crystalHp).toBe(expectedCrystalAfterHeal);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(3);
+
+    const tieredSpEvent = enterMystic();
+    const spBeforeTiered = runManager.sp;
+    tieredSpEvent.refresh({
+      id: 'traveler_camp',
+      title: '旅人营地',
+      description: '按关卡发放 SP',
+      choices: [{
+        id: 'join',
+        label: '加入',
+        effects: [{
+          type: 'grant_sp_tiered',
+          tiers: [
+            { minLevel: 1, maxLevel: 2, amount: 5 },
+            { minLevel: 3, maxLevel: 4, amount: 15 },
+          ],
+        }],
+      }],
+    });
+    tieredSpEvent.triggerChoice('join');
+    expect(runManager.sp).toBe(spBeforeTiered + 15);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(4);
+
+    const gambleEvent = enterMystic();
+    const goldBeforeGamble = runManager.gold;
+    const spBeforeGamble = runManager.sp;
+    const crystalBeforeGamble = runManager.crystalHp;
+    gambleEvent.refresh({
+      id: 'mysterious_chest',
+      title: '神秘宝箱',
+      description: '高概率得金，低概率受伤',
+      choices: [{
+        id: 'open',
+        label: '开启',
+        effects: [{ type: 'grant_gold_or_damage', goldAmount: 150, spAmount: 10, damageAmount: 80, successChance: 0.7 }],
+      }],
+    });
+    gambleEvent.triggerChoice('open');
+    expect(runManager.gold).toBe(goldBeforeGamble + 150);
+    expect(runManager.sp).toBe(spBeforeGamble + 10);
+    expect(runManager.crystalHp).toBe(crystalBeforeGamble);
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(5);
   });
 
   it('skip: 选 skip → InterLevel 直接回 LevelMap → level++', () => {
