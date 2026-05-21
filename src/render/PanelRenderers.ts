@@ -26,6 +26,7 @@ import type { MysticPanel } from '../ui/MysticPanel.js';
 import {
   hitTestLevelMap,
   layoutLevelMap,
+  formatLevelDescription,
   type LevelMapPanel,
   type LevelMapState,
 } from '../ui/LevelMapPanel.js';
@@ -610,9 +611,15 @@ export class LevelMapRenderer {
   private readonly challengeText: Text;
   private readonly viewDeckText: Text;
   private readonly backBtnText: Text;
+  private readonly currentTitleText: Text;
+  private readonly currentNameText: Text;
+  private readonly currentSummaryText: Text;
+  private readonly currentDescText: Text;
+  private readonly enemyTitleText: Text;
+  private readonly enemyEmptyText: Text;
+  private readonly enemyTexts: Text[] = [];
   private readonly nodeLabelTexts: Text[] = [];
   private readonly nodeNameTexts: Text[] = [];
-  private readonly nodeDescTexts: Text[] = [];
   private readonly nodeWaveTexts: Text[] = [];
   private viewportWidth: number;
   private viewportHeight: number;
@@ -634,14 +641,39 @@ export class LevelMapRenderer {
     this.hudText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 22, fontWeight: 'bold' } });
     this.goldText = new Text({ text: '', style: { fill: GOLD_COLOR, fontSize: 20 } });
     this.crystalText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 20 } });
-    this.challengeText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 20, align: 'center' } });
+    this.challengeText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 22, align: 'center', fontWeight: 'bold' } });
     this.challengeText.anchor.set(0.5, 0.5);
     this.viewDeckText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 16, align: 'center' } });
     this.viewDeckText.anchor.set(0.5, 0.5);
     this.backBtnText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 16, align: 'center' } });
     this.backBtnText.anchor.set(0.5, 0.5);
+    this.currentTitleText = new Text({ text: '', style: { fill: 0x90caf9, fontSize: 22, fontWeight: 'bold' } });
+    this.currentNameText = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 34, fontWeight: 'bold' } });
+    this.currentSummaryText = new Text({ text: '', style: { fill: 0xb3e5fc, fontSize: 20, fontWeight: 'bold' } });
+    this.currentDescText = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 18, wordWrap: true, wordWrapWidth: 620, lineHeight: 28 } });
+    this.enemyTitleText = new Text({ text: '敌情情报', style: { fill: TITLE_COLOR, fontSize: 24, fontWeight: 'bold' } });
+    this.enemyEmptyText = new Text({ text: '', style: { fill: TEXT_DIM, fontSize: 16, wordWrap: true, wordWrapWidth: 220, lineHeight: 24 } });
 
-    this.container.addChild(this.bg, this.pathGraphics, this.nodesGraphics, this.challengeGraphics, this.viewDeckGraphics, this.backBtnGraphics, this.hudText, this.goldText, this.crystalText, this.challengeText, this.viewDeckText, this.backBtnText);
+    this.container.addChild(
+      this.bg,
+      this.pathGraphics,
+      this.nodesGraphics,
+      this.challengeGraphics,
+      this.viewDeckGraphics,
+      this.backBtnGraphics,
+      this.hudText,
+      this.goldText,
+      this.crystalText,
+      this.currentTitleText,
+      this.currentNameText,
+      this.currentSummaryText,
+      this.currentDescText,
+      this.enemyTitleText,
+      this.enemyEmptyText,
+      this.challengeText,
+      this.viewDeckText,
+      this.backBtnText,
+    );
     this.container.eventMode = 'static';
     this.container.hitArea = { contains: () => true };
     this.container.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
@@ -670,28 +702,67 @@ export class LevelMapRenderer {
   private render(): void {
     if (!this.state) return;
     const layout = layoutLevelMap(this.state, this.viewportWidth, this.viewportHeight);
+    const scale = Math.min(this.viewportWidth / 1920, this.viewportHeight / 1080);
 
     this.bg.clear();
     this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: 0x0d1b2a, alpha: 1 });
+    this.bg.rect(0, 0, this.viewportWidth, this.viewportHeight).fill({ color: 0x12324a, alpha: 0.35 });
+    this.bg.circle(this.viewportWidth * 0.22, this.viewportHeight * 0.28, 220 * scale).fill({ color: 0x2e7d32, alpha: 0.14 });
+    this.bg.circle(this.viewportWidth * 0.7, this.viewportHeight * 0.2, 260 * scale).fill({ color: 0xffd54f, alpha: 0.08 });
+    this.bg.roundRect(layout.mainCard.x - 26 * scale, layout.mainCard.y + 24 * scale, layout.mainCard.width + 52 * scale, layout.mainCard.height - 40 * scale, 28 * scale).fill({ color: 0xffffff, alpha: 0.03 });
 
     this.hudText.text = layout.titleLabel;
-    this.hudText.position.set(30, 18);
+    this.hudText.position.set(36 * scale, 24 * scale);
     this.crystalText.text = layout.crystalLabel;
-    this.crystalText.position.set(this.viewportWidth / 2 - 120, 18);
+    this.crystalText.position.set(this.viewportWidth * 0.46, 24 * scale);
     this.goldText.text = layout.goldLabel;
-    this.goldText.position.set(this.viewportWidth / 2 + 40, 18);
+    this.goldText.position.set(this.viewportWidth * 0.63, 24 * scale);
 
     this.pathGraphics.clear();
-    for (let i = 0; i < layout.nodes.length - 1; i += 1) {
-      const a = layout.nodes[i]!;
-      const b = layout.nodes[i + 1]!;
-      const ax = a.x + a.width;
-      const ay = a.y + a.height / 2;
-      const bx = b.x;
-      const by = b.y + b.height / 2;
-      const isDone = a.status === 'completed';
-      this.pathGraphics.moveTo(ax, ay).lineTo(bx, by).stroke({ width: 4, color: isDone ? PATH_DONE : PATH_FUTURE });
+    this.pathGraphics.roundRect(layout.mainCard.x, layout.mainCard.y, layout.mainCard.width, layout.mainCard.height, 28 * scale)
+      .fill({ color: 0x10263b, alpha: 0.96 })
+      .stroke({ width: 3, color: 0x4fc3f7 });
+    this.pathGraphics.roundRect(layout.enemyCard.x, layout.enemyCard.y, layout.enemyCard.width, layout.enemyCard.height, 24 * scale)
+      .fill({ color: 0x132238, alpha: 0.94 })
+      .stroke({ width: 2, color: 0x607d8b });
+    this.pathGraphics.roundRect(layout.timeline.x, layout.timeline.y, layout.timeline.width, layout.timeline.height, 26 * scale)
+      .fill({ color: 0x0f2233, alpha: 0.94 })
+      .stroke({ width: 2, color: 0x29434e });
+
+    this.pathGraphics.moveTo(layout.mainCard.x + layout.mainCard.width * 0.5, layout.mainCard.y + layout.mainCard.height)
+      .lineTo(layout.timeline.x + layout.timeline.width * 0.5, layout.timeline.y)
+      .stroke({ width: 4, color: 0x355c7d, alpha: 0.6 });
+
+    this.currentTitleText.text = layout.currentNodeTitle;
+    this.currentTitleText.position.set(layout.mainCard.x + 34 * scale, layout.mainCard.y + 28 * scale);
+    this.currentNameText.text = layout.currentNode.name;
+    this.currentNameText.position.set(layout.mainCard.x + 34 * scale, layout.mainCard.y + 70 * scale);
+    this.currentSummaryText.text = layout.currentNodeSummary;
+    this.currentSummaryText.position.set(layout.mainCard.x + 34 * scale, layout.mainCard.y + 128 * scale);
+    this.currentDescText.text = formatLevelDescription(layout.currentNode.description);
+    this.currentDescText.style.wordWrapWidth = layout.mainCard.width - 70 * scale;
+    this.currentDescText.position.set(layout.mainCard.x + 34 * scale, layout.mainCard.y + 174 * scale);
+
+    this.enemyTitleText.position.set(layout.enemyCard.x + 24 * scale, layout.enemyCard.y + 24 * scale);
+    this.enemyEmptyText.position.set(layout.enemyCard.x + 24 * scale, layout.enemyCard.y + 74 * scale);
+
+    while (this.enemyTexts.length < 5) {
+      const t = new Text({ text: '', style: { fill: TEXT_PRIMARY, fontSize: 17, wordWrap: true, wordWrapWidth: 230, lineHeight: 24 } });
+      this.container.addChild(t);
+      this.enemyTexts.push(t);
     }
+    for (let i = 0; i < this.enemyTexts.length; i += 1) {
+      const text = this.enemyTexts[i]!;
+      const enemy = layout.enemyPreview[i];
+      if (!enemy) {
+        text.text = '';
+        continue;
+      }
+      const tag = enemy.isBoss ? 'Boss' : enemy.isElite ? '精英' : '敌军';
+      text.text = `• ${enemy.name} ×${enemy.count}  · ${tag}`;
+      text.position.set(layout.enemyCard.x + 24 * scale, layout.enemyCard.y + (78 + i * 48) * scale);
+    }
+    this.enemyEmptyText.text = layout.enemyPreview.length === 0 ? '敌情待侦察\n进入后根据波次逐步揭示' : '';
 
     this.nodesGraphics.clear();
     while (this.nodeLabelTexts.length < layout.nodes.length) {
@@ -701,16 +772,10 @@ export class LevelMapRenderer {
       this.nodeLabelTexts.push(lbl);
     }
     while (this.nodeNameTexts.length < layout.nodes.length) {
-      const t = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 15, fontWeight: 'bold', align: 'center', wordWrap: true, wordWrapWidth: 140 } });
+      const t = new Text({ text: '', style: { fill: TITLE_COLOR, fontSize: 14, fontWeight: 'bold', align: 'center', wordWrap: true, wordWrapWidth: 150 } });
       t.anchor.set(0.5, 0);
       this.container.addChild(t);
       this.nodeNameTexts.push(t);
-    }
-    while (this.nodeDescTexts.length < layout.nodes.length) {
-      const t = new Text({ text: '', style: { fill: TEXT_DIM, fontSize: 11, align: 'center', wordWrap: true, wordWrapWidth: 140 } });
-      t.anchor.set(0.5, 0);
-      this.container.addChild(t);
-      this.nodeDescTexts.push(t);
     }
     while (this.nodeWaveTexts.length < layout.nodes.length) {
       const t = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 12, align: 'center' } });
@@ -721,50 +786,40 @@ export class LevelMapRenderer {
     for (let i = layout.nodes.length; i < this.nodeLabelTexts.length; i += 1) {
       this.nodeLabelTexts[i]!.text = '';
       this.nodeNameTexts[i]!.text = '';
-      this.nodeDescTexts[i]!.text = '';
       this.nodeWaveTexts[i]!.text = '';
     }
     for (let i = 0; i < layout.nodes.length; i += 1) {
       const n = layout.nodes[i]!;
-      const fill = n.status === 'completed' ? NODE_COMPLETED : n.status === 'current' ? NODE_CURRENT : NODE_LOCKED_COLOR;
-      const border = n.status === 'completed' ? 0x4caf50 : n.status === 'current' ? 0x4fc3f7 : 0x455a64;
-      const borderWidth = n.status === 'current' ? 4 : 2;
+      const fill = n.status === 'completed' ? 0x2e7d32 : n.status === 'current' ? 0x1565c0 : 0x37474f;
+      const border = n.status === 'completed' ? 0xa5d6a7 : n.status === 'current' ? 0x4fc3f7 : 0x607d8b;
+      const borderWidth = n.status === 'current' ? 5 : n.isBoss ? 4 : 2;
+      const alpha = n.status === 'locked' ? 0.5 : 0.96;
       const cx = n.x + n.width / 2;
 
-      this.nodesGraphics.rect(n.x, n.y, n.width, n.height).fill({ color: fill, alpha: n.status === 'locked' ? 0.5 : 0.95 });
-      this.nodesGraphics.rect(n.x, n.y, n.width, n.height).stroke({ width: borderWidth, color: border });
-
-      const innerPad = 8;
-      const innerTop = n.y + innerPad;
-      const innerBottom = n.y + n.height - innerPad;
-      const labelAreaH = 16;
+      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, 18 * scale).fill({ color: fill, alpha });
+      this.nodesGraphics.roundRect(n.x, n.y, n.width, n.height, 18 * scale).stroke({ width: borderWidth, color: border });
 
       const lbl = this.nodeLabelTexts[i]!;
       lbl.text = n.status === 'completed' ? `✓ ${n.label}` : n.status === 'current' ? `★ ${n.label}` : n.label;
       lbl.style.fill = n.status === 'locked' ? TEXT_DIM : TEXT_PRIMARY;
-      lbl.position.set(cx, innerTop);
+      lbl.position.set(cx, n.y + 18 * scale);
 
       const nameText = this.nodeNameTexts[i]!;
-      nameText.text = n.name;
+      nameText.text = n.status === 'locked' ? '未解锁' : n.name;
       nameText.style.fill = n.status === 'locked' ? TEXT_DIM : TITLE_COLOR;
-      nameText.position.set(cx, innerTop + labelAreaH + 4);
-
-      const descText = this.nodeDescTexts[i]!;
-      const shortDesc = n.description.length > 30 ? n.description.slice(0, 28) + '…' : n.description;
-      descText.text = n.status === 'locked' ? '??? 通过前一关解锁' : shortDesc;
-      descText.style.fill = TEXT_DIM;
-      descText.position.set(cx, innerTop + labelAreaH + 22 + 18);
+      nameText.style.wordWrapWidth = n.width - 22 * scale;
+      nameText.position.set(cx, n.y + 46 * scale);
 
       const waveText = this.nodeWaveTexts[i]!;
       waveText.text = n.waveCount > 0 ? `${n.waveCount} 波` : '';
       waveText.style.fill = n.status === 'locked' ? TEXT_DIM : 0x80cbc4;
-      waveText.position.set(cx, innerBottom);
+      waveText.position.set(cx, n.y + n.height - 14 * scale);
     }
 
     this.challengeGraphics.clear();
     const btn = layout.challengeBtn;
-    this.challengeGraphics.rect(btn.x, btn.y, btn.width, btn.height).fill({ color: BUTTON_ENABLED, alpha: 0.95 });
-    this.challengeGraphics.rect(btn.x, btn.y, btn.width, btn.height).stroke({ width: 2, color: BUTTON_BORDER });
+    this.challengeGraphics.roundRect(btn.x, btn.y, btn.width, btn.height, 16 * scale).fill({ color: 0x1565c0, alpha: 0.98 });
+    this.challengeGraphics.roundRect(btn.x, btn.y, btn.width, btn.height, 16 * scale).stroke({ width: 3, color: 0x90caf9 });
     this.challengeText.text = btn.label;
     this.challengeText.position.set(btn.x + btn.width / 2, btn.y + btn.height / 2);
 

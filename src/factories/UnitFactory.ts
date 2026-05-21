@@ -72,6 +72,7 @@ export type UnitLifecycle = Partial<Record<LifecycleEvent, Rule[]>>;
 
 export interface UnitConfig {
   id: string;
+  name?: string;
   category: UnitCategoryString;
   faction: UnitFactionString;
   stats: UnitStats;

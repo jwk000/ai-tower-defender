@@ -24,7 +24,7 @@ import {
   type InterLevelOffer,
   type InterLevelState,
 } from './ui/InterLevelPanel.js';
-import { LevelMapPanel, type LevelMeta } from './ui/LevelMapPanel.js';
+import { LevelMapPanel, type LevelEnemyPreview, type LevelMeta } from './ui/LevelMapPanel.js';
 import { DeckViewPanel, type CardInstanceEntry, type DeckViewConfirmationState } from './ui/DeckViewPanel.js';
 import { ShopPanel, type ShopIntent, type ShopState } from './ui/ShopPanel.js';
 import { MysticPanel, type MysticIntent } from './ui/MysticPanel.js';
@@ -61,6 +61,7 @@ import {
   loadUnitConfigsForLevel,
   parseLevelConfig,
   parseMysticEventConfig,
+  parseUnitConfigsFromYaml,
   type MysticEventConfig,
   parseSkillTreeFromUnitYaml,
 } from './config/loader.js';
@@ -108,12 +109,43 @@ const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 0.5;
 const ENERGY_MAX = 10;
 const MANUAL_DRAW_COOLDOWN_SECONDS = 5;
+type EnemyMetaRecord = {
+  readonly name: string;
+  readonly isBoss: boolean;
+  readonly isElite: boolean;
+};
 const STARTER_DECK = [
   'arrow_tower_card',
   'shield_guard_card',
   'spike_trap_card',
   'fireball_card',
 ] as const;
+
+function buildLevelEnemyPreview(levelConfig: LevelConfig, enemyMetaById: ReadonlyMap<string, EnemyMetaRecord>): LevelEnemyPreview[] {
+  const countById = new Map<string, number>();
+  for (const wave of levelConfig.waves) {
+    for (const group of wave.groups) {
+      countById.set(group.enemyId, (countById.get(group.enemyId) ?? 0) + group.count);
+    }
+  }
+  return Array.from(countById.entries())
+    .map(([enemyId, count]) => {
+      const meta = enemyMetaById.get(enemyId);
+      return {
+        enemyId,
+        name: meta?.name ?? enemyId,
+        count,
+        isBoss: meta?.isBoss ?? false,
+        isElite: meta?.isElite ?? false,
+      };
+    })
+    .sort((a, b) => {
+      if (a.isBoss !== b.isBoss) return a.isBoss ? -1 : 1;
+      if (a.isElite !== b.isElite) return a.isElite ? -1 : 1;
+      return b.count - a.count;
+    })
+    .slice(0, 5);
+}
 
 async function bootstrap(): Promise<void> {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -136,12 +168,22 @@ async function bootstrap(): Promise<void> {
     level01Yaml, level02Yaml, level03Yaml, level04Yaml,
     level05Yaml, level06Yaml, level07Yaml, level08Yaml,
   ].map((yaml) => parseLevelConfig(yaml));
+  const enemyMetaById = new Map(
+    parseUnitConfigsFromYaml(enemiesYaml)
+      .filter((cfg) => cfg.category === 'Enemy')
+      .map((cfg) => [cfg.id, {
+        name: cfg.name ?? cfg.id,
+        isBoss: cfg.isBoss === true,
+        isElite: cfg.id.endsWith('_elite') || cfg.isBoss === true,
+      } satisfies EnemyMetaRecord]),
+  );
 
   const ALL_LEVEL_METAS: LevelMeta[] = allLevelConfigs.map((cfg, index) => ({
     name: cfg.name ?? cfg.id,
     description: cfg.description ?? '',
     waveCount: cfg.waves.length,
     kind: index === allLevelConfigs.length - 1 ? 'boss' : undefined,
+    enemyPreview: buildLevelEnemyPreview(cfg, enemyMetaById),
   }));
 
   const level = parseLevelConfig(level01Yaml);
@@ -803,13 +845,13 @@ async function bootstrap(): Promise<void> {
       id: c.id,
       kind: 'buy-unit-card' as const,
       label: c.label,
-      costGold: c.costGold,
+      costGold: runManager.applyShopDiscount(c.costGold),
       grantsCardId: c.id,
       stock: 1,
     }));
     const funcSlots = [
-      { id: 'restore_crystal', kind: 'restore-crystal-hp' as const, label: '水晶恢复 (50%)', costGold: 100, stock: 1 },
-      { id: 'recycle_card', kind: 'recycle-card' as const, label: '卡牌回收', costGold: 50, stock: 1 },
+      { id: 'restore_crystal', kind: 'restore-crystal-hp' as const, label: '水晶恢复 (50%)', costGold: runManager.applyShopDiscount(100), stock: 1 },
+      { id: 'recycle_card', kind: 'recycle-card' as const, label: '卡牌回收', costGold: runManager.applyShopDiscount(50), stock: 1 },
     ];
     return {
       gold: runManager.gold,

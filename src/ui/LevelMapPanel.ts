@@ -2,6 +2,14 @@ import type { MapNodeKind } from '../unit-system/RunManager.js';
 
 export type LevelNodeStatus = 'completed' | 'current' | 'locked';
 
+export interface LevelEnemyPreview {
+  readonly enemyId: string;
+  readonly name: string;
+  readonly count: number;
+  readonly isBoss: boolean;
+  readonly isElite: boolean;
+}
+
 export interface LevelNode {
   readonly levelIndex: number;
   readonly kind: MapNodeKind;
@@ -14,10 +22,18 @@ export interface LevelMeta {
   readonly description: string;
   readonly waveCount: number;
   readonly kind?: MapNodeKind;
+  readonly enemyPreview?: readonly LevelEnemyPreview[];
 }
 
-const NORMAL_NODE_SIZE = 160;
-const BOSS_NODE_SIZE = 160;
+const NORMAL_NODE_SIZE = 150;
+const CURRENT_NODE_SIZE = 210;
+const BOSS_NODE_SIZE = 180;
+const MAIN_CARD_W = 900;
+const MAIN_CARD_H = 380;
+const INFO_CARD_W = 300;
+const INFO_CARD_H = 360;
+const TIMELINE_W = 1680;
+const TIMELINE_H = 180;
 
 export interface LevelNodeRect extends LevelNode {
   readonly x: number;
@@ -38,6 +54,13 @@ export interface LevelMapBtnRect {
   readonly label: string;
 }
 
+export interface LevelMapInfoCardRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface LevelMapLayout {
   readonly nodes: readonly LevelNodeRect[];
   readonly challengeBtn: LevelMapBtnRect;
@@ -47,6 +70,13 @@ export interface LevelMapLayout {
   readonly crystalLabel: string;
   readonly goldLabel: string;
   readonly escHint: string;
+  readonly currentNode: LevelNodeRect;
+  readonly currentNodeTitle: string;
+  readonly currentNodeSummary: string;
+  readonly mainCard: LevelMapInfoCardRect;
+  readonly enemyCard: LevelMapInfoCardRect;
+  readonly timeline: LevelMapInfoCardRect;
+  readonly enemyPreview: readonly LevelEnemyPreview[];
 }
 
 export interface LevelMapState {
@@ -59,27 +89,14 @@ export interface LevelMapState {
   readonly levelMetas: readonly LevelMeta[];
 }
 
-const CHALLENGE_BTN_W = 280;
-const CHALLENGE_BTN_H = 60;
-const DECK_BTN_W = 120;
-const DECK_BTN_H = 50;
+const CHALLENGE_BTN_W = 360;
+const CHALLENGE_BTN_H = 76;
+const DECK_BTN_W = 140;
+const DECK_BTN_H = 52;
 const BACK_BTN_W = 140;
 const BACK_BTN_H = 44;
-const BOTTOM_OFFSET_Y = 40;
 
-const NODE_COORDS: ReadonlyArray<readonly [number, number]> = [
-  [120, 540],
-  [330, 540],
-  [540, 540],
-  [750, 540],
-  [960, 540],
-  [1170, 540],
-  [1380, 540],
-  [1590, 540],
-  [1800, 540],
-];
-
-const FALLBACK_META: LevelMeta = { name: '???', description: '', waveCount: 0, kind: 'battle' };
+const FALLBACK_META: LevelMeta = { name: '???', description: '', waveCount: 0, kind: 'battle', enemyPreview: [] };
 
 function getNodeKind(levelIndex: number, state: LevelMapState): MapNodeKind {
   const metaKind = state.levelMetas[levelIndex - 1]?.kind;
@@ -98,6 +115,17 @@ function formatNodeLabel(kind: MapNodeKind, levelIndex: number): string {
     case 'rest': return '休整';
     case 'boss': return '终战';
   }
+}
+
+function nodeBaseSize(node: LevelNode): number {
+  if (node.status === 'current') return CURRENT_NODE_SIZE;
+  if (node.isBoss) return BOSS_NODE_SIZE;
+  return NORMAL_NODE_SIZE;
+}
+
+function truncateText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 1))}…`;
 }
 
 export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
@@ -119,21 +147,28 @@ export function buildLevelNodes(state: LevelMapState): readonly LevelNode[] {
 
 export function layoutLevelMap(state: LevelMapState, viewportWidth: number, viewportHeight: number): LevelMapLayout {
   const nodes = buildLevelNodes(state);
+  const scale = Math.min(viewportWidth / 1920, viewportHeight / 1080);
 
-  const scaleX = viewportWidth / 1920;
-  const scaleY = viewportHeight / 1080;
+  const timelineWidth = Math.round(TIMELINE_W * scale);
+  const timelineHeight = Math.round(TIMELINE_H * scale);
+  const timelineX = Math.round((viewportWidth - timelineWidth) / 2);
+  const timelineY = Math.round(viewportHeight - timelineHeight - 110 * scale);
+
+  const usableWidth = timelineWidth - 120 * scale;
+  const step = nodes.length > 1 ? usableWidth / (nodes.length - 1) : 0;
+  const centerY = timelineY + timelineHeight / 2;
 
   const nodeRects: LevelNodeRect[] = nodes.map((n, i) => {
-    const [cx, cy] = NODE_COORDS[i] ?? [960, 540];
-    const size = n.isBoss ? BOSS_NODE_SIZE : NORMAL_NODE_SIZE;
-    const scaledSize = Math.round(size * Math.min(scaleX, scaleY));
+    const size = Math.round(nodeBaseSize(n) * scale);
+    const cx = timelineX + 60 * scale + step * i;
+    const cy = centerY + (n.status === 'current' ? -8 * scale : n.isBoss ? -4 * scale : 0);
     const meta = state.levelMetas[i] ?? FALLBACK_META;
     return {
       ...n,
-      x: Math.round(cx * scaleX - scaledSize / 2),
-      y: Math.round(cy * scaleY - scaledSize / 2),
-      width: scaledSize,
-      height: scaledSize,
+      x: Math.round(cx - size / 2),
+      y: Math.round(cy - size / 2),
+      width: size,
+      height: size,
       label: formatNodeLabel(n.kind, n.levelIndex),
       name: meta.name,
       description: meta.description,
@@ -141,42 +176,77 @@ export function layoutLevelMap(state: LevelMapState, viewportWidth: number, view
     };
   });
 
-  const challengeBtnX = Math.round((viewportWidth - CHALLENGE_BTN_W) / 2);
-  const challengeBtnY = viewportHeight - CHALLENGE_BTN_H - BOTTOM_OFFSET_Y;
+  const currentNode = nodeRects.find((node) => node.status === 'current') ?? nodeRects[0]!;
+  const currentMeta = state.levelMetas[state.currentLevelIdx - 1] ?? FALLBACK_META;
 
-  const deckBtnX = viewportWidth - DECK_BTN_W - 160;
-  const deckBtnY = viewportHeight - DECK_BTN_H - BOTTOM_OFFSET_Y;
+  const mainCardWidth = Math.round(MAIN_CARD_W * scale);
+  const mainCardHeight = Math.round(MAIN_CARD_H * scale);
+  const enemyCardWidth = Math.round(INFO_CARD_W * scale);
+  const enemyCardHeight = Math.round(INFO_CARD_H * scale);
+  const gap = Math.round(28 * scale);
+  const cardTop = Math.round(130 * scale);
+  const totalCardWidth = mainCardWidth + gap + enemyCardWidth;
+  const mainCardX = Math.round((viewportWidth - totalCardWidth) / 2);
+  const enemyCardX = mainCardX + mainCardWidth + gap;
 
-  const backBtnX = viewportWidth - BACK_BTN_W - 30;
-  const backBtnY = 18;
+  const challengeBtnX = Math.round(mainCardX + (mainCardWidth - CHALLENGE_BTN_W * scale) / 2);
+  const challengeBtnY = Math.round(cardTop + mainCardHeight - 100 * scale);
+
+  const deckBtnX = Math.round(viewportWidth - 220 * scale);
+  const deckBtnY = Math.round(viewportHeight - 108 * scale);
+
+  const backBtnX = Math.round(viewportWidth - BACK_BTN_W * scale - 40 * scale);
+  const backBtnY = Math.round(24 * scale);
 
   return {
     nodes: nodeRects,
     challengeBtn: {
       x: challengeBtnX,
       y: challengeBtnY,
-      width: CHALLENGE_BTN_W,
-      height: CHALLENGE_BTN_H,
+      width: Math.round(CHALLENGE_BTN_W * scale),
+      height: Math.round(CHALLENGE_BTN_H * scale),
       label: `进入 ${formatNodeLabel(getNodeKind(state.currentLevelIdx, state), state.currentLevelIdx)}`,
     },
     deckBtn: {
       x: deckBtnX,
       y: deckBtnY,
-      width: DECK_BTN_W,
-      height: DECK_BTN_H,
+      width: Math.round(DECK_BTN_W * scale),
+      height: Math.round(DECK_BTN_H * scale),
       label: '📚 卡池',
     },
     backBtn: {
       x: backBtnX,
       y: backBtnY,
-      width: BACK_BTN_W,
-      height: BACK_BTN_H,
+      width: Math.round(BACK_BTN_W * scale),
+      height: Math.round(BACK_BTN_H * scale),
       label: 'ESC 退出',
     },
-    titleLabel: `⚔ 长征路线 — Run #${state.runIndex}`,
+    titleLabel: `⚔ 长征路线 · Run #${state.runIndex}`,
     crystalLabel: `💎 HP ${state.crystalHp}/${state.crystalHpMax}`,
     goldLabel: `● 金币 ${state.gold}`,
     escHint: 'ESC 退出 Run',
+    currentNode,
+    currentNodeTitle: `第 ${currentNode.levelIndex} 关 · ${currentNode.label}`,
+    currentNodeSummary: currentMeta.waveCount > 0 ? `预计 ${currentMeta.waveCount} 波 · 推荐先检查卡池搭配` : '事件节点 · 可先查看卡池再做决策',
+    mainCard: {
+      x: mainCardX,
+      y: cardTop,
+      width: mainCardWidth,
+      height: mainCardHeight,
+    },
+    enemyCard: {
+      x: enemyCardX,
+      y: cardTop + Math.round(18 * scale),
+      width: enemyCardWidth,
+      height: enemyCardHeight,
+    },
+    timeline: {
+      x: timelineX,
+      y: timelineY,
+      width: timelineWidth,
+      height: timelineHeight,
+    },
+    enemyPreview: (currentMeta.enemyPreview ?? []).slice(0, 5),
   };
 }
 
@@ -189,6 +259,10 @@ export function hitTestLevelMap(layout: LevelMapLayout, px: number, py: number):
   if (hitRect(layout.deckBtn, px, py)) return 'view-deck';
   if (hitRect(layout.backBtn, px, py)) return 'back-to-menu';
   return null;
+}
+
+export function formatLevelDescription(description: string): string {
+  return truncateText(description, 84);
 }
 
 export type LevelMapAction = 'challenge' | 'view-deck' | 'back-to-menu';

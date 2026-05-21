@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   buildLevelNodes,
+  formatLevelDescription,
   hitTestLevelMap,
   layoutLevelMap,
   LevelMapPanel,
@@ -17,10 +18,29 @@ function state(overrides: Partial<LevelMapState> = {}): LevelMapState {
     crystalHpMax: 1000,
     runIndex: 1,
     levelMetas: [
-      { name: '平原入口', description: '第一场正面遭遇战', waveCount: 3, kind: 'battle' },
+      {
+        name: '平原入口',
+        description: '第一场正面遭遇战',
+        waveCount: 3,
+        kind: 'battle',
+        enemyPreview: [
+          { enemyId: 'grunt', name: '小兵', count: 4, isBoss: false, isElite: false },
+          { enemyId: 'runner', name: '快兵', count: 2, isBoss: false, isElite: false },
+        ],
+      },
       { name: '督战官', description: '精英敌人压阵', waveCount: 4, kind: 'elite' },
       { name: '流动商队', description: '补充卡牌与资源', waveCount: 0, kind: 'shop' },
-      { name: '古树低语', description: '随机事件与代价', waveCount: 0, kind: 'mystic' },
+      {
+        name: '古树低语',
+        description: '随机事件与代价，同时也是一段很长的说明文本，用来验证路线图当前关卡主卡描述会自动换行并在必要时截断。',
+        waveCount: 0,
+        kind: 'mystic',
+        enemyPreview: [
+          { enemyId: 'mage', name: '法师', count: 2, isBoss: false, isElite: true },
+          { enemyId: 'heavy', name: '重装兵', count: 3, isBoss: false, isElite: true },
+          { enemyId: 'runner', name: '快兵', count: 5, isBoss: false, isElite: false },
+        ],
+      },
       { name: '遗失补给', description: '开启宝箱获取奖励', waveCount: 0, kind: 'treasure' },
       { name: '临时营地', description: '短暂休整恢复状态', waveCount: 0, kind: 'rest' },
       { name: '魔王前线', description: '最终决战', waveCount: 5, kind: 'boss' },
@@ -61,25 +81,25 @@ describe('buildLevelNodes', () => {
 });
 
 describe('layoutLevelMap', () => {
-  it('produces nodes in a straight horizontal line (all same y)', () => {
+  it('produces nodes inside bottom timeline band', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
     expect(layout.nodes).toHaveLength(7);
-    const ys = layout.nodes.map((n) => n.y);
-    expect(new Set(ys).size).toBe(1);
-  });
-
-  it('nodes are ordered left to right with increasing x', () => {
-    const layout = layoutLevelMap(state(), 1920, 1080);
-    for (let i = 1; i < layout.nodes.length; i += 1) {
-      expect(layout.nodes[i]!.x).toBeGreaterThan(layout.nodes[i - 1]!.x);
+    for (const node of layout.nodes) {
+      expect(node.y).toBeGreaterThan(layout.mainCard.y + layout.mainCard.height);
+      expect(node.y + node.height).toBeLessThanOrEqual(layout.timeline.y + layout.timeline.height + 8);
     }
   });
 
-  it('all nodes (including boss) have the same size', () => {
+  it('current node is larger than normal nodes', () => {
+    const layout = layoutLevelMap(state(), 1920, 1080);
+    expect(layout.nodes[3]!.width).toBeGreaterThan(layout.nodes[0]!.width);
+  });
+
+  it('boss node is larger than normal nodes', () => {
     const layout = layoutLevelMap(state(), 1920, 1080);
     const bossNode = layout.nodes[6]!;
     const normalNode = layout.nodes[0]!;
-    expect(bossNode.width).toBe(normalNode.width);
+    expect(bossNode.width).toBeGreaterThan(normalNode.width);
   });
 
   it('node labels reflect node kinds', () => {
@@ -95,7 +115,19 @@ describe('layoutLevelMap', () => {
 
   it('titleLabel contains run index', () => {
     const layout = layoutLevelMap(state({ runIndex: 3 }), 1920, 1080);
-    expect(layout.titleLabel).toBe('⚔ 长征路线 — Run #3');
+    expect(layout.titleLabel).toBe('⚔ 长征路线 · Run #3');
+  });
+
+  it('provides mainCard and enemyCard areas', () => {
+    const layout = layoutLevelMap(state(), 1920, 1080);
+    expect(layout.mainCard.width).toBeGreaterThan(layout.enemyCard.width);
+    expect(layout.mainCard.y).toBeLessThan(layout.timeline.y);
+    expect(layout.enemyCard.x).toBeGreaterThan(layout.mainCard.x);
+  });
+
+  it('exposes enemy preview from current level meta', () => {
+    const layout = layoutLevelMap(state(), 1920, 1080);
+    expect(layout.enemyPreview.map((entry) => entry.name)).toEqual(['法师', '重装兵', '快兵']);
   });
 
   it('crystalLabel and goldLabel format correctly', () => {
@@ -117,6 +149,15 @@ describe('layoutLevelMap', () => {
   it('challengeBtn label reflects current node kind', () => {
     const layout = layoutLevelMap(state({ currentLevelIdx: 5 }), 1920, 1080);
     expect(layout.challengeBtn.label).toBe('进入 宝箱');
+  });
+});
+
+describe('formatLevelDescription', () => {
+  it('truncates very long descriptions with ellipsis', () => {
+    const text = '这是一段非常长非常长的关卡描述，用于验证主卡中的说明文本会被限制长度，并在超过上限时自动追加省略号，避免撑破布局。同时它还会继续补充双线压力、快兵穿线、爆炸怪突袭以及建议先检查卡池等额外信息。';
+    const formatted = formatLevelDescription(text);
+    expect(formatted.endsWith('…')).toBe(true);
+    expect(formatted.length).toBeLessThanOrEqual(84);
   });
 });
 

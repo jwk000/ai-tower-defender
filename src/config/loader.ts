@@ -144,6 +144,9 @@ export function parseUnitConfig(yamlText: string): UnitConfig {
     : undefined;
   return {
     id: parsed.id,
+    ...(typeof (doc as Record<string, unknown> | null | undefined)?.name === 'string'
+      ? { name: (doc as Record<string, unknown>).name as string }
+      : {}),
     category: parsed.category,
     faction: parsed.faction,
     ...(parsed.isBoss ? { isBoss: true } : {}),
