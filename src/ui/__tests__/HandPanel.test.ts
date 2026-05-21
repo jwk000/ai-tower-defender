@@ -53,9 +53,9 @@ describe('layoutHand', () => {
     expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
   });
 
-  it('draw button is placed to the left of hand panel and only enabled for ready/reroll', () => {
+  it('draw button is placed to the right of hand panel and only enabled for ready/reroll', () => {
     const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
-    expect(readyLayout.drawButton).toEqual({ x: 516, y: 844, width: 132, height: 44, enabled: true });
+    expect(readyLayout.drawButton).toEqual({ x: 1272, y: 844, width: 132, height: 44, enabled: true });
 
     const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
     expect(cooldownLayout.drawButton.enabled).toBe(false);
@@ -137,6 +137,12 @@ describe('hitTestHandSlot', () => {
     const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
     expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
     expect(hitTestDrawButton(layout, layout.drawButton.x - 1, layout.drawButton.y)).toBe(false);
+  });
+
+  it('冷却时点击区域仍命中，但按钮 disabled 由上层拦截', () => {
+    const layout = layoutHand(state({ drawState: 'cooldown' }), 1344, 576);
+    expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
+    expect(layout.drawButton.enabled).toBe(false);
   });
 
   it('点击 slot 中心命中对应 slot 编号', () => {

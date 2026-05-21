@@ -245,20 +245,21 @@ export class UIPresenter {
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {
+    e.stopPropagation();
     const local = this.battleContainer.toLocal(e.global);
     if (this.isExitBtnHit(local.x, local.y)) {
       this.onExitBattle?.();
       return;
     }
-    if (hitTestDrawButton(layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight), local.x, local.y)) {
-      this.onDrawCard?.();
+    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
+    if (hitTestDrawButton(layout, local.x, local.y)) {
+      if (layout.drawButton.enabled) this.onDrawCard?.();
       return;
     }
     if (this.isDebugVictoryBtnHit(local.x, local.y)) {
       this.onDebugVictory?.();
       return;
     }
-    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
     const slot = hitTestHandSlot(layout, local.x, local.y);
     this.dragSlot = slot;
     if (slot !== null) {
