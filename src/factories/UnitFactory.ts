@@ -87,10 +87,14 @@ export interface UnitConfig {
 export interface SpawnPosition {
   x: number;
   y: number;
+  readonly pathIndexStart?: number;
 }
 
 export interface SpawnUnitMeta {
   readonly sourceCardId?: string;
+  readonly playerSoldierHpBonus?: number;
+  readonly playerSoldierAttackBonus?: number;
+  readonly pathIndexStart?: number;
 }
 
 const FACTION_LOOKUP: Record<UnitFactionString, FactionTeamValue> = {
@@ -123,7 +127,7 @@ export function spawnUnit(
   world: TowerWorld,
   config: UnitConfig,
   at: SpawnPosition,
-  _meta: SpawnUnitMeta = {},
+  meta: SpawnUnitMeta = {},
 ): number {
   const team = FACTION_LOOKUP[config.faction];
   if (team === undefined) {
@@ -142,6 +146,15 @@ export function spawnUnit(
     throw new Error(`UnitFactory: unknown category "${config.category}" on unit "${config.id}"`);
   }
 
+  const playerSoldierHpBonus = team === FactionTeam.Player && category === UnitCategory.Soldier
+    ? meta.playerSoldierHpBonus ?? 0
+    : 0;
+  const playerSoldierAttackBonus = team === FactionTeam.Player && category === UnitCategory.Soldier
+    ? meta.playerSoldierAttackBonus ?? 0
+    : 0;
+  const effectiveHp = Math.max(1, Math.round(config.stats.hp + playerSoldierHpBonus));
+  const effectiveAttack = Math.max(0, Math.round(config.stats.atk + playerSoldierAttackBonus));
+
   const eid = world.addEntity();
 
   addComponent(world, Position, eid);
@@ -149,8 +162,8 @@ export function spawnUnit(
   Position.y[eid] = at.y;
 
   addComponent(world, Health, eid);
-  Health.current[eid] = config.stats.hp;
-  Health.max[eid] = config.stats.hp;
+  Health.current[eid] = effectiveHp;
+  Health.max[eid] = effectiveHp;
 
   addComponent(world, Visual, eid);
   Visual.shape[eid] = shape;
@@ -178,7 +191,7 @@ export function spawnUnit(
     Movement.speed[eid] = config.stats.speed;
     Movement.vx[eid] = 0;
     Movement.vy[eid] = 0;
-    Movement.pathIndex[eid] = 0;
+    Movement.pathIndex[eid] = meta.pathIndexStart ?? 0;
     Movement.baseSpeed[eid] = config.stats.speed;
     Movement.chargeMultiplier[eid] = config.charge?.multiplier ?? 1;
     Movement.chargeDuration[eid] = config.charge?.duration ?? 0;
@@ -212,7 +225,7 @@ export function spawnUnit(
 
   if (config.stats.range > 0) {
     addComponent(world, Attack, eid);
-    Attack.damage[eid] = config.stats.atk;
+    Attack.damage[eid] = effectiveAttack;
     Attack.range[eid] = config.stats.range;
     Attack.cooldown[eid] = config.stats.attackSpeed > 0 ? 1 / config.stats.attackSpeed : 0;
     Attack.cooldownLeft[eid] = 0;

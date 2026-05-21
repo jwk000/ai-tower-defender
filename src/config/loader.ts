@@ -325,6 +325,11 @@ export interface LevelSpawnPoint {
   readonly y: number;
 }
 
+export interface LevelWeatherConfig {
+  readonly pool: readonly string[];
+  readonly initial?: string;
+}
+
 export interface LevelAvailable {
   readonly towers: readonly string[];
   readonly units: readonly string[];
@@ -335,7 +340,12 @@ export interface LevelConfig {
   readonly id: string;
   readonly name?: string;
   readonly description?: string;
+  readonly sceneDescription?: string;
   readonly tileSize: number;
+  readonly mapCols: number;
+  readonly mapRows: number;
+  readonly tiles: readonly (readonly string[])[];
+  readonly tileColors: Readonly<Record<string, number>>;
   readonly path: Array<{ x: number; y: number }>;
   readonly crystal: { row: number; col: number };
   readonly spawns: readonly LevelSpawnPoint[];
@@ -343,6 +353,7 @@ export interface LevelConfig {
   readonly startingGold?: number;
   readonly startingEnergy?: number;
   readonly available: LevelAvailable;
+  readonly weather?: LevelWeatherConfig;
 }
 
 export function parseLevelConfig(yamlText: string): LevelConfig {
@@ -378,11 +389,33 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     units: parsed.available?.units ?? [],
     cards: parsed.available?.cards ?? [],
   };
+  const tileColors = Object.fromEntries(
+    Object.entries(((parsed.map as Record<string, unknown>).tileColors ?? {}) as Record<string, unknown>)
+      .map(([key, value]) => [key, normalizeColor(value)]),
+  );
   return {
     id: parsed.id,
     ...(parsed.name ? { name: parsed.name } : {}),
     ...(parsed.description ? { description: parsed.description } : {}),
+    ...(typeof (doc as Record<string, unknown> | null | undefined)?.sceneDescription === 'string'
+      ? { sceneDescription: (doc as Record<string, unknown>).sceneDescription as string }
+      : {}),
+    ...((((doc as Record<string, unknown> | null | undefined)?.weather as Record<string, unknown> | undefined)?.pool instanceof Array)
+      ? {
+          weather: {
+            pool: ((((doc as Record<string, unknown>).weather as Record<string, unknown>).pool) as unknown[])
+              .filter((v): v is string => typeof v === 'string'),
+            ...((typeof (((doc as Record<string, unknown>).weather as Record<string, unknown>).initial) === 'string')
+              ? { initial: ((doc as Record<string, unknown>).weather as Record<string, unknown>).initial as string }
+              : {}),
+          },
+        }
+      : {}),
     tileSize,
+    mapCols: parsed.map.cols,
+    mapRows: parsed.map.rows,
+    tiles: (((parsed.map as Record<string, unknown>).tiles ?? []) as string[][]).map((row) => [...row]),
+    tileColors,
     path,
     crystal: { row: anchor.row, col: anchor.col },
     spawns,

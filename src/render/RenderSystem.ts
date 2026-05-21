@@ -10,6 +10,7 @@ import {
   Movement,
   Poison,
   Position,
+  SelectedTag,
   Shield,
   Visual,
   Vulnerable,
@@ -31,6 +32,7 @@ export interface VisualSnapshot {
   readonly isElite: boolean;
   readonly isBoss: boolean;
   readonly bossPhase: number;
+  readonly isSelected: boolean;
   readonly attackRange: number;
   readonly status: StatusSnapshot;
 }
@@ -39,6 +41,7 @@ export interface EntityViewSink {
   createView(eid: number, visual: VisualSnapshot): void;
   updateView(eid: number, x: number, y: number): void;
   destroyView(eid: number): void;
+  updateVisual?(eid: number, visual: VisualSnapshot): void;
   sortByY(): void;
   hasView(eid: number): boolean;
 }
@@ -61,24 +64,29 @@ export class RenderSystem implements System {
       const eid = eids[i]!;
       seen.add(eid);
 
+      const visual = {
+        shape: Visual.shape[eid]!,
+        color: Visual.color[eid]!,
+        size: Visual.size[eid]!,
+        isElite: hasComponent(world, EliteTag, eid),
+        isBoss: hasComponent(world, BossTag, eid),
+        bossPhase: hasComponent(world, BossPhase, eid) ? BossPhase.value[eid]! : 0,
+        isSelected: hasComponent(world, SelectedTag, eid),
+        attackRange: hasComponent(world, Attack, eid) ? Attack.range[eid]! : 0,
+        status: {
+          isSlowed: (Movement.slowDuration[eid] ?? 0) > 0,
+          isBurning: (Burn.duration[eid] ?? 0) > 0,
+          isPoisoned: (Poison.duration[eid] ?? 0) > 0,
+          hasShield: (Shield.duration[eid] ?? 0) > 0 && (Shield.current[eid] ?? 0) > 0,
+          isVulnerable: (Vulnerable.duration[eid] ?? 0) > 0,
+        },
+      } satisfies VisualSnapshot;
+
       if (!this.sink.hasView(eid)) {
-        this.sink.createView(eid, {
-          shape: Visual.shape[eid]!,
-          color: Visual.color[eid]!,
-          size: Visual.size[eid]!,
-          isElite: hasComponent(world, EliteTag, eid),
-          isBoss: hasComponent(world, BossTag, eid),
-          bossPhase: hasComponent(world, BossPhase, eid) ? BossPhase.value[eid]! : 0,
-          attackRange: hasComponent(world, Attack, eid) ? Attack.range[eid]! : 0,
-          status: {
-            isSlowed: (Movement.slowDuration[eid] ?? 0) > 0,
-            isBurning: (Burn.duration[eid] ?? 0) > 0,
-            isPoisoned: (Poison.duration[eid] ?? 0) > 0,
-            hasShield: (Shield.duration[eid] ?? 0) > 0 && (Shield.current[eid] ?? 0) > 0,
-            isVulnerable: (Vulnerable.duration[eid] ?? 0) > 0,
-          },
-        });
+        this.sink.createView(eid, visual);
         this.tracked.add(eid);
+      } else {
+        this.sink.updateVisual?.(eid, visual);
       }
 
       this.sink.updateView(eid, Position.x[eid]!, Position.y[eid]!);

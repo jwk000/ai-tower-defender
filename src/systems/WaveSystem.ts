@@ -23,6 +23,7 @@ export interface SpawnConfig {
   readonly id: string;
   readonly x: number;
   readonly y: number;
+  readonly pathIndexStart?: number;
 }
 
 export type WavePhase = 'deployment' | 'battle' | 'wave-break' | 'completed';
@@ -35,7 +36,7 @@ export interface WaveSystemConfig {
   readonly onWaveStart?: (waveIndex: number) => void;
   readonly onWaveComplete?: (waveIndex: number) => void;
   readonly onAllWavesComplete?: () => void;
-  readonly spawn?: (world: TowerWorld, config: UnitConfig, at: SpawnPosition) => number;
+  readonly spawn?: (world: TowerWorld, config: UnitConfig, at: SpawnPosition, meta?: { pathIndexStart?: number }) => number;
 }
 
 export interface WaveSystem extends System {
@@ -61,18 +62,18 @@ function freshRuntime(): WaveRuntimeState {
 function resolveSpawnPosition(
   spawns: readonly SpawnConfig[],
   spawnId: string | undefined,
-): SpawnPosition {
+): SpawnConfig {
   if (spawns.length === 0) {
     throw new Error('[WaveSystem] no spawns configured');
   }
   if (!spawnId) {
-    return { x: spawns[0]!.x, y: spawns[0]!.y };
+    return spawns[0]!;
   }
   const found = spawns.find((s) => s.id === spawnId);
   if (!found) {
     throw new Error(`[WaveSystem] unknown spawnId "${spawnId}"`);
   }
-  return { x: found.x, y: found.y };
+  return found;
 }
 
 export function createWaveSystem(cfg: WaveSystemConfig): WaveSystem {
@@ -113,7 +114,7 @@ export function createWaveSystem(cfg: WaveSystemConfig): WaveSystem {
       throw new Error(`[WaveSystem] unknown enemyId "${group.enemyId}"`);
     }
     const pos = resolveSpawnPosition(spawns, group.spawnId);
-    spawnFn(world, unitConfig, pos);
+    spawnFn(world, unitConfig, pos, { pathIndexStart: pos.pathIndexStart });
   }
 
   function advanceToNextWave(): void {

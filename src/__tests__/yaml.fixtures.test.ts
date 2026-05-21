@@ -136,6 +136,11 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.path[5]).toEqual({ x: 20 * 64 + 32, y: 7 * 64 + 32 });
 
     expect(cfg.crystal).toEqual({ row: 4, col: 20 });
+    expect(cfg.mapCols).toBe(21);
+    expect(cfg.mapRows).toBe(9);
+    expect(cfg.tiles[4]?.[0]).toBe('spawn');
+    expect(cfg.tileColors.path).toBe(0xa1887f);
+    expect(cfg.sceneDescription).toMatch(/边境草原/);
     expect(cfg.waves.length).toBeGreaterThanOrEqual(3);
     expect(cfg.waves[0]?.groups[0]?.enemyId).toBe('grunt');
     expect(cfg.startingGold).toBeGreaterThan(0);
@@ -145,7 +150,18 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.spawns[0]?.x).toBe(0 * 64 + 32);
     expect(cfg.spawns[0]?.y).toBe(4 * 64 + 32);
     expect(cfg.available.towers).toContain('arrow');
+    expect(cfg.weather?.pool).toEqual(['sunny', 'rain', 'fog']);
+    expect(cfg.weather?.initial).toBe('random_from_pool');
   });
+  it('keeps multi-spawn weather-bearing level metadata for factory stage levels', () => {
+    const text = readFileSync(resolve(CONFIG, 'levels/level-06.yaml'), 'utf8');
+    const cfg = parseLevelConfig(text);
+    expect(cfg.mapRows).toBe(11);
+    expect(cfg.spawns.map((s) => s.id)).toEqual(['spawn_0', 'spawn_1', 'spawn_2']);
+    expect(cfg.weather?.pool).toEqual(['smog']);
+    expect(cfg.weather?.initial).toBe('smog');
+  });
+
   it('keeps boss-wave metadata from real level yaml', () => {
     const text = readFileSync(resolve(CONFIG, 'levels/level-08.yaml'), 'utf8');
     const cfg = parseLevelConfig(text);

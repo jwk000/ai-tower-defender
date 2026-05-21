@@ -1,11 +1,14 @@
+import { addComponent, hasComponent, removeComponent } from 'bitecs';
 import { Container, Graphics } from 'pixi.js';
 
-import { VisualShape } from '../core/components.js';
-import type { EntityViewSink, StatusSnapshot, VisualSnapshot } from './RenderSystem.js';
+import type { TowerWorld } from '../core/World.js';
+import { SelectedTag, VisualShape } from '../core/components.js';
+import type { EntityViewSink, VisualSnapshot } from './RenderSystem.js';
 
 const STATUS_RING_WIDTH = 2;
 const STATUS_RING_GAP = 3;
 const RANGE_RING_COLOR = 0x80cbc4;
+const SELECTION_RING_COLOR = 0xfff176;
 const STATUS_RING_COLORS = {
   slow: 0x42a5f5,
   burn: 0xff7043,
@@ -17,10 +20,29 @@ const STATUS_RING_COLORS = {
 export class EntityRenderer implements EntityViewSink {
   readonly container: Container;
   private readonly views = new Map<number, Graphics>();
+  private readonly eidByGraphic = new Map<Graphics, number>();
+  private readonly world: TowerWorld;
 
-  constructor(parent: Container) {
+  constructor(parent: Container, world: TowerWorld) {
+    this.world = world;
     this.container = new Container();
     this.container.sortableChildren = false;
+    this.container.eventMode = 'static';
+    this.container.hitArea = { contains: () => true };
+    this.container.on('pointerdown', (event) => {
+      let node = event.target as Graphics | Container | null;
+      while (node && !(node instanceof Graphics)) {
+        node = node.parent as Container | null;
+      }
+      const graphic = node instanceof Graphics ? node : null;
+      const eid = graphic ? this.eidByGraphic.get(graphic) ?? null : null;
+      for (const [targetEid] of this.views) {
+        if (hasComponent(this.world, SelectedTag, targetEid)) {
+          removeComponent(this.world, SelectedTag, targetEid);
+        }
+      }
+      if (eid !== null) addComponent(this.world, SelectedTag, eid);
+    });
     parent.addChild(this.container);
   }
 
@@ -30,8 +52,11 @@ export class EntityRenderer implements EntityViewSink {
 
   createView(eid: number, visual: VisualSnapshot): void {
     const g = new Graphics();
+    g.eventMode = 'static';
+    g.cursor = 'pointer';
     drawShape(g, visual);
     this.views.set(eid, g);
+    this.eidByGraphic.set(g, eid);
     this.container.addChild(g);
   }
 
@@ -42,10 +67,17 @@ export class EntityRenderer implements EntityViewSink {
     g.y = y;
   }
 
+  updateVisual(eid: number, visual: VisualSnapshot): void {
+    const g = this.views.get(eid);
+    if (!g) return;
+    drawShape(g, visual);
+  }
+
   destroyView(eid: number): void {
     const g = this.views.get(eid);
     if (!g) return;
     this.container.removeChild(g);
+    this.eidByGraphic.delete(g);
     g.destroy();
     this.views.delete(eid);
   }
@@ -60,10 +92,15 @@ export class EntityRenderer implements EntityViewSink {
 }
 
 function drawShape(g: Graphics, visual: VisualSnapshot): void {
+  g.clear();
   const half = visual.size / 2;
-  if (visual.attackRange > 0) {
+  if (visual.isSelected && visual.attackRange > 0) {
     g.circle(0, 0, visual.attackRange);
-    g.stroke({ width: 2, color: RANGE_RING_COLOR, alpha: 0.22 });
+    g.stroke({ width: 2, color: RANGE_RING_COLOR, alpha: 0.24 });
+  }
+  if (visual.isSelected) {
+    g.circle(0, 0, half + 10);
+    g.stroke({ width: 3, color: SELECTION_RING_COLOR, alpha: 0.95 });
   }
   drawStatusRings(g, half, visual.status);
   if (visual.isBoss) {
@@ -92,7 +129,7 @@ function drawShape(g: Graphics, visual: VisualSnapshot): void {
   g.fill({ color: visual.color, alpha: 1 });
 }
 
-function drawStatusRings(g: Graphics, half: number, status: StatusSnapshot): void {
+function drawStatusRings(g: Graphics, half: number, status: VisualSnapshot['status']): void {
   const ringColors: number[] = [];
   if (status.isSlowed) ringColors.push(STATUS_RING_COLORS.slow);
   if (status.isBurning) ringColors.push(STATUS_RING_COLORS.burn);

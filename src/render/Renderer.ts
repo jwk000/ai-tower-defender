@@ -32,6 +32,8 @@ export class Renderer {
   private readonly config: RendererConfig;
   /** 包裹游戏世界的根容器，负责居中缩放 */
   private readonly gameWorldRoot: Container;
+  private readonly backgroundLayer: Container;
+  private readonly gridLayer: Container;
 
   constructor(config: RendererConfig) {
     this.config = config;
@@ -41,6 +43,8 @@ export class Renderer {
     this.entityLayer = new Container();
     this.projectileLayer = new Container();
     this.uiLayer = new Container();
+    this.backgroundLayer = new Container();
+    this.gridLayer = new Container();
   }
 
   async init(): Promise<void> {
@@ -57,6 +61,7 @@ export class Renderer {
       antialias: false,
     });
 
+    this.mapLayer.addChild(this.backgroundLayer, this.gridLayer);
     this.gameWorldRoot.addChild(this.mapLayer, this.entityLayer, this.projectileLayer);
     this.app.stage.addChild(this.gameWorldRoot, this.uiLayer);
 
@@ -101,7 +106,120 @@ export class Renderer {
     this.gameWorldRoot.position.set(offsetX, offsetY);
   }
 
-  private drawGrid(): void {
+  drawGrid(): void {
+    this.gridLayer.removeChildren();
+    const { worldWidth, worldHeight, cellSize } = this.config;
+    const grid = new Graphics();
+    for (let x = 0; x <= worldWidth; x += cellSize) {
+      grid.moveTo(x, 0).lineTo(x, worldHeight);
+    }
+    for (let y = 0; y <= worldHeight; y += cellSize) {
+      grid.moveTo(0, y).lineTo(worldWidth, y);
+    }
+    grid.stroke({ width: 1, color: 0x222a3a, alpha: 1 });
+    this.gridLayer.addChild(grid);
+  }
+
+  drawLevelBackground(level: {
+    mapCols: number;
+    mapRows: number;
+    tileSize: number;
+    tiles: readonly (readonly string[])[];
+    tileColors: Readonly<Record<string, number>>;
+    sceneDescription?: string;
+    weather?: { pool: readonly string[]; initial?: string };
+  }): void {
+    this.backgroundLayer.removeChildren();
+    const scene = (level.sceneDescription ?? '').toLowerCase();
+    const weather = (level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase();
+    const w = level.mapCols * level.tileSize;
+    const h = level.mapRows * level.tileSize;
+
+    const sky = new Graphics();
+    const topColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xa7c7e7
+      : scene.includes('沙') ? 0xe6c27a
+      : scene.includes('蒸汽') || scene.includes('工厂') ? 0x4f5b62
+      : 0x7fbf7f;
+    const bottomColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xdfeaf4
+      : scene.includes('沙') ? 0xc49a5a
+      : scene.includes('蒸汽') || scene.includes('工厂') ? 0x263238
+      : 0x355e3b;
+    sky.rect(0, 0, w, h * 0.55).fill({ color: topColor, alpha: 1 });
+    sky.rect(0, h * 0.55, w, h * 0.45).fill({ color: bottomColor, alpha: 1 });
+    this.backgroundLayer.addChild(sky);
+
+    const atmosphere = new Graphics();
+    const atmosphereColor = scene.includes('雪') ? 0xffffff : scene.includes('沙') ? 0xffe0b2 : scene.includes('蒸汽') ? 0xb0bec5 : 0xc8e6c9;
+    for (let i = 0; i < 6; i++) {
+      const bandY = (h / 7) * i;
+      atmosphere.roundRect((i % 2) * 40, bandY, w - 80, h / 10, 24).fill({ color: atmosphereColor, alpha: 0.06 + i * 0.01 });
+    }
+    this.backgroundLayer.addChild(atmosphere);
+
+    const board = new Graphics();
+    for (let row = 0; row < level.mapRows; row++) {
+      for (let col = 0; col < level.mapCols; col++) {
+        const tile = level.tiles[row]?.[col] ?? 'empty';
+        const color = level.tileColors[tile] ?? level.tileColors.empty ?? 0x304b3d;
+        const x = col * level.tileSize;
+        const y = row * level.tileSize;
+        board.rect(x, y, level.tileSize, level.tileSize).fill({ color, alpha: tile === 'empty' ? 0.95 : 1 });
+        if (tile === 'path' || tile === 'spawn' || tile === 'base') {
+          board.rect(x + 8, y + 8, level.tileSize - 16, level.tileSize - 16).stroke({ width: 3, color: 0xffffff, alpha: 0.14 });
+        }
+        if (scene.includes('雪') && tile === 'empty' && (row + col) % 5 === 0) {
+          board.circle(x + level.tileSize * 0.24, y + level.tileSize * 0.26, 3).fill({ color: 0xffffff, alpha: 0.35 });
+          board.circle(x + level.tileSize * 0.7, y + level.tileSize * 0.62, 2).fill({ color: 0xe3f2fd, alpha: 0.28 });
+        }
+        if ((scene.includes('蒸汽') || weather.includes('smog')) && tile === 'empty' && row % 3 === 1 && col % 4 === 0) {
+          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.35, level.tileSize * 0.14).fill({ color: 0xcfd8dc, alpha: 0.18 });
+        }
+        if ((scene.includes('菌') || weather.includes('spore')) && tile === 'empty' && (row + col) % 4 === 1) {
+          board.circle(x + level.tileSize * 0.3, y + level.tileSize * 0.68, 5).fill({ color: 0xce93d8, alpha: 0.22 });
+        }
+        if (tile === 'blocked') {
+          board.rect(x + 10, y + 10, level.tileSize - 20, level.tileSize - 20).stroke({ width: 2, color: 0x263238, alpha: 0.65 });
+        }
+      }
+    }
+    this.backgroundLayer.addChild(board);
+
+    const weatherOverlay = new Graphics();
+    if (weather.includes('blizzard') || weather.includes('snow')) {
+      for (let i = 0; i < level.mapCols + level.mapRows; i++) {
+        const px = ((i * 97) % Math.max(1, Math.floor(w))) + 8;
+        const py = ((i * 53) % Math.max(1, Math.floor(h))) + 8;
+        weatherOverlay.moveTo(px, py).lineTo(px + 18, py - 10);
+      }
+      weatherOverlay.stroke({ width: 2, color: 0xffffff, alpha: 0.16 });
+      weatherOverlay.rect(0, 0, w, h).fill({ color: 0xdfeaf4, alpha: 0.05 });
+    } else if (weather.includes('rain') || weather.includes('storm')) {
+      for (let i = 0; i < level.mapCols + level.mapRows + 8; i++) {
+        const px = ((i * 83) % Math.max(1, Math.floor(w))) + 10;
+        const py = ((i * 41) % Math.max(1, Math.floor(h))) + 4;
+        weatherOverlay.moveTo(px, py).lineTo(px - 10, py + 24);
+      }
+      weatherOverlay.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.18 });
+    } else if (weather.includes('sand')) {
+      for (let i = 0; i < level.mapCols + level.mapRows + 4; i++) {
+        const px = ((i * 71) % Math.max(1, Math.floor(w))) + 8;
+        const py = ((i * 37) % Math.max(1, Math.floor(h))) + 8;
+        weatherOverlay.ellipse(px, py, 10, 4).fill({ color: 0xffd180, alpha: 0.12 });
+      }
+    } else if (weather.includes('smog')) {
+      for (let i = 0; i < 5; i++) {
+        weatherOverlay.roundRect(30 + i * 70, 40 + (i % 2) * 90, w - 160, 42, 20).fill({ color: 0x90a4ae, alpha: 0.08 + i * 0.01 });
+      }
+    } else if (weather.includes('spore') || weather.includes('fog')) {
+      for (let i = 0; i < 7; i++) {
+        weatherOverlay.circle(80 + i * 170, 70 + (i % 3) * 120, 34).fill({ color: weather.includes('spore') ? 0xba68c8 : 0xcfd8dc, alpha: 0.08 });
+      }
+    }
+    this.backgroundLayer.addChild(weatherOverlay);
+    this.drawGrid();
+  }
+
+  private legacyDrawGrid(): void {
     const { worldWidth, worldHeight, cellSize } = this.config;
     const grid = new Graphics();
     for (let x = 0; x <= worldWidth; x += cellSize) {

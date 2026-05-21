@@ -1,9 +1,11 @@
-import { defineQuery, hasComponent } from 'bitecs';
+import { defineQuery, hasComponent, removeComponent } from 'bitecs';
+
 import { Container } from 'pixi.js';
 import { Game } from './core/Game.js';
 import { LevelState } from './core/LevelState.js';
 import { RunController } from './core/RunController.js';
-import { Crystal, Projectile, UnitTag } from './core/components.js';
+import { Crystal, Projectile, SelectedTag, UnitTag } from './core/components.js';
+
 import type { System } from './core/pipeline.js';
 import { Renderer } from './render/Renderer.js';
 import {
@@ -104,6 +106,13 @@ const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
 const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const DEFAULT_WORLD_COLS = GRID_COLS;
 const DEFAULT_WORLD_ROWS = GRID_ROWS;
+const DEFAULT_TILE_COLORS: Readonly<Record<string, number>> = {
+  empty: 0x304b3d,
+  path: 0x9c7b63,
+  blocked: 0x546e7a,
+  spawn: 0xff8f00,
+  base: 0x1e88e5,
+};
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const BOSS_LEVEL_NUMBER = 8;
@@ -275,8 +284,8 @@ async function bootstrap(): Promise<void> {
   let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
   deckSystem.initWithCards(STARTER_DECK);
   const handSystem = new HandSystem({ maxSize: 4 });
-  let energySystem = buildEnergySystem(level.startingEnergy ?? DEFAULT_STARTING_ENERGY);
-  const cardSpawnSystem = new CardSpawnSystem(cardRegistry);
+  let energySystem!: EnergySystem;
+  let cardSpawnSystem!: CardSpawnSystem;
 
   const levelState = new LevelState();
   levelState.reset(level.waves.length);
@@ -286,6 +295,11 @@ async function bootstrap(): Promise<void> {
   const runManager = new RunManager({
     totalLevels: TOTAL_RUN_LEVELS,
     initialGold: level.startingGold ?? 200,
+  });
+  energySystem = buildEnergySystem(level.startingEnergy ?? DEFAULT_STARTING_ENERGY);
+  cardSpawnSystem = new CardSpawnSystem(cardRegistry, {
+    playerSoldierHpBonus: runManager.getPlayerSoldierHpBonusFromRelics(),
+    playerSoldierAttackBonus: runManager.getPlayerSoldierAttackBonusFromRelics(),
   });
 
   // Run 级统计（仅用于 RunResult 展示，不参与玩法逻辑）
@@ -378,10 +392,20 @@ async function bootstrap(): Promise<void> {
   }
 
   function buildSpawnConfigs(levelConfig: LevelConfig): SpawnConfig[] {
+    const pathNodeIndexBySpawnId = new Map<string, number>();
+    for (let i = 0; i < levelConfig.path.length; i += 1) {
+      const point = levelConfig.path[i]!;
+      for (const spawn of levelConfig.spawns) {
+        if (Math.abs(spawn.x - point.x) < 0.001 && Math.abs(spawn.y - point.y) < 0.001) {
+          pathNodeIndexBySpawnId.set(spawn.id, i + 1);
+        }
+      }
+    }
     return levelConfig.spawns.map((s) => ({
       id: s.id,
       x: s.x,
       y: s.y,
+      pathIndexStart: pathNodeIndexBySpawnId.get(s.id) ?? 0,
     }));
   }
 
@@ -422,6 +446,18 @@ async function bootstrap(): Promise<void> {
         runController.completeCurrentLevel();
       },
     });
+  }
+
+  function isPathTile(levelConfig: LevelConfig, row: number, col: number): boolean {
+    const tile = levelConfig.tiles[row]?.[col] ?? 'empty';
+    return tile === 'path' || tile === 'spawn' || tile === 'base';
+  }
+
+  function worldToGrid(levelConfig: LevelConfig, worldX: number, worldY: number): { row: number; col: number } | null {
+    const col = Math.floor(worldX / levelConfig.tileSize);
+    const row = Math.floor(worldY / levelConfig.tileSize);
+    if (col < 0 || row < 0 || col >= levelConfig.mapCols || row >= levelConfig.mapRows) return null;
+    return { row, col };
   }
 
   function createMovementRuntime(levelConfig: LevelConfig): System {
@@ -488,6 +524,15 @@ async function bootstrap(): Promise<void> {
   function loadLevel(levelNumber: number): void {
     const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
     currentLevelConfig = levelConfig;
+    renderer.drawLevelBackground({
+      mapCols: levelConfig.mapCols,
+      mapRows: levelConfig.mapRows,
+      tileSize: levelConfig.tileSize,
+      tiles: levelConfig.tiles,
+      tileColors: { ...DEFAULT_TILE_COLORS, ...levelConfig.tileColors },
+      sceneDescription: levelConfig.sceneDescription,
+      weather: levelConfig.weather,
+    });
     clearBattleEntities();
     battleContainer.visible = true;
     activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
@@ -498,14 +543,19 @@ async function bootstrap(): Promise<void> {
     drawCooldownRemaining = 0;
     pendingReroll = false;
     energySystem = buildEnergySystem(levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY);
+    cardSpawnSystem = new CardSpawnSystem(cardRegistry, {
+      playerSoldierHpBonus: runManager.getPlayerSoldierHpBonusFromRelics(),
+      playerSoldierAttackBonus: runManager.getPlayerSoldierAttackBonusFromRelics(),
+    });
     devHooks['__td'] = {
       ...(devHooks['__td'] as Record<string, unknown> | undefined),
       deckSystem,
       energySystem,
+      cardSpawnSystem,
     };
   }
 
-  const entityRenderer = new EntityRenderer(renderer.entityLayer);
+  const entityRenderer = new EntityRenderer(renderer.entityLayer, game.world);
   const combatFeedbackRenderer = new CombatFeedbackRenderer(renderer.entityLayer);
 
   game.pipeline.register(waveSystem);
@@ -569,6 +619,7 @@ async function bootstrap(): Promise<void> {
     },
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
     worldToScreen: (wx, wy) => renderer.worldToScreen(wx, wy),
+    getLevelConfig: () => currentLevelConfig,
   });
 
   function startNewRun(): void {
@@ -625,23 +676,18 @@ async function bootstrap(): Promise<void> {
     if (!card) return;
     if (!energySystem.spend(card.energyCost)) return;
     const worldPos = renderer.screenToWorld(intent.targetX, intent.targetY);
-    const col = Math.floor(worldPos.x / CELL_SIZE);
-    const row = Math.floor(worldPos.y / CELL_SIZE);
-    if (col < 0 || row < 0) return;
-    if (col >= DEFAULT_WORLD_COLS || row >= DEFAULT_WORLD_ROWS) return;
-    const isPathTile = currentLevelConfig.path.some((node) => {
-      const nodeCol = Math.floor(node.x / CELL_SIZE);
-      const nodeRow = Math.floor(node.y / CELL_SIZE);
-      return nodeCol === col && nodeRow === row;
-    }) || currentLevelConfig.spawns.some((spawn) => spawn.col === col && spawn.row === row) || (currentLevelConfig.crystal.col === col && currentLevelConfig.crystal.row === row);
+    const cell = worldToGrid(currentLevelConfig, worldPos.x, worldPos.y);
+    if (!cell) return;
+    const { col, row } = cell;
+    const isPath = isPathTile(currentLevelConfig, row, col);
     const unitConfigId = card.unitConfigId;
     const unit = unitConfigId ? cardRegistry.getUnit(unitConfigId) : null;
     const category = unit?.category ?? null;
     const isTowerLike = category === 'Tower' || category === 'Building';
     const isPathOnly = category === 'Soldier' || category === 'Trap';
-    if ((isTowerLike && isPathTile) || (isPathOnly && !isPathTile)) return;
-    const snapX = col * CELL_SIZE + CELL_SIZE / 2;
-    const snapY = row * CELL_SIZE + CELL_SIZE / 2;
+    if ((isTowerLike && isPath) || (isPathOnly && !isPath)) return;
+    const snapX = col * currentLevelConfig.tileSize + currentLevelConfig.tileSize / 2;
+    const snapY = row * currentLevelConfig.tileSize + currentLevelConfig.tileSize / 2;
     const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
     if (newEid !== null) {
       game.world.ruleEngine.attachRules(newEid, 'onDeath', [

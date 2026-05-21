@@ -78,6 +78,13 @@ describe('UnitFactory.spawnUnit', () => {
     expect(UnitTag.category[eid]).toBe(UnitCategory.Tower);
   });
 
+  it('supports per-spawn pathIndexStart for enemy movers', () => {
+    const world = createTowerWorld();
+    const eid = spawnUnit(world, ENEMY_GRUNT, { x: 100, y: 200 }, { pathIndexStart: 3 });
+
+    expect(Movement.pathIndex[eid]).toBe(3);
+  });
+
   it('attaches lifecycle rule definitions to the rule engine under their event names', () => {
     const world = createTowerWorld();
     world.ruleEngine.registerHandler('drop_gold', () => undefined);

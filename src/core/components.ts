@@ -139,5 +139,7 @@ export const Crystal = defineComponent({
   radius: Types.f32,
 });
 
+export const SelectedTag = defineComponent();
+
 export const DeadTag = defineComponent();
 export const JustSpawnedTag = defineComponent();

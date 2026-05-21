@@ -105,6 +105,24 @@ describe('MovementSystem', () => {
     expect(Movement.speed[eid]).toBeCloseTo(100, 5);
   });
 
+  it('supports multi-spawn routes by starting from a later path node', () => {
+    const game = new Game();
+    const path = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+      { x: 200, y: 100 },
+    ];
+    game.pipeline.register(createMovementSystem({ path }));
+    const eid = spawnWalker(game, 100, 0, 100);
+    Movement.pathIndex[eid] = 2;
+
+    game.tick(0.5);
+
+    expect(Position.x[eid]).toBeCloseTo(100, 5);
+    expect(Position.y[eid]).toBeCloseTo(25, 5);
+  });
+
   it('dispatches onEnter once when an entity reaches the final node', () => {
     const game = new Game();
     const path = [

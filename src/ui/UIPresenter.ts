@@ -1,6 +1,8 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { FederatedPointerEvent } from 'pixi.js';
 
+import type { LevelConfig } from '../config/loader.js';
+
 import type { CardRegistry } from '../unit-system/CardRegistry.js';
 import type { HandPanel, HandState } from './HandPanel.js';
 import { hitTestDrawButton, hitTestHandSlot, layoutHand } from './HandPanel.js';
@@ -19,6 +21,7 @@ export interface UIPresenterConfig {
   readonly onDrawCard?: () => void;
   readonly screenToWorld?: (sx: number, sy: number) => { x: number; y: number };
   readonly worldToScreen?: (wx: number, wy: number) => { x: number; y: number };
+  readonly getLevelConfig?: () => LevelConfig | null;
 }
 
 export interface UIFrame {
@@ -67,6 +70,7 @@ export class UIPresenter {
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
+  private readonly getLevelConfig: () => LevelConfig | null;
   private lastHandState: HandState = { cards: [], energy: 0, energyMax: 10, drawState: 'ready', drawCooldownSeconds: 0 };
   private dragSlot: number | null = null;
   private ghostCard: Graphics | null = null;
@@ -87,6 +91,7 @@ export class UIPresenter {
     this.cellSize = config.cellSize ?? 64;
     this.screenToWorld = config.screenToWorld ?? ((sx, sy) => ({ x: sx, y: sy }));
     this.worldToScreen = config.worldToScreen ?? ((wx, wy) => ({ x: wx, y: wy }));
+    this.getLevelConfig = config.getLevelConfig ?? (() => null);
 
     this.EXIT_BTN.x = this.viewportWidth - 148;
     this.EXIT_BTN.y = 8;
@@ -240,10 +245,24 @@ export class UIPresenter {
     if (local.y < handZoneTop) {
       const cs = this.cellSize;
       const worldPos = this.screenToWorld(local.x, local.y);
-      const col = Math.floor(worldPos.x / cs);
-      const row = Math.floor(worldPos.y / cs);
-      const cellTopLeft = this.worldToScreen(col * cs, row * cs);
-      const cellBottomRight = this.worldToScreen((col + 1) * cs, (row + 1) * cs);
+      const levelConfig = this.getLevelConfig();
+      const tileSize = levelConfig?.tileSize ?? cs;
+      const col = Math.floor(worldPos.x / tileSize);
+      const row = Math.floor(worldPos.y / tileSize);
+      const isInside = levelConfig
+        ? col >= 0 && row >= 0 && col < levelConfig.mapCols && row < levelConfig.mapRows
+        : col >= 0 && row >= 0;
+      const tile = isInside && levelConfig ? levelConfig.tiles[row]?.[col] ?? 'empty' : 'empty';
+      const isPathTile = tile === 'path' || tile === 'spawn' || tile === 'base';
+      const dragged = this.dragSlot !== null ? this.lastHandState.cards[this.dragSlot] ?? null : null;
+      const card = dragged ? this.cardRegistry?.getCard(dragged.cardId) : null;
+      const unit = card?.unitConfigId ? this.cardRegistry?.getUnit(card.unitConfigId) : null;
+      const category = unit?.category ?? null;
+      const isTowerLike = category === 'Tower' || category === 'Building';
+      const isPathOnly = category === 'Soldier' || category === 'Trap';
+      const legal = isInside && !((isTowerLike && isPathTile) || (isPathOnly && !isPathTile));
+      const cellTopLeft = this.worldToScreen(col * tileSize, row * tileSize);
+      const cellBottomRight = this.worldToScreen((col + 1) * tileSize, (row + 1) * tileSize);
       const cellX = cellTopLeft.x;
       const cellY = cellTopLeft.y;
       const cellW = cellBottomRight.x - cellTopLeft.x;
@@ -255,8 +274,9 @@ export class UIPresenter {
         this.ghostCell = g;
       }
       this.ghostCell.clear();
-      this.ghostCell.rect(cellX, cellY, cellW, cellH).fill({ color: 0x00e676, alpha: 0.25 });
-      this.ghostCell.rect(cellX, cellY, cellW, cellH).stroke({ width: 2, color: 0x00e676, alpha: 0.85 });
+      const previewColor = legal ? 0x00e676 : 0xff5252;
+      this.ghostCell.rect(cellX, cellY, cellW, cellH).fill({ color: previewColor, alpha: 0.25 });
+      this.ghostCell.rect(cellX, cellY, cellW, cellH).stroke({ width: 2, color: previewColor, alpha: 0.9 });
     } else {
       if (this.ghostCell) {
         this.ghostCell.clear();

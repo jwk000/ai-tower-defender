@@ -16,6 +16,7 @@ import {
   Movement,
   Poison,
   Position,
+  SelectedTag,
   Shield,
   Visual,
   VisualShape,
@@ -36,6 +37,7 @@ interface ViewRecord {
   isElite: boolean;
   isBoss: boolean;
   bossPhase: number;
+  isSelected: boolean;
   status: {
     isSlowed: boolean;
     isBurning: boolean;
@@ -66,6 +68,7 @@ function createStubSink(): EntityViewSink & { views: Map<number, ViewRecord>; so
         isElite: visual.isElite,
         isBoss: visual.isBoss,
         bossPhase: visual.bossPhase,
+        isSelected: visual.isSelected,
         status: { ...visual.status },
         destroyed: false,
       });
@@ -76,6 +79,19 @@ function createStubSink(): EntityViewSink & { views: Map<number, ViewRecord>; so
         v.x = x;
         v.y = y;
       }
+    },
+    updateVisual(eid, visual) {
+      const v = views.get(eid);
+      if (!v) return;
+      v.shape = visual.shape;
+      v.color = visual.color;
+      v.size = visual.size;
+      v.attackRange = visual.attackRange;
+      v.isElite = visual.isElite;
+      v.isBoss = visual.isBoss;
+      v.bossPhase = visual.bossPhase;
+      v.isSelected = visual.isSelected;
+      v.status = { ...visual.status };
     },
     destroyView(eid) {
       const v = views.get(eid);
@@ -186,6 +202,17 @@ describe('RenderSystem — view lifecycle', () => {
       hasShield: false,
       isVulnerable: false,
     });
+  });
+
+  it('only marks selected entities in the view sink', () => {
+    const eid = spawnEntity(world, 100, 100, 0xffffff);
+
+    system.update(world, 0.016);
+    expect(sink.views.get(eid)?.isSelected).toBe(false);
+
+    addComponent(world, SelectedTag, eid);
+    system.update(world, 0.016);
+    expect(sink.views.get(eid)?.isSelected).toBe(true);
   });
 
   it('syncs position to existing view on subsequent frames without recreating', () => {
