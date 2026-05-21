@@ -328,12 +328,16 @@ map:
       - { id: n1, row: 1, col: 6, role: waypoint }
       - { id: n2, row: 4, col: 6, role: waypoint }
       - { id: n3, row: 4, col: 11, role: waypoint }
-      - { id: n4, row: 5, col: 11, role: waypoint }
+      - { id: n4, row: 5, col: 11, role: merge }
       - { id: n5, row: 5, col: 12, role: crystal_anchor }
       - { id: n6, row: 6, col: 11, role: waypoint }
       - { id: n7, row: 6, col: 6, role: waypoint }
       - { id: n8, row: 9, col: 6, role: waypoint }
       - { id: n9, row: 9, col: 0, role: spawn, spawnId: spawn_1 }
+      - { id: p0_in, row: 2, col: 15, role: portal, teleportTo: p0_out }
+      - { id: p0_out, row: 2, col: 20, role: portal }
+      - { id: p1_in, row: 8, col: 15, role: portal, teleportTo: p1_out }
+      - { id: p1_out, row: 8, col: 20, role: portal }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }

@@ -175,6 +175,23 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     const cfg = parseLevelConfig(text);
     expect(cfg.waves.some((wave) => wave.isBossWave)).toBe(true);
   });
+
+  it('keeps level-08 portal visuals aligned with configured void_rift cells', () => {
+    const text = readFileSync(resolve(CONFIG, 'levels/level-08.yaml'), 'utf8');
+    const cfg = parseLevelConfig(text);
+    expect(cfg.portals).toEqual([
+      { row: 2, col: 15, kind: 'entry' },
+      { row: 2, col: 20, kind: 'exit' },
+      { row: 8, col: 15, kind: 'entry' },
+      { row: 8, col: 20, kind: 'exit' },
+    ]);
+    expect(cfg.obstacles.filter((entry) => entry.type === 'void_rift')).toEqual([
+      { type: 'void_rift', row: 2, col: 15 },
+      { type: 'void_rift', row: 2, col: 20 },
+      { type: 'void_rift', row: 8, col: 15 },
+      { type: 'void_rift', row: 8, col: 20 },
+    ]);
+  });
 });
 
 describe('parseUnitConfigsFromYaml: batch parse multi-entry yaml', () => {
