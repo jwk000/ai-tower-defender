@@ -99,6 +99,15 @@ export interface SpellRelicDefinition {
   readonly spellExtraCastCount?: number;
 }
 
+export interface DefenseRelicDefinition {
+  readonly relicId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category: 'defense';
+  readonly crystalHpMaxBonus?: number;
+  readonly crystalHealAmount?: number;
+}
+
 export interface PendingRelicReward {
   readonly sourceLevel: number;
   readonly options: readonly [RelicRewardOption, RelicRewardOption, RelicRewardOption];
@@ -161,6 +170,9 @@ const DEMO_RELIC_REWARD_OPTIONS: readonly Omit<RelicRewardOption, 'id'>[] = [
   { relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次，爆发更高。', category: 'spell' },
   { relicId: 'echo_scroll', title: '回响卷轴', description: '法术额外结算 1 次，适合滚雪球法术流。', category: 'spell' },
   { relicId: 'storm_codex', title: '风暴法典', description: '法术额外结算 1 次，连续清线更稳定。', category: 'spell' },
+  { relicId: 'bulwark_core', title: '壁垒核心', description: '水晶上限 +4，并立刻修复 4 点水晶耐久。', category: 'defense' },
+  { relicId: 'repair_resin', title: '修复树脂', description: '立刻修复 6 点水晶耐久，帮你稳住残血防线。', category: 'defense' },
+  { relicId: 'sanctified_shell', title: '圣护外壳', description: '水晶上限 +2，并立刻修复 2 点水晶耐久。', category: 'defense' },
 ] as const;
 
 const ECONOMY_RELIC_DEFINITIONS: Readonly<Record<string, EconomyRelicDefinition>> = {
@@ -257,6 +269,32 @@ const SPELL_RELIC_DEFINITIONS: Readonly<Record<string, SpellRelicDefinition>> = 
     description: '法术额外结算 1 次，连续清线更稳定。',
     category: 'spell',
     spellExtraCastCount: 1,
+  },
+} as const;
+
+const DEFENSE_RELIC_DEFINITIONS: Readonly<Record<string, DefenseRelicDefinition>> = {
+  bulwark_core: {
+    relicId: 'bulwark_core',
+    title: '壁垒核心',
+    description: '水晶上限 +4，并立刻修复 4 点水晶耐久。',
+    category: 'defense',
+    crystalHpMaxBonus: 4,
+    crystalHealAmount: 4,
+  },
+  repair_resin: {
+    relicId: 'repair_resin',
+    title: '修复树脂',
+    description: '立刻修复 6 点水晶耐久，帮你稳住残血防线。',
+    category: 'defense',
+    crystalHealAmount: 6,
+  },
+  sanctified_shell: {
+    relicId: 'sanctified_shell',
+    title: '圣护外壳',
+    description: '水晶上限 +2，并立刻修复 2 点水晶耐久。',
+    category: 'defense',
+    crystalHpMaxBonus: 2,
+    crystalHealAmount: 2,
   },
 } as const;
 
@@ -458,6 +496,10 @@ export class RunManager {
 
   getSpellExtraCastCountFromRelics(): number {
     return this._relics.reduce((total, relic) => total + (SPELL_RELIC_DEFINITIONS[relic.relicId]?.spellExtraCastCount ?? 0), 0);
+  }
+
+  getCrystalHpMaxBonusFromRelics(): number {
+    return this._relics.reduce((total, relic) => total + (DEFENSE_RELIC_DEFINITIONS[relic.relicId]?.crystalHpMaxBonus ?? 0), 0);
   }
 
   applyShopDiscount(baseCost: number): number {
@@ -1058,9 +1100,17 @@ export class RunManager {
 
   private applyRelicImmediateEffects(relic: RelicRewardOption): void {
     const definition = ECONOMY_RELIC_DEFINITIONS[relic.relicId];
-    if (!definition) return;
-    if (definition.startGoldBonus && definition.startGoldBonus > 0) {
+    if (definition?.startGoldBonus && definition.startGoldBonus > 0) {
       this.addGold(definition.startGoldBonus);
+    }
+
+    const defenseDefinition = DEFENSE_RELIC_DEFINITIONS[relic.relicId];
+    if (!defenseDefinition) return;
+    if (defenseDefinition.crystalHpMaxBonus && defenseDefinition.crystalHpMaxBonus > 0) {
+      this._crystalHpMax += defenseDefinition.crystalHpMaxBonus;
+    }
+    if (defenseDefinition.crystalHealAmount && defenseDefinition.crystalHealAmount > 0) {
+      this.healCrystal(defenseDefinition.crystalHealAmount);
     }
   }
 

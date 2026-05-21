@@ -1077,6 +1077,45 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(spell).toHaveBeenCalledTimes(3);
   });
 
+  it('claiming defense relics repairs crystal hp immediately and preserves the higher max hp into the next level', () => {
+    const runManager = new RunManager({ totalLevels: 4, initialGold: 200, initialCrystalHp: 20 });
+
+    runManager.startRun();
+    runManager.damageCrystal(7);
+    expect(runManager.crystalHp).toBe(13);
+    expect(runManager.crystalHpMax).toBe(20);
+
+    runManager.enterBattle();
+    runManager.completeLevel();
+    runManager.claimCardReward(runManager.pendingCardReward!.options[0]!.id);
+    runManager.claimGoldReward(runManager.pendingGoldReward!.options[0]!.id);
+    runManager.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'bulwark_core', title: '壁垒核心', description: '水晶上限 +4，并立刻修复 4 点水晶耐久。', category: 'defense' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+
+    runManager.claimRelicReward('relic_1');
+    expect(runManager.crystalHp).toBe(17);
+    expect(runManager.crystalHpMax).toBe(24);
+    expect(runManager.getCrystalHpMaxBonusFromRelics()).toBe(4);
+
+    runManager.returnToLevelMap();
+
+    expect(runManager.phase).toBe(RunPhase.LevelMap);
+    expect(runManager.currentLevel).toBe(2);
+    expect(runManager.crystalHp).toBe(17);
+    expect(runManager.crystalHpMax).toBe(24);
+
+    runManager.enterBattle();
+    expect(runManager.phase).toBe(RunPhase.Battle);
+    expect(runManager.crystalHp).toBe(17);
+    expect(runManager.crystalHpMax).toBe(24);
+  });
+
   it('inter-level now stops after card and gold rewards without auto-generating upgrade rewards', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });

@@ -478,6 +478,100 @@ describe('RunManager state machine', () => {
     expect(run.getSpellExtraCastCountFromRelics()).toBe(2);
   });
 
+  it('bulwark_core increases crystal max hp and immediately repairs current crystal hp', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.damageCrystal(5);
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'bulwark_core', title: '壁垒核心', description: '水晶上限 +4，并立刻修复 4 点水晶耐久。', category: 'defense' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+
+    expect(run.crystalHpMax).toBe(20);
+    expect(run.crystalHp).toBe(15);
+    expect(run.getCrystalHpMaxBonusFromRelics()).toBe(0);
+
+    run.claimRelicReward('relic_1');
+
+    expect(run.crystalHpMax).toBe(24);
+    expect(run.crystalHp).toBe(19);
+    expect(run.getCrystalHpMaxBonusFromRelics()).toBe(4);
+  });
+
+  it('repair_resin heals crystal hp but never exceeds the current max hp', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.damageCrystal(3);
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'repair_resin', title: '修复树脂', description: '立刻修复 6 点水晶耐久。', category: 'defense' },
+        { id: 'relic_2', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+        { id: 'relic_3', relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次。', category: 'spell' },
+      ],
+    });
+
+    run.claimRelicReward('relic_1');
+
+    expect(run.crystalHpMax).toBe(20);
+    expect(run.crystalHp).toBe(20);
+    expect(run.getCrystalHpMaxBonusFromRelics()).toBe(0);
+  });
+
+  it('defense relics stack crystal max hp bonuses and immediate repairs across multiple claims', () => {
+    const run = makeManager(4);
+    run.startRun();
+    run.damageCrystal(8);
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'bulwark_core', title: '壁垒核心', description: '水晶上限 +4，并立刻修复 4 点水晶耐久。', category: 'defense' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+      ],
+    });
+    run.claimRelicReward('relic_1');
+
+    expect(run.crystalHpMax).toBe(24);
+    expect(run.crystalHp).toBe(16);
+
+    run.returnToLevelMap();
+    run.damageCrystal(5);
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 2,
+      options: [
+        { id: 'relic_4', relicId: 'sanctified_shell', title: '圣护外壳', description: '水晶上限 +2，并立刻修复 2 点水晶耐久。', category: 'defense' },
+        { id: 'relic_5', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
+        { id: 'relic_6', relicId: 'ember_seal', title: '余烬印记', description: '法术额外结算 1 次。', category: 'spell' },
+      ],
+    });
+    run.claimRelicReward('relic_4');
+
+    expect(run.crystalHpMax).toBe(26);
+    expect(run.crystalHp).toBe(13);
+    expect(run.getCrystalHpMaxBonusFromRelics()).toBe(6);
+  });
+
   it('prioritizes core cards when building upgrade reward options', () => {
     const run = makeManager(3);
     run.registerCardInstance('shield_guard_card_inst_2', { unitCardId: 'shield_guard', nodes: [
