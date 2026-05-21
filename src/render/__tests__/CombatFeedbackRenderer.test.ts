@@ -293,21 +293,21 @@ describe('Renderer weather animation', () => {
     expect(state.terrainEffectState?.cells).toContainEqual({ type: 'ice_tile', row: 1, col: 1 });
   });
 
-  it('accepts obstacle overlays for special tiles', () => {
+  it('marks void_rift cells with portal entry/exit semantics from level data', () => {
     const renderer = new Renderer({
       canvas: {} as HTMLCanvasElement,
-      worldWidth: 2 * 64,
+      worldWidth: 3 * 64,
       worldHeight: 2 * 64,
       cellSize: 64,
     });
 
-    expect(() => renderer.drawLevelBackground({
-      mapCols: 2,
+    renderer.drawLevelBackground({
+      mapCols: 3,
       mapRows: 2,
       tileSize: 64,
       tiles: [
-        ['path', 'empty'],
-        ['empty', 'base'],
+        ['path', 'empty', 'empty'],
+        ['empty', 'base', 'empty'],
       ],
       tileColors: {
         empty: 0x304b3d,
@@ -315,11 +315,23 @@ describe('Renderer weather animation', () => {
         base: 0x1e88e5,
       },
       obstacles: [
-        { type: 'conveyor_belt', row: 0, col: 0 },
-        { type: 'spore_pod', row: 1, col: 0 },
-        { type: 'water_pool', row: 0, col: 1 },
-        { type: 'void_rift', row: 1, col: 1 },
+        { type: 'void_rift', row: 0, col: 1 },
+        { type: 'void_rift', row: 1, col: 2 },
       ],
-    })).not.toThrow();
+      portals: [
+        { row: 0, col: 1, kind: 'entry' },
+        { row: 1, col: 2, kind: 'exit' },
+      ],
+    });
+
+    const state = renderer as unknown as {
+      terrainEffectState: {
+        cells: readonly { type: string; row: number; col: number; portalKind?: string }[];
+      } | null;
+    };
+
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'void_rift', row: 0, col: 1, portalKind: 'entry' });
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'void_rift', row: 1, col: 2, portalKind: 'exit' });
   });
+
 });

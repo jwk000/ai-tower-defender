@@ -241,8 +241,9 @@ const PathNodeSchema = z
     id: z.string(),
     row: z.number().int().nonnegative(),
     col: z.number().int().nonnegative(),
-    role: z.enum(['spawn', 'crystal_anchor', 'waypoint', 'merge']).optional(),
+    role: z.enum(['spawn', 'crystal_anchor', 'waypoint', 'merge', 'portal']).optional(),
     spawnId: z.string().optional(),
+    teleportTo: z.string().optional(),
   })
   .passthrough();
 
@@ -337,6 +338,12 @@ export interface LevelObstacleConfig {
   readonly col: number;
 }
 
+export interface LevelPortalVisualConfig {
+  readonly row: number;
+  readonly col: number;
+  readonly kind: 'entry' | 'exit' | 'bidirectional';
+}
+
 export interface LevelAvailable {
   readonly towers: readonly string[];
   readonly units: readonly string[];
@@ -354,6 +361,7 @@ export interface LevelConfig {
   readonly tiles: readonly (readonly string[])[];
   readonly tileColors: Readonly<Record<string, number>>;
   readonly obstacles: readonly LevelObstacleConfig[];
+  readonly portals: readonly LevelPortalVisualConfig[];
   readonly path: Array<{ x: number; y: number }>;
   readonly crystal: { row: number; col: number };
   readonly spawns: readonly LevelSpawnPoint[];
@@ -417,6 +425,25 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
       col: typeof entry.col === 'number' ? entry.col : -1,
     }))
     .filter((entry) => entry.row >= 0 && entry.col >= 0));
+  const portalKindsByCell = new Map<string, LevelPortalVisualConfig['kind']>();
+  const setPortalKind = (row: number, col: number, next: 'entry' | 'exit') => {
+    const key = `${row},${col}`;
+    const prev = portalKindsByCell.get(key);
+    portalKindsByCell.set(
+      key,
+      !prev || prev === next ? next : 'bidirectional',
+    );
+  };
+  for (const node of parsed.map.pathGraph.nodes) {
+    if (!node.teleportTo) continue;
+    setPortalKind(node.row, node.col, 'entry');
+    const target = nodesById.get(node.teleportTo);
+    if (target) setPortalKind(target.row, target.col, 'exit');
+  }
+  const portals = [...portalKindsByCell.entries()].map(([key, kind]) => {
+    const parts = key.split(',');
+    return { row: Number(parts[0] ?? 0), col: Number(parts[1] ?? 0), kind };
+  });
   return {
     id: parsed.id,
     ...(parsed.name ? { name: parsed.name } : {}),
@@ -441,6 +468,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     tiles: (((parsed.map as Record<string, unknown>).tiles ?? []) as string[][]).map((row) => [...row]),
     tileColors,
     obstacles,
+    portals,
     path,
     crystal: { row: anchor.row, col: anchor.col },
     spawns,

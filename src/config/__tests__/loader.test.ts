@@ -472,6 +472,58 @@ waves:
     expect(cfg.spawns.map((spawn) => spawn.pathIndexStart)).toEqual([1, 2]);
   });
 
+  it('derives portal entry/exit visuals from pathGraph teleportTo nodes', () => {
+    const yaml = `
+id: portal_level
+map:
+  cols: 8
+  rows: 4
+  tileSize: 64
+  pathGraph:
+    nodes:
+      - { id: n0, row: 1, col: 0, role: spawn }
+      - { id: n1, row: 1, col: 2, role: portal, teleportTo: n3 }
+      - { id: n2, row: 2, col: 4, role: portal, teleportTo: n1 }
+      - { id: n3, row: 1, col: 6, role: portal }
+      - { id: n4, row: 1, col: 7, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n3, to: n4 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.portals).toEqual([
+      { row: 1, col: 2, kind: 'bidirectional' },
+      { row: 1, col: 6, kind: 'exit' },
+      { row: 2, col: 4, kind: 'entry' },
+    ]);
+  });
+
+  it('defaults portals=[] when pathGraph has no teleport nodes', () => {
+    const yaml = `
+id: no_portal
+map:
+  cols: 2
+  rows: 2
+  tileSize: 64
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.portals).toEqual([]);
+  });
+
   it('defaults spawns=[] and available={towers:[],units:[],cards:[]} when omitted', () => {
     const yaml = `
 id: no_optional
@@ -493,5 +545,7 @@ waves:
     const cfg = parseLevelConfig(yaml);
     expect(cfg.spawns).toEqual([]);
     expect(cfg.available).toEqual({ towers: [], units: [], cards: [] });
+    expect(cfg.portals).toEqual([]);
   });
+
 });

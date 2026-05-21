@@ -35,6 +35,7 @@ interface TerrainEffectCell {
   readonly row: number;
   readonly col: number;
   readonly direction?: TerrainEffectDirection;
+  readonly portalKind?: 'entry' | 'exit' | 'bidirectional';
 }
 
 interface TerrainEffectState {
@@ -179,6 +180,7 @@ export class Renderer {
     obstacles?: readonly { type: string; row: number; col: number }[];
     sceneDescription?: string;
     weather?: { pool: readonly string[]; initial?: string };
+    portals?: readonly { row: number; col: number; kind: 'entry' | 'exit' | 'bidirectional' }[];
   }): void {
     this.backgroundLayer.removeChildren();
     this.weatherState = null;
@@ -188,6 +190,7 @@ export class Renderer {
     const w = level.mapCols * level.tileSize;
     const h = level.mapRows * level.tileSize;
     const obstacleByCell = new Map((level.obstacles ?? []).map((ob) => [`${ob.row},${ob.col}`, ob.type]));
+    const portalByCell = new Map((level.portals ?? []).map((portal) => [`${portal.row},${portal.col}`, portal.kind]));
 
     const sky = new Graphics();
     const topColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xa7c7e7
@@ -266,15 +269,29 @@ export class Renderer {
           board.ellipse(x + level.tileSize * 0.46, y + level.tileSize * 0.48, level.tileSize * 0.18, level.tileSize * 0.08).fill({ color: 0xb3e5fc, alpha: 0.28 });
         }
         if (obstacleType === 'void_rift') {
-          terrainCells.push({ type: 'void_rift', row, col });
+          const portalKind = portalByCell.get(`${row},${col}`);
+          terrainCells.push({ type: 'void_rift', row, col, ...(portalKind ? { portalKind } : {}) });
+          const ringColor = portalKind === 'exit' ? 0x80d8ff : portalKind === 'bidirectional' ? 0xffcc80 : 0xea80fc;
+          const markerColor = portalKind === 'exit' ? 0xb3e5fc : portalKind === 'bidirectional' ? 0xffe0b2 : 0xb388ff;
           board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.24).fill({ color: 0x311b92, alpha: 0.34 });
-          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.18).stroke({ width: 3, color: 0xea80fc, alpha: 0.78 });
-          board.moveTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18)
-            .lineTo(x + level.tileSize * 0.82, y + level.tileSize * 0.5)
-            .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.82)
-            .lineTo(x + level.tileSize * 0.18, y + level.tileSize * 0.5)
-            .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18);
-          board.stroke({ width: 2, color: 0xb388ff, alpha: 0.52 });
+          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.18).stroke({ width: 3, color: ringColor, alpha: 0.78 });
+          if (portalKind === 'exit') {
+            board.moveTo(x + level.tileSize * 0.5, y + level.tileSize * 0.28)
+              .lineTo(x + level.tileSize * 0.72, y + level.tileSize * 0.5)
+              .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.72)
+              .lineTo(x + level.tileSize * 0.28, y + level.tileSize * 0.5)
+              .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.28);
+          } else if (portalKind === 'bidirectional') {
+            board.moveTo(x + level.tileSize * 0.28, y + level.tileSize * 0.5).lineTo(x + level.tileSize * 0.72, y + level.tileSize * 0.5);
+            board.moveTo(x + level.tileSize * 0.5, y + level.tileSize * 0.28).lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.72);
+          } else {
+            board.moveTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18)
+              .lineTo(x + level.tileSize * 0.82, y + level.tileSize * 0.5)
+              .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.82)
+              .lineTo(x + level.tileSize * 0.18, y + level.tileSize * 0.5)
+              .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18);
+          }
+          board.stroke({ width: 2, color: markerColor, alpha: 0.52 });
         }
       }
     }
@@ -373,15 +390,31 @@ export class Renderer {
       if (cell.type === 'void_rift') {
         const pulse = 0.24 + ((Math.sin(time * 2.4 + cell.row * 0.9 + cell.col * 0.6) + 1) * 0.5) * 0.22;
         const swirl = (time * 1.6 + (cell.row + cell.col) * 0.2) % (Math.PI * 2);
-        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * 0.16 + pulse * 10).stroke({ width: 3, color: 0xea80fc, alpha: pulse * 1.2 });
-        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * 0.08).fill({ color: 0x12005e, alpha: 0.45 + pulse * 0.3 });
-        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
-          .lineTo(x + tileSize * (0.5 + Math.cos(swirl) * 0.22), y + tileSize * (0.5 + Math.sin(swirl) * 0.22));
-        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
-          .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 0.66) * 0.18), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 0.66) * 0.18));
-        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
-          .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 1.33) * 0.2), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 1.33) * 0.2));
-        overlay.stroke({ width: 2, color: 0xb388ff, alpha: 0.52 + pulse * 0.4 });
+        const centerX = x + tileSize * 0.5;
+        const centerY = y + tileSize * 0.5;
+        const ringColor = cell.portalKind === 'exit' ? 0x80d8ff : cell.portalKind === 'bidirectional' ? 0xffcc80 : 0xea80fc;
+        const beamColor = cell.portalKind === 'exit' ? 0xb3e5fc : cell.portalKind === 'bidirectional' ? 0xfff3e0 : 0xb388ff;
+        overlay.circle(centerX, centerY, tileSize * 0.16 + pulse * 10).stroke({ width: 3, color: ringColor, alpha: pulse * 1.2 });
+        overlay.circle(centerX, centerY, tileSize * 0.08).fill({ color: 0x12005e, alpha: 0.45 + pulse * 0.3 });
+        if (cell.portalKind === 'exit') {
+          const spread = tileSize * (0.18 + pulse * 0.08);
+          overlay.moveTo(centerX, centerY).lineTo(centerX + spread, centerY);
+          overlay.moveTo(centerX, centerY).lineTo(centerX - spread * 0.7, centerY - spread * 0.7);
+          overlay.moveTo(centerX, centerY).lineTo(centerX - spread * 0.7, centerY + spread * 0.7);
+        } else if (cell.portalKind === 'bidirectional') {
+          const drift = tileSize * (0.12 + pulse * 0.06);
+          overlay.moveTo(centerX - drift, centerY).lineTo(centerX + drift, centerY);
+          overlay.moveTo(centerX, centerY - drift).lineTo(centerX, centerY + drift);
+          overlay.moveTo(centerX, centerY).lineTo(centerX + Math.cos(swirl) * tileSize * 0.2, centerY + Math.sin(swirl) * tileSize * 0.2);
+        } else {
+          overlay.moveTo(centerX, centerY)
+            .lineTo(x + tileSize * (0.5 + Math.cos(swirl) * 0.22), y + tileSize * (0.5 + Math.sin(swirl) * 0.22));
+          overlay.moveTo(centerX, centerY)
+            .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 0.66) * 0.18), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 0.66) * 0.18));
+          overlay.moveTo(centerX, centerY)
+            .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 1.33) * 0.2), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 1.33) * 0.2));
+        }
+        overlay.stroke({ width: 2, color: beamColor, alpha: 0.52 + pulse * 0.4 });
       }
     }
   }
