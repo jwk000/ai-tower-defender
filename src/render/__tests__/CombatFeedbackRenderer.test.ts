@@ -171,6 +171,126 @@ describe('Renderer weather animation', () => {
     expect(layers[1]?.speed).toBeGreaterThan(layers[0]?.speed ?? 0);
   });
 
+  it('creates animated overlay state for special terrain obstacles', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 2 * 64,
+      worldHeight: 2 * 64,
+      cellSize: 64,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['path', 'empty'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        base: 0x1e88e5,
+      },
+      obstacles: [
+        { type: 'conveyor_belt', row: 0, col: 0 },
+        { type: 'spore_pod', row: 1, col: 0 },
+        { type: 'water_pool', row: 0, col: 1 },
+        { type: 'ice_tile', row: 1, col: 1 },
+      ],
+    });
+
+    const state = renderer as unknown as {
+      terrainEffectState: {
+        time: number;
+        cells: readonly { type: string; row: number; col: number }[];
+      } | null;
+    };
+
+    expect(state.terrainEffectState?.cells).toHaveLength(4);
+    expect(state.terrainEffectState?.cells.map((cell) => cell.type)).toEqual([
+      'conveyor_belt',
+      'water_pool',
+      'spore_pod',
+      'ice_tile',
+    ]);
+  });
+
+  it('advances special terrain overlay time during ticks', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 2 * 64,
+      worldHeight: 2 * 64,
+      cellSize: 64,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['path', 'empty'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        base: 0x1e88e5,
+      },
+      obstacles: [{ type: 'water_pool', row: 0, col: 1 }],
+    });
+
+    const state = renderer as unknown as {
+      terrainEffectState: { time: number } | null;
+    };
+    const before = state.terrainEffectState?.time ?? -1;
+    renderer.tickWeather(0.25);
+    const after = state.terrainEffectState?.time ?? -1;
+
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it('adds portal-like directional feedback for conveyor cells and stronger ambient motion for terrain', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 2 * 64,
+      worldHeight: 2 * 64,
+      cellSize: 64,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['path', 'empty'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        base: 0x1e88e5,
+      },
+      obstacles: [
+        { type: 'conveyor_belt', row: 0, col: 0 },
+        { type: 'spore_pod', row: 1, col: 0 },
+        { type: 'water_pool', row: 0, col: 1 },
+        { type: 'ice_tile', row: 1, col: 1 },
+      ],
+    });
+
+    const state = renderer as unknown as {
+      terrainEffectState: {
+        cells: readonly { type: string; row: number; col: number }[];
+      } | null;
+    };
+
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'conveyor_belt', row: 0, col: 0, direction: 'right' });
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'spore_pod', row: 1, col: 0 });
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'water_pool', row: 0, col: 1 });
+    expect(state.terrainEffectState?.cells).toContainEqual({ type: 'ice_tile', row: 1, col: 1 });
+  });
+
   it('accepts obstacle overlays for special tiles', () => {
     const renderer = new Renderer({
       canvas: {} as HTMLCanvasElement,

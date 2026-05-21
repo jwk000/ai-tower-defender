@@ -9,6 +9,10 @@ export interface RendererConfig {
 
 type WeatherKind = 'blizzard' | 'rain' | 'sand' | 'smog' | 'spore' | 'fog' | 'none';
 
+type TerrainEffectKind = 'ice_tile' | 'conveyor_belt' | 'spore_pod' | 'water_pool';
+
+type TerrainEffectDirection = 'right';
+
 type WeatherLayerKind = 'front' | 'back';
 
 interface WeatherDriftLayer {
@@ -24,6 +28,22 @@ interface WeatherVisualState {
   time: number;
   readonly overlay: Graphics;
   readonly layers: readonly WeatherDriftLayer[];
+}
+
+interface TerrainEffectCell {
+  readonly type: TerrainEffectKind;
+  readonly row: number;
+  readonly col: number;
+  readonly direction?: TerrainEffectDirection;
+}
+
+interface TerrainEffectState {
+  readonly width: number;
+  readonly height: number;
+  readonly tileSize: number;
+  time: number;
+  readonly overlay: Graphics;
+  readonly cells: readonly TerrainEffectCell[];
 }
 
 /**
@@ -54,6 +74,7 @@ export class Renderer {
   private readonly backgroundLayer: Container;
   private readonly gridLayer: Container;
   private weatherState: WeatherVisualState | null = null;
+  private terrainEffectState: TerrainEffectState | null = null;
   private readonly weatherTick: (ticker: Ticker) => void;
 
   constructor(config: RendererConfig) {
@@ -161,6 +182,7 @@ export class Renderer {
   }): void {
     this.backgroundLayer.removeChildren();
     this.weatherState = null;
+    this.terrainEffectState = null;
     const scene = (level.sceneDescription ?? '').toLowerCase();
     const weather = normalizeWeather((level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase());
     const w = level.mapCols * level.tileSize;
@@ -189,6 +211,8 @@ export class Renderer {
     this.backgroundLayer.addChild(atmosphere);
 
     const board = new Graphics();
+    const terrainEffects = new Graphics();
+    const terrainCells: TerrainEffectCell[] = [];
     for (let row = 0; row < level.mapRows; row++) {
       for (let col = 0; col < level.mapCols; col++) {
         const tile = level.tiles[row]?.[col] ?? 'empty';
@@ -215,12 +239,14 @@ export class Renderer {
 
         const obstacleType = obstacleByCell.get(`${row},${col}`) ?? '';
         if (obstacleType === 'ice_tile') {
+          terrainCells.push({ type: 'ice_tile', row, col });
           board.roundRect(x + 6, y + 6, level.tileSize - 12, level.tileSize - 12, 10).stroke({ width: 2, color: 0xe1f5fe, alpha: 0.9 });
           board.moveTo(x + 14, y + 20).lineTo(x + level.tileSize - 14, y + level.tileSize - 20);
           board.moveTo(x + level.tileSize * 0.35, y + 12).lineTo(x + level.tileSize * 0.7, y + level.tileSize - 14);
           board.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.5 });
         }
         if (obstacleType === 'conveyor_belt') {
+          terrainCells.push({ type: 'conveyor_belt', row, col, direction: 'right' });
           board.roundRect(x + 4, y + 18, level.tileSize - 8, level.tileSize - 36, 8).fill({ color: 0x8d6e63, alpha: 0.45 });
           for (let i = 0; i < 3; i++) {
             const cx = x + 16 + i * 16;
@@ -229,17 +255,32 @@ export class Renderer {
           board.stroke({ width: 3, color: 0xffcc80, alpha: 0.65 });
         }
         if (obstacleType === 'spore_pod') {
+          terrainCells.push({ type: 'spore_pod', row, col });
           board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.18).fill({ color: 0xab47bc, alpha: 0.55 });
           board.circle(x + level.tileSize * 0.34, y + level.tileSize * 0.4, level.tileSize * 0.08).fill({ color: 0xe1bee7, alpha: 0.45 });
           board.circle(x + level.tileSize * 0.66, y + level.tileSize * 0.6, level.tileSize * 0.06).fill({ color: 0xe1bee7, alpha: 0.35 });
         }
         if (obstacleType === 'water_pool') {
+          terrainCells.push({ type: 'water_pool', row, col });
           board.ellipse(x + level.tileSize * 0.5, y + level.tileSize * 0.52, level.tileSize * 0.28, level.tileSize * 0.18).fill({ color: 0x4fc3f7, alpha: 0.38 });
           board.ellipse(x + level.tileSize * 0.46, y + level.tileSize * 0.48, level.tileSize * 0.18, level.tileSize * 0.08).fill({ color: 0xb3e5fc, alpha: 0.28 });
         }
       }
     }
     this.backgroundLayer.addChild(board);
+
+    this.backgroundLayer.addChild(terrainEffects);
+    if (terrainCells.length > 0) {
+      this.terrainEffectState = {
+        width: w,
+        height: h,
+        tileSize: level.tileSize,
+        time: 0,
+        overlay: terrainEffects,
+        cells: terrainCells,
+      };
+      this.redrawTerrainEffects(this.terrainEffectState);
+    }
 
     const weatherOverlay = new Graphics();
     this.backgroundLayer.addChild(weatherOverlay);
@@ -256,9 +297,67 @@ export class Renderer {
   }
 
   private updateWeatherAnimation(dt: number): void {
-    if (!this.weatherState || dt <= 0) return;
+    if (dt <= 0) return;
+    if (this.terrainEffectState) {
+      this.terrainEffectState.time += dt;
+      this.redrawTerrainEffects(this.terrainEffectState);
+    }
+    if (!this.weatherState) return;
     this.weatherState.time += dt;
     this.redrawWeatherOverlay(this.weatherState);
+  }
+
+  private redrawTerrainEffects(state: TerrainEffectState): void {
+    const { overlay, tileSize, time, cells } = state;
+    overlay.clear();
+
+    for (const cell of cells) {
+      const x = cell.col * tileSize;
+      const y = cell.row * tileSize;
+      if (cell.type === 'ice_tile') {
+        const shimmer = 0.18 + ((Math.sin(time * 2.2 + cell.row + cell.col) + 1) * 0.5) * 0.12;
+        const frostDrift = Math.sin(time * 1.4 + cell.col * 0.7) * 3;
+        overlay.roundRect(x + 8, y + 8, tileSize - 16, tileSize - 16, 10).fill({ color: 0xe1f5fe, alpha: shimmer });
+        overlay.roundRect(x + 14, y + 14, tileSize - 28, tileSize - 28, 8).stroke({ width: 2, color: 0xffffff, alpha: shimmer * 1.4 });
+        overlay.ellipse(x + tileSize * 0.38 + frostDrift, y + tileSize * 0.28, tileSize * 0.16, tileSize * 0.06).fill({ color: 0xf8fdff, alpha: shimmer * 0.4 });
+        overlay.ellipse(x + tileSize * 0.62 - frostDrift * 0.5, y + tileSize * 0.72, tileSize * 0.18, tileSize * 0.07).fill({ color: 0xe3f2fd, alpha: shimmer * 0.28 });
+        continue;
+      }
+
+      if (cell.type === 'conveyor_belt') {
+        const offset = ((time * 24) + (cell.row + cell.col) * 6) % 18;
+        for (let i = -1; i < 3; i++) {
+          const cx = x + 12 + i * 18 + offset;
+          overlay.moveTo(cx, y + tileSize * 0.38).lineTo(cx + 8, y + tileSize * 0.5).lineTo(cx, y + tileSize * 0.62);
+        }
+        overlay.stroke({ width: 2.5, color: 0xffe0b2, alpha: 0.55 });
+        const arrowX = x + tileSize * (0.3 + ((time * 0.9) % 0.45));
+        overlay.moveTo(arrowX, y + tileSize * 0.5).lineTo(arrowX + 14, y + tileSize * 0.5);
+        overlay.moveTo(arrowX + 8, y + tileSize * 0.42).lineTo(arrowX + 14, y + tileSize * 0.5).lineTo(arrowX + 8, y + tileSize * 0.58);
+        overlay.stroke({ width: 3, color: 0xfff3e0, alpha: 0.72 });
+        continue;
+      }
+
+      if (cell.type === 'spore_pod') {
+        const pulse = 0.16 + ((Math.sin(time * 3 + cell.row) + 1) * 0.5) * 0.12;
+        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * (0.22 + pulse * 0.2)).fill({ color: 0xce93d8, alpha: pulse });
+        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * (0.28 + pulse * 0.16)).stroke({ width: 1.5, color: 0xf3e5f5, alpha: pulse * 0.45 });
+        for (let i = 0; i < 3; i++) {
+          const driftX = x + tileSize * (0.3 + i * 0.16) + Math.sin(time * (1.2 + i * 0.3) + cell.col) * 3;
+          const driftY = y + tileSize * (0.28 + i * 0.12) - ((time * (10 + i * 2) + i * 7) % 16);
+          overlay.circle(driftX, driftY, 3 + i).fill({ color: 0xf3e5f5, alpha: 0.18 + i * 0.05 });
+        }
+        continue;
+      }
+
+      if (cell.type === 'water_pool') {
+        const ripple = ((Math.sin(time * 2.6 + cell.col) + 1) * 0.5);
+        const foamX = x + tileSize * (0.32 + ripple * 0.22);
+        overlay.ellipse(x + tileSize * 0.5, y + tileSize * 0.52, tileSize * (0.2 + ripple * 0.08), tileSize * (0.09 + ripple * 0.03)).stroke({ width: 2, color: 0xe1f5fe, alpha: 0.28 + ripple * 0.16 });
+        overlay.ellipse(x + tileSize * 0.5, y + tileSize * 0.52, tileSize * (0.28 + ripple * 0.04), tileSize * (0.16 + ripple * 0.02)).stroke({ width: 1.5, color: 0xb3e5fc, alpha: 0.18 + ripple * 0.1 });
+        overlay.circle(foamX, y + tileSize * 0.44, 3).fill({ color: 0xf5fbff, alpha: 0.24 + ripple * 0.18 });
+      }
+    }
   }
 
   private redrawWeatherOverlay(state: WeatherVisualState): void {
