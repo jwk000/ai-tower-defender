@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DeckSystem } from '../DeckSystem.js';
 
+const STARTER_DECK = ['arrow_tower_card', 'shield_guard_card', 'spike_trap_card', 'fireball_card'] as const;
 const POOL = ['arrow_tower', 'shield_guard', 'spike_trap', 'fireball', 'gold_mine'];
 
 function makeRng(sequence: number[]): () => number {
@@ -97,6 +98,16 @@ describe('DeckSystem', () => {
     deck.discard(a);
     deck.reset();
     expect(deck.drawPileSize).toBe(3);
+    expect(deck.discardPileSize).toBe(0);
+  });
+
+  it('initWithCards can seed the exact four starter cards into draw pile for run start', () => {
+    const deck = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: makeRng([0]) });
+
+    deck.initWithCards(STARTER_DECK);
+
+    expect(deck.previewDrawPile()).toEqual([...STARTER_DECK]);
+    expect(deck.drawPileSize).toBe(4);
     expect(deck.discardPileSize).toBe(0);
   });
 

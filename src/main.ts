@@ -108,6 +108,12 @@ const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 0.5;
 const ENERGY_MAX = 10;
 const MANUAL_DRAW_COOLDOWN_SECONDS = 5;
+const STARTER_DECK = [
+  'arrow_tower_card',
+  'shield_guard_card',
+  'spike_trap_card',
+  'fireball_card',
+] as const;
 
 async function bootstrap(): Promise<void> {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -221,12 +227,6 @@ async function bootstrap(): Promise<void> {
     return MYSTIC_EVENT_POOL[idx]!;
   }
 
-  const STARTER_DECK = [
-    'arrow_tower_card',
-    'shield_guard_card',
-    'fireball_card',
-    'cannon_tower_card',
-  ] as const;
   let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
   deckSystem.initWithCards(STARTER_DECK);
   const handSystem = new HandSystem({ maxSize: 4 });
@@ -447,6 +447,7 @@ async function bootstrap(): Promise<void> {
   function loadLevel(levelNumber: number): void {
     const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
     clearBattleEntities();
+    battleContainer.visible = true;
     activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
     activeMovementSystem = createMovementRuntime(levelConfig);
     levelState.reset(levelConfig.waves.length);
