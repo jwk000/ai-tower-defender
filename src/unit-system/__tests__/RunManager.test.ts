@@ -462,6 +462,46 @@ describe('RunManager state machine', () => {
     expect(() => run.claimUpgradeReward('u1')).toThrow(/NODE_ALREADY_ACTIVE/i);
   });
 
+  it('buildUpgradeRewardOptions filters out max-level cards', () => {
+    const run = makeManager(3);
+    run.registerCardInstance('arrow_a', TEST_SKILL_TREE);
+    run.registerCardInstance('arrow_b', TEST_SKILL_TREE);
+    run.registerCardInstance('arrow_c', TEST_SKILL_TREE);
+    run.registerCardInstance('arrow_d', TEST_SKILL_TREE);
+    run.activateNode('arrow_a', 'arrow_lv2');
+    run.activateNode('arrow_a', 'arrow_lv3');
+
+    const options = run.buildUpgradeRewardOptions([
+      { instanceId: 'arrow_a', cardId: 'arrow_tower_card' },
+      { instanceId: 'arrow_b', cardId: 'arrow_tower_card' },
+      { instanceId: 'arrow_c', cardId: 'arrow_tower_card' },
+      { instanceId: 'arrow_d', cardId: 'arrow_tower_card' },
+    ]);
+
+    expect(options).toEqual([
+      { id: 'arrow_b_2', instanceId: 'arrow_b', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'arrow_c_2', instanceId: 'arrow_c', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+      { id: 'arrow_d_2', instanceId: 'arrow_d', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+    ]);
+  });
+
+  it('buildUpgradeRewardOptions returns null when fewer than three upgradeable cards remain', () => {
+    const run = makeManager(3);
+    run.registerCardInstance('arrow_a', TEST_SKILL_TREE);
+    run.registerCardInstance('arrow_b', TEST_SKILL_TREE);
+    run.registerCardInstance('arrow_c', TEST_SKILL_TREE);
+    run.activateNode('arrow_a', 'arrow_lv2');
+    run.activateNode('arrow_a', 'arrow_lv3');
+
+    const options = run.buildUpgradeRewardOptions([
+      { instanceId: 'arrow_a', cardId: 'arrow_tower_card' },
+      { instanceId: 'arrow_b', cardId: 'arrow_tower_card' },
+      { instanceId: 'arrow_c', cardId: 'arrow_tower_card' },
+    ]);
+
+    expect(options).toBeNull();
+  });
+
   it('resetToIdle from Result returns to Idle and clears level/outcome', () => {
     const run = makeManager(1);
     run.startRun();

@@ -251,4 +251,64 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     expect(mgr2.gold).toBe(160);
     expect(deck2.snapshot()).toEqual(deck.snapshot());
   });
+
+  it('restores pending upgrade reward after save/load for inter-level resume', () => {
+    const mgr = makeManager(4);
+    const deck = makeDeck(['a', 'b', 'c'], 3);
+    mgr.startRun();
+    mgr.enterBattle();
+    mgr.completeLevel();
+    mgr.claimCardReward(mgr.pendingCardReward!.options[0]!.id);
+    mgr.claimGoldReward(mgr.pendingGoldReward!.options[0]!.id);
+    mgr.setPendingUpgradeReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'u1', instanceId: 'arrow_a', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u2', instanceId: 'arrow_b', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
+        { id: 'u3', instanceId: 'arrow_c', cardId: 'ice_tower_card', title: '冰塔 Lv.2', description: '升级到 Lv.2' },
+      ],
+    });
+
+    SaveSystem.saveRun(mgr.snapshot(deck));
+
+    const loaded = SaveSystem.loadRun()!;
+    const mgr2 = makeManager(4);
+    mgr2.restoreFrom(loaded);
+
+    expect(mgr2.phase).toBe(RunPhase.InterLevel);
+    expect(mgr2.pendingUpgradeReward).toEqual(mgr.pendingUpgradeReward);
+  });
+
+  it('restores card levels from snapshot when skill tree config resolver is provided', () => {
+    const mgr = makeManager(4);
+    const deck = makeDeck(['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card'], 3);
+    mgr.startRun();
+    mgr.registerCardInstance('arrow_1', {
+      unitCardId: 'arrow_tower_card',
+      nodes: [
+        { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+        { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
+        { id: 'arrow_lv3', name: '箭塔 Lv.3', level: 3, goldCost: 80, prerequisites: ['arrow_lv2'], effects: [] },
+      ],
+    });
+    mgr.activateNode('arrow_1', 'arrow_lv2');
+
+    SaveSystem.saveRun(mgr.snapshot(deck));
+
+    const loaded = SaveSystem.loadRun()!;
+    const mgr2 = makeManager(4);
+    mgr2.restoreFrom(loaded, (unitCardId) => {
+      if (unitCardId !== 'arrow_tower_card') return null;
+      return {
+        unitCardId: 'arrow_tower_card',
+        nodes: [
+          { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+          { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
+          { id: 'arrow_lv3', name: '箭塔 Lv.3', level: 3, goldCost: 80, prerequisites: ['arrow_lv2'], effects: [] },
+        ],
+      };
+    });
+
+    expect(mgr2.getCardLevel('arrow_tower_card_0')).toBe(2);
+  });
 });

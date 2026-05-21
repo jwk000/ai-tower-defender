@@ -660,7 +660,6 @@ export class RunManager {
   }
 
   restoreFrom(snap: RunSnapshot, resolveSkillTreeConfig?: (unitCardId: string) => CardSkillTreeConfig | null): void {
-    void resolveSkillTreeConfig;
     this._phase = snap.phase === 'InterLevel' ? RunPhase.InterLevel : RunPhase.LevelMap;
     this._currentLevel = snap.currentLevelIdx;
     this._outcome = null;
@@ -671,6 +670,21 @@ export class RunManager {
     this._pendingGoldReward = 'pendingGoldReward' in snap ? snap.pendingGoldReward : null;
     this._pendingUpgradeReward = 'pendingUpgradeReward' in snap ? snap.pendingUpgradeReward : null;
     this.resetSkillTreeState();
+
+    if (!resolveSkillTreeConfig) return;
+    for (const [index, cardLevel] of snap.cardLevels.entries()) {
+      const config = resolveSkillTreeConfig(cardLevel.cardId);
+      if (!config) continue;
+      const instanceId = `${cardLevel.cardId}_${index}`;
+      this.registerCardInstance(instanceId, config);
+      for (const node of config.nodes
+        .filter((entry) => entry.level > 1 && entry.level <= cardLevel.level)
+        .sort((a, b) => a.level - b.level)) {
+        const state = this._skillTree.instances.get(instanceId);
+        if (!state) break;
+        state.activeNodes.add(node.id);
+      }
+    }
   }
 
   hasSkillNode(nodeId: string): boolean {
