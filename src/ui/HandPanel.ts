@@ -73,7 +73,7 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const panelY = y - HAND_PANEL_PADDING_Y;
   const panelWidth = totalSlotsWidth + HAND_PANEL_PADDING_X * 2;
   const panelHeight = SLOT_HEIGHT + HAND_PANEL_PADDING_Y * 2;
-  const drawButtonX = Math.max(12, panelX - DRAW_BUTTON_WIDTH - 20);
+  const drawButtonX = Math.min(viewportWidth - DRAW_BUTTON_WIDTH - 24, panelX + panelWidth + 20);
   const drawButtonY = y + (SLOT_HEIGHT - DRAW_BUTTON_HEIGHT) / 2;
   return {
     slots: cards.map((card, i) => ({

@@ -165,6 +165,9 @@ export class UIPresenter {
     this.hudBackground.clear();
     this.hudBackground.roundRect(12, 10, this.viewportWidth - 24, 112, 18).fill({ color: 0x0f1720, alpha: 0.78 });
     this.hudBackground.roundRect(12, 10, this.viewportWidth - 24, 112, 18).stroke({ width: 2, color: 0x5c6b7a, alpha: 0.95 });
+
+    const midX = this.viewportWidth / 2;
+    this.hudBackground.roundRect(midX - 1, 22, 2, 88, 1).fill({ color: 0x5c6b7a, alpha: 0.45 });
   }
 
   private drawHandBackground(layout: ReturnType<typeof layoutHand>): void {
@@ -344,21 +347,22 @@ export class UIPresenter {
     this.phaseText.text = hud.phaseLabel;
     this.passiveText.text = hud.passives;
 
-    this.goldText.position.set(30, 24);
-    this.crystalText.position.set(150, 24);
-    this.waveText.position.set(300, 24);
-    this.enemyText.position.set(430, 24);
-    this.runText.position.set(550, 24);
-    this.phaseText.position.set(700, 26);
-    this.passiveText.position.set(30, 62);
+    this.goldText.position.set(36, 26);
+    this.crystalText.position.set(170, 26);
+    this.waveText.position.set(320, 26);
+    this.enemyText.position.set(this.viewportWidth * 0.5 + 40, 26);
+    this.runText.position.set(this.viewportWidth * 0.5 + 170, 26);
+    this.phaseText.position.set(this.viewportWidth * 0.5 + 340, 28);
+    this.passiveText.style.wordWrapWidth = Math.max(300, this.viewportWidth - 760);
+    this.passiveText.position.set(this.viewportWidth * 0.5 + 40, 62);
     this.drawHudBackground();
 
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
     this.drawHandBackground(layout);
     this.energyText.text = layout.energyLabel;
-    this.energyText.position.set(layout.panel.x + 24, layout.panel.y + layout.panel.height - 40);
+    this.energyText.position.set(layout.panel.x + 24, layout.panel.y + 18);
     this.drawText.text = layout.drawLabel;
-    this.drawText.position.set(layout.drawButton.x, layout.drawButton.y + layout.drawButton.height + 10);
+    this.drawText.position.set(layout.drawButton.x + 20, layout.drawButton.y - 28);
     this.drawButtonGraphics.clear();
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
       .fill({ color: layout.drawButton.enabled ? 0x1565c0 : 0x37474f, alpha: 0.95 });
