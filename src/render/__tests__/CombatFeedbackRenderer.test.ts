@@ -128,6 +128,7 @@ describe('Renderer weather animation', () => {
         base: 0x1e88e5,
       },
       weather: { pool: ['rain'], initial: 'rain' },
+      obstacles: [{ type: 'ice_tile', row: 1, col: 0 }],
     });
 
     const before = (renderer as unknown as { weatherState: { time: number } | null }).weatherState?.time ?? -1;
@@ -135,5 +136,34 @@ describe('Renderer weather animation', () => {
     const after = (renderer as unknown as { weatherState: { time: number } | null }).weatherState?.time ?? -1;
 
     expect(after).toBeGreaterThan(before);
+  });
+
+  it('accepts obstacle overlays for special tiles', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 2 * 64,
+      worldHeight: 2 * 64,
+      cellSize: 64,
+    });
+
+    expect(() => renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['path', 'empty'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        base: 0x1e88e5,
+      },
+      obstacles: [
+        { type: 'conveyor_belt', row: 0, col: 0 },
+        { type: 'spore_pod', row: 1, col: 0 },
+        { type: 'water_pool', row: 0, col: 1 },
+      ],
+    })).not.toThrow();
   });
 });

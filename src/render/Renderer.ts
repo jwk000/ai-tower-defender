@@ -146,6 +146,7 @@ export class Renderer {
     tileSize: number;
     tiles: readonly (readonly string[])[];
     tileColors: Readonly<Record<string, number>>;
+    obstacles?: readonly { type: string; row: number; col: number }[];
     sceneDescription?: string;
     weather?: { pool: readonly string[]; initial?: string };
   }): void {
@@ -155,6 +156,7 @@ export class Renderer {
     const weather = normalizeWeather((level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase());
     const w = level.mapCols * level.tileSize;
     const h = level.mapRows * level.tileSize;
+    const obstacleByCell = new Map((level.obstacles ?? []).map((ob) => [`${ob.row},${ob.col}`, ob.type]));
 
     const sky = new Graphics();
     const topColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xa7c7e7
@@ -200,6 +202,31 @@ export class Renderer {
         }
         if (tile === 'blocked') {
           board.rect(x + 10, y + 10, level.tileSize - 20, level.tileSize - 20).stroke({ width: 2, color: 0x263238, alpha: 0.65 });
+        }
+
+        const obstacleType = obstacleByCell.get(`${row},${col}`) ?? '';
+        if (obstacleType === 'ice_tile') {
+          board.roundRect(x + 6, y + 6, level.tileSize - 12, level.tileSize - 12, 10).stroke({ width: 2, color: 0xe1f5fe, alpha: 0.9 });
+          board.moveTo(x + 14, y + 20).lineTo(x + level.tileSize - 14, y + level.tileSize - 20);
+          board.moveTo(x + level.tileSize * 0.35, y + 12).lineTo(x + level.tileSize * 0.7, y + level.tileSize - 14);
+          board.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.5 });
+        }
+        if (obstacleType === 'conveyor_belt') {
+          board.roundRect(x + 4, y + 18, level.tileSize - 8, level.tileSize - 36, 8).fill({ color: 0x8d6e63, alpha: 0.45 });
+          for (let i = 0; i < 3; i++) {
+            const cx = x + 16 + i * 16;
+            board.moveTo(cx, y + level.tileSize * 0.35).lineTo(cx + 10, y + level.tileSize * 0.5).lineTo(cx, y + level.tileSize * 0.65);
+          }
+          board.stroke({ width: 3, color: 0xffcc80, alpha: 0.65 });
+        }
+        if (obstacleType === 'spore_pod') {
+          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.18).fill({ color: 0xab47bc, alpha: 0.55 });
+          board.circle(x + level.tileSize * 0.34, y + level.tileSize * 0.4, level.tileSize * 0.08).fill({ color: 0xe1bee7, alpha: 0.45 });
+          board.circle(x + level.tileSize * 0.66, y + level.tileSize * 0.6, level.tileSize * 0.06).fill({ color: 0xe1bee7, alpha: 0.35 });
+        }
+        if (obstacleType === 'water_pool') {
+          board.ellipse(x + level.tileSize * 0.5, y + level.tileSize * 0.52, level.tileSize * 0.28, level.tileSize * 0.18).fill({ color: 0x4fc3f7, alpha: 0.38 });
+          board.ellipse(x + level.tileSize * 0.46, y + level.tileSize * 0.48, level.tileSize * 0.18, level.tileSize * 0.08).fill({ color: 0xb3e5fc, alpha: 0.28 });
         }
       }
     }

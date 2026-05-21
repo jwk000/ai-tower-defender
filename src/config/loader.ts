@@ -331,6 +331,12 @@ export interface LevelWeatherConfig {
   readonly initial?: string;
 }
 
+export interface LevelObstacleConfig {
+  readonly type: string;
+  readonly row: number;
+  readonly col: number;
+}
+
 export interface LevelAvailable {
   readonly towers: readonly string[];
   readonly units: readonly string[];
@@ -347,6 +353,7 @@ export interface LevelConfig {
   readonly mapRows: number;
   readonly tiles: readonly (readonly string[])[];
   readonly tileColors: Readonly<Record<string, number>>;
+  readonly obstacles: readonly LevelObstacleConfig[];
   readonly path: Array<{ x: number; y: number }>;
   readonly crystal: { row: number; col: number };
   readonly spawns: readonly LevelSpawnPoint[];
@@ -402,6 +409,14 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     Object.entries(((parsed.map as Record<string, unknown>).tileColors ?? {}) as Record<string, unknown>)
       .map(([key, value]) => [key, normalizeColor(value)]),
   );
+  const obstacles = ((((parsed.map as Record<string, unknown>).obstacles ?? []) as unknown[])
+    .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .map((entry) => ({
+      type: typeof entry.type === 'string' ? entry.type : 'unknown',
+      row: typeof entry.row === 'number' ? entry.row : -1,
+      col: typeof entry.col === 'number' ? entry.col : -1,
+    }))
+    .filter((entry) => entry.row >= 0 && entry.col >= 0));
   return {
     id: parsed.id,
     ...(parsed.name ? { name: parsed.name } : {}),
@@ -425,6 +440,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     mapRows: parsed.map.rows,
     tiles: (((parsed.map as Record<string, unknown>).tiles ?? []) as string[][]).map((row) => [...row]),
     tileColors,
+    obstacles,
     path,
     crystal: { row: anchor.row, col: anchor.col },
     spawns,

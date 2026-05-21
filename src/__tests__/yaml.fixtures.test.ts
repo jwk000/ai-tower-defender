@@ -154,6 +154,13 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.weather?.pool).toEqual(['sunny', 'rain', 'fog']);
     expect(cfg.weather?.initial).toBe('random_from_pool');
   });
+  it('parses obstacle metadata from real level yaml', () => {
+    const text = readFileSync(resolve(CONFIG, 'levels/level-03.yaml'), 'utf8');
+    const cfg = parseLevelConfig(text);
+    expect(cfg.obstacles).toContainEqual({ type: 'ice_tile', row: 7, col: 14 });
+    expect(cfg.obstacles).toContainEqual({ type: 'ice_tile', row: 7, col: 17 });
+  });
+
   it('keeps multi-spawn weather-bearing level metadata for factory stage levels', () => {
     const text = readFileSync(resolve(CONFIG, 'levels/level-06.yaml'), 'utf8');
     const cfg = parseLevelConfig(text);
