@@ -116,7 +116,10 @@ export class RunController {
 
   claimCardReward(optionId: string): CardRewardOption {
     const reward = this.runManager.claimCardReward(optionId);
-    this.deckSystem?.addCard(reward.cardId);
+    const added = this.deckSystem?.addCard(reward.cardId);
+    if (added) {
+      this.runManager.registerClaimedCardReward(added.instanceId, reward.cardId);
+    }
     this.syncSceneVisibility();
     return reward;
   }

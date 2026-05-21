@@ -817,6 +817,35 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.phase).toBe(RunPhase.LevelMap);
   });
 
+  it('claiming a core spell reward registers its upgrade track on the new deck instance', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });
+    const scenes = makeScenes();
+    const deckSystem = new DeckSystem({
+      pool: ['arrow_tower_card', 'shield_guard_card', 'cannon_tower_card'],
+      deckSize: 3,
+      rng: makeRng(71),
+    });
+    deckSystem.initWithCards(['arrow_tower_card', 'shield_guard_card', 'cannon_tower_card']);
+    const controller = new RunController({ game, runManager, scenes, deckSystem });
+
+    controller.startRun();
+    controller.enterBattle();
+    controller.completeCurrentLevel();
+    controller.setPendingCardReward([
+      { id: 'spell_1', cardId: 'fireball_card', title: '火球术', description: '法术流基础爆发。' },
+      { id: 'spell_2', cardId: 'archer_card', title: '弓箭手', description: '召唤流基础输出位。' },
+      { id: 'spell_3', cardId: 'gold_mine_card', title: '金矿', description: '建筑流经济核心。' },
+    ]);
+
+    controller.claimCardReward('spell_1');
+
+    const fireball = deckSystem.getCardInstances().find((entry) => entry.cardId === 'fireball_card');
+    expect(fireball).toBeTruthy();
+    expect(runManager.getNextUpgradeNode(fireball!.instanceId)?.name).toBe('火球术 Lv.2');
+    expect(runManager.getNextUpgradeNode(fireball!.instanceId)?.goldCost).toBe(60);
+  });
+
   it('deck management APIs upgrade and delete card instances in-place', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });

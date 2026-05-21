@@ -213,6 +213,51 @@ describe('RunManager state machine', () => {
     expect(run.pendingGoldReward).toBeNull();
   });
 
+  it('prioritizes core cards when building upgrade reward options', () => {
+    const run = makeManager(3);
+    run.registerCardInstance('shield_guard_card_inst_2', { unitCardId: 'shield_guard', nodes: [
+      { id: 'shield_guard_lv1', name: '盾卫 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'shield_guard_lv2', name: '盾卫 Lv.2', level: 2, goldCost: 55, prerequisites: ['shield_guard_lv1'], effects: [] },
+      { id: 'shield_guard_lv3', name: '盾卫 Lv.3', level: 3, goldCost: 80, prerequisites: ['shield_guard_lv2'], effects: [] },
+    ] });
+    run.registerCardInstance('fireball_card_inst_3', { unitCardId: 'fireball_card', nodes: [
+      { id: 'fireball_card_lv1', name: '火球术 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'fireball_card_lv2', name: '火球术 Lv.2', level: 2, goldCost: 60, prerequisites: ['fireball_card_lv1'], effects: [] },
+      { id: 'fireball_card_lv3', name: '火球术 Lv.3', level: 3, goldCost: 90, prerequisites: ['fireball_card_lv2'], effects: [] },
+    ] });
+    run.registerCardInstance('gold_mine_card_inst_4', { unitCardId: 'gold_mine_card', nodes: [
+      { id: 'gold_mine_card_lv1', name: '金矿 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      { id: 'gold_mine_card_lv2', name: '金矿 Lv.2', level: 2, goldCost: 70, prerequisites: ['gold_mine_card_lv1'], effects: [] },
+      { id: 'gold_mine_card_lv3', name: '金矿 Lv.3', level: 3, goldCost: 110, prerequisites: ['gold_mine_card_lv2'], effects: [] },
+    ] });
+    const options = run.buildUpgradeRewardOptions([
+      { instanceId: 'shield_guard_card_inst_2', cardId: 'shield_guard_card' },
+      { instanceId: 'fireball_card_inst_3', cardId: 'fireball_card' },
+      { instanceId: 'gold_mine_card_inst_4', cardId: 'gold_mine_card' },
+    ]);
+
+    expect(options).toEqual([
+      { id: 'shield_guard_card_inst_2_2', instanceId: 'shield_guard_card_inst_2', cardId: 'shield_guard_card', title: '盾卫 Lv.2', description: '升级到 Lv.2' },
+      { id: 'fireball_card_inst_3_2', instanceId: 'fireball_card_inst_3', cardId: 'fireball_card', title: '火球术 Lv.2', description: '升级到 Lv.2' },
+      { id: 'gold_mine_card_inst_4_2', instanceId: 'gold_mine_card_inst_4', cardId: 'gold_mine_card', title: '金矿 Lv.2', description: '升级到 Lv.2' },
+    ]);
+  });
+
+  it('registers card reward level tracks for spell and economy core cards', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    run.registerClaimedCardReward('fireball_card_inst_5', 'fireball_card');
+    run.registerClaimedCardReward('gold_mine_card_inst_6', 'gold_mine_card');
+    run.registerClaimedCardReward('spike_trap_card_inst_7', 'spike_trap_card');
+
+    expect(run.getNextUpgradeNode('fireball_card_inst_5')?.name).toBe('火球术 Lv.2');
+    expect(run.getNextUpgradeNode('gold_mine_card_inst_6')?.goldCost).toBe(70);
+    expect(run.getNextUpgradeNode('spike_trap_card_inst_7')?.goldCost).toBe(45);
+  });
+
   it('rotates reward starters across summon, spell, and building trap archetypes', () => {
     const run = makeManager(8);
     run.startRun();

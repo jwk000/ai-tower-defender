@@ -24,3 +24,12 @@ fireball_card:
     damage: 80
     radius: 80
     affectAlly: false
+  upgrades:
+    - level: 2
+      goldCost: 60
+      title: 火球术 Lv.2
+      description: 伤害提升到 120，半径扩大到 90。
+    - level: 3
+      goldCost: 90
+      title: 火球术 Lv.3
+      description: 伤害提升到 155，半径扩大到 100。

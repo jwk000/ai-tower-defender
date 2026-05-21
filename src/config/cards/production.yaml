@@ -18,6 +18,15 @@ gold_mine_card:
   unitConfigId: gold_mine
   placement:
     targetType: tile
+  upgrades:
+    - level: 2
+      goldCost: 70
+      title: 金矿 Lv.2
+      description: 产金效率提升，滚雪球更快。
+    - level: 3
+      goldCost: 110
+      title: 金矿 Lv.3
+      description: 进一步强化经济产出，适合建筑流后期成型。
 
 energy_crystal_card:
   name: 能量水晶

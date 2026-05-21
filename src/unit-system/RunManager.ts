@@ -62,6 +62,13 @@ export interface UpgradeRewardOption {
   readonly description: string;
 }
 
+export interface CardUpgradeOption {
+  readonly level: number;
+  readonly goldCost: number;
+  readonly title: string;
+  readonly description: string;
+}
+
 export interface PendingUpgradeReward {
   readonly sourceLevel: number;
   readonly options: readonly [UpgradeRewardOption, UpgradeRewardOption, UpgradeRewardOption];
@@ -90,6 +97,30 @@ const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
 ] as const;
 
 const DEMO_GOLD_REWARD_AMOUNTS = [30, 50, 80] as const;
+
+const DEMO_CARD_UPGRADES: Readonly<Record<string, readonly CardUpgradeOption[]>> = {
+  fireball_card: [
+    { level: 2, goldCost: 60, title: '火球术 Lv.2', description: '伤害提升到 120，半径扩大到 90。' },
+    { level: 3, goldCost: 90, title: '火球术 Lv.3', description: '伤害提升到 155，半径扩大到 100。' },
+  ],
+  gold_mine_card: [
+    { level: 2, goldCost: 70, title: '金矿 Lv.2', description: '产金效率提升，滚雪球更快。' },
+    { level: 3, goldCost: 110, title: '金矿 Lv.3', description: '进一步强化经济产出，适合建筑流后期成型。' },
+  ],
+  spike_trap_card: [
+    { level: 2, goldCost: 45, title: '地刺 Lv.2', description: '伤害提升，补足前中期路径压制。' },
+    { level: 3, goldCost: 75, title: '地刺 Lv.3', description: '进一步强化陷阱磨血能力，适合长线关卡。' },
+  ],
+} as const;
+
+const CORE_UPGRADE_CARD_PRIORITY: readonly string[] = [
+  'archer_card',
+  'shield_guard_card',
+  'priest_card',
+  'fireball_card',
+  'gold_mine_card',
+  'spike_trap_card',
+] as const;
 
 const VALID_INTER_LEVEL_CHOICES: ReadonlySet<string> = new Set(['shop', 'mystic']);
 
@@ -373,6 +404,13 @@ export class RunManager {
     return option;
   }
 
+  registerClaimedCardReward(instanceId: string, cardId: string): void {
+    const upgrades = this.getCardUpgradeOptions(cardId);
+    if (upgrades.length > 0) {
+      this.registerCardLevelTrack(instanceId, cardId, upgrades);
+    }
+  }
+
   claimGoldReward(optionId: string): GoldRewardOption {
     if (this._phase !== RunPhase.InterLevel) {
       throw new Error(`[RunManager] illegal transition: claimGoldReward from ${this._phase}`);
@@ -470,6 +508,22 @@ export class RunManager {
       config,
       activeNodes,
     });
+  }
+
+  registerCardLevelTrack(instanceId: string, cardId: string, upgrades: readonly CardUpgradeOption[]): void {
+    if (upgrades.length === 0) return;
+    const nodes = [
+      { id: `${cardId}_lv1`, name: `${cardId} Lv.1`, level: 1, goldCost: 0, prerequisites: [], effects: [] },
+      ...upgrades.map((upgrade) => ({
+        id: `${cardId}_lv${upgrade.level}`,
+        name: upgrade.title,
+        level: upgrade.level,
+        goldCost: upgrade.goldCost,
+        prerequisites: [`${cardId}_lv${upgrade.level - 1}`],
+        effects: [],
+      })),
+    ];
+    this.registerCardInstance(instanceId, { unitCardId: cardId, nodes });
   }
 
   getCardSkillTreeState(instanceId: string): CardSkillTreeState | null {
@@ -657,7 +711,51 @@ export class RunManager {
   }
 
   private findNextUpgradeNode(state: CardSkillTreeState): SkillTreeNodeConfig | null {
-    return state.config.nodes.find((node) => !state.activeNodes.has(node.id)) ?? null;
+    return state.config.nodes
+      .filter((node) => !state.activeNodes.has(node.id))
+      .sort((a, b) => a.level - b.level)[0] ?? null;
+  }
+
+  buildUpgradeRewardOptions(cardInstances: readonly { instanceId: string; cardId: string }[]): readonly [UpgradeRewardOption, UpgradeRewardOption, UpgradeRewardOption] | null {
+    const eligible = cardInstances
+      .map((instance) => {
+        const nextNode = this.getNextUpgradeNode(instance.instanceId);
+        if (!nextNode) return null;
+        return {
+          id: `${instance.instanceId}_${nextNode.level}`,
+          instanceId: instance.instanceId,
+          cardId: instance.cardId,
+          title: nextNode.name,
+          description: `升级到 Lv.${nextNode.level}`,
+          nextLevel: nextNode.level,
+        };
+      })
+      .filter((option): option is UpgradeRewardOption & { nextLevel: number } => option !== null);
+    if (eligible.length < 3) return null;
+
+    const priority = eligible.filter((option) => CORE_UPGRADE_CARD_PRIORITY.includes(option.cardId));
+    const fallback = eligible.filter((option) => !CORE_UPGRADE_CARD_PRIORITY.includes(option.cardId));
+    const ranked = [...priority, ...fallback]
+      .sort((a, b) => {
+        const aPriority = CORE_UPGRADE_CARD_PRIORITY.indexOf(a.cardId);
+        const bPriority = CORE_UPGRADE_CARD_PRIORITY.indexOf(b.cardId);
+        if (aPriority !== -1 || bPriority !== -1) {
+          if (aPriority === -1) return 1;
+          if (bPriority === -1) return -1;
+          if (aPriority !== bPriority) return aPriority - bPriority;
+        }
+        if (a.nextLevel !== b.nextLevel) return a.nextLevel - b.nextLevel;
+        return a.instanceId.localeCompare(b.instanceId);
+      })
+      .slice(0, 3)
+      .map(({ nextLevel, ...option }) => option);
+
+    if (ranked.length !== 3) return null;
+    return ranked as [UpgradeRewardOption, UpgradeRewardOption, UpgradeRewardOption];
+  }
+
+  getCardUpgradeOptions(cardId: string): readonly CardUpgradeOption[] {
+    return DEMO_CARD_UPGRADES[cardId] ?? [];
   }
 
   private applyUpgradeReward(instanceId: string): boolean {

@@ -19,3 +19,12 @@ spike_trap_card:
   placement:
     targetType: tile
     range: path
+  upgrades:
+    - level: 2
+      goldCost: 45
+      title: 地刺 Lv.2
+      description: 伤害提升，补足前中期路径压制。
+    - level: 3
+      goldCost: 75
+      title: 地刺 Lv.3
+      description: 进一步强化陷阱磨血能力，适合长线关卡。
