@@ -590,7 +590,7 @@ export class RunManager {
 
   snapshot(deckSystem: DeckSystem): RunSnapshot {
     return {
-      version: 3,
+      version: 4,
       savedAt: Date.now(),
       phase: this._phase === RunPhase.InterLevel ? 'InterLevel' : 'LevelMap',
       currentLevelIdx: this._currentLevel,
@@ -600,6 +600,7 @@ export class RunManager {
       pendingCardReward: this._pendingCardReward,
       pendingGoldReward: this._pendingGoldReward,
       pendingUpgradeReward: this._pendingUpgradeReward,
+      cardLevels: this.buildCardLevelSnapshot(),
       deck: deckSystem.snapshot(),
     };
   }
@@ -639,6 +640,20 @@ export class RunManager {
       for (const n of inst.activeNodes) all.add(n);
     }
     return all;
+  }
+
+  private buildCardLevelSnapshot(): { cardId: string; level: number }[] {
+    const result: { cardId: string; level: number }[] = [];
+    for (const state of this._skillTree.instances.values()) {
+      const activeLevels = state.config.nodes
+        .filter((node) => state.activeNodes.has(node.id))
+        .map((node) => node.level);
+      result.push({
+        cardId: state.unitCardId,
+        level: activeLevels.length > 0 ? Math.max(...activeLevels) : 1,
+      });
+    }
+    return result;
   }
 
   private findNextUpgradeNode(state: CardSkillTreeState): SkillTreeNodeConfig | null {

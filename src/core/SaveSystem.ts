@@ -1,6 +1,31 @@
 import type { PendingCardReward, PendingGoldReward, PendingUpgradeReward } from '../unit-system/RunManager.js';
 
+export interface CardLevelConfig {
+  readonly cardId: string;
+  readonly level: number;
+}
+
 export interface RunSnapshot {
+  readonly version: 4;
+  readonly savedAt: number;
+  readonly phase: 'LevelMap' | 'InterLevel';
+  readonly currentLevelIdx: number;
+  readonly gold: number;
+  readonly crystalHp: number;
+  readonly crystalHpMax: number;
+  readonly pendingCardReward: PendingCardReward | null;
+  readonly pendingGoldReward: PendingGoldReward | null;
+  readonly pendingUpgradeReward: PendingUpgradeReward | null;
+  readonly cardLevels: readonly CardLevelConfig[];
+  readonly deck: {
+    readonly drawPile: string[];
+    readonly discardPile: string[];
+    readonly drawPileInstances?: string[];
+    readonly discardPileInstances?: string[];
+  };
+}
+
+export interface RunSnapshotV3 {
   readonly version: 3;
   readonly savedAt: number;
   readonly phase: 'LevelMap' | 'InterLevel';
@@ -56,14 +81,32 @@ export interface RunSnapshotV1 {
   };
 }
 
-const STORAGE_KEY = 'td_run_v3';
+const STORAGE_KEY = 'td_run_v4';
+const LEGACY_KEY_V3 = 'td_run_v3';
 const LEGACY_KEY_V2 = 'td_run_v2';
 const LEGACY_KEY_V1 = 'td_run_v1';
 const LEGACY_KEY = 'td_ongoing_run';
 
-function migrateV2ToV3(v2: RunSnapshotV2): RunSnapshot {
+function migrateV3ToV4(v3: RunSnapshotV3): RunSnapshot {
   return {
-    version: 3,
+    version: 4,
+    savedAt: v3.savedAt,
+    phase: v3.phase,
+    currentLevelIdx: v3.currentLevelIdx,
+    gold: v3.gold,
+    crystalHp: v3.crystalHp,
+    crystalHpMax: v3.crystalHpMax,
+    pendingCardReward: v3.pendingCardReward,
+    pendingGoldReward: v3.pendingGoldReward,
+    pendingUpgradeReward: v3.pendingUpgradeReward,
+    cardLevels: [],
+    deck: v3.deck,
+  };
+}
+
+function migrateV2ToV4(v2: RunSnapshotV2): RunSnapshot {
+  return {
+    version: 4,
     savedAt: v2.savedAt,
     phase: v2.phase,
     currentLevelIdx: v2.currentLevelIdx,
@@ -73,13 +116,14 @@ function migrateV2ToV3(v2: RunSnapshotV2): RunSnapshot {
     pendingCardReward: v2.pendingCardReward,
     pendingGoldReward: v2.pendingGoldReward,
     pendingUpgradeReward: v2.pendingUpgradeReward,
+    cardLevels: [],
     deck: v2.deck,
   };
 }
 
-function migrateV1ToV3(v1: RunSnapshotV1): RunSnapshot {
+function migrateV1ToV4(v1: RunSnapshotV1): RunSnapshot {
   return {
-    version: 3,
+    version: 4,
     savedAt: v1.savedAt,
     phase: v1.phase,
     currentLevelIdx: v1.currentLevelIdx,
@@ -89,6 +133,7 @@ function migrateV1ToV3(v1: RunSnapshotV1): RunSnapshot {
     pendingCardReward: null,
     pendingGoldReward: null,
     pendingUpgradeReward: null,
+    cardLevels: [],
     deck: v1.deck,
   };
 }
@@ -96,6 +141,7 @@ function migrateV1ToV3(v1: RunSnapshotV1): RunSnapshot {
 export const SaveSystem = {
   hasSavedRun(): boolean {
     return localStorage.getItem(STORAGE_KEY) !== null
+      || localStorage.getItem(LEGACY_KEY_V3) !== null
       || localStorage.getItem(LEGACY_KEY_V2) !== null
       || localStorage.getItem(LEGACY_KEY_V1) !== null;
   },
@@ -105,8 +151,18 @@ export const SaveSystem = {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as RunSnapshot;
-        if (parsed.version !== 3) return null;
+        if (parsed.version !== 4) return null;
         return parsed;
+      } catch {
+        return null;
+      }
+    }
+    const rawV3 = localStorage.getItem(LEGACY_KEY_V3);
+    if (rawV3) {
+      try {
+        const parsed = JSON.parse(rawV3) as RunSnapshotV3;
+        if (parsed.version !== 3) return null;
+        return migrateV3ToV4(parsed);
       } catch {
         return null;
       }
@@ -116,7 +172,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV2) as RunSnapshotV2;
         if (parsed.version !== 2) return null;
-        return migrateV2ToV3(parsed);
+        return migrateV2ToV4(parsed);
       } catch {
         return null;
       }
@@ -126,7 +182,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV1) as RunSnapshotV1;
         if (parsed.version !== 1) return null;
-        return migrateV1ToV3(parsed);
+        return migrateV1ToV4(parsed);
       } catch {
         return null;
       }
@@ -140,6 +196,7 @@ export const SaveSystem = {
 
   clearRun(): void {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY_V3);
     localStorage.removeItem(LEGACY_KEY_V2);
     localStorage.removeItem(LEGACY_KEY_V1);
     localStorage.removeItem(LEGACY_KEY);

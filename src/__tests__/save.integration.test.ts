@@ -64,7 +64,7 @@ describe('RunManager snapshot / restoreFrom', () => {
     mgr.damageCrystal(3);
 
     const snap = mgr.snapshot(deck);
-    expect(snap.version).toBe(3);
+    expect(snap.version).toBe(4);
     expect(snap.phase).toBe('LevelMap');
     expect(snap.currentLevelIdx).toBe(1);
     expect(snap.gold).toBe(150);
@@ -103,7 +103,7 @@ describe('SaveSystem save / load round-trip', () => {
 
   it('saves and loads a RunSnapshot round-trip', () => {
     const snap: RunSnapshot = {
-      version: 3,
+      version: 4,
       savedAt: 1000,
       phase: 'LevelMap',
       currentLevelIdx: 3,
@@ -113,24 +113,25 @@ describe('SaveSystem save / load round-trip', () => {
       pendingCardReward: null,
       pendingGoldReward: null,
       pendingUpgradeReward: null,
+      cardLevels: [],
       deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
     };
 
     SaveSystem.saveRun(snap);
     expect(SaveSystem.hasSavedRun()).toBe(true);
-    expect(localStorage.getItem('td_run_v3')).not.toContain('skillPoints');
-    expect(localStorage.getItem('td_run_v3')).not.toContain('skillTree');
+    expect(localStorage.getItem('td_run_v4')).not.toContain('skillPoints');
+    expect(localStorage.getItem('td_run_v4')).not.toContain('skillTree');
 
     const loaded = SaveSystem.loadRun();
     expect(loaded).toEqual(snap);
   });
 
   it('loadRun returns null for unknown version', () => {
-    localStorage.setItem('td_run_v3', JSON.stringify({ version: 99, phase: 'LevelMap' }));
+    localStorage.setItem('td_run_v4', JSON.stringify({ version: 99, phase: 'LevelMap' }));
     expect(SaveSystem.loadRun()).toBeNull();
   });
 
-  it('loadRun migrates v2 save to v3 format', () => {
+  it('loadRun migrates v2 save to v4 format', () => {
     const v2Save: RunSnapshotV2 = {
       version: 2,
       savedAt: 999,
@@ -148,7 +149,7 @@ describe('SaveSystem save / load round-trip', () => {
     };
     localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(3);
+    expect(loaded?.version).toBe(4);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
     expect(loaded).not.toBeNull();
@@ -156,7 +157,7 @@ describe('SaveSystem save / load round-trip', () => {
     expect('skillTree' in loaded!).toBe(false);
   });
 
-  it('loadRun migrates v1 save to v3 format', () => {
+  it('loadRun migrates v1 save to v4 format', () => {
     const v1Save = {
       version: 1,
       savedAt: 999,
@@ -171,7 +172,7 @@ describe('SaveSystem save / load round-trip', () => {
     };
     localStorage.setItem('td_run_v1', JSON.stringify(v1Save));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(3);
+    expect(loaded?.version).toBe(4);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
     expect(loaded).not.toBeNull();
@@ -208,11 +209,13 @@ describe('SaveSystem save / load round-trip', () => {
   });
 
   it('clearRun removes save and legacy keys', () => {
+    localStorage.setItem('td_run_v4', '{}');
     localStorage.setItem('td_run_v3', '{}');
     localStorage.setItem('td_run_v2', '{}');
     localStorage.setItem('td_run_v1', '{}');
     localStorage.setItem('td_ongoing_run', '{}');
     SaveSystem.clearRun();
+    expect(localStorage.getItem('td_run_v4')).toBeNull();
     expect(localStorage.getItem('td_run_v3')).toBeNull();
     expect(localStorage.getItem('td_run_v2')).toBeNull();
     expect(localStorage.getItem('td_run_v1')).toBeNull();
