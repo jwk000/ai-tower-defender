@@ -624,9 +624,9 @@ describe('RunManager state machine', () => {
     run.completeLevel();
 
     expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'swordsman_card',
       'archer_card',
       'shield_guard_card',
-      'priest_card',
     ]);
 
     claimBaseInterLevelRewards(run);
@@ -635,9 +635,9 @@ describe('RunManager state machine', () => {
     run.completeLevel();
 
     expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'shield_guard_card',
       'priest_card',
       'fireball_card',
-      'gold_mine_card',
     ]);
   });
 
@@ -648,7 +648,7 @@ describe('RunManager state machine', () => {
     run.completeLevel();
 
     const firstRound = run.pendingCardReward!.options.map((option) => option.cardId);
-    expect(firstRound).toEqual(['archer_card', 'shield_guard_card', 'priest_card']);
+    expect(firstRound).toEqual(['swordsman_card', 'archer_card', 'shield_guard_card']);
 
     claimBaseInterLevelRewards(run);
     run.returnToLevelMap();
@@ -673,7 +673,7 @@ describe('RunManager state machine', () => {
     expect(secondRound).toContain('fireball_card');
   });
 
-  it('keeps building and trap archetype reachable by the second reward round', () => {
+  it('keeps the second reward round focused on extended summon and spell followups', () => {
     const run = makeManager(8);
     run.startRun();
     run.enterBattle();
@@ -684,7 +684,7 @@ describe('RunManager state machine', () => {
     run.completeLevel();
 
     const secondRound = run.pendingCardReward!.options.map((option) => option.cardId);
-    expect(secondRound).toContain('gold_mine_card');
+    expect(secondRound).toEqual(['shield_guard_card', 'priest_card', 'fireball_card']);
   });
 
   it('offers gold support alongside archetype rewards in the first two rounds', () => {
@@ -712,7 +712,7 @@ describe('RunManager state machine', () => {
     run.completeLevel();
 
     const summonPick = run.claimCardReward(run.pendingCardReward!.options[1]!.id);
-    expect(summonPick.cardId).toBe('shield_guard_card');
+    expect(summonPick.cardId).toBe('archer_card');
     run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
     run.claimRelicReward(run.pendingRelicReward!.options[0]!.id);
     run.returnToLevelMap();
@@ -722,7 +722,59 @@ describe('RunManager state machine', () => {
     run.enterBattle();
     run.completeLevel();
     const followupIds = run.pendingCardReward!.options.map((option) => option.cardId);
-    expect(followupIds).toEqual(['priest_card', 'fireball_card', 'gold_mine_card']);
+    expect(followupIds).toEqual(['shield_guard_card', 'priest_card', 'fireball_card']);
+  });
+
+  it('opens the summon reward window with swordsman_card as the low-cost frontline option', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toContain('swordsman_card');
+    expect(run.pendingCardReward?.options[0]?.cardId).toBe('swordsman_card');
+  });
+
+  it('exposes energy_crystal_card in the third production/trap reward window', () => {
+    const run = makeManager(8);
+    run.startRun();
+
+    for (let round = 0; round < 2; round += 1) {
+      run.enterBattle();
+      run.completeLevel();
+      claimBaseInterLevelRewards(run);
+      run.returnToLevelMap();
+    }
+
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'fireball_card',
+      'gold_mine_card',
+      'engineer_card',
+    ]);
+  });
+
+  it('exposes assassin_card in the fourth reward window after the engineer card appears', () => {
+    const run = makeManager(8);
+    run.startRun();
+
+    for (let round = 0; round < 3; round += 1) {
+      run.enterBattle();
+      run.completeLevel();
+      claimBaseInterLevelRewards(run);
+      run.returnToLevelMap();
+    }
+
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'engineer_card',
+      'assassin_card',
+      'energy_crystal_card',
+    ]);
   });
 
   it('stores and resolves pending upgrade reward in InterLevel phase', () => {

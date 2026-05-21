@@ -849,11 +849,15 @@ async function bootstrap(): Promise<void> {
 
   const SHOP_UNIT_CARDS = [
     { id: 'arrow_tower_card', label: '箭塔卡', costGold: 30 },
+    { id: 'swordsman_card', label: '剑士', costGold: 35 },
     { id: 'shield_guard_card', label: '盾卫', costGold: 40 },
     { id: 'archer_card', label: '弓箭手', costGold: 40 },
+    { id: 'engineer_card', label: '工程师', costGold: 55 },
+    { id: 'assassin_card', label: '刺客', costGold: 75 },
     { id: 'fireball_card', label: '火球术', costGold: 45 },
     { id: 'spike_trap_card', label: '地刺', costGold: 45 },
     { id: 'gold_mine_card', label: '金矿', costGold: 60 },
+    { id: 'energy_crystal_card', label: '能量水晶', costGold: 60 },
     { id: 'cannon_tower_card', label: '炮塔卡', costGold: 60 },
     { id: 'ice_tower_card', label: '冰塔卡', costGold: 60 },
     { id: 'fire_tower_card', label: '火塔卡', costGold: 60 },
@@ -876,12 +880,16 @@ async function bootstrap(): Promise<void> {
 
   const CARD_REWARD_POOL = [
     { id: 'arrow_tower_card', title: '箭塔卡', description: '稳定单体输出，适合作为基础防线。' },
+    { id: 'swordsman_card', title: '剑士', description: '召唤流基础前排，适合低费补线与前期稳场。' },
     { id: 'shield_guard_card', title: '盾卫', description: '召唤流前排核心，帮助拦截高压波次。' },
     { id: 'archer_card', title: '弓箭手', description: '召唤流后排输出位，补足持续清线能力。' },
     { id: 'priest_card', title: '牧师', description: '召唤流续航核心，维持站场与前线血量。' },
+    { id: 'engineer_card', title: '工程师', description: '召唤流修复辅助位，适合稳住建筑与前线阵地。' },
+    { id: 'assassin_card', title: '刺客', description: '召唤流高爆发切后位，适合快速处理高威胁目标。' },
     { id: 'fireball_card', title: '火球术', description: '范围法术爆发，适合清理密集敌群。' },
     { id: 'spike_trap_card', title: '地刺', description: '建筑/陷阱流起手组件，压低经过路径的敌人血线。' },
     { id: 'gold_mine_card', title: '金矿', description: '建筑流经济核心，适合拉开长期资源差。' },
+    { id: 'energy_crystal_card', title: '能量水晶', description: '建筑流能量核心，适合支撑高频出牌与后续爆发。' },
     { id: 'cannon_tower_card', title: '炮塔卡', description: '高伤害塔牌，擅长处理中甲目标。' },
     { id: 'ice_tower_card', title: '冰塔卡', description: '减速控场塔牌，适合拉长怪物受击时间。' },
     { id: 'fire_tower_card', title: '火塔卡', description: '灼烧法系塔牌，适合持续压低敌方血线。' },

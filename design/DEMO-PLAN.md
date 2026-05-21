@@ -129,9 +129,9 @@
 
 ### 3.4 卡池规模
 - [ ] 塔牌内容补充到 Demo 目标规模
-- [ ] 士兵牌内容补充到 Demo 目标规模
+- [x] 士兵牌内容补充到 Demo 目标规模（2026-05-21：已补齐 swordsman / archer / shield_guard / priest / engineer / assassin 六张士兵牌的 Demo 奖励池 / 商店 / 内容展示链路；通过 typecheck + RunManager/run 定向测试）
 - [ ] 法术牌内容补充到 Demo 目标规模
-- [ ] 陷阱/生产牌内容补充到 Demo 目标规模
+- [ ] 陷阱/生产牌内容补充到 Demo 目标规模（2026-05-21：已先把 energy_crystal_card 接入 Demo 奖励池 / 商店 / 内容展示链路）
 - [ ] 奖励池重复度与可用性检查
 
 ---

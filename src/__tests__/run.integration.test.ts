@@ -698,19 +698,19 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.phase).toBe(RunPhase.InterLevel);
 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'swordsman_card',
       'archer_card',
       'shield_guard_card',
-      'priest_card',
     ]);
     expect(() => controller.pickInterLevel('shop')).toThrow(/card reward is pending/i);
 
     const rewarded = controller.claimCardReward(runManager.pendingCardReward!.options[1]!.id);
 
-    expect(rewarded.cardId).toBe('shield_guard_card');
+    expect(rewarded.cardId).toBe('archer_card');
     expect(runManager.pendingCardReward).toBeNull();
     expect(deckSystem.getCardInstances()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ cardId: 'shield_guard_card', pile: 'discard' }),
+        expect.objectContaining({ cardId: 'archer_card', pile: 'discard' }),
       ]),
     );
 
@@ -755,9 +755,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.completeCurrentLevel();
 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'swordsman_card',
       'archer_card',
       'priest_card',
-      'gold_mine_card',
     ]);
   });
 
@@ -1347,7 +1347,7 @@ describe('WaveSystem integration: schedule, spawn cadence, phase transitions', (
     expect(spawn).toHaveBeenCalledTimes(1);
     const lastCall = spawn.mock.calls[0]!;
     expect(lastCall[1]).toBe(GRUNT);
-    expect(lastCall[2]).toEqual({ x: 320, y: 288 });
+    expect(lastCall[2]).toEqual({ id: 's2', x: 320, y: 288 });
   });
 
   it('Wave 7.A.3: rejects unknown enemyId and unknown spawnId loudly', () => {
@@ -1674,11 +1674,19 @@ describe('Projectile integration: AttackSystem fires, ProjectileSystem travels a
 
 describe('3.1 archetype pool wiring', () => {
   it('main shop pool includes summon, spell, and building trap starters', () => {
+    expect(fileText).toContain("{ id: 'swordsman_card', label: '剑士', costGold: 35 }");
     expect(fileText).toContain("{ id: 'shield_guard_card', label: '盾卫', costGold: 40 }");
     expect(fileText).toContain("{ id: 'archer_card', label: '弓箭手', costGold: 40 }");
+    expect(fileText).toContain("{ id: 'swordsman_card', title: '剑士', description: '召唤流基础前排，适合低费补线与前期稳场。' }");
+    expect(fileText).toContain("{ id: 'engineer_card', label: '工程师', costGold: 55 }");
+    expect(fileText).toContain("{ id: 'assassin_card', label: '刺客', costGold: 75 }");
+    expect(fileText).toContain("{ id: 'engineer_card', title: '工程师', description: '召唤流修复辅助位，适合稳住建筑与前线阵地。' }");
+    expect(fileText).toContain("{ id: 'assassin_card', title: '刺客', description: '召唤流高爆发切后位，适合快速处理高威胁目标。' }");
     expect(fileText).toContain("{ id: 'fireball_card', label: '火球术', costGold: 45 }");
     expect(fileText).toContain("{ id: 'spike_trap_card', label: '地刺', costGold: 45 }");
     expect(fileText).toContain("{ id: 'gold_mine_card', label: '金矿', costGold: 60 }");
+    expect(fileText).toContain("{ id: 'energy_crystal_card', label: '能量水晶', costGold: 60 }");
+    expect(fileText).toContain("{ id: 'energy_crystal_card', title: '能量水晶', description: '建筑流能量核心，适合支撑高频出牌与后续爆发。' }");
   });
 });
 
