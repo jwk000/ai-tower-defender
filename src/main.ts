@@ -134,6 +134,10 @@ const STARTER_DECK = [
   'fireball_card',
 ] as const;
 
+function starterUnitCardId(cardId: string): string {
+  return cardId.endsWith('_card') ? cardId.slice(0, -'_card'.length) : cardId;
+}
+
 function buildLevelEnemyPreview(levelConfig: LevelConfig, enemyMetaById: ReadonlyMap<string, EnemyMetaRecord>): LevelEnemyPreview[] {
   const countById = new Map<string, number>();
   for (const wave of levelConfig.waves) {
@@ -621,6 +625,9 @@ async function bootstrap(): Promise<void> {
     SaveSystem.clearRun();
     runController.startRun();
     deckSystem.initWithCards(STARTER_DECK);
+    for (const instance of deckSystem.getCardInstances()) {
+      runManager.registerCardInstance(instance.instanceId, { unitCardId: starterUnitCardId(instance.cardId), nodes: [] });
+    }
     loadLevel(resolveLevelNumberForCurrentNode());
     runStats.enemiesKilled = 0;
     runStats.goldSpent = 0;

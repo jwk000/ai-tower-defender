@@ -17,6 +17,16 @@ function makeDeck(pool = ['a', 'b', 'c'], deckSize = 3): DeckSystem {
   return new DeckSystem({ pool, deckSize, rng: () => 0 });
 }
 
+const STARTER_DECK = ['arrow_tower_card', 'shield_guard_card', 'spike_trap_card', 'fireball_card'] as const;
+
+function bootstrapStarterDeck(deck: DeckSystem, runManager: RunManager): void {
+  deck.initWithCards(STARTER_DECK);
+  for (const instance of deck.getCardInstances()) {
+    const unitCardId = instance.cardId.endsWith('_card') ? instance.cardId.slice(0, -'_card'.length) : instance.cardId;
+    runManager.registerCardInstance(instance.instanceId, { unitCardId, nodes: [] });
+  }
+}
+
 function makeManager(totalLevels = 3): RunManager {
   return new RunManager({ totalLevels, initialGold: 100, initialCrystalHp: 20 });
 }
@@ -56,6 +66,19 @@ describe('DeckSystem snapshot / restoreFrom', () => {
 });
 
 describe('RunManager snapshot / restoreFrom', () => {
+  it('starter deck instances must be registered to show up in deck view state', () => {
+    const mgr = makeManager(3);
+    const deck = makeDeck([...STARTER_DECK], STARTER_DECK.length);
+
+    deck.initWithCards(STARTER_DECK);
+    expect(deck.getCardInstances().length).toBe(4);
+    expect(deck.getCardInstances().map((entry) => entry.cardId)).toEqual([...STARTER_DECK]);
+    expect(deck.getCardInstances().every((entry) => mgr.getCardLevel(entry.instanceId) === 1)).toBe(true);
+
+    bootstrapStarterDeck(deck, mgr);
+    expect(deck.getCardInstances().every((entry) => mgr.getCardLevel(entry.instanceId) === 1)).toBe(true);
+  });
+
   it('captures current run resources and restores them', () => {
     const mgr = makeManager();
     const deck = makeDeck();
