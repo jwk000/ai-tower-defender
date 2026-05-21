@@ -1,10 +1,20 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Container, Graphics, type Ticker } from 'pixi.js';
 
 export interface RendererConfig {
   readonly canvas: HTMLCanvasElement;
   readonly worldWidth: number;
   readonly worldHeight: number;
   readonly cellSize: number;
+}
+
+type WeatherKind = 'blizzard' | 'rain' | 'sand' | 'smog' | 'spore' | 'fog' | 'none';
+
+interface WeatherVisualState {
+  readonly kind: WeatherKind;
+  readonly width: number;
+  readonly height: number;
+  time: number;
+  readonly overlay: Graphics;
 }
 
 /**
@@ -34,6 +44,8 @@ export class Renderer {
   private readonly gameWorldRoot: Container;
   private readonly backgroundLayer: Container;
   private readonly gridLayer: Container;
+  private weatherState: WeatherVisualState | null = null;
+  private readonly weatherTick: (ticker: Ticker) => void;
 
   constructor(config: RendererConfig) {
     this.config = config;
@@ -45,6 +57,9 @@ export class Renderer {
     this.uiLayer = new Container();
     this.backgroundLayer = new Container();
     this.gridLayer = new Container();
+    this.weatherTick = (ticker) => {
+      this.updateWeatherAnimation(ticker.deltaMS / 1000);
+    };
   }
 
   async init(): Promise<void> {
@@ -67,6 +82,7 @@ export class Renderer {
 
     this.drawGrid();
     this.applyWorldTransform(vw, vh);
+    this.app.ticker.add(this.weatherTick);
   }
 
   /**
@@ -85,6 +101,10 @@ export class Renderer {
   worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
     const p = this.gameWorldRoot.toGlobal({ x: worldX, y: worldY });
     return { x: p.x, y: p.y };
+  }
+
+  tickWeather(dt: number): void {
+    this.updateWeatherAnimation(dt);
   }
 
   /**
@@ -130,8 +150,9 @@ export class Renderer {
     weather?: { pool: readonly string[]; initial?: string };
   }): void {
     this.backgroundLayer.removeChildren();
+    this.weatherState = null;
     const scene = (level.sceneDescription ?? '').toLowerCase();
-    const weather = (level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase();
+    const weather = normalizeWeather((level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase());
     const w = level.mapCols * level.tileSize;
     const h = level.mapRows * level.tileSize;
 
@@ -171,10 +192,10 @@ export class Renderer {
           board.circle(x + level.tileSize * 0.24, y + level.tileSize * 0.26, 3).fill({ color: 0xffffff, alpha: 0.35 });
           board.circle(x + level.tileSize * 0.7, y + level.tileSize * 0.62, 2).fill({ color: 0xe3f2fd, alpha: 0.28 });
         }
-        if ((scene.includes('蒸汽') || weather.includes('smog')) && tile === 'empty' && row % 3 === 1 && col % 4 === 0) {
+        if ((scene.includes('蒸汽') || weather === 'smog') && tile === 'empty' && row % 3 === 1 && col % 4 === 0) {
           board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.35, level.tileSize * 0.14).fill({ color: 0xcfd8dc, alpha: 0.18 });
         }
-        if ((scene.includes('菌') || weather.includes('spore')) && tile === 'empty' && (row + col) % 4 === 1) {
+        if ((scene.includes('菌') || weather === 'spore') && tile === 'empty' && (row + col) % 4 === 1) {
           board.circle(x + level.tileSize * 0.3, y + level.tileSize * 0.68, 5).fill({ color: 0xce93d8, alpha: 0.22 });
         }
         if (tile === 'blocked') {
@@ -185,38 +206,71 @@ export class Renderer {
     this.backgroundLayer.addChild(board);
 
     const weatherOverlay = new Graphics();
-    if (weather.includes('blizzard') || weather.includes('snow')) {
-      for (let i = 0; i < level.mapCols + level.mapRows; i++) {
-        const px = ((i * 97) % Math.max(1, Math.floor(w))) + 8;
-        const py = ((i * 53) % Math.max(1, Math.floor(h))) + 8;
-        weatherOverlay.moveTo(px, py).lineTo(px + 18, py - 10);
+    this.backgroundLayer.addChild(weatherOverlay);
+    this.weatherState = { kind: weather, width: w, height: h, time: 0, overlay: weatherOverlay };
+    this.redrawWeatherOverlay(this.weatherState);
+    this.drawGrid();
+  }
+
+  private updateWeatherAnimation(dt: number): void {
+    if (!this.weatherState || dt <= 0) return;
+    this.weatherState.time += dt;
+    this.redrawWeatherOverlay(this.weatherState);
+  }
+
+  private redrawWeatherOverlay(state: WeatherVisualState): void {
+    const { overlay, width: w, height: h, time, kind } = state;
+    overlay.clear();
+
+    if (kind === 'blizzard') {
+      overlay.rect(0, 0, w, h).fill({ color: 0xdfeaf4, alpha: 0.04 + Math.sin(time * 1.2) * 0.015 });
+      for (let i = 0; i < 24; i++) {
+        const px = (i * 79 + time * 120) % (w + 40) - 20;
+        const py = (i * 43 + time * 65) % (h + 30) - 15;
+        overlay.moveTo(px, py).lineTo(px + 18, py - 10);
       }
-      weatherOverlay.stroke({ width: 2, color: 0xffffff, alpha: 0.16 });
-      weatherOverlay.rect(0, 0, w, h).fill({ color: 0xdfeaf4, alpha: 0.05 });
-    } else if (weather.includes('rain') || weather.includes('storm')) {
-      for (let i = 0; i < level.mapCols + level.mapRows + 8; i++) {
-        const px = ((i * 83) % Math.max(1, Math.floor(w))) + 10;
-        const py = ((i * 41) % Math.max(1, Math.floor(h))) + 4;
-        weatherOverlay.moveTo(px, py).lineTo(px - 10, py + 24);
+      overlay.stroke({ width: 2, color: 0xffffff, alpha: 0.18 });
+      return;
+    }
+
+    if (kind === 'rain') {
+      overlay.rect(0, 0, w, h).fill({ color: 0x10263f, alpha: 0.02 });
+      for (let i = 0; i < 28; i++) {
+        const px = (i * 61 + time * 210) % (w + 50) - 25;
+        const py = (i * 37 + time * 170) % (h + 40) - 20;
+        overlay.moveTo(px, py).lineTo(px - 10, py + 24);
       }
-      weatherOverlay.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.18 });
-    } else if (weather.includes('sand')) {
-      for (let i = 0; i < level.mapCols + level.mapRows + 4; i++) {
-        const px = ((i * 71) % Math.max(1, Math.floor(w))) + 8;
-        const py = ((i * 37) % Math.max(1, Math.floor(h))) + 8;
-        weatherOverlay.ellipse(px, py, 10, 4).fill({ color: 0xffd180, alpha: 0.12 });
+      overlay.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.18 });
+      return;
+    }
+
+    if (kind === 'sand') {
+      overlay.rect(0, 0, w, h).fill({ color: 0xffd180, alpha: 0.03 + Math.sin(time) * 0.01 });
+      for (let i = 0; i < 18; i++) {
+        const px = (i * 73 + time * 55) % (w + 60) - 30;
+        const py = (i * 47 + Math.sin(time * 1.4 + i) * 14 + h) % h;
+        overlay.ellipse(px, py, 14, 5).fill({ color: 0xffd180, alpha: 0.12 });
       }
-    } else if (weather.includes('smog')) {
+      return;
+    }
+
+    if (kind === 'smog') {
       for (let i = 0; i < 5; i++) {
-        weatherOverlay.roundRect(30 + i * 70, 40 + (i % 2) * 90, w - 160, 42, 20).fill({ color: 0x90a4ae, alpha: 0.08 + i * 0.01 });
+        const drift = ((time * (12 + i * 2)) + i * 90) % 120;
+        overlay.roundRect(-80 + drift, 40 + (i % 2) * 90, w - 20, 42, 20).fill({ color: 0x90a4ae, alpha: 0.08 + i * 0.01 });
       }
-    } else if (weather.includes('spore') || weather.includes('fog')) {
+      return;
+    }
+
+    if (kind === 'spore' || kind === 'fog') {
+      const color = kind === 'spore' ? 0xba68c8 : 0xcfd8dc;
       for (let i = 0; i < 7; i++) {
-        weatherOverlay.circle(80 + i * 170, 70 + (i % 3) * 120, 34).fill({ color: weather.includes('spore') ? 0xba68c8 : 0xcfd8dc, alpha: 0.08 });
+        const pulse = 30 + Math.sin(time * 1.3 + i) * 8;
+        const px = 80 + ((i * 170 + time * 18) % (w + 180)) - 90;
+        const py = 70 + (i % 3) * 120 + Math.cos(time + i) * 8;
+        overlay.circle(px, py, pulse).fill({ color, alpha: 0.08 });
       }
     }
-    this.backgroundLayer.addChild(weatherOverlay);
-    this.drawGrid();
   }
 
   private legacyDrawGrid(): void {
@@ -231,4 +285,14 @@ export class Renderer {
     grid.stroke({ width: 1, color: 0x222a3a, alpha: 1 });
     this.mapLayer.addChild(grid);
   }
+}
+
+function normalizeWeather(raw: string): WeatherKind {
+  if (raw.includes('blizzard') || raw.includes('snow')) return 'blizzard';
+  if (raw.includes('rain') || raw.includes('storm')) return 'rain';
+  if (raw.includes('sand')) return 'sand';
+  if (raw.includes('smog')) return 'smog';
+  if (raw.includes('spore')) return 'spore';
+  if (raw.includes('fog')) return 'fog';
+  return 'none';
 }

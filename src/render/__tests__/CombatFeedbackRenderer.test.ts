@@ -13,6 +13,7 @@ import {
   Projectile,
 } from '../../core/components.js';
 import { CombatFeedbackRenderer } from '../CombatFeedbackRenderer.js';
+import { Renderer } from '../Renderer.js';
 
 function spawnHealthEntity(world: TowerWorld, x: number, y: number, hp: number): number {
   const eid = world.addEntity();
@@ -100,5 +101,39 @@ describe('CombatFeedbackRenderer', () => {
     system.update(world, 0.016);
 
     expect(system.layer.children.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Renderer weather animation', () => {
+  it('animates weather overlay over time after drawing level background', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 21 * 64,
+      worldHeight: 9 * 64,
+      cellSize: 64,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['spawn', 'path'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        spawn: 0xff8f00,
+        base: 0x1e88e5,
+      },
+      weather: { pool: ['rain'], initial: 'rain' },
+    });
+
+    const before = (renderer as unknown as { weatherState: { time: number } | null }).weatherState?.time ?? -1;
+    renderer.tickWeather(0.5);
+    const after = (renderer as unknown as { weatherState: { time: number } | null }).weatherState?.time ?? -1;
+
+    expect(after).toBeGreaterThan(before);
   });
 });
