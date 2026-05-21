@@ -157,6 +157,7 @@ interface BehaviorRule {
 - Poison
 - Position
 - Projectile
+- SelectedTag
 - Shield
 - SummonAura
 - SupportAura
