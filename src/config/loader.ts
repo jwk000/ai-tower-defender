@@ -381,6 +381,16 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
   if (!anchor) {
     throw new Error('[loader] level pathGraph must contain a node with role=crystal_anchor');
   }
+  for (const node of parsed.map.pathGraph.nodes) {
+    if (node.role === 'portal' && !node.teleportTo) {
+      throw new Error(`[loader] portal node '${node.id}' must define teleportTo`);
+    }
+    if (!node.teleportTo) continue;
+    const target = nodesById.get(node.teleportTo);
+    if (!target) {
+      throw new Error(`[loader] teleportTo target '${node.teleportTo}' referenced by '${node.id}' does not exist`);
+    }
+  }
   const spawnNode = parsed.map.pathGraph.nodes.find((n) => n.role === 'spawn') ?? parsed.map.pathGraph.nodes[0]!;
   const ordered = orderPath(parsed.map.pathGraph.edges, spawnNode.id, anchor.id, nodesById);
   const orderedNodeIds = ordered.map((n) => n.id);

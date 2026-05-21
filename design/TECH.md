@@ -135,6 +135,144 @@ interface BehaviorRule {
 - return_card_to_deck
 <!-- CODEGEN:handlers:END -->
 
+## 3.4 统一词条/遗物被动系统（v3.8 新增）
+
+### 统一目标
+
+为避免“关卡词条、秘境词条、遗物词条”各自实现一套分支逻辑，运行时统一抽象为：
+
+- **PassiveEffect**：描述一个可复用的效果定义
+- **PassiveSource**：描述这个效果从哪里来、持续多久、何时启用
+- **ModifierRuntime**：描述当前战斗 / 当前 Run 中已激活的效果实例集合
+
+统一后的覆盖范围：
+- **关卡词条**：进入关卡前随机获得，只在当前关生效
+- **秘境词条**：由秘境事件授予，可为当前关/后续若干关/整局生效
+- **遗物词条**：由遗物提供，通常跨后续多关持续
+
+### 核心数据结构
+
+```typescript
+interface PassiveEffectDef {
+  id: string;
+  description: string;
+  targetTags?: string[];
+  triggers?: LifecycleEvent[];
+  modifiers?: Array<{
+    stat: string;
+    op: 'add' | 'mul' | 'set';
+    value: number;
+  }>;
+  handlers?: Array<{
+    ruleHandlerId: string;
+    params?: Record<string, unknown>;
+  }>;
+}
+
+type PassiveSourceType =
+  | 'level_modifier'
+  | 'sanctum_modifier'
+  | 'relic';
+
+type PassiveScope =
+  | 'current_level'
+  | 'next_level'
+  | 'next_n_levels'
+  | 'run';
+
+interface PassiveSourceDef {
+  id: string;
+  sourceType: PassiveSourceType;
+  name: string;
+  icon?: string;
+  flavor?: string;
+  activeScope: PassiveScope;
+  durationValue?: number; // activeScope = next_n_levels 时使用
+  effectRefs: string[];
+  tags?: string[];
+}
+
+interface ActivePassiveSource {
+  sourceId: string;
+  sourceType: PassiveSourceType;
+  remainingLevels?: number;
+  grantedAtLevel?: string;
+}
+```
+
+### 职责边界
+
+| 层级 | 职责 |
+|------|------|
+| `PassiveEffectDef` | 定义“效果是什么” |
+| `PassiveSourceDef` | 定义“这个效果以什么包装形式出现” |
+| Run 状态 | 记录“当前已持有哪些 source” |
+| 战斗初始化 | 根据 scope 过滤并激活 source |
+| RuleEngine / Stat 结算 | 真正执行 modifier / handler |
+
+### 统一结算路径
+
+```text
+配置加载
+  ↓
+PassiveEffectDef 注册表
+PassiveSourceDef 注册表
+  ↓
+Run 内获得 source（关卡 / 秘境 / 遗物）
+  ↓
+进入某关时解析 activeScope
+  ↓
+生成本关 ActivePassiveSet
+  ↓
+静态属性改写（伤害/攻速/费用/回复速度/...）
+  + 生命周期事件注入（onHit/onDeath/onAttack/...）
+  ↓
+HUD / 面板按 sourceType 分区展示
+```
+
+### 为什么这样统一
+
+1. **效果定义只写一次**：同一个“士兵生命 +20%”效果，可被遗物、关卡词条、秘境奖励共同引用。
+2. **来源与持续时间解耦**：设计变化只改 source，不改效果逻辑。
+3. **UI 与规则分离**：UI 只关心 source 的名字、图标、来源类型；规则层只关心 effectRefs。
+4. **便于叠加与排序**：所有来源进入同一结算管线，避免 if/else 到处散落。
+
+### 叠加与优先级原则
+
+默认按以下顺序结算：
+
+1. 基础配置（单位 / 卡牌 / 关卡）
+2. 关卡固有 Twist / 天气
+3. **关卡词条 `level_modifier`**
+4. **秘境词条 `sanctum_modifier`**
+5. **遗物 `relic`**
+6. 战斗内临时 Buff / Debuff
+
+约束：
+- 同一 `stat` 上多个 `add` 先求和，再统一乘 `mul`，最后应用 `set`
+- `set` 只用于少数强覆盖规则，需谨慎使用
+- 若多个 source 会产生冲突型 handler，必须在配置层显式禁配或定义优先级
+
+### 推荐落地目录
+
+```text
+config/
+  passive-effects/
+    *.yaml          # PassiveEffectDef
+  passive-sources/
+    level-modifiers/*.yaml
+    sanctum-modifiers/*.yaml
+    relics/*.yaml
+```
+
+### 对现有系统的替换要求
+
+- 词条系统**不得**单独发明效果 DSL
+- 遗物系统应被视为 `sourceType='relic'` 的 PassiveSource
+- 秘境授予的临时/持续词条应走同一 PassiveSource 挂载流程
+- 任何新被动规则优先判断：能否先沉淀为 `PassiveEffectDef`
+
+
 ---
 
 ## 4. ECS 组件与系统

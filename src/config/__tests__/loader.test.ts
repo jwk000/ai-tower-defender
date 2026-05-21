@@ -472,6 +472,52 @@ waves:
     expect(cfg.spawns.map((spawn) => spawn.pathIndexStart)).toEqual([1, 2]);
   });
 
+  it('rejects a portal node without teleportTo', () => {
+    const yaml = `
+id: bad_portal_missing_target
+map:
+  cols: 3
+  rows: 1
+  tileSize: 64
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n1, row: 0, col: 1, role: portal }
+      - { id: n2, row: 0, col: 2, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/portal node 'n1' must define teleportTo/i);
+  });
+
+  it('rejects teleportTo that points to a missing node', () => {
+    const yaml = `
+id: bad_portal_unknown_target
+map:
+  cols: 3
+  rows: 1
+  tileSize: 64
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n1, row: 0, col: 1, role: portal, teleportTo: missing_node }
+      - { id: n2, row: 0, col: 2, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/teleportTo target 'missing_node'.*does not exist/i);
+  });
+
   it('derives portal entry/exit visuals from pathGraph teleportTo nodes', () => {
     const yaml = `
 id: portal_level
@@ -484,7 +530,7 @@ map:
       - { id: n0, row: 1, col: 0, role: spawn }
       - { id: n1, row: 1, col: 2, role: portal, teleportTo: n3 }
       - { id: n2, row: 2, col: 4, role: portal, teleportTo: n1 }
-      - { id: n3, row: 1, col: 6, role: portal }
+      - { id: n3, row: 1, col: 6, role: waypoint }
       - { id: n4, row: 1, col: 7, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
