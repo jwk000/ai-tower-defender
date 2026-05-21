@@ -9,7 +9,7 @@ export interface RendererConfig {
 
 type WeatherKind = 'blizzard' | 'rain' | 'sand' | 'smog' | 'spore' | 'fog' | 'none';
 
-type TerrainEffectKind = 'ice_tile' | 'conveyor_belt' | 'spore_pod' | 'water_pool';
+type TerrainEffectKind = 'ice_tile' | 'conveyor_belt' | 'spore_pod' | 'water_pool' | 'void_rift';
 
 type TerrainEffectDirection = 'right';
 
@@ -265,6 +265,17 @@ export class Renderer {
           board.ellipse(x + level.tileSize * 0.5, y + level.tileSize * 0.52, level.tileSize * 0.28, level.tileSize * 0.18).fill({ color: 0x4fc3f7, alpha: 0.38 });
           board.ellipse(x + level.tileSize * 0.46, y + level.tileSize * 0.48, level.tileSize * 0.18, level.tileSize * 0.08).fill({ color: 0xb3e5fc, alpha: 0.28 });
         }
+        if (obstacleType === 'void_rift') {
+          terrainCells.push({ type: 'void_rift', row, col });
+          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.24).fill({ color: 0x311b92, alpha: 0.34 });
+          board.circle(x + level.tileSize * 0.5, y + level.tileSize * 0.5, level.tileSize * 0.18).stroke({ width: 3, color: 0xea80fc, alpha: 0.78 });
+          board.moveTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18)
+            .lineTo(x + level.tileSize * 0.82, y + level.tileSize * 0.5)
+            .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.82)
+            .lineTo(x + level.tileSize * 0.18, y + level.tileSize * 0.5)
+            .lineTo(x + level.tileSize * 0.5, y + level.tileSize * 0.18);
+          board.stroke({ width: 2, color: 0xb388ff, alpha: 0.52 });
+        }
       }
     }
     this.backgroundLayer.addChild(board);
@@ -356,6 +367,21 @@ export class Renderer {
         overlay.ellipse(x + tileSize * 0.5, y + tileSize * 0.52, tileSize * (0.2 + ripple * 0.08), tileSize * (0.09 + ripple * 0.03)).stroke({ width: 2, color: 0xe1f5fe, alpha: 0.28 + ripple * 0.16 });
         overlay.ellipse(x + tileSize * 0.5, y + tileSize * 0.52, tileSize * (0.28 + ripple * 0.04), tileSize * (0.16 + ripple * 0.02)).stroke({ width: 1.5, color: 0xb3e5fc, alpha: 0.18 + ripple * 0.1 });
         overlay.circle(foamX, y + tileSize * 0.44, 3).fill({ color: 0xf5fbff, alpha: 0.24 + ripple * 0.18 });
+        continue;
+      }
+
+      if (cell.type === 'void_rift') {
+        const pulse = 0.24 + ((Math.sin(time * 2.4 + cell.row * 0.9 + cell.col * 0.6) + 1) * 0.5) * 0.22;
+        const swirl = (time * 1.6 + (cell.row + cell.col) * 0.2) % (Math.PI * 2);
+        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * 0.16 + pulse * 10).stroke({ width: 3, color: 0xea80fc, alpha: pulse * 1.2 });
+        overlay.circle(x + tileSize * 0.5, y + tileSize * 0.5, tileSize * 0.08).fill({ color: 0x12005e, alpha: 0.45 + pulse * 0.3 });
+        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
+          .lineTo(x + tileSize * (0.5 + Math.cos(swirl) * 0.22), y + tileSize * (0.5 + Math.sin(swirl) * 0.22));
+        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
+          .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 0.66) * 0.18), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 0.66) * 0.18));
+        overlay.moveTo(x + tileSize * 0.5, y + tileSize * 0.5)
+          .lineTo(x + tileSize * (0.5 + Math.cos(swirl + Math.PI * 1.33) * 0.2), y + tileSize * (0.5 + Math.sin(swirl + Math.PI * 1.33) * 0.2));
+        overlay.stroke({ width: 2, color: 0xb388ff, alpha: 0.52 + pulse * 0.4 });
       }
     }
   }

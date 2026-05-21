@@ -180,12 +180,12 @@ describe('Renderer weather animation', () => {
     });
 
     renderer.drawLevelBackground({
-      mapCols: 2,
+      mapCols: 3,
       mapRows: 2,
       tileSize: 64,
       tiles: [
-        ['path', 'empty'],
-        ['empty', 'base'],
+        ['path', 'empty', 'empty'],
+        ['empty', 'base', 'empty'],
       ],
       tileColors: {
         empty: 0x304b3d,
@@ -197,6 +197,7 @@ describe('Renderer weather animation', () => {
         { type: 'spore_pod', row: 1, col: 0 },
         { type: 'water_pool', row: 0, col: 1 },
         { type: 'ice_tile', row: 1, col: 1 },
+        { type: 'void_rift', row: 0, col: 2 },
       ],
     });
 
@@ -207,10 +208,11 @@ describe('Renderer weather animation', () => {
       } | null;
     };
 
-    expect(state.terrainEffectState?.cells).toHaveLength(4);
+    expect(state.terrainEffectState?.cells).toHaveLength(5);
     expect(state.terrainEffectState?.cells.map((cell) => cell.type)).toEqual([
       'conveyor_belt',
       'water_pool',
+      'void_rift',
       'spore_pod',
       'ice_tile',
     ]);
@@ -316,6 +318,7 @@ describe('Renderer weather animation', () => {
         { type: 'conveyor_belt', row: 0, col: 0 },
         { type: 'spore_pod', row: 1, col: 0 },
         { type: 'water_pool', row: 0, col: 1 },
+        { type: 'void_rift', row: 1, col: 1 },
       ],
     })).not.toThrow();
   });
