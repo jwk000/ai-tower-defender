@@ -138,6 +138,39 @@ describe('Renderer weather animation', () => {
     expect(after).toBeGreaterThan(before);
   });
 
+  it('creates front/back drift layers for animated weather', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 21 * 64,
+      worldHeight: 9 * 64,
+      cellSize: 64,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['spawn', 'path'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        spawn: 0xff8f00,
+        base: 0x1e88e5,
+      },
+      weather: { pool: ['blizzard'], initial: 'blizzard' },
+    });
+
+    const layers = (renderer as unknown as { weatherState: { layers: readonly { kind: string; speed: number }[] } | null }).weatherState?.layers ?? [];
+
+    expect(layers).toHaveLength(2);
+    expect(layers[0]).toMatchObject({ kind: 'back' });
+    expect(layers[1]).toMatchObject({ kind: 'front' });
+    expect(layers[1]?.speed).toBeGreaterThan(layers[0]?.speed ?? 0);
+  });
+
   it('accepts obstacle overlays for special tiles', () => {
     const renderer = new Renderer({
       canvas: {} as HTMLCanvasElement,

@@ -9,12 +9,21 @@ export interface RendererConfig {
 
 type WeatherKind = 'blizzard' | 'rain' | 'sand' | 'smog' | 'spore' | 'fog' | 'none';
 
+type WeatherLayerKind = 'front' | 'back';
+
+interface WeatherDriftLayer {
+  readonly kind: WeatherLayerKind;
+  readonly speed: number;
+  readonly alphaScale: number;
+}
+
 interface WeatherVisualState {
   readonly kind: WeatherKind;
   readonly width: number;
   readonly height: number;
   time: number;
   readonly overlay: Graphics;
+  readonly layers: readonly WeatherDriftLayer[];
 }
 
 /**
@@ -234,7 +243,14 @@ export class Renderer {
 
     const weatherOverlay = new Graphics();
     this.backgroundLayer.addChild(weatherOverlay);
-    this.weatherState = { kind: weather, width: w, height: h, time: 0, overlay: weatherOverlay };
+    this.weatherState = {
+      kind: weather,
+      width: w,
+      height: h,
+      time: 0,
+      overlay: weatherOverlay,
+      layers: createWeatherLayers(weather),
+    };
     this.redrawWeatherOverlay(this.weatherState);
     this.drawGrid();
   }
@@ -246,56 +262,81 @@ export class Renderer {
   }
 
   private redrawWeatherOverlay(state: WeatherVisualState): void {
-    const { overlay, width: w, height: h, time, kind } = state;
+    const { overlay, width: w, height: h, time, kind, layers } = state;
     overlay.clear();
 
     if (kind === 'blizzard') {
-      overlay.rect(0, 0, w, h).fill({ color: 0xdfeaf4, alpha: 0.04 + Math.sin(time * 1.2) * 0.015 });
-      for (let i = 0; i < 24; i++) {
-        const px = (i * 79 + time * 120) % (w + 40) - 20;
-        const py = (i * 43 + time * 65) % (h + 30) - 15;
-        overlay.moveTo(px, py).lineTo(px + 18, py - 10);
+      const backLayer = layers[0] ?? { kind: 'back', speed: 1, alphaScale: 1 };
+      const frontLayer = layers[1] ?? { kind: 'front', speed: 1.45, alphaScale: 1.3 };
+      overlay.rect(0, 0, w, h).fill({ color: 0xdfeaf4, alpha: 0.035 + Math.sin(time * 1.2) * 0.012 });
+      for (const layer of [backLayer, frontLayer]) {
+        const density = layer.kind === 'back' ? 14 : 18;
+        for (let i = 0; i < density; i++) {
+          const px = (i * (layer.kind === 'back' ? 93 : 71) + time * 120 * layer.speed) % (w + 60) - 30;
+          const py = (i * (layer.kind === 'back' ? 57 : 41) + time * (layer.kind === 'back' ? 52 : 86) * layer.speed) % (h + 50) - 25;
+          const length = layer.kind === 'back' ? 14 : 24;
+          const rise = layer.kind === 'back' ? 8 : 12;
+          overlay.moveTo(px, py).lineTo(px + length, py - rise);
+        }
+        overlay.stroke({ width: layer.kind === 'back' ? 1.5 : 2.4, color: 0xffffff, alpha: (layer.kind === 'back' ? 0.1 : 0.2) * layer.alphaScale });
       }
-      overlay.stroke({ width: 2, color: 0xffffff, alpha: 0.18 });
       return;
     }
 
     if (kind === 'rain') {
-      overlay.rect(0, 0, w, h).fill({ color: 0x10263f, alpha: 0.02 });
-      for (let i = 0; i < 28; i++) {
-        const px = (i * 61 + time * 210) % (w + 50) - 25;
-        const py = (i * 37 + time * 170) % (h + 40) - 20;
-        overlay.moveTo(px, py).lineTo(px - 10, py + 24);
+      const backLayer = layers[0] ?? { kind: 'back', speed: 1, alphaScale: 1 };
+      const frontLayer = layers[1] ?? { kind: 'front', speed: 1.55, alphaScale: 1.25 };
+      overlay.rect(0, 0, w, h).fill({ color: 0x10263f, alpha: 0.018 });
+      for (const layer of [backLayer, frontLayer]) {
+        const density = layer.kind === 'back' ? 18 : 28;
+        for (let i = 0; i < density; i++) {
+          const px = (i * (layer.kind === 'back' ? 77 : 59) + time * 180 * layer.speed) % (w + 80) - 40;
+          const py = (i * (layer.kind === 'back' ? 49 : 33) + time * 150 * layer.speed) % (h + 60) - 30;
+          const dx = layer.kind === 'back' ? -8 : -12;
+          const dy = layer.kind === 'back' ? 18 : 28;
+          overlay.moveTo(px, py).lineTo(px + dx, py + dy);
+        }
+        overlay.stroke({ width: layer.kind === 'back' ? 1.6 : 2.4, color: 0xb3e5fc, alpha: (layer.kind === 'back' ? 0.1 : 0.18) * layer.alphaScale });
       }
-      overlay.stroke({ width: 2, color: 0xb3e5fc, alpha: 0.18 });
       return;
     }
 
     if (kind === 'sand') {
       overlay.rect(0, 0, w, h).fill({ color: 0xffd180, alpha: 0.03 + Math.sin(time) * 0.01 });
-      for (let i = 0; i < 18; i++) {
-        const px = (i * 73 + time * 55) % (w + 60) - 30;
-        const py = (i * 47 + Math.sin(time * 1.4 + i) * 14 + h) % h;
-        overlay.ellipse(px, py, 14, 5).fill({ color: 0xffd180, alpha: 0.12 });
+      for (const layer of layers) {
+        const density = layer.kind === 'back' ? 10 : 16;
+        for (let i = 0; i < density; i++) {
+          const px = (i * (layer.kind === 'back' ? 91 : 67) + time * 48 * layer.speed) % (w + 90) - 45;
+          const py = (i * 47 + Math.sin(time * (1.1 + layer.speed * 0.2) + i) * (layer.kind === 'back' ? 10 : 18) + h) % h;
+          overlay.ellipse(px, py, layer.kind === 'back' ? 10 : 16, layer.kind === 'back' ? 4 : 6).fill({ color: 0xffd180, alpha: (layer.kind === 'back' ? 0.08 : 0.13) * layer.alphaScale });
+        }
       }
       return;
     }
 
     if (kind === 'smog') {
-      for (let i = 0; i < 5; i++) {
-        const drift = ((time * (12 + i * 2)) + i * 90) % 120;
-        overlay.roundRect(-80 + drift, 40 + (i % 2) * 90, w - 20, 42, 20).fill({ color: 0x90a4ae, alpha: 0.08 + i * 0.01 });
+      for (const layer of layers) {
+        const bandCount = layer.kind === 'back' ? 3 : 4;
+        for (let i = 0; i < bandCount; i++) {
+          const drift = ((time * (10 + i * 2)) * layer.speed + i * 110) % 180;
+          const y = 36 + (layer.kind === 'back' ? i * 120 : i * 92);
+          const height = layer.kind === 'back' ? 34 : 44;
+          overlay.roundRect(-120 + drift, y, w + 80, height, 22).fill({ color: 0x90a4ae, alpha: (layer.kind === 'back' ? 0.05 : 0.08) * layer.alphaScale });
+        }
       }
       return;
     }
 
     if (kind === 'spore' || kind === 'fog') {
       const color = kind === 'spore' ? 0xba68c8 : 0xcfd8dc;
-      for (let i = 0; i < 7; i++) {
-        const pulse = 30 + Math.sin(time * 1.3 + i) * 8;
-        const px = 80 + ((i * 170 + time * 18) % (w + 180)) - 90;
-        const py = 70 + (i % 3) * 120 + Math.cos(time + i) * 8;
-        overlay.circle(px, py, pulse).fill({ color, alpha: 0.08 });
+      for (const layer of layers) {
+        const count = layer.kind === 'back' ? 4 : 7;
+        for (let i = 0; i < count; i++) {
+          const pulse = (layer.kind === 'back' ? 22 : 30) + Math.sin(time * (1.1 + layer.speed * 0.2) + i) * (layer.kind === 'back' ? 5 : 8);
+          const px = 70 + ((i * (layer.kind === 'back' ? 220 : 170) + time * 18 * layer.speed) % (w + 220)) - 110;
+          const py = 60 + (i % 3) * (layer.kind === 'back' ? 140 : 120) + Math.cos(time * layer.speed + i) * (layer.kind === 'back' ? 6 : 10);
+          overlay.circle(px, py, pulse).fill({ color, alpha: (layer.kind === 'back' ? 0.045 : 0.08) * layer.alphaScale });
+        }
       }
     }
   }
@@ -312,6 +353,14 @@ export class Renderer {
     grid.stroke({ width: 1, color: 0x222a3a, alpha: 1 });
     this.mapLayer.addChild(grid);
   }
+}
+
+function createWeatherLayers(kind: WeatherKind): readonly WeatherDriftLayer[] {
+  if (kind === 'none') return [];
+  return [
+    { kind: 'back', speed: 0.7, alphaScale: 0.9 },
+    { kind: 'front', speed: 1.35, alphaScale: 1.1 },
+  ];
 }
 
 function normalizeWeather(raw: string): WeatherKind {
