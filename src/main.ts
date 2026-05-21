@@ -53,9 +53,10 @@ import { CardSpawnSystem } from './unit-system/CardSpawnSystem.js';
 import { DeckSystem } from './unit-system/DeckSystem.js';
 import { EnergySystem } from './unit-system/EnergySystem.js';
 import { HandSystem } from './unit-system/HandSystem.js';
-import { RunManager } from './unit-system/RunManager.js';
+import { RunManager, RunPhase } from './unit-system/RunManager.js';
 import type { CardSkillTreeConfig } from './unit-system/SkillTreeState.js';
 import type { SkillTreeError } from './unit-system/SkillTreeState.js';
+import { SaveSystem } from './core/SaveSystem.js';
 import {
   loadCardConfigsForLevel,
   type LevelConfig,
@@ -97,6 +98,8 @@ import mysticShadowDealerYaml from './config/mystic-events/shadow_dealer.yaml?ra
 import mysticManaWellYaml from './config/mystic-events/mana_well.yaml?raw';
 import mysticTravelerCampYaml from './config/mystic-events/traveler_camp.yaml?raw';
 import mysticForgottenShrineYaml from './config/mystic-events/forgotten_shrine.yaml?raw';
+import mysticLuckyMerchantYaml from './config/mystic-events/lucky_merchant.yaml?raw';
+import mysticAncientShrineYaml from './config/mystic-events/ancient_shrine.yaml?raw';
 
 const GRID_COLS = 21;
 const GRID_ROWS = 9;
@@ -256,7 +259,7 @@ async function bootstrap(): Promise<void> {
     cardRegistry.registerCard(card);
   }
 
-  // D2: 14 事件池（S9 替换）
+  // D2: 16 事件池（按 4.3 覆盖事件结构补齐已存在 YAML）
   const MYSTIC_EVENT_POOL: MysticEventConfig[] = [
     mysticAncientAltarYaml,
     mysticHealingSpringYaml,
@@ -272,6 +275,8 @@ async function bootstrap(): Promise<void> {
     mysticManaWellYaml,
     mysticTravelerCampYaml,
     mysticForgottenShrineYaml,
+    mysticLuckyMerchantYaml,
+    mysticAncientShrineYaml,
   ].map(parseMysticEventConfig);
 
   function pickMysticEvent(): MysticEventConfig {
@@ -613,6 +618,7 @@ async function bootstrap(): Promise<void> {
   });
 
   function startNewRun(): void {
+    SaveSystem.clearRun();
     runController.startRun();
     deckSystem.initWithCards(STARTER_DECK);
     loadLevel(resolveLevelNumberForCurrentNode());
@@ -631,10 +637,30 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  const mainMenu = new MainMenu({});
+  const mainMenu = new MainMenu({ hasSavedRun: SaveSystem.hasSavedRun() });
   mainMenu.setHandler((action: MainMenuAction) => {
     if (action === 'start-run') {
       startNewRun();
+    } else if (action === 'continue-run') {
+      if (!runController.loadProgress()) return;
+      loadLevel(resolveLevelNumberForCurrentNode());
+      runStats.enemiesKilled = 0;
+      runStats.goldSpent = 0;
+      runStats.runStartMs = performance.now();
+      runStats.runEndMs = 0;
+      if (runManager.phase === RunPhase.InterLevel) {
+        interLevelRenderer.refresh(buildInterLevelState());
+      } else {
+        levelMapRenderer.refresh({
+          totalLevels: TOTAL_RUN_LEVELS,
+          currentLevelIdx: runManager.currentLevel,
+          gold: runManager.gold,
+          crystalHp: runManager.crystalHp,
+          crystalHpMax: runManager.crystalHpMax,
+          runIndex: 1,
+          levelMetas: ALL_LEVEL_METAS,
+        });
+      }
     } else if (action === 'quit') {
       window.close();
     }
@@ -976,7 +1002,7 @@ async function bootstrap(): Promise<void> {
   const mainMenuRenderer = new MainMenuRenderer(
     { container: mainMenuContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     mainMenu,
-    {},
+    { hasSavedRun: SaveSystem.hasSavedRun() },
   );
 
   const levelMapPanel = new LevelMapPanel();
@@ -990,6 +1016,7 @@ async function bootstrap(): Promise<void> {
       deckViewRenderer.refresh(buildDeckViewState());
       deckViewContainer.visible = true;
     } else if (action === 'back-to-menu') {
+      runController.saveProgress();
       runController.returnToMainMenu();
     }
   });
@@ -1270,10 +1297,11 @@ async function bootstrap(): Promise<void> {
       } else if (phase === 'InterLevel') {
         interLevelRenderer.refresh(buildInterLevelState());
       } else if (phase === 'Result') {
+        runController.saveProgress();
         if (runStats.runEndMs === 0) runStats.runEndMs = now;
         runResultRenderer.refresh(buildRunResultState());
       } else if (phase === 'Idle') {
-        mainMenuRenderer.refresh({});
+        mainMenuRenderer.refresh({ hasSavedRun: SaveSystem.hasSavedRun() });
       }
       prevPhase = phase;
     }
