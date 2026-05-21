@@ -175,9 +175,11 @@ map:
   cols: 2
   rows: 1
   tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
   pathGraph:
     nodes:
-      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 0, col: 1, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
@@ -364,6 +366,36 @@ starting:
     ]);
   });
 
+  it('reads modifierPool entries from level config', () => {
+    const yaml = `
+id: level_modifier_pool
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+modifierPool:
+  - level_mod_attack_speed
+  - level_mod_enemy_rush
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.modifierPool).toEqual([
+      { id: 'level_mod_attack_speed' },
+      { id: 'level_mod_enemy_rush' },
+    ]);
+  });
+
   it('rejects a level with no waves', () => {
     const yaml = `
 id: empty
@@ -479,9 +511,11 @@ map:
   cols: 3
   rows: 1
   tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
   pathGraph:
     nodes:
-      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 0, col: 1, role: portal }
       - { id: n2, row: 0, col: 2, role: crystal_anchor }
     edges:
@@ -502,9 +536,11 @@ map:
   cols: 3
   rows: 1
   tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
   pathGraph:
     nodes:
-      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 0, col: 1, role: portal, teleportTo: missing_node }
       - { id: n2, row: 0, col: 2, role: crystal_anchor }
     edges:
@@ -518,6 +554,192 @@ waves:
     expect(() => parseLevelConfig(yaml)).toThrow(/teleportTo target 'missing_node'.*does not exist/i);
   });
 
+  it('rejects a level with no spawn node', () => {
+    const yaml = `
+id: no_spawn
+map:
+  cols: 1
+  rows: 1
+  tileSize: 64
+  pathGraph:
+    nodes: [{ id: n0, row: 0, col: 0, role: crystal_anchor }]
+    edges: [{ from: n0, to: n0 }]
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/at least 1 spawn node/i);
+  });
+
+  it('rejects a level with no edges', () => {
+    const yaml = `
+id: no_edges
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges: []
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/at least 1 edge/i);
+  });
+
+  it('rejects a spawn node without spawnId', () => {
+    const yaml = `
+id: spawn_without_id
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/must define spawnId/i);
+  });
+
+  it('rejects a spawn node that references unknown spawnId', () => {
+    const yaml = `
+id: spawn_unknown_id
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_x }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/unknown spawnId/i);
+  });
+
+  it('rejects an edge whose from node does not exist', () => {
+    const yaml = `
+id: bad_edge_from
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: missing, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/edge\.from 'missing'.*does not exist/i);
+  });
+
+  it('rejects an edge whose to node does not exist', () => {
+    const yaml = `
+id: bad_edge_to
+map:
+  cols: 2
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: crystal_anchor }
+    edges:
+      - { from: n0, to: missing }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/edge\.to 'missing'.*does not exist/i);
+  });
+
+  it('rejects a non-crystal node without outgoing edge', () => {
+    const yaml = `
+id: dead_end
+map:
+  cols: 3
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: waypoint }
+      - { id: n2, row: 0, col: 2, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    expect(() => parseLevelConfig(yaml)).toThrow(/must have at least 1 outgoing edge/i);
+  });
+
+  it('falls back to a 2-point path when a spawn cannot reach crystal_anchor on the first outgoing chain', () => {
+    const yaml = `
+id: unreachable_crystal
+map:
+  cols: 4
+  rows: 1
+  tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
+  pathGraph:
+    nodes:
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 0, col: 1, role: waypoint }
+      - { id: n2, row: 0, col: 2, role: crystal_anchor }
+      - { id: n3, row: 0, col: 3, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n0 }
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
+`;
+    const cfg = parseLevelConfig(yaml);
+    expect(cfg.path).toEqual([
+      { x: 0 * 64 + 32, y: 0 * 64 + 32 },
+      { x: 2 * 64 + 32, y: 0 * 64 + 32 },
+    ]);
+  });
+
   it('derives portal entry/exit visuals from pathGraph teleportTo nodes', () => {
     const yaml = `
 id: portal_level
@@ -525,15 +747,19 @@ map:
   cols: 8
   rows: 4
   tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 1, col: 0 }
   pathGraph:
     nodes:
-      - { id: n0, row: 1, col: 0, role: spawn }
+      - { id: n0, row: 1, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 1, col: 2, role: portal, teleportTo: n3 }
       - { id: n2, row: 2, col: 4, role: portal, teleportTo: n1 }
       - { id: n3, row: 1, col: 6, role: waypoint }
       - { id: n4, row: 1, col: 7, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
+      - { from: n1, to: n3 }
+      - { from: n2, to: n3 }
       - { from: n3, to: n4 }
 waves:
   - waveNumber: 1
@@ -555,9 +781,11 @@ map:
   cols: 2
   rows: 2
   tileSize: 64
+  spawns:
+    - { id: spawn_0, row: 0, col: 0 }
   pathGraph:
     nodes:
-      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 0, col: 1, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
@@ -579,7 +807,7 @@ map:
   tileSize: 64
   pathGraph:
     nodes:
-      - { id: n0, row: 0, col: 0, role: spawn }
+      - { id: n0, row: 0, col: 0, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 0, col: 1, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
@@ -588,10 +816,7 @@ waves:
     spawnDelay: 0
     enemies: [{ enemyType: grunt, count: 1, spawnInterval: 1 }]
 `;
-    const cfg = parseLevelConfig(yaml);
-    expect(cfg.spawns).toEqual([]);
-    expect(cfg.available).toEqual({ towers: [], units: [], cards: [] });
-    expect(cfg.portals).toEqual([]);
+    expect(() => parseLevelConfig(yaml)).toThrow(/unknown spawnId/i);
   });
 
 });

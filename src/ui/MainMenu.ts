@@ -1,8 +1,6 @@
-export type MainMenuAction = 'start-run' | 'continue-run' | 'quit';
+export type MainMenuAction = 'start-run' | 'quit';
 
-export interface MainMenuState {
-  readonly hasSavedRun: boolean;
-}
+export interface MainMenuState {}
 
 export interface MainMenuButton {
   readonly action: MainMenuAction;
@@ -11,10 +9,9 @@ export interface MainMenuButton {
   readonly enabled: boolean;
 }
 
-export function buildMainMenu(state: MainMenuState): readonly MainMenuButton[] {
+export function buildMainMenu(_state: MainMenuState): readonly MainMenuButton[] {
   return [
     { action: 'start-run', label: '新的征程', icon: '🗡', enabled: true },
-    { action: 'continue-run', label: '继续游戏', icon: '▶', enabled: state.hasSavedRun },
     { action: 'quit', label: '离开游戏', icon: '🚪', enabled: true },
   ];
 }
@@ -96,7 +93,7 @@ export class MainMenu {
   private handler: MainMenuHandler | null = null;
   private buttons: readonly MainMenuButton[];
 
-  constructor(initial: MainMenuState = { hasSavedRun: false }) {
+  constructor(initial: MainMenuState = {}) {
     this.state = initial;
     this.buttons = buildMainMenu(initial);
   }

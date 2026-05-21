@@ -56,9 +56,9 @@ export class MainMenuRenderer {
   private viewportWidth: number;
   private viewportHeight: number;
   private readonly menu: MainMenu;
-  private state: MainMenuState = { hasSavedRun: false };
+  private state: MainMenuState = {};
 
-  constructor(config: PanelRendererConfig, menu: MainMenu, initial: MainMenuState = { hasSavedRun: false }) {
+  constructor(config: PanelRendererConfig, menu: MainMenu, initial: MainMenuState = {}) {
     this.container = config.container;
     this.viewportWidth = config.viewportWidth;
     this.viewportHeight = config.viewportHeight;

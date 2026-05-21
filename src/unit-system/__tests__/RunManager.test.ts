@@ -298,6 +298,38 @@ describe('RunManager state machine', () => {
     expect(run.applyShopDiscount(101)).toBe(80);
   });
 
+  it('claimRelicReward also records unified passive source for relic', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+      ],
+    });
+
+    run.claimRelicReward('relic_1');
+
+    expect(run.passiveSources).toEqual([
+      {
+        sourceId: 'mana_orb',
+        sourceType: 'relic',
+        name: '法力宝珠',
+        description: '下场战斗初始能量 +1。',
+        activeScope: 'run',
+        effectRefs: ['mana_orb'],
+        grantedAtLevel: 1,
+        category: 'energy',
+      },
+    ]);
+  });
+
   it('mana_orb grants +1 start energy through relic bonus getters', () => {
     const run = makeManager(3);
     run.startRun();

@@ -64,7 +64,7 @@ describe('RunManager snapshot / restoreFrom', () => {
     mgr.damageCrystal(3);
 
     const snap = mgr.snapshot(deck);
-    expect(snap.version).toBe(5);
+    expect(snap.version).toBe(6);
     expect(snap.phase).toBe('LevelMap');
     expect(snap.currentLevelIdx).toBe(1);
     expect(snap.gold).toBe(150);
@@ -92,48 +92,26 @@ describe('RunManager snapshot / restoreFrom', () => {
   });
 });
 
-describe('SaveSystem save / load round-trip', () => {
+describe('SaveSystem legacy migration / cleanup', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', makeLocalStorageMock());
   });
 
-  it('hasSavedRun returns false before any save', () => {
+  it('hasSavedRun returns false before any legacy save exists', () => {
     expect(SaveSystem.hasSavedRun()).toBe(false);
   });
 
-  it('saves and loads a RunSnapshot round-trip', () => {
-    const snap: RunSnapshot = {
-      version: 5,
-      savedAt: 1000,
-      phase: 'LevelMap',
-      currentLevelIdx: 3,
-      gold: 220,
-      crystalHp: 15,
-      crystalHpMax: 20,
-      pendingCardReward: null,
-      pendingGoldReward: null,
-      pendingRelicReward: null,
-      pendingUpgradeReward: null,
-      relics: [],
-      cardLevels: [],
-      deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
-    };
-
-    SaveSystem.saveRun(snap);
+  it('hasSavedRun returns true when a legacy in-progress run key exists', () => {
+    localStorage.setItem('td_run_v5', JSON.stringify({ version: 5 }));
     expect(SaveSystem.hasSavedRun()).toBe(true);
-    expect(localStorage.getItem('td_run_v5')).not.toContain('skillPoints');
-    expect(localStorage.getItem('td_run_v5')).not.toContain('skillTree');
-
-    const loaded = SaveSystem.loadRun();
-    expect(loaded).toEqual(snap);
   });
 
   it('loadRun returns null for unknown version', () => {
-    localStorage.setItem('td_run_v5', JSON.stringify({ version: 99, phase: 'LevelMap' }));
+    localStorage.setItem('td_run_v6', JSON.stringify({ version: 99, phase: 'LevelMap' }));
     expect(SaveSystem.loadRun()).toBeNull();
   });
 
-  it('loadRun migrates v4 save to v5 format', () => {
+  it('loadRun migrates v4 save to v6 format', () => {
     localStorage.setItem('td_run_v4', JSON.stringify({
       version: 4,
       savedAt: 888,
@@ -149,12 +127,13 @@ describe('SaveSystem save / load round-trip', () => {
       deck: { drawPile: ['c1'], discardPile: [] },
     }));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(5);
+    expect(loaded?.version).toBe(6);
     expect(loaded?.pendingRelicReward).toBeNull();
     expect(loaded?.relics).toEqual([]);
+    expect(loaded?.passiveSources).toEqual([]);
   });
 
-  it('loadRun migrates v2 save to v5 format', () => {
+  it('loadRun migrates v2 save to v6 format', () => {
     const v2Save: RunSnapshotV2 = {
       version: 2,
       savedAt: 999,
@@ -172,17 +151,18 @@ describe('SaveSystem save / load round-trip', () => {
     };
     localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(5);
+    expect(loaded?.version).toBe(6);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
     expect(loaded?.pendingRelicReward).toBeNull();
     expect(loaded?.relics).toEqual([]);
+    expect(loaded?.passiveSources).toEqual([]);
     expect(loaded).not.toBeNull();
     expect('skillPoints' in loaded!).toBe(false);
     expect('skillTree' in loaded!).toBe(false);
   });
 
-  it('loadRun migrates v1 save to v5 format', () => {
+  it('loadRun migrates v1 save to v6 format', () => {
     const v1Save = {
       version: 1,
       savedAt: 999,
@@ -197,11 +177,12 @@ describe('SaveSystem save / load round-trip', () => {
     };
     localStorage.setItem('td_run_v1', JSON.stringify(v1Save));
     const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(5);
+    expect(loaded?.version).toBe(6);
     expect(loaded?.gold).toBe(100);
     expect(loaded?.crystalHp).toBe(18);
     expect(loaded?.pendingRelicReward).toBeNull();
     expect(loaded?.relics).toEqual([]);
+    expect(loaded?.passiveSources).toEqual([]);
     expect(loaded).not.toBeNull();
     expect('skillPoints' in loaded!).toBe(false);
     expect('skillTreeUnlocked' in loaded!).toBe(false);
@@ -235,15 +216,52 @@ describe('SaveSystem save / load round-trip', () => {
     expect(mgr.crystalHp).toBe(16);
   });
 
+  it('snapshot / restore preserves passive sources for relics', () => {
+    const mgr = makeManager(3);
+    mgr.startRun();
+    mgr.enterBattle();
+    mgr.completeLevel();
+    mgr.claimCardReward(mgr.pendingCardReward!.options[0]!.id);
+    mgr.claimGoldReward(mgr.pendingGoldReward!.options[0]!.id);
+    mgr.setPendingRelicReward({
+      sourceLevel: 1,
+      options: [
+        { id: 'relic_1', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
+        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
+        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '我方士兵召唤物生命 +40。', category: 'summon' },
+      ],
+    });
+    mgr.claimRelicReward('relic_1');
+
+    const snap = mgr.snapshot(makeDeck());
+    expect(snap.passiveSources).toEqual([
+      {
+        sourceId: 'mana_orb',
+        sourceType: 'relic',
+        name: '法力宝珠',
+        description: '下场战斗初始能量 +1。',
+        activeScope: 'run',
+        effectRefs: ['mana_orb'],
+        grantedAtLevel: 1,
+        category: 'energy',
+      },
+    ]);
+
+    const mgr2 = makeManager(3);
+    mgr2.restoreFrom(snap);
+    expect(mgr2.passiveSources).toEqual(snap.passiveSources);
+    expect(mgr2.getStartEnergyBonusFromRelics()).toBe(1);
+  });
+
   it('clearRun removes save and legacy keys', () => {
-    localStorage.setItem('td_run_v5', '{}');
+    localStorage.setItem('td_run_v6', '{}');
     localStorage.setItem('td_run_v4', '{}');
     localStorage.setItem('td_run_v3', '{}');
     localStorage.setItem('td_run_v2', '{}');
     localStorage.setItem('td_run_v1', '{}');
     localStorage.setItem('td_ongoing_run', '{}');
     SaveSystem.clearRun();
-    expect(localStorage.getItem('td_run_v5')).toBeNull();
+    expect(localStorage.getItem('td_run_v6')).toBeNull();
     expect(localStorage.getItem('td_run_v4')).toBeNull();
     expect(localStorage.getItem('td_run_v3')).toBeNull();
     expect(localStorage.getItem('td_run_v2')).toBeNull();
@@ -257,7 +275,7 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     vi.stubGlobal('localStorage', makeLocalStorageMock());
   });
 
-  it('restores run state and deck piles after save/load without恢复旧 SP', () => {
+  it('restores run state and deck piles directly from snapshot without persisting new in-progress saves', () => {
     const mgr = makeManager(4);
     const deck = makeDeck(['c1', 'c2', 'c3'], 3);
     mgr.startRun();
@@ -265,79 +283,18 @@ describe('Full save → restore flow: RunManager + DeckSystem', () => {
     deck.drawCard();
     deck.discard('c1');
 
-    const snap = mgr.snapshot(deck);
+    const snap: RunSnapshot = mgr.snapshot(deck);
     expect('skillPoints' in snap).toBe(false);
     expect('skillTree' in snap).toBe(false);
-    SaveSystem.saveRun(snap);
 
-    const loaded = SaveSystem.loadRun()!;
     const mgr2 = makeManager(4);
     const deck2 = makeDeck(['c1', 'c2', 'c3'], 3);
-    mgr2.restoreFrom(loaded);
-    deck2.restoreFrom(loaded.deck);
+    mgr2.restoreFrom(snap);
+    deck2.restoreFrom(snap.deck);
 
     expect(mgr2.phase).toBe(RunPhase.LevelMap);
+    expect(mgr2.currentLevel).toBe(1);
     expect(mgr2.gold).toBe(160);
     expect(deck2.snapshot()).toEqual(deck.snapshot());
-  });
-
-  it('restores pending upgrade reward after save/load for inter-level resume', () => {
-    const mgr = makeManager(4);
-    const deck = makeDeck(['a', 'b', 'c'], 3);
-    mgr.startRun();
-    mgr.enterBattle();
-    mgr.completeLevel();
-    mgr.claimCardReward(mgr.pendingCardReward!.options[0]!.id);
-    mgr.claimGoldReward(mgr.pendingGoldReward!.options[0]!.id);
-    mgr.setPendingUpgradeReward({
-      sourceLevel: 1,
-      options: [
-        { id: 'u1', instanceId: 'arrow_a', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2' },
-        { id: 'u2', instanceId: 'arrow_b', cardId: 'cannon_tower_card', title: '炮塔 Lv.2', description: '升级到 Lv.2' },
-        { id: 'u3', instanceId: 'arrow_c', cardId: 'ice_tower_card', title: '冰塔 Lv.2', description: '升级到 Lv.2' },
-      ],
-    });
-
-    SaveSystem.saveRun(mgr.snapshot(deck));
-
-    const loaded = SaveSystem.loadRun()!;
-    const mgr2 = makeManager(4);
-    mgr2.restoreFrom(loaded);
-
-    expect(mgr2.phase).toBe(RunPhase.InterLevel);
-    expect(mgr2.pendingUpgradeReward).toEqual(mgr.pendingUpgradeReward);
-  });
-
-  it('restores card levels from snapshot when skill tree config resolver is provided', () => {
-    const mgr = makeManager(4);
-    const deck = makeDeck(['arrow_tower_card', 'cannon_tower_card', 'ice_tower_card'], 3);
-    mgr.startRun();
-    mgr.registerCardInstance('arrow_1', {
-      unitCardId: 'arrow_tower_card',
-      nodes: [
-        { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
-        { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
-        { id: 'arrow_lv3', name: '箭塔 Lv.3', level: 3, goldCost: 80, prerequisites: ['arrow_lv2'], effects: [] },
-      ],
-    });
-    mgr.activateNode('arrow_1', 'arrow_lv2');
-
-    SaveSystem.saveRun(mgr.snapshot(deck));
-
-    const loaded = SaveSystem.loadRun()!;
-    const mgr2 = makeManager(4);
-    mgr2.restoreFrom(loaded, (unitCardId) => {
-      if (unitCardId !== 'arrow_tower_card') return null;
-      return {
-        unitCardId: 'arrow_tower_card',
-        nodes: [
-          { id: 'arrow_lv1', name: '箭塔 Lv.1', level: 1, goldCost: 0, prerequisites: [], effects: [] },
-          { id: 'arrow_lv2', name: '箭塔 Lv.2', level: 2, goldCost: 40, prerequisites: ['arrow_lv1'], effects: [] },
-          { id: 'arrow_lv3', name: '箭塔 Lv.3', level: 3, goldCost: 80, prerequisites: ['arrow_lv2'], effects: [] },
-        ],
-      };
-    });
-
-    expect(mgr2.getCardLevel('arrow_tower_card_0')).toBe(2);
   });
 });

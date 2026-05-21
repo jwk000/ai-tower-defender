@@ -56,7 +56,6 @@ import { HandSystem } from './unit-system/HandSystem.js';
 import { RunManager } from './unit-system/RunManager.js';
 import type { CardSkillTreeConfig } from './unit-system/SkillTreeState.js';
 import type { SkillTreeError } from './unit-system/SkillTreeState.js';
-import { SaveSystem } from './core/SaveSystem.js';
 import {
   loadCardConfigsForLevel,
   type LevelConfig,
@@ -614,7 +613,6 @@ async function bootstrap(): Promise<void> {
   });
 
   function startNewRun(): void {
-    SaveSystem.clearRun();
     runController.startRun();
     deckSystem.initWithCards(STARTER_DECK);
     loadLevel(resolveLevelNumberForCurrentNode());
@@ -633,29 +631,10 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  const mainMenu = new MainMenu({ hasSavedRun: SaveSystem.hasSavedRun() });
+  const mainMenu = new MainMenu({});
   mainMenu.setHandler((action: MainMenuAction) => {
     if (action === 'start-run') {
       startNewRun();
-    } else if (action === 'continue-run') {
-      const snap = SaveSystem.loadRun();
-      if (!snap) return;
-      loadLevel(snap.currentLevelIdx);
-      deckSystem.restoreFrom(snap.deck);
-      runController.loadProgress();
-      runStats.enemiesKilled = 0;
-      runStats.goldSpent = 0;
-      runStats.runStartMs = performance.now() - (Date.now() - snap.savedAt);
-      runStats.runEndMs = 0;
-      levelMapRenderer.refresh({
-        totalLevels: TOTAL_RUN_LEVELS,
-        currentLevelIdx: runManager.currentLevel,
-        gold: runManager.gold,
-        crystalHp: runManager.crystalHp,
-        crystalHpMax: runManager.crystalHpMax,
-        runIndex: 1,
-        levelMetas: ALL_LEVEL_METAS,
-      });
     } else if (action === 'quit') {
       window.close();
     }
@@ -986,7 +965,6 @@ async function bootstrap(): Promise<void> {
     viewportHeight: window.innerHeight,
   });
   runResultPanel.setHandler((action) => {
-    SaveSystem.clearRun();
     if (action === 'return-menu') {
       runController.returnToMainMenu();
     } else if (action === 'start-new-run') {
@@ -998,7 +976,7 @@ async function bootstrap(): Promise<void> {
   const mainMenuRenderer = new MainMenuRenderer(
     { container: mainMenuContainer, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight },
     mainMenu,
-    { hasSavedRun: false },
+    {},
   );
 
   const levelMapPanel = new LevelMapPanel();
@@ -1295,7 +1273,7 @@ async function bootstrap(): Promise<void> {
         if (runStats.runEndMs === 0) runStats.runEndMs = now;
         runResultRenderer.refresh(buildRunResultState());
       } else if (phase === 'Idle') {
-        mainMenuRenderer.refresh({ hasSavedRun: SaveSystem.hasSavedRun() });
+        mainMenuRenderer.refresh({});
       }
       prevPhase = phase;
     }

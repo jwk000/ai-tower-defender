@@ -1,4 +1,5 @@
 import type { PendingCardReward, PendingGoldReward, PendingRelicReward, PendingUpgradeReward } from '../unit-system/RunManager.js';
+import type { ActivePassiveSource } from './passives.js';
 
 export interface RelicSnapshot {
   readonly id: string;
@@ -14,6 +15,29 @@ export interface CardLevelConfig {
 }
 
 export interface RunSnapshot {
+  readonly version: 6;
+  readonly savedAt: number;
+  readonly phase: 'LevelMap' | 'InterLevel';
+  readonly currentLevelIdx: number;
+  readonly gold: number;
+  readonly crystalHp: number;
+  readonly crystalHpMax: number;
+  readonly pendingCardReward: PendingCardReward | null;
+  readonly pendingGoldReward: PendingGoldReward | null;
+  readonly pendingRelicReward: PendingRelicReward | null;
+  readonly pendingUpgradeReward: PendingUpgradeReward | null;
+  readonly relics: readonly RelicSnapshot[];
+  readonly passiveSources: readonly ActivePassiveSource[];
+  readonly cardLevels: readonly CardLevelConfig[];
+  readonly deck: {
+    readonly drawPile: string[];
+    readonly discardPile: string[];
+    readonly drawPileInstances?: string[];
+    readonly discardPileInstances?: string[];
+  };
+}
+
+export interface RunSnapshotV5 {
   readonly version: 5;
   readonly savedAt: number;
   readonly phase: 'LevelMap' | 'InterLevel';
@@ -111,16 +135,25 @@ export interface RunSnapshotV1 {
   };
 }
 
-const STORAGE_KEY = 'td_run_v5';
+const STORAGE_KEY = 'td_run_v6';
+const LEGACY_KEY_V5 = 'td_run_v5';
 const LEGACY_KEY_V4 = 'td_run_v4';
 const LEGACY_KEY_V3 = 'td_run_v3';
 const LEGACY_KEY_V2 = 'td_run_v2';
 const LEGACY_KEY_V1 = 'td_run_v1';
 const LEGACY_KEY = 'td_ongoing_run';
 
-function migrateV4ToV5(v4: RunSnapshotV4): RunSnapshot {
+function migrateV5ToV6(v5: RunSnapshotV5): RunSnapshot {
   return {
-    version: 5,
+    ...v5,
+    version: 6,
+    passiveSources: [],
+  };
+}
+
+function migrateV4ToV6(v4: RunSnapshotV4): RunSnapshot {
+  return {
+    version: 6,
     savedAt: v4.savedAt,
     phase: v4.phase,
     currentLevelIdx: v4.currentLevelIdx,
@@ -132,14 +165,15 @@ function migrateV4ToV5(v4: RunSnapshotV4): RunSnapshot {
     pendingRelicReward: null,
     pendingUpgradeReward: v4.pendingUpgradeReward,
     relics: [],
+    passiveSources: [],
     cardLevels: v4.cardLevels,
     deck: v4.deck,
   };
 }
 
-function migrateV3ToV5(v3: RunSnapshotV3): RunSnapshot {
+function migrateV3ToV6(v3: RunSnapshotV3): RunSnapshot {
   return {
-    version: 5,
+    version: 6,
     savedAt: v3.savedAt,
     phase: v3.phase,
     currentLevelIdx: v3.currentLevelIdx,
@@ -151,14 +185,15 @@ function migrateV3ToV5(v3: RunSnapshotV3): RunSnapshot {
     pendingRelicReward: null,
     pendingUpgradeReward: v3.pendingUpgradeReward,
     relics: [],
+    passiveSources: [],
     cardLevels: [],
     deck: v3.deck,
   };
 }
 
-function migrateV2ToV5(v2: RunSnapshotV2): RunSnapshot {
+function migrateV2ToV6(v2: RunSnapshotV2): RunSnapshot {
   return {
-    version: 5,
+    version: 6,
     savedAt: v2.savedAt,
     phase: v2.phase,
     currentLevelIdx: v2.currentLevelIdx,
@@ -170,14 +205,15 @@ function migrateV2ToV5(v2: RunSnapshotV2): RunSnapshot {
     pendingRelicReward: null,
     pendingUpgradeReward: v2.pendingUpgradeReward,
     relics: [],
+    passiveSources: [],
     cardLevels: [],
     deck: v2.deck,
   };
 }
 
-function migrateV1ToV5(v1: RunSnapshotV1): RunSnapshot {
+function migrateV1ToV6(v1: RunSnapshotV1): RunSnapshot {
   return {
-    version: 5,
+    version: 6,
     savedAt: v1.savedAt,
     phase: v1.phase,
     currentLevelIdx: v1.currentLevelIdx,
@@ -189,6 +225,7 @@ function migrateV1ToV5(v1: RunSnapshotV1): RunSnapshot {
     pendingRelicReward: null,
     pendingUpgradeReward: null,
     relics: [],
+    passiveSources: [],
     cardLevels: [],
     deck: v1.deck,
   };
@@ -197,6 +234,7 @@ function migrateV1ToV5(v1: RunSnapshotV1): RunSnapshot {
 export const SaveSystem = {
   hasSavedRun(): boolean {
     return localStorage.getItem(STORAGE_KEY) !== null
+      || localStorage.getItem(LEGACY_KEY_V5) !== null
       || localStorage.getItem(LEGACY_KEY_V4) !== null
       || localStorage.getItem(LEGACY_KEY_V3) !== null
       || localStorage.getItem(LEGACY_KEY_V2) !== null
@@ -208,8 +246,18 @@ export const SaveSystem = {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as RunSnapshot;
-        if (parsed.version !== 5) return null;
+        if (parsed.version !== 6) return null;
         return parsed;
+      } catch {
+        return null;
+      }
+    }
+    const rawV5 = localStorage.getItem(LEGACY_KEY_V5);
+    if (rawV5) {
+      try {
+        const parsed = JSON.parse(rawV5) as RunSnapshotV5;
+        if (parsed.version !== 5) return null;
+        return migrateV5ToV6(parsed);
       } catch {
         return null;
       }
@@ -219,7 +267,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV4) as RunSnapshotV4;
         if (parsed.version !== 4) return null;
-        return migrateV4ToV5(parsed);
+        return migrateV4ToV6(parsed);
       } catch {
         return null;
       }
@@ -229,7 +277,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV3) as RunSnapshotV3;
         if (parsed.version !== 3) return null;
-        return migrateV3ToV5(parsed);
+        return migrateV3ToV6(parsed);
       } catch {
         return null;
       }
@@ -239,7 +287,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV2) as RunSnapshotV2;
         if (parsed.version !== 2) return null;
-        return migrateV2ToV5(parsed);
+        return migrateV2ToV6(parsed);
       } catch {
         return null;
       }
@@ -249,7 +297,7 @@ export const SaveSystem = {
       try {
         const parsed = JSON.parse(rawV1) as RunSnapshotV1;
         if (parsed.version !== 1) return null;
-        return migrateV1ToV5(parsed);
+        return migrateV1ToV6(parsed);
       } catch {
         return null;
       }
@@ -263,6 +311,7 @@ export const SaveSystem = {
 
   clearRun(): void {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY_V5);
     localStorage.removeItem(LEGACY_KEY_V4);
     localStorage.removeItem(LEGACY_KEY_V3);
     localStorage.removeItem(LEGACY_KEY_V2);
@@ -270,4 +319,3 @@ export const SaveSystem = {
     localStorage.removeItem(LEGACY_KEY);
   },
 };
-

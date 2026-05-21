@@ -1,4 +1,5 @@
 import type { RunSnapshot } from '../core/SaveSystem.js';
+import type { ActivePassiveSource, PassiveHudEntry } from '../core/passives.js';
 import type { DeckSystem } from './DeckSystem.js';
 import {
   createSkillTreeState,
@@ -373,6 +374,7 @@ export class RunManager {
   private _pendingRelicReward: PendingRelicReward | null = null;
   private _pendingUpgradeReward: PendingUpgradeReward | null = null;
   private _relics: RelicRewardOption[] = [];
+  private _passiveSources: ActivePassiveSource[] = [];
 
   constructor(config: RunManagerConfig) {
     if (!Number.isInteger(config.totalLevels) || config.totalLevels < 1) {
@@ -466,44 +468,57 @@ export class RunManager {
     return this._relics;
   }
 
+  get passiveSources(): readonly ActivePassiveSource[] {
+    return this._passiveSources;
+  }
+
+  getActivePassiveHudEntries(): readonly PassiveHudEntry[] {
+    return this._passiveSources.map((source) => ({
+      sourceId: source.sourceId,
+      sourceType: source.sourceType,
+      name: source.name,
+      description: source.description,
+    }));
+  }
+
   getStartGoldBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.startGoldBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('economy', (relicId) => ECONOMY_RELIC_DEFINITIONS[relicId]?.startGoldBonus ?? 0);
   }
 
   getLevelClearGoldBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.levelClearGoldBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('economy', (relicId) => ECONOMY_RELIC_DEFINITIONS[relicId]?.levelClearGoldBonus ?? 0);
   }
 
   getShopDiscountPercentFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ECONOMY_RELIC_DEFINITIONS[relic.relicId]?.shopDiscountPercent ?? 0), 0);
+    return this.sumPassiveSourceBonus('economy', (relicId) => ECONOMY_RELIC_DEFINITIONS[relicId]?.shopDiscountPercent ?? 0);
   }
 
   getStartEnergyBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.startEnergyBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('energy', (relicId) => ENERGY_RELIC_DEFINITIONS[relicId]?.startEnergyBonus ?? 0);
   }
 
   getMaxEnergyBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.maxEnergyBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('energy', (relicId) => ENERGY_RELIC_DEFINITIONS[relicId]?.maxEnergyBonus ?? 0);
   }
 
   getEnergyRegenBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (ENERGY_RELIC_DEFINITIONS[relic.relicId]?.regenPerSecondBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('energy', (relicId) => ENERGY_RELIC_DEFINITIONS[relicId]?.regenPerSecondBonus ?? 0);
   }
 
   getPlayerSoldierHpBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (SUMMON_RELIC_DEFINITIONS[relic.relicId]?.playerSoldierHpBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('summon', (relicId) => SUMMON_RELIC_DEFINITIONS[relicId]?.playerSoldierHpBonus ?? 0);
   }
 
   getPlayerSoldierAttackBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (SUMMON_RELIC_DEFINITIONS[relic.relicId]?.playerSoldierAttackBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('summon', (relicId) => SUMMON_RELIC_DEFINITIONS[relicId]?.playerSoldierAttackBonus ?? 0);
   }
 
   getSpellExtraCastCountFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (SPELL_RELIC_DEFINITIONS[relic.relicId]?.spellExtraCastCount ?? 0), 0);
+    return this.sumPassiveSourceBonus('spell', (relicId) => SPELL_RELIC_DEFINITIONS[relicId]?.spellExtraCastCount ?? 0);
   }
 
   getCrystalHpMaxBonusFromRelics(): number {
-    return this._relics.reduce((total, relic) => total + (DEFENSE_RELIC_DEFINITIONS[relic.relicId]?.crystalHpMaxBonus ?? 0), 0);
+    return this.sumPassiveSourceBonus('defense', (relicId) => DEFENSE_RELIC_DEFINITIONS[relicId]?.crystalHpMaxBonus ?? 0);
   }
 
   applyShopDiscount(baseCost: number): number {
@@ -565,6 +580,7 @@ export class RunManager {
     this._pendingRelicReward = null;
     this._pendingUpgradeReward = null;
     this._relics = [];
+    this._passiveSources = [];
   }
 
   enterBattle(): void {
@@ -723,6 +739,7 @@ export class RunManager {
       throw new Error(`[RunManager] unknown relic reward option: ${optionId}`);
     }
     this._relics = [...this._relics, option];
+    this._passiveSources = [...this._passiveSources, this.createPassiveSourceFromRelic(option)];
     this.applyRelicImmediateEffects(option);
     this._pendingRelicReward = null;
     return option;
@@ -798,6 +815,7 @@ export class RunManager {
     this._pendingRelicReward = null;
     this._pendingUpgradeReward = null;
     this._relics = [];
+    this._passiveSources = [];
     this.resetSkillTreeState();
   }
 
@@ -948,7 +966,7 @@ export class RunManager {
 
   snapshot(deckSystem: DeckSystem): RunSnapshot {
     return {
-      version: 5,
+      version: 6,
       savedAt: Date.now(),
       phase: this._phase === RunPhase.InterLevel ? 'InterLevel' : 'LevelMap',
       currentLevelIdx: this._currentLevel,
@@ -960,6 +978,7 @@ export class RunManager {
       pendingRelicReward: this._pendingRelicReward,
       pendingUpgradeReward: this._pendingUpgradeReward,
       relics: [...this._relics],
+      passiveSources: [...this._passiveSources],
       cardLevels: this.buildCardLevelSnapshot(),
       deck: deckSystem.snapshot(),
     };
@@ -977,6 +996,9 @@ export class RunManager {
     this._pendingRelicReward = 'pendingRelicReward' in snap ? snap.pendingRelicReward : null;
     this._pendingUpgradeReward = 'pendingUpgradeReward' in snap ? snap.pendingUpgradeReward : null;
     this._relics = 'relics' in snap ? [...snap.relics] : [];
+    this._passiveSources = 'passiveSources' in snap
+      ? [...snap.passiveSources]
+      : this._relics.map((relic) => this.createPassiveSourceFromRelic(relic));
     this.resetSkillTreeState();
 
     if (!resolveSkillTreeConfig) return;
@@ -1016,6 +1038,28 @@ export class RunManager {
       for (const n of inst.activeNodes) all.add(n);
     }
     return all;
+  }
+
+  private sumPassiveSourceBonus(
+    category: ActivePassiveSource['category'],
+    getValue: (sourceId: string) => number,
+  ): number {
+    return this._passiveSources
+      .filter((source) => source.category === category)
+      .reduce((total, source) => total + getValue(source.sourceId), 0);
+  }
+
+  private createPassiveSourceFromRelic(relic: RelicRewardOption): ActivePassiveSource {
+    return {
+      sourceId: relic.relicId,
+      sourceType: 'relic',
+      name: relic.title,
+      description: relic.description,
+      activeScope: 'run',
+      effectRefs: [relic.relicId],
+      grantedAtLevel: this._currentLevel,
+      category: relic.category,
+    };
   }
 
   private buildCardLevelSnapshot(): { cardId: string; level: number }[] {

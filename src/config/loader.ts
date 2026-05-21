@@ -280,6 +280,8 @@ const AvailableSchema = z
   })
   .passthrough();
 
+const ModifierPoolSchema = z.array(z.string());
+
 const LevelDocSchema = z
   .object({
     id: z.string(),
@@ -302,6 +304,7 @@ const LevelDocSchema = z
     waves: z.array(WaveSchema).min(1, '[loader] level YAML must define at least 1 wave'),
     starting: z.object({ gold: z.number().nonnegative(), energy: z.number().nonnegative() }).passthrough().optional(),
     available: AvailableSchema.optional(),
+    modifierPool: ModifierPoolSchema.optional(),
   })
   .passthrough();
 
@@ -350,6 +353,10 @@ export interface LevelAvailable {
   readonly cards: readonly string[];
 }
 
+export interface LevelModifierPoolEntry {
+  readonly id: string;
+}
+
 export interface LevelConfig {
   readonly id: string;
   readonly name?: string;
@@ -366,6 +373,7 @@ export interface LevelConfig {
   readonly crystal: { row: number; col: number };
   readonly spawns: readonly LevelSpawnPoint[];
   readonly waves: LevelWave[];
+  readonly modifierPool: readonly LevelModifierPoolEntry[];
   readonly startingGold?: number;
   readonly startingEnergy?: number;
   readonly available: LevelAvailable;
@@ -377,11 +385,29 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
   const parsed = LevelDocSchema.parse(doc);
   const tileSize = parsed.map.tileSize;
   const nodesById = new Map(parsed.map.pathGraph.nodes.map((n) => [n.id, n]));
-  const anchor = parsed.map.pathGraph.nodes.find((n) => n.role === 'crystal_anchor');
-  if (!anchor) {
+  const edges = parsed.map.pathGraph.edges;
+  const anchorNodes = parsed.map.pathGraph.nodes.filter((n) => n.role === 'crystal_anchor');
+  const spawnNodes = parsed.map.pathGraph.nodes.filter((n) => n.role === 'spawn');
+  if (anchorNodes.length === 0) {
     throw new Error('[loader] level pathGraph must contain a node with role=crystal_anchor');
   }
+  if (spawnNodes.length === 0) {
+    throw new Error('[loader] level pathGraph must contain at least 1 spawn node');
+  }
+  if (edges.length === 0) {
+    throw new Error('[loader] level pathGraph must contain at least 1 edge');
+  }
+  const anchor = anchorNodes[0]!;
+  const spawnIds = new Set((parsed.map.spawns ?? []).map((spawn) => spawn.id));
+  const outgoingCount = new Map<string, number>();
+  for (const node of parsed.map.pathGraph.nodes) outgoingCount.set(node.id, 0);
   for (const node of parsed.map.pathGraph.nodes) {
+    if (node.role === 'spawn' && !node.spawnId) {
+      throw new Error(`[loader] spawn node '${node.id}' must define spawnId`);
+    }
+    if (node.role === 'spawn' && node.spawnId && !spawnIds.has(node.spawnId)) {
+      throw new Error(`[loader] spawn node '${node.id}' references unknown spawnId '${node.spawnId}'`);
+    }
     if (node.role === 'portal' && !node.teleportTo) {
       throw new Error(`[loader] portal node '${node.id}' must define teleportTo`);
     }
@@ -391,8 +417,35 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
       throw new Error(`[loader] teleportTo target '${node.teleportTo}' referenced by '${node.id}' does not exist`);
     }
   }
-  const spawnNode = parsed.map.pathGraph.nodes.find((n) => n.role === 'spawn') ?? parsed.map.pathGraph.nodes[0]!;
-  const ordered = orderPath(parsed.map.pathGraph.edges, spawnNode.id, anchor.id, nodesById);
+  for (const edge of edges) {
+    if (!nodesById.has(edge.from)) {
+      throw new Error(`[loader] edge.from '${edge.from}' does not exist in pathGraph.nodes`);
+    }
+    if (!nodesById.has(edge.to)) {
+      throw new Error(`[loader] edge.to '${edge.to}' does not exist in pathGraph.nodes`);
+    }
+    outgoingCount.set(edge.from, (outgoingCount.get(edge.from) ?? 0) + 1);
+  }
+  for (const node of parsed.map.pathGraph.nodes) {
+    if (node.role === 'crystal_anchor') continue;
+    if ((outgoingCount.get(node.id) ?? 0) <= 0) {
+      throw new Error(`[loader] non-crystal node '${node.id}' must have at least 1 outgoing edge`);
+    }
+  }
+  for (const spawnNode of spawnNodes) {
+    const reachable = anchorNodes.some((anchorNode) => {
+      try {
+        orderPath(edges, spawnNode.id, anchorNode.id, nodesById);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    if (!reachable) {
+      throw new Error(`[loader] spawn node '${spawnNode.id}' cannot reach any crystal_anchor`);
+    }
+  }
+  const ordered = orderPath(edges, spawnNodes[0]!.id, anchor.id, nodesById);
   const orderedNodeIds = ordered.map((n) => n.id);
   const pathNodeIndexById = new Map(orderedNodeIds.map((id, index) => [id, index]));
   const path = ordered.map((n) => ({
@@ -483,6 +536,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     crystal: { row: anchor.row, col: anchor.col },
     spawns,
     waves,
+    modifierPool: (parsed.modifierPool ?? []).map((id) => ({ id })),
     ...(parsed.starting?.gold !== undefined ? { startingGold: parsed.starting.gold } : {}),
     ...(parsed.starting?.energy !== undefined ? { startingEnergy: parsed.starting.energy } : {}),
     available,
