@@ -213,6 +213,31 @@ describe('RunManager state machine', () => {
     expect(run.pendingGoldReward).toBeNull();
   });
 
+  it('rotates reward starters across summon, spell, and building trap archetypes', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'archer_card',
+      'shield_guard_card',
+      'priest_card',
+    ]);
+
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'priest_card',
+      'fireball_card',
+      'gold_mine_card',
+    ]);
+  });
+
   it('stores and resolves pending upgrade reward in InterLevel phase', () => {
     const run = makeManager(3);
     run.startRun();

@@ -71,6 +71,12 @@ export type InterLevelChoice = 'shop' | 'mystic';
 export type RunOutcome = 'victory' | 'defeat';
 
 const DEMO_CARD_REWARD_OPTIONS: readonly Omit<CardRewardOption, 'id'>[] = [
+  { cardId: 'archer_card', title: '弓箭手', description: '召唤流基础输出位，补足前中期稳定清线。' },
+  { cardId: 'shield_guard_card', title: '盾卫', description: '召唤流前排核心，负责卡线与吸收压力。' },
+  { cardId: 'priest_card', title: '牧师', description: '召唤流续航核心，维持前线站场时间。' },
+  { cardId: 'fireball_card', title: '火球术', description: '法术流基础爆发，适合处理中期密集敌群。' },
+  { cardId: 'gold_mine_card', title: '金矿', description: '建筑流经济核心，帮助滚起后续资源优势。' },
+  { cardId: 'spike_trap_card', title: '地刺', description: '陷阱流起手组件，补足路径压制与磨血。' },
   { cardId: 'arrow_tower_card', title: '箭塔卡', description: '低费稳定输出，适合补足前期站场。' },
   { cardId: 'cannon_tower_card', title: '炮塔卡', description: '范围火力更强，适合清理成群敌人。' },
   { cardId: 'ice_tower_card', title: '冰塔卡', description: '减速控场，适合拉长怪物受击时间。' },

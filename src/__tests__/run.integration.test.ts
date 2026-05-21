@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { ShopPanel } from '../ui/ShopPanel.js';
 import { MysticPanel } from '../ui/MysticPanel.js';
 import { ARROW_TOWER_SKILL_TREE } from '../ui/ArrowTowerConfig.js';
@@ -78,6 +80,8 @@ const CHARGER_ELITE: UnitConfig = {
   visual: { shape: 'circle', color: 0xff7043, size: 32 },
   charge: { multiplier: 2.4, duration: 1.4, cooldown: 3.2 },
 };
+
+const fileText = readFileSync(fileURLToPath(new URL('../main.ts', import.meta.url)), 'utf8');
 
 const SUPPORT_ELITE: UnitConfig = {
   id: 'support_elite',
@@ -680,19 +684,19 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.phase).toBe(RunPhase.InterLevel);
 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
-      'arrow_tower_card',
-      'cannon_tower_card',
-      'ice_tower_card',
+      'archer_card',
+      'shield_guard_card',
+      'priest_card',
     ]);
     expect(() => controller.pickInterLevel('shop')).toThrow(/card reward is pending/i);
 
     const rewarded = controller.claimCardReward(runManager.pendingCardReward!.options[1]!.id);
 
-    expect(rewarded.cardId).toBe('cannon_tower_card');
+    expect(rewarded.cardId).toBe('shield_guard_card');
     expect(runManager.pendingCardReward).toBeNull();
     expect(deckSystem.getCardInstances()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ cardId: 'cannon_tower_card', pile: 'discard' }),
+        expect.objectContaining({ cardId: 'shield_guard_card', pile: 'discard' }),
       ]),
     );
 
@@ -736,9 +740,9 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     controller.completeCurrentLevel();
 
     expect(runManager.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
-      'ice_tower_card',
-      'fire_tower_card',
-      'poison_tower_card',
+      'archer_card',
+      'priest_card',
+      'gold_mine_card',
     ]);
   });
 
@@ -1316,6 +1320,16 @@ describe('Projectile integration: AttackSystem fires, ProjectileSystem travels a
     for (let i = 0; i < 5; i += 1) game.tick(0.05);
     expect(Projectile.vx[inflight]).toBeCloseTo(200, 1);
     expect(Position.x[inflight]).toBeGreaterThan(40);
+  });
+});
+
+describe('3.1 archetype pool wiring', () => {
+  it('main shop pool includes summon, spell, and building trap starters', () => {
+    expect(fileText).toContain("{ id: 'shield_guard_card', label: '盾卫', costGold: 40 }");
+    expect(fileText).toContain("{ id: 'archer_card', label: '弓箭手', costGold: 40 }");
+    expect(fileText).toContain("{ id: 'fireball_card', label: '火球术', costGold: 45 }");
+    expect(fileText).toContain("{ id: 'spike_trap_card', label: '地刺', costGold: 45 }");
+    expect(fileText).toContain("{ id: 'gold_mine_card', label: '金矿', costGold: 60 }");
   });
 });
 

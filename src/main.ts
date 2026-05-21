@@ -747,10 +747,16 @@ async function bootstrap(): Promise<void> {
 
   const SHOP_UNIT_CARDS = [
     { id: 'arrow_tower_card', label: '箭塔卡', costGold: 30 },
+    { id: 'shield_guard_card', label: '盾卫', costGold: 40 },
+    { id: 'archer_card', label: '弓箭手', costGold: 40 },
+    { id: 'fireball_card', label: '火球术', costGold: 45 },
+    { id: 'spike_trap_card', label: '地刺', costGold: 45 },
+    { id: 'gold_mine_card', label: '金矿', costGold: 60 },
     { id: 'cannon_tower_card', label: '炮塔卡', costGold: 60 },
     { id: 'ice_tower_card', label: '冰塔卡', costGold: 60 },
     { id: 'fire_tower_card', label: '火塔卡', costGold: 60 },
     { id: 'poison_tower_card', label: '毒塔卡', costGold: 60 },
+    { id: 'priest_card', label: '牧师', costGold: 70 },
     { id: 'lightning_tower_card', label: '电塔卡', costGold: 120 },
     { id: 'laser_tower_card', label: '激光塔卡', costGold: 120 },
     { id: 'crossbow_tower_card', label: '弩塔卡', costGold: 120 },
@@ -760,8 +766,12 @@ async function bootstrap(): Promise<void> {
 
   const CARD_REWARD_POOL = [
     { id: 'arrow_tower_card', title: '箭塔卡', description: '稳定单体输出，适合作为基础防线。' },
-    { id: 'shield_guard_card', title: '盾卫', description: '召唤前排单位，帮助拦截高压波次。' },
+    { id: 'shield_guard_card', title: '盾卫', description: '召唤流前排核心，帮助拦截高压波次。' },
+    { id: 'archer_card', title: '弓箭手', description: '召唤流后排输出位，补足持续清线能力。' },
+    { id: 'priest_card', title: '牧师', description: '召唤流续航核心，维持站场与前线血量。' },
     { id: 'fireball_card', title: '火球术', description: '范围法术爆发，适合清理密集敌群。' },
+    { id: 'spike_trap_card', title: '地刺', description: '建筑/陷阱流起手组件，压低经过路径的敌人血线。' },
+    { id: 'gold_mine_card', title: '金矿', description: '建筑流经济核心，适合拉开长期资源差。' },
     { id: 'cannon_tower_card', title: '炮塔卡', description: '高伤害塔牌，擅长处理中甲目标。' },
     { id: 'ice_tower_card', title: '冰塔卡', description: '减速控场塔牌，适合拉长怪物受击时间。' },
     { id: 'fire_tower_card', title: '火塔卡', description: '灼烧法系塔牌，适合持续压低敌方血线。' },
