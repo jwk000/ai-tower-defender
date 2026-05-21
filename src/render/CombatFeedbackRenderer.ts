@@ -31,6 +31,11 @@ interface DeathSample extends PositionSample {
   ttl: number;
 }
 
+interface SpellImpactSample extends PositionSample {
+  ttl: number;
+  readonly radius: number;
+}
+
 interface BossBarSample {
   readonly current: number;
   readonly max: number;
@@ -40,9 +45,11 @@ interface BossBarSample {
 const IMPACT_TTL = 0.12;
 const HURT_TTL = 0.35;
 const DEATH_TTL = 0.28;
+const SPELL_IMPACT_TTL = 0.22;
 const CRYSTAL_FLASH_TTL = 0.2;
 const DEFAULT_BOSS_BAR_WIDTH = 180;
 const DEFAULT_BOSS_BAR_HEIGHT = 10;
+const DEFAULT_SPELL_IMPACT_RADIUS = 48;
 
 export class CombatFeedbackRenderer implements System {
   readonly name = 'CombatFeedbackRenderer';
@@ -56,6 +63,7 @@ export class CombatFeedbackRenderer implements System {
   private readonly impacts: ImpactSample[] = [];
   private readonly hurts: HurtSample[] = [];
   private readonly deaths: DeathSample[] = [];
+  private readonly spellImpacts: SpellImpactSample[] = [];
 
   private crystalFlashLeft = 0;
   private crystalHealth = new Map<number, number>();
@@ -66,6 +74,10 @@ export class CombatFeedbackRenderer implements System {
     this.layer = new Container();
     this.layer.sortableChildren = false;
     parent.addChild(this.layer);
+  }
+
+  recordSpellImpact(x: number, y: number, radius = DEFAULT_SPELL_IMPACT_RADIUS): void {
+    this.spellImpacts.push({ x, y, radius, ttl: SPELL_IMPACT_TTL });
   }
 
   update(world: TowerWorld, dt: number): void {
@@ -198,6 +210,22 @@ export class CombatFeedbackRenderer implements System {
       const g = new Graphics();
       g.circle(item.x, item.y, 6 + (1 - progress) * 10);
       g.stroke({ width: 2, color: 0xfff176, alpha: progress });
+      this.layer.addChild(g);
+    }
+
+    for (let i = this.spellImpacts.length - 1; i >= 0; i--) {
+      const item = this.spellImpacts[i]!;
+      item.ttl -= dt;
+      if (item.ttl <= 0) {
+        this.spellImpacts.splice(i, 1);
+        continue;
+      }
+      const progress = item.ttl / SPELL_IMPACT_TTL;
+      const g = new Graphics();
+      g.circle(item.x, item.y, item.radius * (0.55 + (1 - progress) * 0.45));
+      g.stroke({ width: 3, color: 0xff7043, alpha: progress * 0.95 });
+      g.circle(item.x, item.y, item.radius * (0.2 + (1 - progress) * 0.25));
+      g.stroke({ width: 2, color: 0xffcc80, alpha: progress * 0.8 });
       this.layer.addChild(g);
     }
 

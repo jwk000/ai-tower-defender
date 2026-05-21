@@ -61,6 +61,13 @@ describe('CombatFeedbackRenderer', () => {
     expect(system.layer.children.some((child) => child.constructor.name === 'Graphics')).toBe(true);
   });
 
+  it('renders spell impact ring when a spell landing is recorded', () => {
+    system.recordSpellImpact(120, 140, 64);
+    system.update(world, 0.016);
+
+    expect(system.layer.children.some((child) => child.constructor.name === 'Graphics')).toBe(true);
+  });
+
   it('renders death mark for entities carrying DeadTag', () => {
     const eid = spawnHealthEntity(world, 55, 66, 10);
     system.update(world, 0.016);

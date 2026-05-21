@@ -275,11 +275,20 @@ async function bootstrap(): Promise<void> {
 
   game.ruleEngine.registerHandler('add_extra_target', () => {});
 
+  game.ruleEngine.registerHandler('deal_aoe_damage', (_eid, params) => {
+    const position = params?.position;
+    if (!position || typeof position !== 'object') return;
+    const x = typeof (position as { x?: unknown }).x === 'number' ? (position as { x: number }).x : 0;
+    const y = typeof (position as { y?: unknown }).y === 'number' ? (position as { y: number }).y : 0;
+    const radius = typeof params?.radius === 'number' ? params.radius : 48;
+    combatFeedbackRenderer.recordSpellImpact(x, y, radius);
+  });
+
   const noopHandlers = [
     'play_sound', 'play_effect', 'flash_color', 'change_color', 'visual_flash_loop',
     'stat_change', 'apply_buff', 'hp_bar_boss', 'enter_phase2', 'enter_phase3',
     'spawn_unit', 'split_into', 'release_spore_cloud', 'create_poison_pool',
-    'spawn_portal', 'cancel_marks', 'boss_death', 'final_victory', 'deal_aoe_damage',
+    'spawn_portal', 'cancel_marks', 'boss_death', 'final_victory',
     'spawn_projectile', 'spawn_lightning_bolt', 'spawn_laser_beam', 'spawn_bat_swarm',
     'spawn_missile',
     'pause_world', 'start_timer', 'leave_ruins',

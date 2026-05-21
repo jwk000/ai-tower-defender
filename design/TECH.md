@@ -130,6 +130,7 @@ interface BehaviorRule {
 <!-- CODEGEN:handlers:START -->
 - add_extra_target
 - boost_attack_speed
+- deal_aoe_damage
 - drop_gold
 - return_card_to_deck
 <!-- CODEGEN:handlers:END -->
