@@ -624,6 +624,7 @@ async function bootstrap(): Promise<void> {
   function startNewRun(): void {
     SaveSystem.clearRun();
     runController.startRun();
+    deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
     deckSystem.initWithCards(STARTER_DECK);
     for (const instance of deckSystem.getCardInstances()) {
       runManager.registerCardInstance(instance.instanceId, { unitCardId: starterUnitCardId(instance.cardId), nodes: [] });
@@ -1120,6 +1121,12 @@ async function bootstrap(): Promise<void> {
 
   function buildDeckViewInstances(): CardInstanceEntry[] {
     const rawInstances = deckSystem.getCardInstances();
+    const handCardIds = new Set(handSystem.cards);
+    for (const cardId of STARTER_DECK) {
+      if (!rawInstances.some((instance) => instance.cardId === cardId) && handCardIds.has(cardId)) {
+        rawInstances.push({ instanceId: `${cardId}__hand_preview`, cardId, pile: 'hand' });
+      }
+    }
     const canDeleteAny = rawInstances.length > 1;
     return rawInstances.map((instance) => {
       const unitCardId = cardIdToUnitCardId(instance.cardId);
@@ -1371,6 +1378,7 @@ function projectUIFrame(
       runLevel: run.currentLevel,
       runTotalLevels: TOTAL_RUN_LEVELS,
       enemyCount: 0,
+      activePassives: run.getActivePassiveHudEntries(),
     },
     hand: {
       cards: handCards,

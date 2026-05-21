@@ -1,5 +1,6 @@
 import type { RunSnapshot } from '../core/SaveSystem.js';
 import type { ActivePassiveSource, PassiveHudEntry } from '../core/passives.js';
+import type { LevelModifierPoolEntry } from '../config/loader.js';
 import type { DeckSystem } from './DeckSystem.js';
 import {
   createSkillTreeState,
@@ -481,6 +482,29 @@ export class RunManager {
     }));
   }
 
+  grantPassiveSource(source: ActivePassiveSource): void {
+    this._passiveSources = [...this._passiveSources, source];
+  }
+
+  rollLevelModifier(
+    pool: readonly LevelModifierPoolEntry[],
+    rng: () => number = Math.random,
+  ): LevelModifierPoolEntry | null {
+    if (pool.length === 0) return null;
+    const index = Math.max(0, Math.min(pool.length - 1, Math.floor(rng() * pool.length)));
+    const picked = pool[index]!;
+    this.grantPassiveSource({
+      sourceId: picked.id,
+      sourceType: 'level_modifier',
+      name: picked.id,
+      description: picked.id,
+      activeScope: 'current_level',
+      effectRefs: [picked.id],
+      grantedAtLevel: this._currentLevel,
+    });
+    return picked;
+  }
+
   getStartGoldBonusFromRelics(): number {
     return this.sumPassiveSourceBonus('economy', (relicId) => ECONOMY_RELIC_DEFINITIONS[relicId]?.startGoldBonus ?? 0);
   }
@@ -607,6 +631,7 @@ export class RunManager {
       throw new Error('[RunManager] cannot returnToLevelMap while upgrade reward is pending');
     }
     this._currentLevel += 1;
+    this._passiveSources = this._passiveSources.filter((source) => source.activeScope !== 'current_level');
     this._phase = RunPhase.LevelMap;
   }
 
@@ -769,6 +794,7 @@ export class RunManager {
       throw new Error(`[RunManager] illegal transition: closeShop from ${this._phase}`);
     }
     this._currentLevel += 1;
+    this._passiveSources = this._passiveSources.filter((source) => source.activeScope !== 'current_level');
     this._phase = RunPhase.LevelMap;
   }
 
@@ -777,6 +803,7 @@ export class RunManager {
       throw new Error(`[RunManager] illegal transition: closeMystic from ${this._phase}`);
     }
     this._currentLevel += 1;
+    this._passiveSources = this._passiveSources.filter((source) => source.activeScope !== 'current_level');
     this._phase = RunPhase.LevelMap;
   }
 
@@ -785,6 +812,7 @@ export class RunManager {
       throw new Error(`[RunManager] illegal transition: closeSkillTree from ${this._phase}`);
     }
     this._currentLevel += 1;
+    this._passiveSources = this._passiveSources.filter((source) => source.activeScope !== 'current_level');
     this._phase = RunPhase.LevelMap;
   }
 

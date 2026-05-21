@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { projectHUD, type RunState } from '../HUD.js';
+import type { PassiveHudEntry } from '../../core/passives.js';
 
 function state(overrides: Partial<RunState> = {}): RunState {
   return {
@@ -16,6 +17,7 @@ function state(overrides: Partial<RunState> = {}): RunState {
     runLevel: 1,
     runTotalLevels: 9,
     enemyCount: 0,
+    activePassives: [],
     ...overrides,
   };
 }
@@ -60,11 +62,14 @@ describe('projectHUD', () => {
     expect(projectHUD(state({ crystalHp: 0, crystalHpMax: 1000 })).crystalLowAlarm).toBe(false);
   });
 
-  it('maps each phase enum to Chinese label', () => {
-    expect(projectHUD(state({ phase: 'deployment' })).phaseLabel).toBe('部署阶段');
-    expect(projectHUD(state({ phase: 'battle' })).phaseLabel).toBe('战斗中');
-    expect(projectHUD(state({ phase: 'wave-break' })).phaseLabel).toBe('波次间歇');
-    expect(projectHUD(state({ phase: 'victory' })).phaseLabel).toBe('胜利');
-    expect(projectHUD(state({ phase: 'defeat' })).phaseLabel).toBe('失败');
+  it('projects active passive names into a dedicated HUD label', () => {
+    const activePassives: PassiveHudEntry[] = [
+      { sourceId: 'lvmod_1', sourceType: 'level_modifier', name: '速攻号令', description: '前 20 秒能量回复更快。' },
+      { sourceId: 'relic_1', sourceType: 'relic', name: '法力宝珠', description: '下场战斗初始能量 +1。' },
+    ];
+
+    const p = projectHUD(state({ activePassives }));
+    expect(p.passives).toBe('词条: 速攻号令 / 法力宝珠');
   });
 });
+

@@ -1,3 +1,5 @@
+import type { PassiveHudEntry } from '../core/passives.js';
+
 export interface RunState {
   readonly gold: number;
   readonly crystalHp: number;
@@ -11,6 +13,7 @@ export interface RunState {
   readonly runLevel: number;
   readonly runTotalLevels: number;
   readonly enemyCount: number;
+  readonly activePassives: readonly PassiveHudEntry[];
 }
 
 export interface HUDProjection {
@@ -21,6 +24,7 @@ export interface HUDProjection {
   readonly crystal: string;
   readonly runProgress: string;
   readonly phaseLabel: string;
+  readonly passives: string;
   readonly crystalLowAlarm: boolean;
 }
 
@@ -34,6 +38,9 @@ export function projectHUD(state: RunState): HUDProjection {
     crystal: `💎 ${state.crystalHp}/${state.crystalHpMax}`,
     runProgress: `Run ${state.runLevel}/${state.runTotalLevels}`,
     phaseLabel: phaseLabel(state.phase),
+    passives: state.activePassives.length > 0
+      ? `词条: ${state.activePassives.map((entry) => entry.name).join(' / ')}`
+      : '词条: 无',
     crystalLowAlarm: state.crystalHp > 0 && crystalRatio < 0.30,
   };
 }

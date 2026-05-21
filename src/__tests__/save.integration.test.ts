@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DeckSystem } from '../unit-system/DeckSystem.js';
 import { RunManager, RunPhase } from '../unit-system/RunManager.js';
 import { SaveSystem, type RunSnapshot } from '../core/SaveSystem.js';
+import { CardRegistry } from '../unit-system/CardRegistry.js';
+
 
 function makeLocalStorageMock() {
   const store: Record<string, string> = {};
@@ -66,6 +68,14 @@ describe('DeckSystem snapshot / restoreFrom', () => {
 });
 
 describe('RunManager snapshot / restoreFrom', () => {
+  it('new run must recreate starter deck instances to avoid stale removed cards in deck view', () => {
+    const starterDeck = [...STARTER_DECK];
+    const freshDeck = makeDeck(starterDeck, starterDeck.length);
+    freshDeck.initWithCards(STARTER_DECK);
+
+    expect(freshDeck.getCardInstances().map((entry) => entry.cardId)).toEqual(starterDeck);
+  });
+
   it('starter deck instances must be registered to show up in deck view state', () => {
     const mgr = makeManager(3);
     const deck = makeDeck([...STARTER_DECK], STARTER_DECK.length);
@@ -77,6 +87,19 @@ describe('RunManager snapshot / restoreFrom', () => {
 
     bootstrapStarterDeck(deck, mgr);
     expect(deck.getCardInstances().every((entry) => mgr.getCardLevel(entry.instanceId) === 1)).toBe(true);
+  });
+
+  it('starter deck cards can resolve labels from card registry for deck view rendering', () => {
+    const registry = new CardRegistry();
+    registry.registerCard({ id: 'arrow_tower_card', type: 'unit', energyCost: 1, unitConfigId: 'arrow_tower' });
+    registry.registerCard({ id: 'shield_guard_card', type: 'unit', energyCost: 1, unitConfigId: 'shield_guard' });
+    registry.registerCard({ id: 'spike_trap_card', type: 'trap', energyCost: 1, unitConfigId: 'spike_trap' });
+    registry.registerCard({ id: 'fireball_card', type: 'spell', energyCost: 1, unitConfigId: 'fireball' });
+
+    expect(registry.getCard('arrow_tower_card')?.unitConfigId).toBe('arrow_tower');
+    expect(registry.getCard('shield_guard_card')?.unitConfigId).toBe('shield_guard');
+    expect(registry.getCard('spike_trap_card')?.unitConfigId).toBe('spike_trap');
+    expect(registry.getCard('fireball_card')?.unitConfigId).toBe('fireball');
   });
 
   it('captures current run resources and restores them', () => {

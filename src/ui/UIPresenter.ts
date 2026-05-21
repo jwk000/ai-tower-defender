@@ -51,6 +51,7 @@ export class UIPresenter {
   private readonly crystalText: Text;
   private readonly waveText: Text;
   private readonly phaseText: Text;
+  private readonly passiveText: Text;
   private readonly energyText: Text;
   private readonly drawText: Text;
   private readonly slotGraphics: Graphics;
@@ -110,7 +111,9 @@ export class UIPresenter {
     this.waveText.position.set(12, 60);
     this.phaseText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16 } });
     this.phaseText.position.set(12, 84);
-    this.hudContainer.addChild(this.goldText, this.crystalText, this.waveText, this.phaseText);
+    this.passiveText = new Text({ text: '', style: { fill: 0xfff59d, fontSize: 14, wordWrap: true, wordWrapWidth: 420 } });
+    this.passiveText.position.set(12, 106);
+    this.hudContainer.addChild(this.goldText, this.crystalText, this.waveText, this.phaseText, this.passiveText);
 
     this.energyText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 18 } });
     this.energyText.position.set(12, this.viewportHeight - 24);
@@ -314,6 +317,7 @@ export class UIPresenter {
     this.crystalText.style.fill = hud.crystalLowAlarm ? 0xff5252 : 0x4fc3f7;
     this.waveText.text = hud.wave;
     this.phaseText.text = hud.phaseLabel;
+    this.passiveText.text = hud.passives;
 
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
     this.energyText.text = layout.energyLabel;

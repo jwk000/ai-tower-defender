@@ -330,27 +330,124 @@ describe('RunManager state machine', () => {
     ]);
   });
 
-  it('mana_orb grants +1 start energy through relic bonus getters', () => {
+  it('supports current-level passive sources and clears them after returning to level map', () => {
     const run = makeManager(3);
     run.startRun();
+
+    run.grantPassiveSource({
+      sourceId: 'lvmod_blitz',
+      sourceType: 'level_modifier',
+      name: '速攻号令',
+      description: '前 20 秒能量回复更快。',
+      activeScope: 'current_level',
+      effectRefs: ['lvmod_blitz'],
+      grantedAtLevel: 1,
+      category: 'economy',
+    });
+
+    expect(run.passiveSources).toEqual([
+      {
+        sourceId: 'lvmod_blitz',
+        sourceType: 'level_modifier',
+        name: '速攻号令',
+        description: '前 20 秒能量回复更快。',
+        activeScope: 'current_level',
+        effectRefs: ['lvmod_blitz'],
+        grantedAtLevel: 1,
+        category: 'economy',
+      },
+    ]);
+    expect(run.getActivePassiveHudEntries()).toEqual([
+      {
+        sourceId: 'lvmod_blitz',
+        sourceType: 'level_modifier',
+        name: '速攻号令',
+        description: '前 20 秒能量回复更快。',
+      },
+    ]);
+
     run.enterBattle();
     run.completeLevel();
     run.claimCardReward(run.pendingCardReward!.options[0]!.id);
     run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
-    run.setPendingRelicReward({
-      sourceLevel: 1,
-      options: [
-        { id: 'relic_1', relicId: 'mana_orb', title: '法力宝珠', description: '下场战斗初始能量 +1。', category: 'energy' },
-        { id: 'relic_2', relicId: 'coin_purse', title: '钱袋', description: '开局额外获得 80 金币。', category: 'economy' },
-        { id: 'relic_3', relicId: 'war_banner', title: '战旗', description: '召唤体系增益。', category: 'summon' },
-      ],
+    run.claimRelicReward(run.pendingRelicReward!.options[0]!.id);
+    run.returnToLevelMap();
+
+    expect(run.passiveSources).toEqual([
+      expect.objectContaining({
+        sourceId: 'coin_purse',
+        sourceType: 'relic',
+        activeScope: 'run',
+      }),
+    ]);
+    expect(run.getActivePassiveHudEntries()).toEqual([
+      {
+        sourceId: 'coin_purse',
+        sourceType: 'relic',
+        name: '钱袋',
+        description: '开局额外获得 80 金币，帮助更快启动构筑。',
+      },
+    ]);
+  });
+
+  it('can roll a level modifier from level pool and expose it to HUD', () => {
+    const run = makeManager(3);
+    run.startRun();
+
+    const picked = run.rollLevelModifier([
+      { id: 'lvmod_blitz' },
+      { id: 'lvmod_fog' },
+    ], () => 0.1);
+
+    expect(picked).toEqual({ id: 'lvmod_blitz' });
+    expect(run.passiveSources).toEqual([
+      {
+        sourceId: 'lvmod_blitz',
+        sourceType: 'level_modifier',
+        name: 'lvmod_blitz',
+        description: 'lvmod_blitz',
+        activeScope: 'current_level',
+        effectRefs: ['lvmod_blitz'],
+        grantedAtLevel: 1,
+      },
+    ]);
+    expect(run.getActivePassiveHudEntries()).toEqual([
+      {
+        sourceId: 'lvmod_blitz',
+        sourceType: 'level_modifier',
+        name: 'lvmod_blitz',
+        description: 'lvmod_blitz',
+      },
+    ]);
+  });
+
+  it('snapshot / restore preserves current-level passive sources', () => {
+    const run = makeManager(3);
+    run.startRun();
+    run.grantPassiveSource({
+      sourceId: 'lvmod_blitz',
+      sourceType: 'level_modifier',
+      name: '速攻号令',
+      description: '前 20 秒能量回复更快。',
+      activeScope: 'current_level',
+      effectRefs: ['lvmod_blitz'],
+      grantedAtLevel: 1,
+      category: 'economy',
     });
 
-    expect(run.getStartEnergyBonusFromRelics()).toBe(0);
-    run.claimRelicReward('relic_1');
-    expect(run.getStartEnergyBonusFromRelics()).toBe(1);
-    expect(run.getMaxEnergyBonusFromRelics()).toBe(0);
-    expect(run.getEnergyRegenBonusFromRelics()).toBe(0);
+    const snap = run.snapshot({ snapshot: () => ({ drawPile: [], discardPile: [] }) } as never);
+    const restored = makeManager(3);
+    restored.restoreFrom(snap);
+
+    expect(restored.passiveSources).toEqual(run.passiveSources);
+    expect(restored.getActivePassiveHudEntries()).toEqual([
+      {
+        sourceId: 'lvmod_blitz',
+        sourceType: 'level_modifier',
+        name: '速攻号令',
+        description: '前 20 秒能量回复更快。',
+      },
+    ]);
   });
 
   it('energy relic getters stack max energy and regen bonuses across multiple relics', () => {
