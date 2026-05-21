@@ -11,6 +11,7 @@ import { addComponent } from 'bitecs';
 
 import { createTowerWorld, type TowerWorld } from '../../core/World.js';
 import {
+  Attack,
   Burn,
   Movement,
   Poison,
@@ -31,6 +32,7 @@ interface ViewRecord {
   shape: number;
   color: number;
   size: number;
+  attackRange: number;
   isElite: boolean;
   isBoss: boolean;
   bossPhase: number;
@@ -60,6 +62,7 @@ function createStubSink(): EntityViewSink & { views: Map<number, ViewRecord>; so
         shape: visual.shape,
         color: visual.color,
         size: visual.size,
+        attackRange: visual.attackRange,
         isElite: visual.isElite,
         isBoss: visual.isBoss,
         bossPhase: visual.bossPhase,
@@ -126,11 +129,14 @@ describe('RenderSystem — view lifecycle', () => {
 
   it('passes elite marker to view sink for elite entities', () => {
     const eid = spawnEntity(world, 120, 80, 0xffd54f);
+    addComponent(world, Attack, eid);
+    Attack.range[eid] = 180;
     addComponent(world, EliteTag, eid);
 
     system.update(world, 0.016);
 
     expect(sink.views.get(eid)?.isElite).toBe(true);
+    expect(sink.views.get(eid)?.attackRange).toBe(180);
   });
 
   it('passes boss marker to view sink for boss entities', () => {

@@ -2,6 +2,7 @@ import { defineQuery, hasComponent } from 'bitecs';
 
 import type { TowerWorld } from '../core/World.js';
 import {
+  Attack,
   BossPhase,
   BossTag,
   Burn,
@@ -30,6 +31,7 @@ export interface VisualSnapshot {
   readonly isElite: boolean;
   readonly isBoss: boolean;
   readonly bossPhase: number;
+  readonly attackRange: number;
   readonly status: StatusSnapshot;
 }
 
@@ -67,6 +69,7 @@ export class RenderSystem implements System {
           isElite: hasComponent(world, EliteTag, eid),
           isBoss: hasComponent(world, BossTag, eid),
           bossPhase: hasComponent(world, BossPhase, eid) ? BossPhase.value[eid]! : 0,
+          attackRange: hasComponent(world, Attack, eid) ? Attack.range[eid]! : 0,
           status: {
             isSlowed: (Movement.slowDuration[eid] ?? 0) > 0,
             isBurning: (Burn.duration[eid] ?? 0) > 0,

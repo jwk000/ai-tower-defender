@@ -102,6 +102,8 @@ const GRID_ROWS = 9;
 const CELL_SIZE = 64;
 const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
 const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
+const DEFAULT_WORLD_COLS = GRID_COLS;
+const DEFAULT_WORLD_ROWS = GRID_ROWS;
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
 const BOSS_LEVEL_NUMBER = 8;
@@ -269,14 +271,11 @@ async function bootstrap(): Promise<void> {
     return MYSTIC_EVENT_POOL[idx]!;
   }
 
+  let currentLevelConfig: LevelConfig = level;
   let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
   deckSystem.initWithCards(STARTER_DECK);
   const handSystem = new HandSystem({ maxSize: 4 });
-  let energySystem = new EnergySystem({
-    regenPerSecond: ENERGY_REGEN_PER_SECOND,
-    max: ENERGY_MAX,
-    startWith: level.startingEnergy ?? DEFAULT_STARTING_ENERGY,
-  });
+  let energySystem = buildEnergySystem(level.startingEnergy ?? DEFAULT_STARTING_ENERGY);
   const cardSpawnSystem = new CardSpawnSystem(cardRegistry);
 
   const levelState = new LevelState();
@@ -488,6 +487,7 @@ async function bootstrap(): Promise<void> {
 
   function loadLevel(levelNumber: number): void {
     const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
+    currentLevelConfig = levelConfig;
     clearBattleEntities();
     battleContainer.visible = true;
     activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
@@ -497,11 +497,7 @@ async function bootstrap(): Promise<void> {
     handSystem.drawTo(deckSystem);
     drawCooldownRemaining = 0;
     pendingReroll = false;
-    energySystem = new EnergySystem({
-      regenPerSecond: ENERGY_REGEN_PER_SECOND,
-      max: ENERGY_MAX,
-      startWith: levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY,
-    });
+    energySystem = buildEnergySystem(levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY);
     devHooks['__td'] = {
       ...(devHooks['__td'] as Record<string, unknown> | undefined),
       deckSystem,
@@ -631,6 +627,19 @@ async function bootstrap(): Promise<void> {
     const worldPos = renderer.screenToWorld(intent.targetX, intent.targetY);
     const col = Math.floor(worldPos.x / CELL_SIZE);
     const row = Math.floor(worldPos.y / CELL_SIZE);
+    if (col < 0 || row < 0) return;
+    if (col >= DEFAULT_WORLD_COLS || row >= DEFAULT_WORLD_ROWS) return;
+    const isPathTile = currentLevelConfig.path.some((node) => {
+      const nodeCol = Math.floor(node.x / CELL_SIZE);
+      const nodeRow = Math.floor(node.y / CELL_SIZE);
+      return nodeCol === col && nodeRow === row;
+    }) || currentLevelConfig.spawns.some((spawn) => spawn.col === col && spawn.row === row) || (currentLevelConfig.crystal.col === col && currentLevelConfig.crystal.row === row);
+    const unitConfigId = card.unitConfigId;
+    const unit = unitConfigId ? cardRegistry.getUnit(unitConfigId) : null;
+    const category = unit?.category ?? null;
+    const isTowerLike = category === 'Tower' || category === 'Building';
+    const isPathOnly = category === 'Soldier' || category === 'Trap';
+    if ((isTowerLike && isPathTile) || (isPathOnly && !isPathTile)) return;
     const snapX = col * CELL_SIZE + CELL_SIZE / 2;
     const snapY = row * CELL_SIZE + CELL_SIZE / 2;
     const newEid = cardSpawnSystem.play(game.world, intent.cardId, { x: snapX, y: snapY });
@@ -819,6 +828,14 @@ async function bootstrap(): Promise<void> {
     { id: 'bat_tower_card', label: '蝙蝠塔卡', costGold: 240 },
     { id: 'missile_tower_card', label: '导弹塔卡', costGold: 320 },
   ];
+
+  function buildEnergySystem(startingEnergy: number): EnergySystem {
+    return new EnergySystem({
+      regenPerSecond: ENERGY_REGEN_PER_SECOND + runManager.getEnergyRegenBonusFromRelics(),
+      max: ENERGY_MAX + runManager.getMaxEnergyBonusFromRelics(),
+      startWith: startingEnergy + runManager.getStartEnergyBonusFromRelics(),
+    });
+  }
 
   const CARD_REWARD_POOL = [
     { id: 'arrow_tower_card', title: '箭塔卡', description: '稳定单体输出，适合作为基础防线。' },

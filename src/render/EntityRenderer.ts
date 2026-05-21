@@ -5,6 +5,7 @@ import type { EntityViewSink, StatusSnapshot, VisualSnapshot } from './RenderSys
 
 const STATUS_RING_WIDTH = 2;
 const STATUS_RING_GAP = 3;
+const RANGE_RING_COLOR = 0x80cbc4;
 const STATUS_RING_COLORS = {
   slow: 0x42a5f5,
   burn: 0xff7043,
@@ -60,6 +61,10 @@ export class EntityRenderer implements EntityViewSink {
 
 function drawShape(g: Graphics, visual: VisualSnapshot): void {
   const half = visual.size / 2;
+  if (visual.attackRange > 0) {
+    g.circle(0, 0, visual.attackRange);
+    g.stroke({ width: 2, color: RANGE_RING_COLOR, alpha: 0.22 });
+  }
   drawStatusRings(g, half, visual.status);
   if (visual.isBoss) {
     const outerColor = visual.bossPhase === 3 ? 0xff1744 : 0xffd54f;

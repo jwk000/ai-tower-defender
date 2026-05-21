@@ -89,6 +89,10 @@ export interface SpawnPosition {
   y: number;
 }
 
+export interface SpawnUnitMeta {
+  readonly sourceCardId?: string;
+}
+
 const FACTION_LOOKUP: Record<UnitFactionString, FactionTeamValue> = {
   Player: FactionTeam.Player,
   Enemy: FactionTeam.Enemy,
@@ -115,7 +119,12 @@ const SUMMON_UNIT_KIND = {
   grunt: 1,
 } as const;
 
-export function spawnUnit(world: TowerWorld, config: UnitConfig, at: SpawnPosition): number {
+export function spawnUnit(
+  world: TowerWorld,
+  config: UnitConfig,
+  at: SpawnPosition,
+  _meta: SpawnUnitMeta = {},
+): number {
   const team = FACTION_LOOKUP[config.faction];
   if (team === undefined) {
     throw new Error(`UnitFactory: unknown faction "${config.faction}" on unit "${config.id}"`);

@@ -1,4 +1,4 @@
-import { spawnUnit } from '../factories/UnitFactory.js';
+import { spawnUnit, type SpawnUnitMeta } from '../factories/UnitFactory.js';
 import type { TowerWorld } from '../core/World.js';
 import type { CardRegistry } from './CardRegistry.js';
 
@@ -24,6 +24,6 @@ export class CardSpawnSystem {
     if (!unit) {
       throw new Error(`[CardSpawnSystem] unit config "${card.unitConfigId}" not registered`);
     }
-    return spawnUnit(world, unit, position);
+    return spawnUnit(world, unit, position, { sourceCardId: cardId } satisfies SpawnUnitMeta);
   }
 }
