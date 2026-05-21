@@ -657,9 +657,9 @@ async function bootstrap(): Promise<void> {
       deckViewConfirmation = {
         kind: 'upgrade',
         instanceId: selected.instanceId,
-        title: `确认升级 ${selected.cardName ?? selected.cardId}？`,
-        description: `将消耗 ${selected.nextUpgradeCostGold} 金币，并把这张卡牌提升到下一等级。`,
-        confirmLabel: `确认消耗 ${selected.nextUpgradeCostGold} 金币`,
+        title: `确认将 ${selected.cardName ?? selected.cardId} 升到下一等级？`,
+        description: `将消耗 ${selected.nextUpgradeCostGold} 金币，并把这张卡牌升到下一等级。`,
+        confirmLabel: `确认升到下一等级（-${selected.nextUpgradeCostGold} 金币）`,
         cancelLabel: '暂不升级',
       };
       deckViewMessage = null;
@@ -691,7 +691,7 @@ async function bootstrap(): Promise<void> {
       const upgraded = runController.upgradeDeckCard(action.instanceId);
       deckViewConfirmation = null;
       deckViewMessage = upgraded
-        ? `${selected.cardName ?? selected.cardId} 已升级。`
+        ? `${selected.cardName ?? selected.cardId} 已升到 Lv.${runManager.getCardLevel(action.instanceId)}。`
         : formatUpgradeFailure(runManager.lastSkillTreeError);
       deckViewRenderer.refresh(buildDeckViewState());
       runController.saveProgress();
@@ -961,9 +961,9 @@ async function bootstrap(): Promise<void> {
     '古老遗迹中的选择：风险与机遇并存',
   ];
   const SKILLTREE_DESCS = [
-    '略过此处，直接奔赴下一关',
-    '无需驻足，前路更需精力',
-    '跳过——保留资源，直面挑战',
+    '略过奖励，直接奔赴下一关',
+    '不再停留，带着当前构筑继续推进',
+    '跳过本次奖励，保留节奏直面挑战',
   ];
 
   function buildInterLevelOffers(): readonly [InterLevelOffer, InterLevelOffer, InterLevelOffer] {
@@ -1008,8 +1008,8 @@ async function bootstrap(): Promise<void> {
         nextUpgradeCostGold: goldCost,
         upgradeLabel: nextNode
           ? canAffordUpgrade
-            ? `升级（-${goldCost} 金币）`
-            : `金币不足（需 ${goldCost}）`
+            ? `升到 Lv.${nextNode.level}（-${goldCost} 金币）`
+            : `金币不足（升到 Lv.${nextNode.level} 需 ${goldCost}）`
           : '已满级',
         deleteLabel: canDeleteAny ? '删除卡牌' : '至少保留 1 张',
       };
@@ -1089,10 +1089,11 @@ async function bootstrap(): Promise<void> {
         cardId: option.cardId,
         title: option.title,
         description: option.description,
+        targetLevel: Number(/Lv\.(\d+)/.exec(option.title)?.[1] ?? 0) || undefined,
       })) as [
-        { id: string; instanceId: string; cardId: string; title: string; description: string },
-        { id: string; instanceId: string; cardId: string; title: string; description: string },
-        { id: string; instanceId: string; cardId: string; title: string; description: string },
+        { id: string; instanceId: string; cardId: string; title: string; description: string; targetLevel?: number },
+        { id: string; instanceId: string; cardId: string; title: string; description: string; targetLevel?: number },
+        { id: string; instanceId: string; cardId: string; title: string; description: string; targetLevel?: number },
       ] : undefined,
     };
   }

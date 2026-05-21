@@ -195,6 +195,21 @@ describe('InterLevelPanel class wrapper', () => {
 });
 
 describe('card reward layout', () => {
+  it('upgrade reward layout preserves target level wording', () => {
+    const layout = layoutInterLevel(state({
+      mode: 'upgrade-reward',
+      upgradeRewards: [
+        { id: 'u1', instanceId: 'arrow_1', cardId: 'arrow_tower_card', title: '箭塔 Lv.2', description: '升级到 Lv.2', targetLevel: 2 },
+        { id: 'u2', instanceId: 'arrow_2', cardId: 'cannon_tower_card', title: '炮塔 Lv.3', description: '升级到 Lv.3', targetLevel: 3 },
+        { id: 'u3', instanceId: 'arrow_3', cardId: 'shield_guard_card', title: '盾卫 Lv.2', description: '升级到 Lv.2', targetLevel: 2 },
+      ],
+    }), 1920, 1080);
+
+    expect(layout.headerLabel).toBe('⬆ 选择 1 张卡牌升级');
+    expect(layout.items[0]?.title).toBe('箭塔 Lv.2 · 升到 Lv.2');
+    expect(layout.items[1]?.title).toBe('炮塔 Lv.3 · 升到 Lv.3');
+  });
+
   it('uses reward header and reward cards in card reward mode', () => {
     const layout = layoutInterLevel(state({
       mode: 'card-reward',

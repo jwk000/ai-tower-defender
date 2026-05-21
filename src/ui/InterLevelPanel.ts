@@ -20,6 +20,7 @@ export interface InterLevelUpgradeReward {
   readonly cardId: string;
   readonly title: string;
   readonly description: string;
+  readonly targetLevel?: number;
 }
 
 export interface InterLevelOffer {
@@ -111,7 +112,7 @@ export function layoutInterLevel(state: InterLevelState, viewportWidth: number, 
         ? (state.upgradeRewards ?? []).map((reward) => ({
           id: reward.id,
           kind: 'skip' as const,
-          title: reward.title,
+          title: reward.targetLevel ? `${reward.title} · 升到 Lv.${reward.targetLevel}` : reward.title,
           description: reward.description,
         }))
     : state.offers;
