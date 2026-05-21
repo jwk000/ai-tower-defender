@@ -421,6 +421,17 @@ describe('RunManager state machine', () => {
     ]);
   });
 
+  it('does not roll level modifier when pool is empty', () => {
+    const run = makeManager(3);
+    run.startRun();
+
+    const picked = run.rollLevelModifier([], () => 0.1);
+
+    expect(picked).toBeNull();
+    expect(run.passiveSources).toEqual([]);
+    expect(run.getActivePassiveHudEntries()).toEqual([]);
+  });
+
   it('snapshot / restore preserves current-level passive sources', () => {
     const run = makeManager(3);
     run.startRun();

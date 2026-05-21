@@ -523,6 +523,16 @@ async function bootstrap(): Promise<void> {
   function loadLevel(levelNumber: number): void {
     const { levelConfig, nextUnitConfigs } = loadLevelAssets(levelNumber);
     currentLevelConfig = levelConfig;
+    const currentNodeKind = runManager.currentNodeKind;
+    const shouldRollLevelModifier = runManager.phase === RunPhase.LevelMap
+      && (currentNodeKind === 'battle' || currentNodeKind === 'boss')
+      && levelConfig.modifierPool.length > 0
+      && !runManager.passiveSources.some(
+        (source) => source.sourceType === 'level_modifier' && source.activeScope === 'current_level',
+      );
+    if (shouldRollLevelModifier) {
+      runManager.rollLevelModifier(levelConfig.modifierPool, Math.random);
+    }
     renderer.drawLevelBackground({
       mapCols: levelConfig.mapCols,
       mapRows: levelConfig.mapRows,
