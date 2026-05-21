@@ -1181,6 +1181,8 @@ async function bootstrap(): Promise<void> {
       gold: runManager.gold,
       message: deckViewMessage ?? undefined,
       confirmation: deckViewConfirmation,
+      removedCount: 0,
+      nextDeleteCostGold: 50,
     };
   }
 

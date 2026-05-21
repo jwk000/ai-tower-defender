@@ -26,6 +26,8 @@ export interface DeckViewState {
   readonly gold?: number;
   readonly message?: string;
   readonly confirmation?: DeckViewConfirmationState | null;
+  readonly removedCount?: number;
+  readonly nextDeleteCostGold?: number | null;
 }
 
 export type DeckViewAction =
