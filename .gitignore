@@ -44,3 +44,4 @@ tmp/
 .editor-trash/
 .playwright-mcp/
 handoffs/
+debug/
