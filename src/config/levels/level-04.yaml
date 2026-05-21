@@ -220,6 +220,13 @@ map:
     - { type: temple_pillar, row: 6, col: 11 }
     - { type: temple_pillar, row: 7, col: 9 }
     - { type: temple_pillar, row: 7, col: 10 }
+    - { type: trap_glyph, row: 2, col: 6 }
+    - { type: trap_glyph, row: 6, col: 6 }
+    - { type: trap_glyph, row: 4, col: 14 }
+    - { type: moss_statue, row: 0, col: 4 }
+    - { type: moss_statue, row: 8, col: 4 }
+    - { type: altar_ruin, row: 0, col: 15 }
+    - { type: altar_ruin, row: 8, col: 15 }
     - { type: ancient_statue, row: 0, col: 5 }
     - { type: ancient_statue, row: 0, col: 15 }
     - { type: ancient_statue, row: 8, col: 5 }

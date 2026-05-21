@@ -212,12 +212,26 @@ map:
     spawn: '#ff8f00'
     base: '#1e88e5'
   obstacles:
+    - { type: water_pool, row: 2, col: 4 }
+    - { type: water_pool, row: 2, col: 8 }
+    - { type: water_pool, row: 2, col: 12 }
+    - { type: water_pool, row: 2, col: 16 }
+    - { type: water_pool, row: 6, col: 4 }
+    - { type: water_pool, row: 6, col: 8 }
+    - { type: water_pool, row: 6, col: 12 }
+    - { type: water_pool, row: 6, col: 16 }
     - { type: tide_shoal, row: 4, col: 5 }
     - { type: tide_shoal, row: 4, col: 7 }
     - { type: tide_shoal, row: 4, col: 9 }
     - { type: tide_shoal, row: 4, col: 11 }
     - { type: tide_shoal, row: 4, col: 13 }
     - { type: tide_shoal, row: 4, col: 15 }
+    - { type: wrecked_skiff, row: 0, col: 10 }
+    - { type: wrecked_skiff, row: 8, col: 10 }
+    - { type: anchor_pile, row: 0, col: 2 }
+    - { type: anchor_pile, row: 8, col: 2 }
+    - { type: kraken_sign, row: 3, col: 18 }
+    - { type: kraken_sign, row: 5, col: 18 }
     - { type: dock_crate, row: 0, col: 10 }
     - { type: dock_crate, row: 3, col: 8 }
     - { type: dock_crate, row: 5, col: 8 }
