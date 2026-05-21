@@ -725,6 +725,12 @@ async function bootstrap(): Promise<void> {
       runController.saveProgress();
       return;
     }
+    if (intent.kind === 'claim-relic-reward') {
+      runController.claimRelicReward(intent.rewardId);
+      interLevelRenderer.refresh(buildInterLevelState());
+      runController.saveProgress();
+      return;
+    }
     if (intent.kind === 'claim-upgrade-reward') {
       runController.claimUpgradeReward(intent.rewardId);
       interLevelRenderer.refresh(buildInterLevelState());
@@ -934,6 +940,8 @@ async function bootstrap(): Promise<void> {
     mysticPanel,
     levelMapPanel,
     runController,
+    runManager,
+    levelState,
     waveSystem,
     mainMenuRenderer,
     levelMapRenderer,
@@ -1055,9 +1063,10 @@ async function bootstrap(): Promise<void> {
   function buildInterLevelState(): InterLevelState {
     const pendingReward = runManager.pendingCardReward;
     const pendingGoldReward = runManager.pendingGoldReward;
+    const pendingRelicReward = runManager.pendingRelicReward;
     const pendingUpgradeReward = runManager.pendingUpgradeReward;
     return {
-      mode: pendingReward ? 'card-reward' : pendingGoldReward ? 'gold-reward' : pendingUpgradeReward ? 'upgrade-reward' : 'branch',
+      mode: pendingReward ? 'card-reward' : pendingGoldReward ? 'gold-reward' : pendingRelicReward ? 'relic-reward' : pendingUpgradeReward ? 'upgrade-reward' : 'branch',
       levelIndex: runManager.currentLevel,
       nextLevel: runManager.currentLevel + 1,
       gold: runManager.gold,
@@ -1082,6 +1091,17 @@ async function bootstrap(): Promise<void> {
         { id: string; amount: number; title: string; description: string },
         { id: string; amount: number; title: string; description: string },
         { id: string; amount: number; title: string; description: string },
+      ] : undefined,
+      relicRewards: pendingRelicReward ? pendingRelicReward.options.map((option) => ({
+        id: option.id,
+        relicId: option.relicId,
+        title: option.title,
+        description: option.description,
+        category: option.category,
+      })) as [
+        { id: string; relicId: string; title: string; description: string; category: 'economy' | 'energy' | 'summon' | 'spell' | 'defense' },
+        { id: string; relicId: string; title: string; description: string; category: 'economy' | 'energy' | 'summon' | 'spell' | 'defense' },
+        { id: string; relicId: string; title: string; description: string; category: 'economy' | 'energy' | 'summon' | 'spell' | 'defense' },
       ] : undefined,
       upgradeRewards: pendingUpgradeReward ? pendingUpgradeReward.options.map((option) => ({
         id: option.id,
