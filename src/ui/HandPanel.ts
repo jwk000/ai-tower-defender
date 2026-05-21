@@ -58,6 +58,8 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const cards = state.cards.slice(0, HAND_MAX_CARDS);
   const totalWidth = cards.length * SLOT_WIDTH + Math.max(0, cards.length - 1) * SLOT_GAP;
   const startX = (viewportWidth - totalWidth) / 2;
+  const totalSlotsWidth = HAND_MAX_CARDS * SLOT_WIDTH + (HAND_MAX_CARDS - 1) * SLOT_GAP;
+  const slotStartX = (viewportWidth - totalSlotsWidth) / 2;
   const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
   const drawLabel = formatDrawLabel(state);
   const drawButtonX = 12;
@@ -69,7 +71,7 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       cardId: card.cardId,
       cost: card.cost,
       playable: card.playable,
-      x: startX + i * (SLOT_WIDTH + SLOT_GAP),
+      x: slotStartX + i * (SLOT_WIDTH + SLOT_GAP),
       y,
       width: SLOT_WIDTH,
       height: SLOT_HEIGHT,

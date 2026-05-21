@@ -17,12 +17,24 @@ function state(overrides: Partial<HandState> = {}): HandState {
 }
 
 describe('layoutHand', () => {
-  it('centers slots horizontally, offset 130px from viewport bottom', () => {
+  it('centers current cards within a 4-slot hand area, offset 130px from viewport bottom', () => {
     const layout = layoutHand(state(), 1920, 1080);
     expect(layout.slots).toHaveLength(4);
     const totalWidth = 4 * 120 + 3 * 16;
     expect(layout.slots[0]!.x).toBe((1920 - totalWidth) / 2);
     expect(layout.slots[0]!.y).toBe(1080 - 168 - 130);
+  });
+
+  it('positions a partial hand from the left edge of the 4-slot area', () => {
+    const layout = layoutHand(state({
+      cards: [
+        { slot: 0, cardId: 'arrow_tower', cost: 2, playable: true },
+        { slot: 1, cardId: 'shield_guard', cost: 3, playable: true },
+      ],
+    }), 1920, 1080);
+    const fullAreaStartX = (1920 - (4 * 120 + 3 * 16)) / 2;
+    expect(layout.slots[0]!.x).toBe(fullAreaStartX);
+    expect(layout.slots[1]!.x).toBe(fullAreaStartX + 120 + 16);
   });
 
   it('energyLabel format is ◇ current/max', () => {

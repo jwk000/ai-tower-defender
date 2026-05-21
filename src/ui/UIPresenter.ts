@@ -331,7 +331,7 @@ export class UIPresenter {
     this.drawButtonText.style.fill = layout.drawButton.enabled ? 0xffffff : 0xb0bec5;
     this.drawButtonText.position.set(layout.drawButton.x + 16, layout.drawButton.y + 10);
     this.slotGraphics.clear();
-    while (this.slotLabels.length < layout.slots.length) {
+    while (this.slotLabels.length < 4) {
       const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14 } });
       this.handContainer.addChild(label);
       this.slotLabels.push(label);
@@ -339,14 +339,25 @@ export class UIPresenter {
     for (let i = layout.slots.length; i < this.slotLabels.length; i++) {
       this.slotLabels[i]!.text = '';
     }
-    for (let i = 0; i < layout.slots.length; i++) {
-      const s = layout.slots[i]!;
-      const fillColor = s.playable ? 0x37474f : 0x263238;
-      this.slotGraphics.rect(s.x, s.y, s.width, s.height).fill({ color: fillColor, alpha: 0.92 });
-      this.slotGraphics.rect(s.x, s.y, s.width, s.height).stroke({ width: 2, color: s.playable ? 0x80cbc4 : 0x455a64 });
+    for (let i = 0; i < 4; i++) {
+      const slot = layout.slots[i] ?? {
+        slot: i,
+        cardId: '',
+        cost: 0,
+        playable: false,
+        x: layout.slots[0]?.x ?? ((this.viewportWidth - (4 * 120 + 3 * 16)) / 2) + i * (120 + 16),
+        y: layout.slots[0]?.y ?? (this.viewportHeight - 168 - 130),
+        width: 120,
+        height: 168,
+      };
+      const hasCard = i < layout.slots.length;
+      const fillColor = hasCard ? (slot.playable ? 0x37474f : 0x263238) : 0x1b232c;
+      this.slotGraphics.rect(slot.x, slot.y, slot.width, slot.height).fill({ color: fillColor, alpha: hasCard ? 0.92 : 0.45 });
+      this.slotGraphics.rect(slot.x, slot.y, slot.width, slot.height).stroke({ width: 2, color: hasCard ? (slot.playable ? 0x80cbc4 : 0x455a64) : 0x546e7a, alpha: hasCard ? 1 : 0.7 });
       const label = this.slotLabels[i]!;
-      label.text = `${s.cardId}\nCost ${s.cost}`;
-      label.position.set(s.x + 8, s.y + 8);
+      label.text = hasCard ? `${slot.cardId}\nCost ${slot.cost}` : '空槽';
+      label.style.fill = hasCard ? 0xffffff : 0x78909c;
+      label.position.set(slot.x + 8, slot.y + 8);
     }
   }
 }
