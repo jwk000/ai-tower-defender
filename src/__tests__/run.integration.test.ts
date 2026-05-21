@@ -685,6 +685,32 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(scenes.battle.visible).toBe(true);
   });
 
+  it('keeps battle scene hidden while staying on level map before entering battle', () => {
+    const game = new Game();
+    const runManager = new RunManager({ totalLevels: 3 });
+    const scenes = makeScenes();
+    const controller = new RunController({ game, runManager, scenes });
+
+    controller.startRun();
+    expect(controller.phase).toBe(RunPhase.LevelMap);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+
+    controller.enterBattle();
+    expect(scenes.battle.visible).toBe(true);
+
+    controller.completeCurrentLevel();
+    expect(scenes.battle.visible).toBe(false);
+
+    claimBaseInterLevelRewards(runManager, controller);
+    controller.pickInterLevel('shop');
+    controller.closeShop();
+
+    expect(controller.phase).toBe(RunPhase.LevelMap);
+    expect(scenes.levelMap.visible).toBe(true);
+    expect(scenes.battle.visible).toBe(false);
+  });
+
   it('non-final battle completion can grant a three-card reward before normal inter-level branching', () => {
     const game = new Game();
     const runManager = new RunManager({ totalLevels: 3, initialGold: 200, initialCrystalHp: 20 });

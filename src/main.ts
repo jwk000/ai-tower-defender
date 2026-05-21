@@ -529,7 +529,7 @@ async function bootstrap(): Promise<void> {
       weather: levelConfig.weather,
     });
     clearBattleEntities();
-    battleContainer.visible = true;
+    battleContainer.visible = runManager.phase === RunPhase.Battle;
     activeWaveSystem = createWaveRuntime(levelConfig, nextUnitConfigs);
     activeMovementSystem = createMovementRuntime(levelConfig);
     levelState.reset(levelConfig.waves.length);
