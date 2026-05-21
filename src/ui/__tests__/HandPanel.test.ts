@@ -53,10 +53,9 @@ describe('layoutHand', () => {
     expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
   });
 
-  it('draw button is placed inside hand panel right side and only enabled for ready/reroll', () => {
+  it('draw button is placed at bottom-left and only enabled for ready/reroll', () => {
     const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
-    expect(readyLayout.drawButton).toEqual({ x: 1100, y: 844, width: 132, height: 44, enabled: true });
-    expect(readyLayout.drawButton.x + readyLayout.drawButton.width).toBeLessThanOrEqual(readyLayout.panel.x + readyLayout.panel.width);
+    expect(readyLayout.drawButton).toEqual({ x: 24, y: 1008, width: 132, height: 44, enabled: true });
 
     const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
     expect(cooldownLayout.drawButton.enabled).toBe(false);
@@ -65,10 +64,9 @@ describe('layoutHand', () => {
     expect(rerollLayout.drawButton.enabled).toBe(true);
   });
 
-  it('small viewport 下 draw button 仍在面板内可点击', () => {
+  it('small viewport 下 draw button 仍固定在左下角可点击', () => {
     const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
-    expect(layout.drawButton.x).toBeGreaterThanOrEqual(layout.panel.x);
-    expect(layout.drawButton.x + layout.drawButton.width).toBeLessThanOrEqual(layout.panel.x + layout.panel.width);
+    expect(layout.drawButton).toEqual({ x: 24, y: 504, width: 132, height: 44, enabled: true });
     expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
   });
 
@@ -140,22 +138,36 @@ describe('HandPanel class wrapper', () => {
   });
 });
 
+function shouldTriggerDraw(enabled: boolean, target: 'button' | 'text' | 'other'): boolean {
+  const interactiveTargets = new Set(['button', 'text']);
+  return enabled && interactiveTargets.has(target);
+}
+
 describe('hitTestHandSlot', () => {
-  it('点击 draw button 区域命中抽卡按钮', () => {
+  it('点击左下角 draw button 区域命中抽卡按钮', () => {
     const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
     expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
     expect(hitTestDrawButton(layout, layout.drawButton.x - 1, layout.drawButton.y)).toBe(false);
   });
 
-  it('冷却时点击区域仍命中，但按钮 disabled 由上层拦截', () => {
+  it('只有按钮图形或文字自身 pointertap 才触发抽卡', () => {
+    expect(shouldTriggerDraw(true, 'button')).toBe(true);
+    expect(shouldTriggerDraw(true, 'text')).toBe(true);
+    expect(shouldTriggerDraw(true, 'other')).toBe(false);
+    expect(shouldTriggerDraw(false, 'button')).toBe(false);
+  });
+
+  it('冷却时点击区域仍命中，但按钮 disabled 不触发', () => {
     const layout = layoutHand(state({ drawState: 'cooldown' }), 1344, 576);
     expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
     expect(layout.drawButton.enabled).toBe(false);
   });
 
-  it('hand container handles draw button click instead of relying on full battle container hit area', () => {
+  it('draw button 不再依赖 hand container 整层命中判定', () => {
     const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
-    expect(hitTestDrawButton(layout, layout.drawButton.x + layout.drawButton.width / 2, layout.drawButton.y + layout.drawButton.height / 2)).toBe(true);
+    const centerX = layout.drawButton.x + layout.drawButton.width / 2;
+    const centerY = layout.drawButton.y + layout.drawButton.height / 2;
+    expect(hitTestDrawButton(layout, centerX, centerY)).toBe(true);
   });
 
   it('点击 slot 中心命中对应 slot 编号', () => {

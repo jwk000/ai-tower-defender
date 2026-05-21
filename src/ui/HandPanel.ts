@@ -61,6 +61,8 @@ const SLOT_GAP = 16;
 const HAND_OFFSET_Y = 130;
 const DRAW_BUTTON_WIDTH = 132;
 const DRAW_BUTTON_HEIGHT = 44;
+const DRAW_BUTTON_MARGIN_LEFT = 24;
+const DRAW_BUTTON_MARGIN_BOTTOM = 28;
 
 export function layoutHand(state: HandState, viewportWidth: number, viewportHeight: number): HandLayout {
   const cards = state.cards.slice(0, HAND_MAX_CARDS);
@@ -73,8 +75,8 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const panelY = y - HAND_PANEL_PADDING_Y;
   const panelWidth = totalSlotsWidth + HAND_PANEL_PADDING_X * 2;
   const panelHeight = SLOT_HEIGHT + HAND_PANEL_PADDING_Y * 2;
-  const drawButtonX = panelX + panelWidth - DRAW_BUTTON_WIDTH - 20;
-  const drawButtonY = y + (SLOT_HEIGHT - DRAW_BUTTON_HEIGHT) / 2;
+  const drawButtonX = DRAW_BUTTON_MARGIN_LEFT;
+  const drawButtonY = viewportHeight - DRAW_BUTTON_HEIGHT - DRAW_BUTTON_MARGIN_BOTTOM;
   return {
     slots: cards.map((card, i) => ({
       slot: card.slot,

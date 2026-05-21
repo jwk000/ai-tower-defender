@@ -179,10 +179,6 @@ export class UIPresenter {
       .fill({ color: 0x101820, alpha: 0.88 });
     this.handBackground.roundRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 22)
       .stroke({ width: 2, color: 0x607d8b, alpha: 0.95 });
-    this.handBackground.roundRect(layout.drawButton.x - 14, layout.panel.y, layout.drawButton.width + 28, 96, 18)
-      .fill({ color: 0x101820, alpha: 0.88 });
-    this.handBackground.roundRect(layout.drawButton.x - 14, layout.panel.y, layout.drawButton.width + 28, 96, 18)
-      .stroke({ width: 2, color: 0x607d8b, alpha: 0.95 });
   }
 
   private isExitBtnHit(x: number, y: number): boolean {
@@ -197,10 +193,16 @@ export class UIPresenter {
 
   private bindHandEvents(): void {
     this.battleContainer.eventMode = 'passive';
+    this.drawButtonGraphics.eventMode = 'static';
+    this.drawButtonText.eventMode = 'static';
+    this.drawButtonGraphics.cursor = 'pointer';
+    this.drawButtonText.cursor = 'pointer';
     this.handContainer.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
     this.handContainer.on('pointermove', (e: FederatedPointerEvent) => this.onPointerMove(e));
     this.handContainer.on('pointerup', (e: FederatedPointerEvent) => this.onPointerUp(e));
     this.handContainer.on('pointerupoutside', () => this.clearDrag());
+    this.drawButtonGraphics.on('pointertap', (e: FederatedPointerEvent) => this.onDrawButtonTap(e));
+    this.drawButtonText.on('pointertap', (e: FederatedPointerEvent) => this.onDrawButtonTap(e));
   }
 
   private spawnGhostCard(cardId: string, x: number, y: number): void {
@@ -246,6 +248,13 @@ export class UIPresenter {
     this.dragSlot = null;
   }
 
+  private onDrawButtonTap(e: FederatedPointerEvent): void {
+    e.stopPropagation();
+    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
+    if (!layout.drawButton.enabled) return;
+    this.onDrawCard?.();
+  }
+
   private onPointerDown(e: FederatedPointerEvent): void {
     e.stopPropagation();
     const local = this.battleContainer.toLocal(e.global);
@@ -253,15 +262,11 @@ export class UIPresenter {
       this.onExitBattle?.();
       return;
     }
-    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
-    if (hitTestDrawButton(layout, local.x, local.y)) {
-      if (layout.drawButton.enabled) this.onDrawCard?.();
-      return;
-    }
     if (this.isDebugVictoryBtnHit(local.x, local.y)) {
       this.onDebugVictory?.();
       return;
     }
+    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
     const slot = hitTestHandSlot(layout, local.x, local.y);
     this.dragSlot = slot;
     if (slot !== null) {
@@ -365,12 +370,10 @@ export class UIPresenter {
     this.energyText.text = layout.energyLabel;
     this.energyText.position.set(layout.panel.x + 24, layout.panel.y + 18);
     this.drawText.text = layout.drawLabel;
-    this.drawText.position.set(layout.drawButton.x + 20, layout.drawButton.y - 28);
+    this.drawText.position.set(layout.drawButton.x, layout.drawButton.y - 28);
     this.drawButtonGraphics.clear();
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
       .fill({ color: layout.drawButton.enabled ? 0x1565c0 : 0x37474f, alpha: 0.95 });
-    this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
-      .stroke({ width: 2, color: layout.drawButton.enabled ? 0x82b1ff : 0x78909c });
     this.drawButtonText.text = '抽卡';
     this.drawButtonText.style.fill = layout.drawButton.enabled ? 0xffffff : 0xb0bec5;
     this.drawButtonText.position.set(layout.drawButton.x + 34, layout.drawButton.y + 10);
