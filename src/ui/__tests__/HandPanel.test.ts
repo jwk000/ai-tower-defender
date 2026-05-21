@@ -53,15 +53,23 @@ describe('layoutHand', () => {
     expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
   });
 
-  it('draw button is placed to the right of hand panel and only enabled for ready/reroll', () => {
+  it('draw button is placed inside hand panel right side and only enabled for ready/reroll', () => {
     const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
-    expect(readyLayout.drawButton).toEqual({ x: 1272, y: 844, width: 132, height: 44, enabled: true });
+    expect(readyLayout.drawButton).toEqual({ x: 1100, y: 844, width: 132, height: 44, enabled: true });
+    expect(readyLayout.drawButton.x + readyLayout.drawButton.width).toBeLessThanOrEqual(readyLayout.panel.x + readyLayout.panel.width);
 
     const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
     expect(cooldownLayout.drawButton.enabled).toBe(false);
 
     const rerollLayout = layoutHand(state({ drawState: 'reroll' }), 1920, 1080);
     expect(rerollLayout.drawButton.enabled).toBe(true);
+  });
+
+  it('small viewport 下 draw button 仍在面板内可点击', () => {
+    const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
+    expect(layout.drawButton.x).toBeGreaterThanOrEqual(layout.panel.x);
+    expect(layout.drawButton.x + layout.drawButton.width).toBeLessThanOrEqual(layout.panel.x + layout.panel.width);
+    expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
   });
 
   it('slot dimensions are 120×168 with 16px gap', () => {
