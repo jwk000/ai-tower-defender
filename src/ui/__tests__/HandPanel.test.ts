@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { hitTestHandSlot, layoutHand, resolveDropIntent, HandPanel, type HandState, type PlayCardIntent } from '../HandPanel.js';
+import { hitTestDrawButton, hitTestHandSlot, layoutHand, resolveDropIntent, HandPanel, type HandState, type PlayCardIntent } from '../HandPanel.js';
 
 function state(overrides: Partial<HandState> = {}): HandState {
   return {
@@ -39,6 +39,17 @@ describe('layoutHand', () => {
     expect(layoutHand(state({ drawState: 'cooldown', drawCooldownSeconds: 4.25 }), 1920, 1080).drawLabel).toBe('抽卡：冷却 4.3s');
     expect(layoutHand(state({ drawState: 'full-hand' }), 1920, 1080).drawLabel).toBe('抽卡：满手');
     expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('抽卡：可重抽 1 次');
+  });
+
+  it('draw button is placed at bottom-left and only enabled for ready/reroll', () => {
+    const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
+    expect(readyLayout.drawButton).toEqual({ x: 12, y: 1000, width: 132, height: 44, enabled: true });
+
+    const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
+    expect(cooldownLayout.drawButton.enabled).toBe(false);
+
+    const rerollLayout = layoutHand(state({ drawState: 'reroll' }), 1920, 1080);
+    expect(rerollLayout.drawButton.enabled).toBe(true);
   });
 
   it('slot dimensions are 120×168 with 16px gap', () => {
@@ -110,6 +121,12 @@ describe('HandPanel class wrapper', () => {
 });
 
 describe('hitTestHandSlot', () => {
+  it('点击 draw button 区域命中抽卡按钮', () => {
+    const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
+    expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
+    expect(hitTestDrawButton(layout, layout.drawButton.x - 1, layout.drawButton.y)).toBe(false);
+  });
+
   it('点击 slot 中心命中对应 slot 编号', () => {
     const layout = layoutHand(state(), 1344, 576);
     for (const slot of layout.slots) {

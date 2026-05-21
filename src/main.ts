@@ -522,6 +522,13 @@ async function bootstrap(): Promise<void> {
     onDebugVictory: () => {
       runController.completeCurrentLevel();
     },
+    onDrawCard: () => {
+      if (pendingReroll) {
+        tryRerollLatestDraw();
+      } else {
+        tryManualDraw();
+      }
+    },
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
     worldToScreen: (wx, wy) => renderer.worldToScreen(wx, wy),
   });

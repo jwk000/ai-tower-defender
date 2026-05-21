@@ -3,7 +3,7 @@ import type { FederatedPointerEvent } from 'pixi.js';
 
 import type { CardRegistry } from '../unit-system/CardRegistry.js';
 import type { HandPanel, HandState } from './HandPanel.js';
-import { hitTestHandSlot, layoutHand } from './HandPanel.js';
+import { hitTestDrawButton, hitTestHandSlot, layoutHand } from './HandPanel.js';
 import type { RunState } from './HUD.js';
 import { projectHUD } from './HUD.js';
 
@@ -16,6 +16,7 @@ export interface UIPresenterConfig {
   readonly cardRegistry?: CardRegistry;
   readonly onExitBattle?: () => void;
   readonly onDebugVictory?: () => void;
+  readonly onDrawCard?: () => void;
   readonly screenToWorld?: (sx: number, sy: number) => { x: number; y: number };
   readonly worldToScreen?: (wx: number, wy: number) => { x: number; y: number };
 }
@@ -55,11 +56,14 @@ export class UIPresenter {
   private readonly exitBtnText: Text;
   private readonly debugVictoryGraphics: Graphics;
   private readonly debugVictoryText: Text;
+  private readonly drawButtonGraphics: Graphics;
+  private readonly drawButtonText: Text;
 
   private readonly handPanel: HandPanel | null;
   private readonly cardRegistry: CardRegistry | null;
   private readonly onExitBattle: (() => void) | null;
   private readonly onDebugVictory: (() => void) | null;
+  private readonly onDrawCard: (() => void) | null;
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
@@ -79,6 +83,7 @@ export class UIPresenter {
     this.cardRegistry = config.cardRegistry ?? null;
     this.onExitBattle = config.onExitBattle ?? null;
     this.onDebugVictory = config.onDebugVictory ?? null;
+    this.onDrawCard = config.onDrawCard ?? null;
     this.cellSize = config.cellSize ?? 64;
     this.screenToWorld = config.screenToWorld ?? ((sx, sy) => ({ x: sx, y: sy }));
     this.worldToScreen = config.worldToScreen ?? ((wx, wy) => ({ x: wx, y: wy }));
@@ -105,9 +110,11 @@ export class UIPresenter {
     this.energyText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 18 } });
     this.energyText.position.set(12, this.viewportHeight - 24);
     this.drawText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16 } });
-    this.drawText.position.set(140, this.viewportHeight - 24);
+    this.drawText.position.set(156, this.viewportHeight - 68);
     this.slotGraphics = new Graphics();
-    this.handContainer.addChild(this.slotGraphics, this.energyText, this.drawText);
+    this.drawButtonGraphics = new Graphics();
+    this.drawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16 } });
+    this.handContainer.addChild(this.slotGraphics, this.drawButtonGraphics, this.energyText, this.drawText, this.drawButtonText);
 
     this.exitBtnGraphics = new Graphics();
     this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15 } });
@@ -207,6 +214,10 @@ export class UIPresenter {
       this.onExitBattle?.();
       return;
     }
+    if (hitTestDrawButton(layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight), local.x, local.y)) {
+      this.onDrawCard?.();
+      return;
+    }
     if (this.isDebugVictoryBtnHit(local.x, local.y)) {
       this.onDebugVictory?.();
       return;
@@ -269,7 +280,8 @@ export class UIPresenter {
     this.DEBUG_VICTORY_BTN.x = vw - 148;
     this.DEBUG_VICTORY_BTN.y = 56;
     this.energyText.position.set(12, vh - 24);
-    this.drawText.position.set(140, vh - 24);
+    this.drawText.position.set(156, vh - 68);
+    this.drawButtonText.position.set(24, vh - 70);
     this.drawExitButton();
     this.drawDebugVictoryButton();
   }
@@ -286,6 +298,14 @@ export class UIPresenter {
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
     this.energyText.text = layout.energyLabel;
     this.drawText.text = layout.drawLabel;
+    this.drawButtonGraphics.clear();
+    this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
+      .fill({ color: layout.drawButton.enabled ? 0x1565c0 : 0x37474f, alpha: 0.95 });
+    this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
+      .stroke({ width: 2, color: layout.drawButton.enabled ? 0x82b1ff : 0x78909c });
+    this.drawButtonText.text = '抽卡';
+    this.drawButtonText.style.fill = layout.drawButton.enabled ? 0xffffff : 0xb0bec5;
+    this.drawButtonText.position.set(layout.drawButton.x + 42, layout.drawButton.y + 10);
     this.slotGraphics.clear();
     while (this.slotLabels.length < layout.slots.length) {
       const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14 } });

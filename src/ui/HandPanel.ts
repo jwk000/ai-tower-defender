@@ -26,10 +26,19 @@ export interface HandSlotRect {
   readonly height: number;
 }
 
+export interface DrawButtonRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly enabled: boolean;
+}
+
 export interface HandLayout {
   readonly slots: readonly HandSlotRect[];
   readonly energyLabel: string;
   readonly drawLabel: string;
+  readonly drawButton: DrawButtonRect;
 }
 
 export type PlayCardIntent =
@@ -42,6 +51,8 @@ const SLOT_WIDTH = 120;
 const SLOT_HEIGHT = 168;
 const SLOT_GAP = 16;
 const HAND_OFFSET_Y = 130;
+const DRAW_BUTTON_WIDTH = 132;
+const DRAW_BUTTON_HEIGHT = 44;
 
 export function layoutHand(state: HandState, viewportWidth: number, viewportHeight: number): HandLayout {
   const cards = state.cards.slice(0, HAND_MAX_CARDS);
@@ -49,6 +60,9 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const startX = (viewportWidth - totalWidth) / 2;
   const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
   const drawLabel = formatDrawLabel(state);
+  const drawButtonX = 12;
+  const drawButtonY = viewportHeight - 80;
+  const drawButtonEnabled = state.drawState === 'ready' || state.drawState === 'reroll';
   return {
     slots: cards.map((card, i) => ({
       slot: card.slot,
@@ -62,6 +76,13 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
     })),
     energyLabel: `◇ ${state.energy}/${state.energyMax}`,
     drawLabel,
+    drawButton: {
+      x: drawButtonX,
+      y: drawButtonY,
+      width: DRAW_BUTTON_WIDTH,
+      height: DRAW_BUTTON_HEIGHT,
+      enabled: drawButtonEnabled,
+    },
   };
 }
 
@@ -88,6 +109,11 @@ export function hitTestHandSlot(layout: HandLayout, px: number, py: number): num
     }
   }
   return null;
+}
+
+export function hitTestDrawButton(layout: HandLayout, px: number, py: number): boolean {
+  const b = layout.drawButton;
+  return px >= b.x && px <= b.x + b.width && py >= b.y && py <= b.y + b.height;
 }
 
 export function resolveDropIntent(
