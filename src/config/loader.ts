@@ -408,9 +408,6 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     if (node.role === 'spawn' && node.spawnId && !spawnIds.has(node.spawnId)) {
       throw new Error(`[loader] spawn node '${node.id}' references unknown spawnId '${node.spawnId}'`);
     }
-    if (node.role === 'portal' && !node.teleportTo) {
-      throw new Error(`[loader] portal node '${node.id}' must define teleportTo`);
-    }
     if (!node.teleportTo) continue;
     const target = nodesById.get(node.teleportTo);
     if (!target) {
@@ -427,7 +424,7 @@ export function parseLevelConfig(yamlText: string): LevelConfig {
     outgoingCount.set(edge.from, (outgoingCount.get(edge.from) ?? 0) + 1);
   }
   for (const node of parsed.map.pathGraph.nodes) {
-    if (node.role === 'crystal_anchor') continue;
+    if (node.role === 'crystal_anchor' || node.role === 'portal') continue;
     if ((outgoingCount.get(node.id) ?? 0) <= 0) {
       throw new Error(`[loader] non-crystal node '${node.id}' must have at least 1 outgoing edge`);
     }

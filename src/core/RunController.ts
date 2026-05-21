@@ -5,6 +5,7 @@ import type { CardRewardOption, GoldRewardOption, InterLevelChoice, RelicRewardO
 import type { CardSkillTreeConfig } from '../unit-system/SkillTreeState.js';
 import { RunPhase } from '../unit-system/RunManager.js';
 import type { DeckSystem } from '../unit-system/DeckSystem.js';
+import { SaveSystem } from './SaveSystem.js';
 
 export interface RunSceneContainers {
   readonly mainMenu: { visible: boolean };
@@ -191,11 +192,26 @@ export class RunController {
   }
 
   saveProgress(): void {
-    return;
+    if (!this.deckSystem) return;
+    if (this.runManager.phase === RunPhase.Idle || this.runManager.phase === RunPhase.Result) {
+      SaveSystem.clearRun();
+      return;
+    }
+    if (this.runManager.phase === RunPhase.Battle) {
+      SaveSystem.clearRun();
+      return;
+    }
+    SaveSystem.saveRun(this.runManager.snapshot(this.deckSystem));
   }
 
   loadProgress(): boolean {
-    return false;
+    if (!this.deckSystem) return false;
+    const snapshot = SaveSystem.loadRun();
+    if (!snapshot) return false;
+    this.runManager.restoreFrom(snapshot, this.resolveSkillTreeConfig);
+    this.deckSystem.restoreFrom(snapshot.deck);
+    this.syncSceneVisibility();
+    return true;
   }
 
   private syncLevelStateFromWaveSystem(): void {

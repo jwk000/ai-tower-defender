@@ -4,33 +4,59 @@ import { buildMainMenu, hitTestMainMenu, layoutMainMenu, MainMenu, resolveMainMe
 
 describe('buildMainMenu', () => {
   it('always enables start-run and quit', () => {
-    const buttons = buildMainMenu({});
+    const buttons = buildMainMenu({ hasSavedRun: false });
     for (const action of ['start-run', 'quit'] as const) {
       expect(buttons.find((b) => b.action === action)!.enabled).toBe(true);
     }
   });
 
-  it('has exactly 2 buttons', () => {
-    const buttons = buildMainMenu({});
-    expect(buttons.length).toBe(2);
-    expect(buttons.map((b) => b.action)).toEqual(['start-run', 'quit']);
+  it('disables continue-run when no saved run exists', () => {
+    const buttons = buildMainMenu({ hasSavedRun: false });
+    const cont = buttons.find((b) => b.action === 'continue-run')!;
+    expect(cont.enabled).toBe(false);
+  });
+
+  it('enables continue-run when a saved run exists', () => {
+    const buttons = buildMainMenu({ hasSavedRun: true });
+    expect(buttons.find((b) => b.action === 'continue-run')!.enabled).toBe(true);
+  });
+
+  it('has exactly 3 buttons', () => {
+    const buttons = buildMainMenu({ hasSavedRun: false });
+    expect(buttons.length).toBe(3);
+    expect(buttons.map((b) => b.action)).toEqual(['start-run', 'continue-run', 'quit']);
   });
 });
 
 describe('resolveMainMenuClick', () => {
   it('returns the action when button is enabled', () => {
-    expect(resolveMainMenuClick({}, 'start-run')).toBe('start-run');
+    expect(resolveMainMenuClick({ hasSavedRun: true }, 'continue-run')).toBe('continue-run');
+  });
+
+  it('rejects when button is disabled', () => {
+    expect(resolveMainMenuClick({ hasSavedRun: false }, 'continue-run')).toEqual({
+      kind: 'rejected', reason: 'disabled',
+    });
   });
 });
 
 describe('MainMenu class wrapper', () => {
-  it('invokes handler with enabled actions', () => {
-    const menu = new MainMenu({});
+  it('invokes handler with enabled action; ignores disabled', () => {
+    const menu = new MainMenu({ hasSavedRun: false });
     const got: MainMenuAction[] = [];
     menu.setHandler((a) => got.push(a));
     menu.trigger('start-run');
-    menu.trigger('quit');
-    expect(got).toEqual(['start-run', 'quit']);
+    menu.trigger('continue-run');
+    expect(got).toEqual(['start-run']);
+  });
+
+  it('refresh() updates state so previously disabled action becomes enabled', () => {
+    const menu = new MainMenu({ hasSavedRun: false });
+    const got: MainMenuAction[] = [];
+    menu.setHandler((a) => got.push(a));
+    menu.refresh({ hasSavedRun: true });
+    menu.trigger('continue-run');
+    expect(got).toEqual(['continue-run']);
   });
 });
 
@@ -39,21 +65,22 @@ describe('layoutMainMenu + hitTestMainMenu', () => {
   const VH = 576;
 
   it('layout 包含正确标题、副标题、版本号字段', () => {
-    const layout = layoutMainMenu({}, VW, VH);
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
     expect(layout.titleLabel).toBe('Tower Defender');
     expect(layout.subtitleLabel).toBe('塔 防 守 护 者');
     expect(layout.versionLabel).toBe('v0.1');
   });
 
   it('按钮包含对应图标字段', () => {
-    const layout = layoutMainMenu({}, VW, VH);
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
     expect(layout.buttons.find((b) => b.action === 'start-run')?.icon).toBe('🗡');
+    expect(layout.buttons.find((b) => b.action === 'continue-run')?.icon).toBe('▶');
     expect(layout.buttons.find((b) => b.action === 'quit')?.icon).toBe('🚪');
   });
 
-  it('layout 中心对齐 2 个按钮，宽度 320，间距 16，可命中 start-run', () => {
-    const layout = layoutMainMenu({}, VW, VH);
-    expect(layout.buttons.length).toBe(2);
+  it('layout 中心对齐 3 个按钮，宽度 320，间距 16，可命中 start-run', () => {
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
+    expect(layout.buttons.length).toBe(3);
     for (const b of layout.buttons) {
       expect(b.width).toBe(320);
       expect(b.height).toBe(56);
@@ -65,17 +92,27 @@ describe('layoutMainMenu + hitTestMainMenu', () => {
     expect(hitTestMainMenu(layout, cx, cy)).toBe('start-run');
   });
 
+  it('点击 disabled 的 continue-run 返回 null（命中但被忽略）', () => {
+    const layout = layoutMainMenu({ hasSavedRun: false }, VW, VH);
+    const contBtn = layout.buttons.find((b) => b.action === 'continue-run')!;
+    expect(contBtn.enabled).toBe(false);
+    const cx = contBtn.x + contBtn.width / 2;
+    const cy = contBtn.y + contBtn.height / 2;
+    expect(hitTestMainMenu(layout, cx, cy)).toBeNull();
+  });
+
   it('点击空白处返回 null', () => {
-    const layout = layoutMainMenu({}, VW, VH);
+    const layout = layoutMainMenu({ hasSavedRun: true }, VW, VH);
     expect(hitTestMainMenu(layout, 0, 0)).toBeNull();
     expect(hitTestMainMenu(layout, VW - 1, VH - 1)).toBeNull();
   });
 
-  it('可命中 quit 按钮', () => {
-    const layout = layoutMainMenu({}, VW, VH);
-    const quitBtn = layout.buttons.find((b) => b.action === 'quit')!;
-    const cx = quitBtn.x + quitBtn.width / 2;
-    const cy = quitBtn.y + quitBtn.height / 2;
-    expect(hitTestMainMenu(layout, cx, cy)).toBe('quit');
+  it('hasSavedRun=true 时可命中 continue-run', () => {
+    const layout = layoutMainMenu({ hasSavedRun: true }, VW, VH);
+    const contBtn = layout.buttons.find((b) => b.action === 'continue-run')!;
+    expect(contBtn.enabled).toBe(true);
+    const cx = contBtn.x + contBtn.width / 2;
+    const cy = contBtn.y + contBtn.height / 2;
+    expect(hitTestMainMenu(layout, cx, cy)).toBe('continue-run');
   });
 });

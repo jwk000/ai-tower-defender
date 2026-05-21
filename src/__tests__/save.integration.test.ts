@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DeckSystem } from '../unit-system/DeckSystem.js';
 import { RunManager, RunPhase } from '../unit-system/RunManager.js';
-import { SaveSystem, type RunSnapshot, type RunSnapshotV2 } from '../core/SaveSystem.js';
+import { SaveSystem, type RunSnapshot } from '../core/SaveSystem.js';
 
 function makeLocalStorageMock() {
   const store: Record<string, string> = {};
@@ -92,18 +92,46 @@ describe('RunManager snapshot / restoreFrom', () => {
   });
 });
 
-describe('SaveSystem legacy migration / cleanup', () => {
+describe('SaveSystem latest-only behavior', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', makeLocalStorageMock());
   });
 
-  it('hasSavedRun returns false before any legacy save exists', () => {
+  it('hasSavedRun returns false before any current save exists', () => {
     expect(SaveSystem.hasSavedRun()).toBe(false);
   });
 
-  it('hasSavedRun returns true when a legacy in-progress run key exists', () => {
-    localStorage.setItem('td_run_v5', JSON.stringify({ version: 5 }));
+  it('hasSavedRun returns true when current save key exists', () => {
+    localStorage.setItem('td_run_v6', JSON.stringify({ version: 6 }));
     expect(SaveSystem.hasSavedRun()).toBe(true);
+  });
+
+  it('saves and loads a RunSnapshot round-trip', () => {
+    const snap: RunSnapshot = {
+      version: 6,
+      savedAt: 1000,
+      phase: 'LevelMap',
+      currentLevelIdx: 3,
+      gold: 220,
+      crystalHp: 15,
+      crystalHpMax: 20,
+      pendingCardReward: null,
+      pendingGoldReward: null,
+      pendingRelicReward: null,
+      pendingUpgradeReward: null,
+      relics: [],
+      passiveSources: [],
+      cardLevels: [],
+      deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
+    };
+
+    SaveSystem.saveRun(snap);
+    expect(SaveSystem.hasSavedRun()).toBe(true);
+    expect(localStorage.getItem('td_run_v6')).not.toContain('skillPoints');
+    expect(localStorage.getItem('td_run_v6')).not.toContain('skillTree');
+
+    const loaded = SaveSystem.loadRun();
+    expect(loaded).toEqual(snap);
   });
 
   it('loadRun returns null for unknown version', () => {
@@ -111,109 +139,9 @@ describe('SaveSystem legacy migration / cleanup', () => {
     expect(SaveSystem.loadRun()).toBeNull();
   });
 
-  it('loadRun migrates v4 save to v6 format', () => {
-    localStorage.setItem('td_run_v4', JSON.stringify({
-      version: 4,
-      savedAt: 888,
-      phase: 'InterLevel',
-      currentLevelIdx: 2,
-      gold: 120,
-      crystalHp: 17,
-      crystalHpMax: 20,
-      pendingCardReward: null,
-      pendingGoldReward: null,
-      pendingUpgradeReward: null,
-      cardLevels: [],
-      deck: { drawPile: ['c1'], discardPile: [] },
-    }));
-    const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(6);
-    expect(loaded?.pendingRelicReward).toBeNull();
-    expect(loaded?.relics).toEqual([]);
-    expect(loaded?.passiveSources).toEqual([]);
-  });
-
-  it('loadRun migrates v2 save to v6 format', () => {
-    const v2Save: RunSnapshotV2 = {
-      version: 2,
-      savedAt: 999,
-      phase: 'LevelMap',
-      currentLevelIdx: 2,
-      gold: 100,
-      skillPoints: 3,
-      crystalHp: 18,
-      crystalHpMax: 20,
-      skillTree: { instances: [] },
-      pendingCardReward: null,
-      pendingGoldReward: null,
-      pendingUpgradeReward: null,
-      deck: { drawPile: ['c1'], discardPile: [] },
-    };
-    localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
-    const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(6);
-    expect(loaded?.gold).toBe(100);
-    expect(loaded?.crystalHp).toBe(18);
-    expect(loaded?.pendingRelicReward).toBeNull();
-    expect(loaded?.relics).toEqual([]);
-    expect(loaded?.passiveSources).toEqual([]);
-    expect(loaded).not.toBeNull();
-    expect('skillPoints' in loaded!).toBe(false);
-    expect('skillTree' in loaded!).toBe(false);
-  });
-
-  it('loadRun migrates v1 save to v6 format', () => {
-    const v1Save = {
-      version: 1,
-      savedAt: 999,
-      phase: 'LevelMap',
-      currentLevelIdx: 2,
-      gold: 100,
-      skillPoints: 3,
-      crystalHp: 18,
-      crystalHpMax: 20,
-      skillTreeUnlocked: ['node_a', 'node_b'],
-      deck: { drawPile: ['c1'], discardPile: [] },
-    };
-    localStorage.setItem('td_run_v1', JSON.stringify(v1Save));
-    const loaded = SaveSystem.loadRun();
-    expect(loaded?.version).toBe(6);
-    expect(loaded?.gold).toBe(100);
-    expect(loaded?.crystalHp).toBe(18);
-    expect(loaded?.pendingRelicReward).toBeNull();
-    expect(loaded?.relics).toEqual([]);
-    expect(loaded?.passiveSources).toEqual([]);
-    expect(loaded).not.toBeNull();
-    expect('skillPoints' in loaded!).toBe(false);
-    expect('skillTreeUnlocked' in loaded!).toBe(false);
-  });
-
-  it('RunManager restoreFrom keeps migrated save free of legacy SP', () => {
-    const v2Save: RunSnapshotV2 = {
-      version: 2,
-      savedAt: 999,
-      phase: 'InterLevel',
-      currentLevelIdx: 3,
-      gold: 145,
-      skillPoints: 9,
-      crystalHp: 16,
-      crystalHpMax: 20,
-      skillTree: { instances: [{ id: 'legacy-node' }] },
-      pendingCardReward: null,
-      pendingGoldReward: null,
-      pendingUpgradeReward: null,
-      deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
-    };
-    localStorage.setItem('td_run_v2', JSON.stringify(v2Save));
-
-    const loaded = SaveSystem.loadRun()!;
-    const mgr = makeManager(4);
-    mgr.restoreFrom(loaded);
-
-    expect(mgr.phase).toBe(RunPhase.InterLevel);
-    expect(mgr.currentLevel).toBe(3);
-    expect(mgr.gold).toBe(145);
-    expect(mgr.crystalHp).toBe(16);
+  it('ignores old-version save payloads instead of migrating them', () => {
+    localStorage.setItem('td_run_v6', JSON.stringify({ version: 5, phase: 'LevelMap' }));
+    expect(SaveSystem.loadRun()).toBeNull();
   });
 
   it('snapshot / restore preserves passive sources for relics', () => {
@@ -253,20 +181,10 @@ describe('SaveSystem legacy migration / cleanup', () => {
     expect(mgr2.getStartEnergyBonusFromRelics()).toBe(1);
   });
 
-  it('clearRun removes save and legacy keys', () => {
+  it('clearRun removes the current save key', () => {
     localStorage.setItem('td_run_v6', '{}');
-    localStorage.setItem('td_run_v4', '{}');
-    localStorage.setItem('td_run_v3', '{}');
-    localStorage.setItem('td_run_v2', '{}');
-    localStorage.setItem('td_run_v1', '{}');
-    localStorage.setItem('td_ongoing_run', '{}');
     SaveSystem.clearRun();
     expect(localStorage.getItem('td_run_v6')).toBeNull();
-    expect(localStorage.getItem('td_run_v4')).toBeNull();
-    expect(localStorage.getItem('td_run_v3')).toBeNull();
-    expect(localStorage.getItem('td_run_v2')).toBeNull();
-    expect(localStorage.getItem('td_run_v1')).toBeNull();
-    expect(localStorage.getItem('td_ongoing_run')).toBeNull();
   });
 });
 
