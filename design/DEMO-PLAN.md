@@ -133,7 +133,7 @@
 - [x] 士兵牌内容补充到 Demo 目标规模（2026-05-21：已补齐 swordsman / archer / shield_guard / priest / engineer / assassin 六张士兵牌的 Demo 奖励池 / 商店 / 内容展示链路；通过 typecheck + RunManager/run 定向测试）
 - [x] 法术牌内容补充到 Demo 目标规模（2026-05-21：已将 fireball_card 稳定接入第二段奖励窗口，并作为法术流基础卡贯通奖励池 / 商店 / 升级链路）
 - [x] 陷阱/生产牌内容补充到 Demo 目标规模（2026-05-21：已把 gold_mine_card / energy_crystal_card / spike_trap_card 接入 Demo 奖励池 / 商店 / 内容展示链路）
-- [ ] 奖励池重复度与可用性检查
+- [x] 奖励池重复度与可用性检查（2026-05-21：补充全 Demo 轮转窗口内三选一唯一性断言，以及可用候选不足时的快速失败回归；通过 typecheck + RunManager 定向测试）
 
 ---
 

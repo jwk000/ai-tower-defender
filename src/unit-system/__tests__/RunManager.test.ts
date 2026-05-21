@@ -809,6 +809,48 @@ describe('RunManager state machine', () => {
     ]);
   });
 
+  it('keeps every reward window internally unique across the full demo rotation', () => {
+    const run = makeManager(8);
+    run.startRun();
+
+    for (let round = 0; round < 7; round += 1) {
+      run.enterBattle();
+      run.completeLevel();
+
+      const rewardIds = run.pendingCardReward!.options.map((option) => option.cardId);
+      expect(new Set(rewardIds).size).toBe(3);
+
+      claimBaseInterLevelRewards(run);
+      run.returnToLevelMap();
+    }
+  });
+
+  it('fails fast when fewer than three unique card rewards remain available', () => {
+    const run = makeManager(8);
+    run.registerCardInstance('owned_swordsman', { unitCardId: 'swordsman', nodes: [] });
+    run.registerCardInstance('owned_archer', { unitCardId: 'archer', nodes: [] });
+    run.registerCardInstance('owned_shield_guard', { unitCardId: 'shield_guard', nodes: [] });
+    run.registerCardInstance('owned_priest', { unitCardId: 'priest', nodes: [] });
+    run.registerCardInstance('owned_fireball', { unitCardId: 'fireball', nodes: [] });
+    run.registerCardInstance('owned_gold_mine', { unitCardId: 'gold_mine', nodes: [] });
+    run.registerCardInstance('owned_engineer', { unitCardId: 'engineer', nodes: [] });
+    run.registerCardInstance('owned_assassin', { unitCardId: 'assassin', nodes: [] });
+    run.registerCardInstance('owned_energy_crystal', { unitCardId: 'energy_crystal', nodes: [] });
+    run.registerCardInstance('owned_spike_trap', { unitCardId: 'spike_trap', nodes: [] });
+    run.registerCardInstance('owned_lightning_tower', { unitCardId: 'lightning_tower', nodes: [] });
+    run.registerCardInstance('owned_laser_tower', { unitCardId: 'laser_tower', nodes: [] });
+    run.registerCardInstance('owned_arrow_tower', { unitCardId: 'arrow_tower', nodes: [] });
+    run.registerCardInstance('owned_cannon_tower', { unitCardId: 'cannon_tower', nodes: [] });
+    run.registerCardInstance('owned_ice_tower', { unitCardId: 'ice_tower', nodes: [] });
+    run.registerCardInstance('owned_fire_tower', { unitCardId: 'fire_tower', nodes: [] });
+    run.registerCardInstance('owned_poison_tower', { unitCardId: 'poison_tower', nodes: [] });
+    run.registerCardInstance('owned_crossbow_tower', { unitCardId: 'crossbow_tower', nodes: [] });
+
+    run.startRun();
+    run.enterBattle();
+    expect(() => run.completeLevel()).toThrow(/not enough unique card rewards remaining/i);
+  });
+
 
 
   it('exposes assassin_card in the fourth reward window after the engineer card appears', () => {
