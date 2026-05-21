@@ -154,7 +154,7 @@ swordsman:
       - id: swordsman_lv2
         name: 剑士 Lv.2
         level: 2
-        goldCost: TBD
+        goldCost: 50
         effects:
           - rule: mul_skill_range
             skillId: whirlwind
@@ -166,7 +166,7 @@ swordsman:
       - id: swordsman_lv3
         name: 剑士 Lv.3
         level: 3
-        goldCost: TBD
+        goldCost: 80
         effects:
           - rule: add_skill_effect
             skillId: whirlwind
@@ -421,7 +421,7 @@ engineer:
       - id: engineer_lv2
         name: 工程师 Lv.2
         level: 2
-        goldCost: TBD
+        goldCost: 55
         effects:
           - rule: mul_skill_heal
             skillId: emergency_repair
@@ -434,7 +434,7 @@ engineer:
       - id: engineer_lv3
         name: 工程师 Lv.3
         level: 3
-        goldCost: TBD
+        goldCost: 85
         effects:
           - rule: mul_skill_cooldown
             skillId: emergency_repair
@@ -511,7 +511,7 @@ assassin:
       - id: assassin_lv2
         name: 刺客 Lv.2
         level: 2
-        goldCost: TBD
+        goldCost: 65
         effects:
           - rule: mul_skill_cooldown
             skillId: assassinate
@@ -522,7 +522,7 @@ assassin:
       - id: assassin_lv3
         name: 刺客 Lv.3
         level: 3
-        goldCost: TBD
+        goldCost: 95
         effects:
           - rule: add_skill_reset_on_kill
             skillId: assassinate
