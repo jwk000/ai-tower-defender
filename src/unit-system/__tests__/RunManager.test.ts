@@ -238,6 +238,91 @@ describe('RunManager state machine', () => {
     ]);
   });
 
+  it('keeps summon archetype playable across the first two reward rounds', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    const firstRound = run.pendingCardReward!.options.map((option) => option.cardId);
+    expect(firstRound).toEqual(['archer_card', 'shield_guard_card', 'priest_card']);
+
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+
+    const secondRound = run.pendingCardReward!.options.map((option) => option.cardId);
+    expect(secondRound).toContain('priest_card');
+  });
+
+  it('keeps spell archetype reachable by the second reward round', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+
+    const secondRound = run.pendingCardReward!.options.map((option) => option.cardId);
+    expect(secondRound).toContain('fireball_card');
+  });
+
+  it('keeps building and trap archetype reachable by the second reward round', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+
+    const secondRound = run.pendingCardReward!.options.map((option) => option.cardId);
+    expect(secondRound).toContain('gold_mine_card');
+  });
+
+  it('offers gold support alongside archetype rewards in the first two rounds', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingGoldReward?.options.map((option) => option.amount)).toEqual([30, 50, 80]);
+
+    run.claimCardReward(run.pendingCardReward!.options[0]!.id);
+    run.claimGoldReward(run.pendingGoldReward!.options[1]!.id);
+    run.returnToLevelMap();
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingGoldReward?.options.map((option) => option.amount)).toEqual([35, 55, 85]);
+  });
+
+  it('can claim one archetype reward per round and continue the run loop', () => {
+    const run = makeManager(8);
+    run.startRun();
+    run.enterBattle();
+    run.completeLevel();
+
+    const summonPick = run.claimCardReward(run.pendingCardReward!.options[1]!.id);
+    expect(summonPick.cardId).toBe('shield_guard_card');
+    run.claimGoldReward(run.pendingGoldReward!.options[0]!.id);
+    run.returnToLevelMap();
+    expect(run.phase).toBe(RunPhase.LevelMap);
+    expect(run.currentLevel).toBe(2);
+
+    run.enterBattle();
+    run.completeLevel();
+    const followupIds = run.pendingCardReward!.options.map((option) => option.cardId);
+    expect(followupIds).toEqual(['priest_card', 'fireball_card', 'gold_mine_card']);
+  });
+
   it('stores and resolves pending upgrade reward in InterLevel phase', () => {
     const run = makeManager(3);
     run.startRun();
