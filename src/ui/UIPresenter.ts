@@ -303,9 +303,9 @@ export class UIPresenter {
       .fill({ color: layout.drawButton.enabled ? 0x1565c0 : 0x37474f, alpha: 0.95 });
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
       .stroke({ width: 2, color: layout.drawButton.enabled ? 0x82b1ff : 0x78909c });
-    this.drawButtonText.text = '抽卡';
+    this.drawButtonText.text = layout.drawLabel;
     this.drawButtonText.style.fill = layout.drawButton.enabled ? 0xffffff : 0xb0bec5;
-    this.drawButtonText.position.set(layout.drawButton.x + 42, layout.drawButton.y + 10);
+    this.drawButtonText.position.set(layout.drawButton.x + 16, layout.drawButton.y + 10);
     this.slotGraphics.clear();
     while (this.slotLabels.length < layout.slots.length) {
       const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14 } });

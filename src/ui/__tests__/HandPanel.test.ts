@@ -32,13 +32,13 @@ describe('layoutHand', () => {
 
   it('drawLabel shows ready by default', () => {
     const layout = layoutHand(state(), 1920, 1080);
-    expect(layout.drawLabel).toBe('抽卡：可抽');
+    expect(layout.drawLabel).toBe('抽卡');
   });
 
   it('drawLabel shows cooldown/full-hand/reroll states', () => {
-    expect(layoutHand(state({ drawState: 'cooldown', drawCooldownSeconds: 4.25 }), 1920, 1080).drawLabel).toBe('抽卡：冷却 4.3s');
-    expect(layoutHand(state({ drawState: 'full-hand' }), 1920, 1080).drawLabel).toBe('抽卡：满手');
-    expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('抽卡：可重抽 1 次');
+    expect(layoutHand(state({ drawState: 'cooldown', drawCooldownSeconds: 4.25 }), 1920, 1080).drawLabel).toBe('冷却 4.3s');
+    expect(layoutHand(state({ drawState: 'full-hand' }), 1920, 1080).drawLabel).toBe('手牌已满');
+    expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
   });
 
   it('draw button is placed at bottom-left and only enabled for ready/reroll', () => {

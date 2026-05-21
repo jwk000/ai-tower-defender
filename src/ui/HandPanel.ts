@@ -90,15 +90,15 @@ function formatDrawLabel(state: HandState): string {
   const drawState = state.drawState ?? 'ready';
   switch (drawState) {
     case 'ready':
-      return '抽卡：可抽';
+      return '抽卡';
     case 'cooldown': {
       const remain = Math.max(0, state.drawCooldownSeconds ?? 0);
-      return `抽卡：冷却 ${remain.toFixed(1)}s`;
+      return `冷却 ${remain.toFixed(1)}s`;
     }
     case 'full-hand':
-      return '抽卡：满手';
+      return '手牌已满';
     case 'reroll':
-      return '抽卡：可重抽 1 次';
+      return '可重抽';
   }
 }
 
