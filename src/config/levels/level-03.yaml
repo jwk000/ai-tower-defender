@@ -323,8 +323,14 @@ available:
     - shield_guard
 weather:
   pool:
+    - snow
     - blizzard
+    - night
   initial: blizzard
+modifierPool:
+  - lvmod_frozen_bolts
+  - lvmod_shivering_ranks
+  - lvmod_blizzard_supply
 banPool: []
 neutralPool: []
 

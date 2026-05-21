@@ -499,7 +499,12 @@ available:
 weather:
   pool:
     - void
+    - eclipse
   initial: void
+modifierPool:
+  - lvmod_void_pressure
+  - lvmod_last_stand
+  - lvmod_portal_surge
 banPool: []
 neutralPool: []
 

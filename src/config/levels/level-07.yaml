@@ -333,7 +333,12 @@ available:
 weather:
   pool:
     - spore_mist
+    - fog
   initial: spore_mist
+modifierPool:
+  - lvmod_spore_chain
+  - lvmod_purge_instinct
+  - lvmod_decay_bloom
 banPool: []
 neutralPool: []
 

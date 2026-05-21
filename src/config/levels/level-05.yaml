@@ -352,9 +352,14 @@ available:
     - priest
 weather:
   pool:
+    - sunny
     - rain
     - storm
   initial: rain
+modifierPool:
+  - lvmod_undertow_veil
+  - lvmod_sky_raider_drop
+  - lvmod_tidal_detection
 banPool: []
 neutralPool: []
 

@@ -308,8 +308,11 @@ weather:
   pool:
     - sunny
     - rain
-    - fog
   initial: random_from_pool
+modifierPool:
+  - lvmod_frontline_drill
+  - lvmod_ranger_focus
+  - lvmod_hasty_orders
 banPool: []
 neutralPool: []
 

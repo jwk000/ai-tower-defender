@@ -334,8 +334,14 @@ available:
     - engineer
 weather:
   pool:
+    - sunny
+    - rain
     - fog
   initial: fog
+modifierPool:
+  - lvmod_blood_vines
+  - lvmod_holy_interference
+  - lvmod_hunter_instinct
 banPool: []
 neutralPool: []
 

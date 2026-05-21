@@ -418,7 +418,12 @@ available:
 weather:
   pool:
     - smog
+    - storm
   initial: smog
+modifierPool:
+  - lvmod_rotating_lines
+  - lvmod_overclocked_furnace
+  - lvmod_sabotage_swarm
 banPool: []
 neutralPool: []
 

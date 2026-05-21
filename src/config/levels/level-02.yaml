@@ -324,8 +324,14 @@ available:
     - archer
 weather:
   pool:
+    - sunny
     - sandstorm
+    - fog
   initial: sandstorm
+modifierPool:
+  - lvmod_sandborne_swarm
+  - lvmod_burrow_ping
+  - lvmod_dust_ambush
 banPool: []
 neutralPool: []
 

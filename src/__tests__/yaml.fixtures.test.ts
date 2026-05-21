@@ -151,7 +151,7 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     expect(cfg.spawns[0]?.y).toBe(4 * 64 + 32);
     expect(cfg.spawns[0]?.pathIndexStart).toBe(1);
     expect(cfg.available.towers).toContain('arrow');
-    expect(cfg.weather?.pool).toEqual(['sunny', 'rain', 'fog']);
+    expect(cfg.weather?.pool).toEqual(['sunny', 'rain']);
     expect(cfg.weather?.initial).toBe('random_from_pool');
   });
   it('parses obstacle metadata from real level yaml', () => {
@@ -166,7 +166,7 @@ describe('real YAML files: levels/level-01.yaml -> parseLevelConfig', () => {
     const cfg = parseLevelConfig(text);
     expect(cfg.mapRows).toBe(11);
     expect(cfg.spawns.map((s) => s.id)).toEqual(['spawn_0', 'spawn_1', 'spawn_2']);
-    expect(cfg.weather?.pool).toEqual(['smog']);
+    expect(cfg.weather?.pool).toEqual(['smog', 'storm']);
     expect(cfg.weather?.initial).toBe('smog');
   });
 
