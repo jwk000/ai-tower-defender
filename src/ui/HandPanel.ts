@@ -39,6 +39,12 @@ export interface HandLayout {
   readonly energyLabel: string;
   readonly drawLabel: string;
   readonly drawButton: DrawButtonRect;
+  readonly panel: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
 }
 
 export type PlayCardIntent =
@@ -47,6 +53,8 @@ export type PlayCardIntent =
 
 export const HAND_MAX_CARDS = 4;
 const HAND_ZONE_HEIGHT = 180;
+const HAND_PANEL_PADDING_X = 28;
+const HAND_PANEL_PADDING_Y = 20;
 const SLOT_WIDTH = 120;
 const SLOT_HEIGHT = 168;
 const SLOT_GAP = 16;
@@ -56,15 +64,17 @@ const DRAW_BUTTON_HEIGHT = 44;
 
 export function layoutHand(state: HandState, viewportWidth: number, viewportHeight: number): HandLayout {
   const cards = state.cards.slice(0, HAND_MAX_CARDS);
-  const totalWidth = cards.length * SLOT_WIDTH + Math.max(0, cards.length - 1) * SLOT_GAP;
-  const startX = (viewportWidth - totalWidth) / 2;
   const totalSlotsWidth = HAND_MAX_CARDS * SLOT_WIDTH + (HAND_MAX_CARDS - 1) * SLOT_GAP;
   const slotStartX = (viewportWidth - totalSlotsWidth) / 2;
   const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
   const drawLabel = formatDrawLabel(state);
-  const drawButtonX = 12;
-  const drawButtonY = viewportHeight - 80;
   const drawButtonEnabled = state.drawState === 'ready' || state.drawState === 'reroll';
+  const panelX = slotStartX - HAND_PANEL_PADDING_X;
+  const panelY = y - HAND_PANEL_PADDING_Y;
+  const panelWidth = totalSlotsWidth + HAND_PANEL_PADDING_X * 2;
+  const panelHeight = SLOT_HEIGHT + HAND_PANEL_PADDING_Y * 2;
+  const drawButtonX = Math.max(12, panelX - DRAW_BUTTON_WIDTH - 20);
+  const drawButtonY = y + (SLOT_HEIGHT - DRAW_BUTTON_HEIGHT) / 2;
   return {
     slots: cards.map((card, i) => ({
       slot: card.slot,
@@ -84,6 +94,12 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       width: DRAW_BUTTON_WIDTH,
       height: DRAW_BUTTON_HEIGHT,
       enabled: drawButtonEnabled,
+    },
+    panel: {
+      x: panelX,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
     },
   };
 }

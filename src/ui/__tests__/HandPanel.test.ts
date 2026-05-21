@@ -53,9 +53,9 @@ describe('layoutHand', () => {
     expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
   });
 
-  it('draw button is placed at bottom-left and only enabled for ready/reroll', () => {
+  it('draw button is placed to the left of hand panel and only enabled for ready/reroll', () => {
     const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
-    expect(readyLayout.drawButton).toEqual({ x: 12, y: 1000, width: 132, height: 44, enabled: true });
+    expect(readyLayout.drawButton).toEqual({ x: 516, y: 844, width: 132, height: 44, enabled: true });
 
     const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
     expect(cooldownLayout.drawButton.enabled).toBe(false);
