@@ -94,6 +94,9 @@ export class UIPresenter {
 
     this.hudContainer = new Container();
     this.handContainer = new Container();
+    this.handContainer.eventMode = 'static';
+    this.handContainer.hitArea = { contains: () => true };
+    this.handContainer.zIndex = 1000;
     this.battleContainer.addChild(this.hudContainer, this.handContainer);
 
     this.hudBackground = new Graphics();
@@ -193,12 +196,11 @@ export class UIPresenter {
   }
 
   private bindHandEvents(): void {
-    this.battleContainer.eventMode = 'static';
-    this.battleContainer.hitArea = { contains: () => true };
-    this.battleContainer.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
-    this.battleContainer.on('pointermove', (e: FederatedPointerEvent) => this.onPointerMove(e));
-    this.battleContainer.on('pointerup', (e: FederatedPointerEvent) => this.onPointerUp(e));
-    this.battleContainer.on('pointerupoutside', () => this.clearDrag());
+    this.battleContainer.eventMode = 'passive';
+    this.handContainer.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
+    this.handContainer.on('pointermove', (e: FederatedPointerEvent) => this.onPointerMove(e));
+    this.handContainer.on('pointerup', (e: FederatedPointerEvent) => this.onPointerUp(e));
+    this.handContainer.on('pointerupoutside', () => this.clearDrag());
   }
 
   private spawnGhostCard(cardId: string, x: number, y: number): void {
@@ -302,7 +304,7 @@ export class UIPresenter {
       if (!this.ghostCell) {
         const g = new Graphics();
         g.eventMode = 'none';
-        this.battleContainer.addChild(g);
+        this.handContainer.addChild(g);
         this.ghostCell = g;
       }
       this.ghostCell.clear();

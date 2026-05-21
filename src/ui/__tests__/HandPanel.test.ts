@@ -145,6 +145,11 @@ describe('hitTestHandSlot', () => {
     expect(layout.drawButton.enabled).toBe(false);
   });
 
+  it('hand container handles draw button click instead of relying on full battle container hit area', () => {
+    const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
+    expect(hitTestDrawButton(layout, layout.drawButton.x + layout.drawButton.width / 2, layout.drawButton.y + layout.drawButton.height / 2)).toBe(true);
+  });
+
   it('点击 slot 中心命中对应 slot 编号', () => {
     const layout = layoutHand(state(), 1344, 576);
     for (const slot of layout.slots) {
