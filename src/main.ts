@@ -44,6 +44,7 @@ import {
   type WaveSystem,
 } from './systems/WaveSystem.js';
 import { EntityRenderer } from './render/EntityRenderer.js';
+import { CombatFeedbackRenderer } from './render/CombatFeedbackRenderer.js';
 import { RenderSystem } from './render/RenderSystem.js';
 import { CardRegistry } from './unit-system/CardRegistry.js';
 import { CardSpawnSystem } from './unit-system/CardSpawnSystem.js';
@@ -457,6 +458,7 @@ async function bootstrap(): Promise<void> {
   }
 
   const entityRenderer = new EntityRenderer(renderer.entityLayer);
+  const combatFeedbackRenderer = new CombatFeedbackRenderer(renderer.entityLayer);
 
   game.pipeline.register(waveSystem);
   game.pipeline.register(movementSystem);
@@ -468,6 +470,7 @@ async function bootstrap(): Promise<void> {
   game.pipeline.register(createHealthSystem());
   game.pipeline.register(createLifecycleSystem());
   game.pipeline.register(new RenderSystem(entityRenderer));
+  game.pipeline.register(combatFeedbackRenderer);
 
   runController = new RunController({
     game,
