@@ -788,6 +788,29 @@ describe('RunManager state machine', () => {
     ]);
   });
 
+  it('exposes late demo tower cards after the spell/building windows', () => {
+    const run = makeManager(8);
+    run.startRun();
+
+    for (let round = 0; round < 5; round += 1) {
+      run.enterBattle();
+      run.completeLevel();
+      claimBaseInterLevelRewards(run);
+      run.returnToLevelMap();
+    }
+
+    run.enterBattle();
+    run.completeLevel();
+
+    expect(run.pendingCardReward?.options.map((option) => option.cardId)).toEqual([
+      'lightning_tower_card',
+      'laser_tower_card',
+      'arrow_tower_card',
+    ]);
+  });
+
+
+
   it('exposes assassin_card in the fourth reward window after the engineer card appears', () => {
     const run = makeManager(8);
     run.startRun();
