@@ -103,7 +103,8 @@ import mysticAncientShrineYaml from './config/mystic-events/ancient_shrine.yaml?
 
 const GRID_COLS = 21;
 const GRID_ROWS = 9;
-const CELL_SIZE = 32;
+const CELL_SIZE = 64;
+const BATTLE_VIEW_SCALE = 0.5;
 const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
 const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const DEFAULT_WORLD_COLS = GRID_COLS;
@@ -233,6 +234,7 @@ async function bootstrap(): Promise<void> {
     worldWidth: WORLD_WIDTH,
     worldHeight: WORLD_HEIGHT,
     cellSize: CELL_SIZE,
+    worldScale: BATTLE_VIEW_SCALE,
   });
   await renderer.init();
 

@@ -111,6 +111,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 21 * 64,
       worldHeight: 9 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({
@@ -144,6 +145,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 21 * 64,
       worldHeight: 9 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({
@@ -177,6 +179,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 2 * 64,
       worldHeight: 2 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({
@@ -224,6 +227,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 2 * 64,
       worldHeight: 2 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({
@@ -258,6 +262,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 2 * 64,
       worldHeight: 2 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({
@@ -299,6 +304,7 @@ describe('Renderer weather animation', () => {
       worldWidth: 3 * 64,
       worldHeight: 2 * 64,
       cellSize: 64,
+      worldScale: 0.5,
     });
 
     renderer.drawLevelBackground({

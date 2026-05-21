@@ -5,6 +5,7 @@ export interface RendererConfig {
   readonly worldWidth: number;
   readonly worldHeight: number;
   readonly cellSize: number;
+  readonly worldScale?: number;
 }
 
 type WeatherKind = 'blizzard' | 'rain' | 'sand' | 'smog' | 'spore' | 'fog' | 'none';
@@ -146,7 +147,7 @@ export class Renderer {
     const { worldWidth, worldHeight } = this.config;
     const scaleX = vw / worldWidth;
     const scaleY = vh / worldHeight;
-    const scale = Math.min(scaleX, scaleY);
+    const scale = Math.min(scaleX, scaleY) * (this.config.worldScale ?? 1);
 
     const scaledW = worldWidth * scale;
     const scaledH = worldHeight * scale;
