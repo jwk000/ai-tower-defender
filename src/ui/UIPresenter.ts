@@ -29,17 +29,6 @@ export interface UIFrame {
   readonly hand: HandState;
 }
 
-/**
- * UIPresenter — Wave 6 HUD + HandPanel 的运行时呈现器。
- *
- * 设计取舍：不进 Pipeline（Pipeline 系统签名是 update(world, dt)，但 HUD/Hand
- * 数据来自 RunManager + 单关 LevelState，与 ECS world 解耦）。由
- * RunController 在 Battle 相位每帧调一次 present(frame)。
- *
- * 仅同步 HUD（金币/水晶/波次）+ HandPanel（卡牌槽 + 能量）。其余面板
- * （MainMenu / InterLevel / RunResult / Shop / Mystic / SkillTree）由
- * RunController 按 phase 切换容器显隐，不走 UIPresenter（Wave 7 视情况补）。
- */
 export class UIPresenter {
   private readonly battleContainer: Container;
   private viewportWidth: number;
@@ -47,9 +36,13 @@ export class UIPresenter {
 
   private readonly hudContainer: Container;
   private readonly handContainer: Container;
+  private readonly hudBackground: Graphics;
+  private readonly handBackground: Graphics;
   private readonly goldText: Text;
   private readonly crystalText: Text;
   private readonly waveText: Text;
+  private readonly enemyText: Text;
+  private readonly runText: Text;
   private readonly phaseText: Text;
   private readonly passiveText: Text;
   private readonly energyText: Text;
@@ -95,40 +88,55 @@ export class UIPresenter {
     this.getLevelConfig = config.getLevelConfig ?? (() => null);
 
     this.EXIT_BTN.x = this.viewportWidth - 148;
-    this.EXIT_BTN.y = 8;
+    this.EXIT_BTN.y = 14;
     this.DEBUG_VICTORY_BTN.x = this.viewportWidth - 148;
-    this.DEBUG_VICTORY_BTN.y = 56;
+    this.DEBUG_VICTORY_BTN.y = 62;
 
     this.hudContainer = new Container();
     this.handContainer = new Container();
     this.battleContainer.addChild(this.hudContainer, this.handContainer);
 
-    this.goldText = new Text({ text: '', style: { fill: 0xffd54f, fontSize: 18 } });
-    this.goldText.position.set(12, 12);
-    this.crystalText = new Text({ text: '', style: { fill: 0x4fc3f7, fontSize: 18 } });
-    this.crystalText.position.set(12, 36);
-    this.waveText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 18 } });
-    this.waveText.position.set(12, 60);
-    this.phaseText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16 } });
-    this.phaseText.position.set(12, 84);
-    this.passiveText = new Text({ text: '', style: { fill: 0xfff59d, fontSize: 14, wordWrap: true, wordWrapWidth: 420 } });
-    this.passiveText.position.set(12, 106);
-    this.hudContainer.addChild(this.goldText, this.crystalText, this.waveText, this.phaseText, this.passiveText);
+    this.hudBackground = new Graphics();
+    this.handBackground = new Graphics();
 
-    this.energyText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 18 } });
-    this.energyText.position.set(12, this.viewportHeight - 24);
-    this.drawText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16 } });
-    this.drawText.position.set(156, this.viewportHeight - 68);
+    const createHudText = (fill: number, fontSize = 18) => new Text({
+      text: '',
+      style: { fill, fontSize, fontWeight: '600' },
+    });
+
+    this.goldText = createHudText(0xffd54f);
+    this.crystalText = createHudText(0x4fc3f7);
+    this.waveText = createHudText(0xffffff);
+    this.enemyText = createHudText(0xff8a80);
+    this.runText = createHudText(0xa5d6a7);
+    this.phaseText = createHudText(0xb0bec5, 16);
+    this.passiveText = new Text({
+      text: '',
+      style: { fill: 0xfff59d, fontSize: 14, fontWeight: '500', wordWrap: true, wordWrapWidth: 460 },
+    });
+    this.hudContainer.addChild(
+      this.hudBackground,
+      this.goldText,
+      this.crystalText,
+      this.waveText,
+      this.enemyText,
+      this.runText,
+      this.phaseText,
+      this.passiveText,
+    );
+
+    this.energyText = new Text({ text: '', style: { fill: 0x80cbc4, fontSize: 18, fontWeight: '600' } });
+    this.drawText = new Text({ text: '', style: { fill: 0xb0bec5, fontSize: 16, fontWeight: '500' } });
     this.slotGraphics = new Graphics();
     this.drawButtonGraphics = new Graphics();
-    this.drawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16 } });
-    this.handContainer.addChild(this.slotGraphics, this.drawButtonGraphics, this.energyText, this.drawText, this.drawButtonText);
+    this.drawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16, fontWeight: '600' } });
+    this.handContainer.addChild(this.handBackground, this.slotGraphics, this.drawButtonGraphics, this.energyText, this.drawText, this.drawButtonText);
 
     this.exitBtnGraphics = new Graphics();
-    this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15 } });
+    this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15, fontWeight: '600' } });
     this.exitBtnText.anchor.set(0.5, 0.5);
     this.debugVictoryGraphics = new Graphics();
-    this.debugVictoryText = new Text({ text: '⚡ 直接胜利', style: { fill: 0xffffff, fontSize: 15 } });
+    this.debugVictoryText = new Text({ text: '⚡ 直接胜利', style: { fill: 0xffffff, fontSize: 15, fontWeight: '600' } });
     this.debugVictoryText.anchor.set(0.5, 0.5);
     this.hudContainer.addChild(this.exitBtnGraphics, this.exitBtnText, this.debugVictoryGraphics, this.debugVictoryText);
     this.drawExitButton();
@@ -140,17 +148,35 @@ export class UIPresenter {
   private drawExitButton(): void {
     const b = this.EXIT_BTN;
     this.exitBtnGraphics.clear();
-    this.exitBtnGraphics.rect(b.x, b.y, b.w, b.h).fill({ color: 0x5d1a1a, alpha: 0.92 });
-    this.exitBtnGraphics.rect(b.x, b.y, b.w, b.h).stroke({ width: 2, color: 0xff5252 });
+    this.exitBtnGraphics.roundRect(b.x, b.y, b.w, b.h, 12).fill({ color: 0x5d1a1a, alpha: 0.94 });
+    this.exitBtnGraphics.roundRect(b.x, b.y, b.w, b.h, 12).stroke({ width: 2, color: 0xff5252 });
     this.exitBtnText.position.set(b.x + b.w / 2, b.y + b.h / 2);
   }
 
   private drawDebugVictoryButton(): void {
     const b = this.DEBUG_VICTORY_BTN;
     this.debugVictoryGraphics.clear();
-    this.debugVictoryGraphics.rect(b.x, b.y, b.w, b.h).fill({ color: 0x1a3d1a, alpha: 0.92 });
-    this.debugVictoryGraphics.rect(b.x, b.y, b.w, b.h).stroke({ width: 2, color: 0x69f0ae });
+    this.debugVictoryGraphics.roundRect(b.x, b.y, b.w, b.h, 12).fill({ color: 0x1a3d1a, alpha: 0.94 });
+    this.debugVictoryGraphics.roundRect(b.x, b.y, b.w, b.h, 12).stroke({ width: 2, color: 0x69f0ae });
     this.debugVictoryText.position.set(b.x + b.w / 2, b.y + b.h / 2);
+  }
+
+  private drawHudBackground(): void {
+    this.hudBackground.clear();
+    this.hudBackground.roundRect(12, 10, this.viewportWidth - 24, 112, 18).fill({ color: 0x0f1720, alpha: 0.78 });
+    this.hudBackground.roundRect(12, 10, this.viewportWidth - 24, 112, 18).stroke({ width: 2, color: 0x5c6b7a, alpha: 0.95 });
+  }
+
+  private drawHandBackground(layout: ReturnType<typeof layoutHand>): void {
+    this.handBackground.clear();
+    this.handBackground.roundRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 22)
+      .fill({ color: 0x101820, alpha: 0.88 });
+    this.handBackground.roundRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 22)
+      .stroke({ width: 2, color: 0x607d8b, alpha: 0.95 });
+    this.handBackground.roundRect(layout.drawButton.x - 14, layout.panel.y, layout.drawButton.width + 28, 96, 18)
+      .fill({ color: 0x101820, alpha: 0.88 });
+    this.handBackground.roundRect(layout.drawButton.x - 14, layout.panel.y, layout.drawButton.width + 28, 96, 18)
+      .stroke({ width: 2, color: 0x607d8b, alpha: 0.95 });
   }
 
   private isExitBtnHit(x: number, y: number): boolean {
@@ -176,7 +202,6 @@ export class UIPresenter {
     this.clearGraphics();
     const g = new Graphics();
     g.eventMode = 'none';
-
     const card = this.cardRegistry?.getCard(cardId);
     const unit = card?.unitConfigId ? this.cardRegistry?.getUnit(card.unitConfigId) : undefined;
     const color = unit ? unit.visual.color : 0x4fc3f7;
@@ -299,14 +324,12 @@ export class UIPresenter {
     this.viewportWidth = vw;
     this.viewportHeight = vh;
     this.EXIT_BTN.x = vw - 148;
-    this.EXIT_BTN.y = 8;
+    this.EXIT_BTN.y = 14;
     this.DEBUG_VICTORY_BTN.x = vw - 148;
-    this.DEBUG_VICTORY_BTN.y = 56;
-    this.energyText.position.set(12, vh - 24);
-    this.drawText.position.set(156, vh - 68);
-    this.drawButtonText.position.set(24, vh - 70);
+    this.DEBUG_VICTORY_BTN.y = 62;
     this.drawExitButton();
     this.drawDebugVictoryButton();
+    this.drawHudBackground();
   }
 
   present(frame: UIFrame): void {
@@ -316,23 +339,37 @@ export class UIPresenter {
     this.crystalText.text = hud.crystal;
     this.crystalText.style.fill = hud.crystalLowAlarm ? 0xff5252 : 0x4fc3f7;
     this.waveText.text = hud.wave;
+    this.enemyText.text = hud.enemy;
+    this.runText.text = hud.runProgress;
     this.phaseText.text = hud.phaseLabel;
     this.passiveText.text = hud.passives;
 
+    this.goldText.position.set(30, 24);
+    this.crystalText.position.set(150, 24);
+    this.waveText.position.set(300, 24);
+    this.enemyText.position.set(430, 24);
+    this.runText.position.set(550, 24);
+    this.phaseText.position.set(700, 26);
+    this.passiveText.position.set(30, 62);
+    this.drawHudBackground();
+
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
+    this.drawHandBackground(layout);
     this.energyText.text = layout.energyLabel;
+    this.energyText.position.set(layout.panel.x + 24, layout.panel.y + layout.panel.height - 40);
     this.drawText.text = layout.drawLabel;
+    this.drawText.position.set(layout.drawButton.x, layout.drawButton.y + layout.drawButton.height + 10);
     this.drawButtonGraphics.clear();
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
       .fill({ color: layout.drawButton.enabled ? 0x1565c0 : 0x37474f, alpha: 0.95 });
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)
       .stroke({ width: 2, color: layout.drawButton.enabled ? 0x82b1ff : 0x78909c });
-    this.drawButtonText.text = layout.drawLabel;
+    this.drawButtonText.text = '抽卡';
     this.drawButtonText.style.fill = layout.drawButton.enabled ? 0xffffff : 0xb0bec5;
-    this.drawButtonText.position.set(layout.drawButton.x + 16, layout.drawButton.y + 10);
+    this.drawButtonText.position.set(layout.drawButton.x + 34, layout.drawButton.y + 10);
     this.slotGraphics.clear();
     while (this.slotLabels.length < 4) {
-      const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14 } });
+      const label = new Text({ text: '', style: { fill: 0xffffff, fontSize: 14, fontWeight: '500' } });
       this.handContainer.addChild(label);
       this.slotLabels.push(label);
     }
@@ -345,19 +382,19 @@ export class UIPresenter {
         cardId: '',
         cost: 0,
         playable: false,
-        x: layout.slots[0]?.x ?? ((this.viewportWidth - (4 * 120 + 3 * 16)) / 2) + i * (120 + 16),
-        y: layout.slots[0]?.y ?? (this.viewportHeight - 168 - 130),
+        x: ((this.viewportWidth - (4 * 120 + 3 * 16)) / 2) + i * (120 + 16),
+        y: this.viewportHeight - 168 - 130,
         width: 120,
         height: 168,
       };
       const hasCard = i < layout.slots.length;
       const fillColor = hasCard ? (slot.playable ? 0x37474f : 0x263238) : 0x1b232c;
-      this.slotGraphics.rect(slot.x, slot.y, slot.width, slot.height).fill({ color: fillColor, alpha: hasCard ? 0.92 : 0.45 });
-      this.slotGraphics.rect(slot.x, slot.y, slot.width, slot.height).stroke({ width: 2, color: hasCard ? (slot.playable ? 0x80cbc4 : 0x455a64) : 0x546e7a, alpha: hasCard ? 1 : 0.7 });
+      this.slotGraphics.roundRect(slot.x, slot.y, slot.width, slot.height, 16).fill({ color: fillColor, alpha: hasCard ? 0.96 : 0.45 });
+      this.slotGraphics.roundRect(slot.x, slot.y, slot.width, slot.height, 16).stroke({ width: 2, color: hasCard ? (slot.playable ? 0x80cbc4 : 0x455a64) : 0x546e7a, alpha: hasCard ? 1 : 0.7 });
       const label = this.slotLabels[i]!;
       label.text = hasCard ? `${slot.cardId}\nCost ${slot.cost}` : '空槽';
       label.style.fill = hasCard ? 0xffffff : 0x78909c;
-      label.position.set(slot.x + 8, slot.y + 8);
+      label.position.set(slot.x + 10, slot.y + 12);
     }
   }
 }
