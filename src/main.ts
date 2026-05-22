@@ -19,7 +19,7 @@ import {
 } from './render/PanelRenderers.js';
 import { UIPresenter } from './ui/UIPresenter.js';
 import { MainMenu, type MainMenuAction } from './ui/MainMenu.js';
-import { HandPanel, type PlayCardIntent } from './ui/HandPanel.js';
+import { HandPanel, type PlayCardIntent, HAND_MAX_CARDS } from './ui/HandPanel.js';
 import {
   InterLevelPanel,
   type InterLevelIntent,
@@ -294,7 +294,7 @@ async function bootstrap(): Promise<void> {
   let currentLevelConfig: LevelConfig = level;
   let deckSystem = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: Math.random });
   deckSystem.initWithCards(STARTER_DECK);
-  const handSystem = new HandSystem({ maxSize: 4 });
+  const handSystem = new HandSystem({ maxSize: HAND_MAX_CARDS });
   let energySystem!: EnergySystem;
   let cardSpawnSystem!: CardSpawnSystem;
 
@@ -375,7 +375,7 @@ async function bootstrap(): Promise<void> {
       drawPileSize: deckSystem.drawPileSize,
       discardPileSize: deckSystem.discardPileSize,
     });
-    if (handSystem.size >= 4) {
+    if (handSystem.size >= HAND_MAX_CARDS) {
       console.info('[draw] blocked', { reason: 'full-hand' });
       return;
     }
@@ -1177,7 +1177,7 @@ async function bootstrap(): Promise<void> {
     const handCardIds = new Set(handSystem.cards);
     for (const cardId of STARTER_DECK) {
       if (!rawInstances.some((instance) => instance.cardId === cardId) && handCardIds.has(cardId)) {
-        rawInstances.push({ instanceId: `${cardId}__hand_preview`, cardId, pile: 'hand' });
+        rawInstances.push({ instanceId: `${cardId}__hand_preview`, cardId });
       }
     }
     const canDeleteAny = rawInstances.length > 1;
@@ -1384,7 +1384,7 @@ async function bootstrap(): Promise<void> {
       }
       const drawState = pendingReroll
         ? 'reroll'
-        : handSystem.size >= 4
+        : handSystem.size >= HAND_MAX_CARDS
           ? 'full-hand'
           : drawCooldownRemaining > 0
             ? 'cooldown'
