@@ -348,8 +348,7 @@ export class UIPresenter {
     if (!hitTestDrawAction(layout.confirmButton, e.global.x, e.global.y)) return;
     const pendingCard = this.lastHandState.pendingDrawCard;
     if (!pendingCard) return;
-    this.startFlyToHand(pendingCard.cardId);
-    this.onConfirmDrawCard?.();
+    this.startFlyToHand(pendingCard.cardId, true);
   }
 
   private onRedrawTap(e: FederatedPointerEvent): void {
@@ -490,7 +489,7 @@ export class UIPresenter {
     this.autoCommitScheduled = false;
   }
 
-  private startFlyToHand(cardId: string): void {
+  private startFlyToHand(cardId: string, commitOnComplete = false): void {
     const slotRect = this.getHandSlotRect(this.lastHandState.cards.length);
     this.flyingDrawCard = {
       cardId,
@@ -500,7 +499,7 @@ export class UIPresenter {
       toY: slotRect.y + slotRect.height / 2,
       duration: 0.22,
       delay: 0,
-      autoCommit: false,
+      autoCommit: commitOnComplete,
       phase: 'to-hand',
       elapsed: 0,
     };
@@ -532,9 +531,13 @@ export class UIPresenter {
     if (anim.phase === 'to-preview') {
       if (anim.autoCommit && !this.autoCommitScheduled) {
         this.autoCommitScheduled = true;
-        this.onConfirmDrawCard?.();
+        this.startFlyToHand(anim.cardId, true);
       }
       return;
+    }
+    if (anim.autoCommit && !this.autoCommitScheduled) {
+      this.autoCommitScheduled = true;
+      this.onConfirmDrawCard?.();
     }
   }
 
