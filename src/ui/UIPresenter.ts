@@ -5,7 +5,7 @@ import type { LevelConfig } from '../config/loader.js';
 
 import type { CardRegistry } from '../unit-system/CardRegistry.js';
 import type { HandPanel, HandState, PendingDrawCard } from './HandPanel.js';
-import { hitTestDrawAction, hitTestDrawButton, hitTestHandSlot, layoutHand } from './HandPanel.js';
+import { hitTestDrawAction, hitTestDrawButton, hitTestHandSlot, layoutHand, HAND_MAX_CARDS } from './HandPanel.js';
 import type { RunState } from './HUD.js';
 import { projectHUD } from './HUD.js';
 
@@ -30,6 +30,18 @@ export interface UIFrame {
   readonly run: RunState;
   readonly hand: HandState;
 }
+
+type FlyingCardAnimation = {
+  readonly cardId: string;
+  readonly fromX: number;
+  readonly fromY: number;
+  readonly toX: number;
+  readonly toY: number;
+  readonly duration: number;
+  readonly delay: number;
+  readonly autoCommit: boolean;
+  elapsed: number;
+};
 
 export class UIPresenter {
   private readonly battleContainer: Container;
@@ -57,6 +69,7 @@ export class UIPresenter {
   private readonly debugVictoryText: Text;
   private readonly drawButtonGraphics: Graphics;
   private readonly drawButtonText: Text;
+  private readonly drawDeckIconGraphics: Graphics;
   private readonly drawPreviewGraphics: Graphics;
   private readonly drawPreviewText: Text;
   private readonly confirmButtonGraphics: Graphics;
@@ -76,6 +89,11 @@ export class UIPresenter {
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
   private readonly getLevelConfig: () => LevelConfig | null;
   private lastHandState: HandState = { cards: [], energy: 0, energyMax: 10, drawState: 'ready', drawCooldownSeconds: 0 };
+  private lastFrameRun: RunState | null = null;
+  private flyingDrawCard: FlyingCardAnimation | null = null;
+  private flyingDrawCardGraphics: Graphics | null = null;
+  private flyingDrawCardText: Text | null = null;
+  private autoCommitScheduled = false;
   private dragSlot: number | null = null;
   private ghostCard: Graphics | null = null;
   private ghostCell: Graphics | null = null;
@@ -145,6 +163,7 @@ export class UIPresenter {
     this.slotGraphics = new Graphics();
     this.drawButtonGraphics = new Graphics();
     this.drawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16, fontWeight: '600' } });
+    this.drawDeckIconGraphics = new Graphics();
     this.drawPreviewGraphics = new Graphics();
     this.drawPreviewText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 18, fontWeight: '700' } });
     this.drawPreviewText.anchor.set(0.5, 0.5);
@@ -157,6 +176,7 @@ export class UIPresenter {
     this.handContainer.addChild(
       this.handBackground,
       this.slotGraphics,
+      this.drawDeckIconGraphics,
       this.drawButtonGraphics,
       this.energyText,
       this.drawText,
@@ -213,6 +233,25 @@ export class UIPresenter {
       .fill({ color: 0x101820, alpha: 0.88 });
     this.handBackground.roundRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 22)
       .stroke({ width: 2, color: 0x607d8b, alpha: 0.95 });
+  }
+
+  private drawDeckIcon(layout: ReturnType<typeof layoutHand>): void {
+    const icon = layout.drawDeckIcon;
+    this.drawDeckIconGraphics.clear();
+    this.drawDeckIconGraphics.roundRect(icon.x, icon.y, icon.width, icon.height, 16)
+      .fill({ color: 0x16222d, alpha: 0.96 });
+    this.drawDeckIconGraphics.roundRect(icon.x, icon.y, icon.width, icon.height, 16)
+      .stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
+    this.drawDeckIconGraphics.roundRect(icon.x + 14, icon.y + 12, icon.width - 28, icon.height - 24, 12)
+      .fill({ color: 0x1f3b52, alpha: 0.92 });
+    this.drawDeckIconGraphics.roundRect(icon.x + 14, icon.y + 12, icon.width - 28, icon.height - 24, 12)
+      .stroke({ width: 2, color: 0xe3f2fd, alpha: 0.85 });
+    this.drawDeckIconGraphics.moveTo(icon.x + 22, icon.y + 28)
+      .lineTo(icon.x + icon.width - 22, icon.y + 28)
+      .stroke({ width: 2, color: 0xbbdefb, alpha: 0.75 });
+    this.drawDeckIconGraphics.moveTo(icon.x + 22, icon.y + 42)
+      .lineTo(icon.x + icon.width - 22, icon.y + 42)
+      .stroke({ width: 2, color: 0xbbdefb, alpha: 0.55 });
   }
 
   private isExitBtnHit(x: number, y: number): boolean {
@@ -392,6 +431,86 @@ export class UIPresenter {
     this.handPanel.trigger(slot, local.x, local.y);
   }
 
+  private ensureFlyingDrawCardLayer(): void {
+    if (!this.flyingDrawCardGraphics) {
+      this.flyingDrawCardGraphics = new Graphics();
+      this.flyingDrawCardGraphics.eventMode = 'none';
+      this.handContainer.addChild(this.flyingDrawCardGraphics);
+    }
+    if (!this.flyingDrawCardText) {
+      this.flyingDrawCardText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 18, fontWeight: '700' } });
+      this.flyingDrawCardText.anchor.set(0.5, 0.5);
+      this.handContainer.addChild(this.flyingDrawCardText);
+    }
+  }
+
+  private getHandSlotRect(slot: number): { x: number; y: number; width: number; height: number } {
+    const totalSlotsWidth = HAND_MAX_CARDS * 120 + (HAND_MAX_CARDS - 1) * 16;
+    const slotStartX = (this.viewportWidth - totalSlotsWidth) / 2;
+    return {
+      x: slotStartX + slot * (120 + 16),
+      y: this.viewportHeight - 168 - 130,
+      width: 120,
+      height: 168,
+    };
+  }
+
+  private syncDrawAnimation(layout: ReturnType<typeof layoutHand>, pendingDrawCard: PendingDrawCard | null | undefined): void {
+    if (!pendingDrawCard) {
+      this.flyingDrawCard = null;
+      if (this.flyingDrawCardGraphics) this.flyingDrawCardGraphics.clear();
+      if (this.flyingDrawCardText) this.flyingDrawCardText.visible = false;
+      this.autoCommitScheduled = false;
+      return;
+    }
+    if (this.flyingDrawCard?.cardId === pendingDrawCard.cardId) return;
+    const fromX = layout.drawDeckIcon.x + layout.drawDeckIcon.width / 2;
+    const fromY = layout.drawDeckIcon.y + layout.drawDeckIcon.height / 2;
+    const toX = layout.drawPreviewCard.x + layout.drawPreviewCard.width / 2;
+    const toY = layout.drawPreviewCard.y + layout.drawPreviewCard.height / 2;
+    this.flyingDrawCard = {
+      cardId: pendingDrawCard.cardId,
+      fromX,
+      fromY,
+      toX,
+      toY,
+      duration: 0.24,
+      delay: pendingDrawCard.secondDraw ? 0.12 : 0,
+      autoCommit: pendingDrawCard.secondDraw,
+      elapsed: 0,
+    };
+    this.ensureFlyingDrawCardLayer();
+    this.autoCommitScheduled = false;
+  }
+
+  private updateDrawAnimation(dt: number): void {
+    if (!this.flyingDrawCard) return;
+    this.ensureFlyingDrawCardLayer();
+    const anim = this.flyingDrawCard;
+    anim.elapsed += dt;
+    const travelElapsed = Math.max(0, anim.elapsed - anim.delay);
+    const progress = Math.min(1, travelElapsed / anim.duration);
+    const eased = 1 - (1 - progress) * (1 - progress);
+    const x = anim.fromX + (anim.toX - anim.fromX) * eased;
+    const y = anim.fromY + (anim.toY - anim.fromY) * eased;
+    const width = 144;
+    const height = 192;
+    this.flyingDrawCardGraphics!.clear();
+    this.flyingDrawCardGraphics!.roundRect(x - width / 2, y - height / 2, width, height, 18).fill({ color: 0x1a2633, alpha: 0.96 });
+    this.flyingDrawCardGraphics!.roundRect(x - width / 2, y - height / 2, width, height, 18).stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
+    this.flyingDrawCardText!.text = anim.cardId;
+    this.flyingDrawCardText!.position.set(x, y);
+    this.flyingDrawCardText!.visible = true;
+    if (progress < 1) return;
+    this.flyingDrawCardGraphics!.clear();
+    this.flyingDrawCardText!.visible = false;
+    this.flyingDrawCard = null;
+    if (anim.autoCommit && !this.autoCommitScheduled) {
+      this.autoCommitScheduled = true;
+      this.onConfirmDrawCard?.();
+    }
+  }
+
   private drawPendingPreview(layout: ReturnType<typeof layoutHand>, pendingDrawCard: PendingDrawCard | null | undefined): void {
     this.drawPreviewGraphics.clear();
     this.confirmButtonGraphics.clear();
@@ -399,7 +518,7 @@ export class UIPresenter {
     this.confirmButtonText.visible = false;
     this.redrawButtonText.visible = false;
     this.drawPreviewText.visible = false;
-    if (!pendingDrawCard || !layout.drawPreviewCard.visible) return;
+    if (!pendingDrawCard || !layout.drawPreviewCard.visible || this.flyingDrawCard !== null) return;
     const preview = layout.drawPreviewCard;
     this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).fill({ color: 0x1a2633, alpha: 0.96 });
     this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
@@ -438,7 +557,8 @@ export class UIPresenter {
     this.drawHudBackground();
   }
 
-  present(frame: UIFrame): void {
+  present(frame: UIFrame, dt = 0): void {
+    this.lastFrameRun = frame.run;
     this.lastHandState = frame.hand;
     const hud = projectHUD(frame.run);
     this.goldText.text = hud.gold;
@@ -462,6 +582,9 @@ export class UIPresenter {
 
     const layout = layoutHand(frame.hand, this.viewportWidth, this.viewportHeight);
     this.drawHandBackground(layout);
+    this.drawDeckIcon(layout);
+    this.syncDrawAnimation(layout, frame.hand.pendingDrawCard);
+    this.updateDrawAnimation(dt);
     this.energyText.text = layout.energyLabel;
     this.energyText.position.set(layout.panel.x + 24, layout.panel.y + 18);
     this.drawText.text = layout.drawLabel;

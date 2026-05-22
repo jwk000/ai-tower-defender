@@ -1402,7 +1402,7 @@ async function bootstrap(): Promise<void> {
         pendingDrawCardId === null ? null : { cardId: pendingDrawCardId, secondDraw: pendingSecondDraw },
       );
       handPanel.refresh(uiFrame.hand);
-      presenter.present(uiFrame);
+      presenter.present(uiFrame, dt);
     }
 
     if (deckViewContainer.visible) {

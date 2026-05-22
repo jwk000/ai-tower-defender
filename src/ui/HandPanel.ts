@@ -54,6 +54,12 @@ export interface HandLayout {
   readonly energyLabel: string;
   readonly drawLabel: string;
   readonly drawButton: DrawButtonRect;
+  readonly drawDeckIcon: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
   readonly drawPreviewCard: {
     readonly x: number;
     readonly y: number;
@@ -85,6 +91,9 @@ const SLOT_GAP = 16;
 const HAND_OFFSET_Y = 130;
 const DRAW_BUTTON_WIDTH = 132;
 const DRAW_BUTTON_HEIGHT = 44;
+const DRAW_DECK_ICON_WIDTH = 84;
+const DRAW_DECK_ICON_HEIGHT = 108;
+const DRAW_DECK_ICON_GAP = 18;
 const DRAW_BUTTON_MARGIN_LEFT = 24;
 const DRAW_BUTTON_MARGIN_BOTTOM = 28;
 const DRAW_PREVIEW_WIDTH = 144;
@@ -148,6 +157,12 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       width: DRAW_BUTTON_WIDTH,
       height: DRAW_BUTTON_HEIGHT,
       enabled: drawButtonEnabled,
+    },
+    drawDeckIcon: {
+      x: drawButtonX - DRAW_DECK_ICON_GAP - DRAW_DECK_ICON_WIDTH,
+      y: drawButtonY + (DRAW_BUTTON_HEIGHT - DRAW_DECK_ICON_HEIGHT) / 2,
+      width: DRAW_DECK_ICON_WIDTH,
+      height: DRAW_DECK_ICON_HEIGHT,
     },
     drawPreviewCard: {
       x: previewX,
