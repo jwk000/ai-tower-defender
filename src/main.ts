@@ -104,7 +104,7 @@ import mysticAncientShrineYaml from './config/mystic-events/ancient_shrine.yaml?
 const GRID_COLS = 21;
 const GRID_ROWS = 9;
 const CELL_SIZE = 64;
-const BATTLE_VIEW_SCALE = 0.5;
+const BATTLE_VIEW_SCALE = 1;
 const WORLD_WIDTH = GRID_COLS * CELL_SIZE;
 const WORLD_HEIGHT = GRID_ROWS * CELL_SIZE;
 const DEFAULT_WORLD_COLS = GRID_COLS;
@@ -416,8 +416,6 @@ async function bootstrap(): Promise<void> {
     pendingDrawCardId = null;
     pendingSecondDraw = false;
     startPreviewDraw(true);
-    if (pendingDrawCardId === null) return;
-    confirmPreviewDraw();
   }
   const unitQuery = defineQuery([UnitTag]);
   const projectileQuery = defineQuery([Projectile]);

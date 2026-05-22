@@ -40,6 +40,7 @@ type FlyingCardAnimation = {
   readonly duration: number;
   readonly delay: number;
   readonly autoCommit: boolean;
+  readonly phase: 'to-preview' | 'to-hand';
   elapsed: number;
 };
 
@@ -345,6 +346,9 @@ export class UIPresenter {
     e.stopPropagation();
     const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
     if (!hitTestDrawAction(layout.confirmButton, e.global.x, e.global.y)) return;
+    const pendingCard = this.lastHandState.pendingDrawCard;
+    if (!pendingCard) return;
+    this.startFlyToHand(pendingCard.cardId);
     this.onConfirmDrawCard?.();
   }
 
@@ -457,9 +461,11 @@ export class UIPresenter {
 
   private syncDrawAnimation(layout: ReturnType<typeof layoutHand>, pendingDrawCard: PendingDrawCard | null | undefined): void {
     if (!pendingDrawCard) {
-      this.flyingDrawCard = null;
-      if (this.flyingDrawCardGraphics) this.flyingDrawCardGraphics.clear();
-      if (this.flyingDrawCardText) this.flyingDrawCardText.visible = false;
+      if (this.flyingDrawCard?.phase !== 'to-hand') {
+        this.flyingDrawCard = null;
+        if (this.flyingDrawCardGraphics) this.flyingDrawCardGraphics.clear();
+        if (this.flyingDrawCardText) this.flyingDrawCardText.visible = false;
+      }
       this.autoCommitScheduled = false;
       return;
     }
@@ -477,10 +483,28 @@ export class UIPresenter {
       duration: 0.24,
       delay: pendingDrawCard.secondDraw ? 0.12 : 0,
       autoCommit: pendingDrawCard.secondDraw,
+      phase: 'to-preview',
       elapsed: 0,
     };
     this.ensureFlyingDrawCardLayer();
     this.autoCommitScheduled = false;
+  }
+
+  private startFlyToHand(cardId: string): void {
+    const slotRect = this.getHandSlotRect(this.lastHandState.cards.length);
+    this.flyingDrawCard = {
+      cardId,
+      fromX: this.viewportWidth / 2,
+      fromY: (this.viewportHeight - 192) / 2 - 40 + 96,
+      toX: slotRect.x + slotRect.width / 2,
+      toY: slotRect.y + slotRect.height / 2,
+      duration: 0.22,
+      delay: 0,
+      autoCommit: false,
+      phase: 'to-hand',
+      elapsed: 0,
+    };
+    this.ensureFlyingDrawCardLayer();
   }
 
   private updateDrawAnimation(dt: number): void {
@@ -505,9 +529,12 @@ export class UIPresenter {
     this.flyingDrawCardGraphics!.clear();
     this.flyingDrawCardText!.visible = false;
     this.flyingDrawCard = null;
-    if (anim.autoCommit && !this.autoCommitScheduled) {
-      this.autoCommitScheduled = true;
-      this.onConfirmDrawCard?.();
+    if (anim.phase === 'to-preview') {
+      if (anim.autoCommit && !this.autoCommitScheduled) {
+        this.autoCommitScheduled = true;
+        this.onConfirmDrawCard?.();
+      }
+      return;
     }
   }
 
@@ -518,7 +545,7 @@ export class UIPresenter {
     this.confirmButtonText.visible = false;
     this.redrawButtonText.visible = false;
     this.drawPreviewText.visible = false;
-    if (!pendingDrawCard || !layout.drawPreviewCard.visible || this.flyingDrawCard !== null) return;
+    if (!pendingDrawCard || !layout.drawPreviewCard.visible || this.flyingDrawCard?.phase === 'to-preview') return;
     const preview = layout.drawPreviewCard;
     this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).fill({ color: 0x1a2633, alpha: 0.96 });
     this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
