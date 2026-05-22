@@ -118,6 +118,7 @@ const DEFAULT_TILE_COLORS: Readonly<Record<string, number>> = {
 };
 const WAVE_COMPLETE_GOLD = 20;
 const TOTAL_RUN_LEVELS = 8;
+const STARTER_HAND_SIZE = 3;
 const BOSS_LEVEL_NUMBER = 8;
 const DEFAULT_STARTING_ENERGY = 3;
 const ENERGY_REGEN_PER_SECOND = 0.5;
@@ -582,7 +583,10 @@ async function bootstrap(): Promise<void> {
     activeMovementSystem = createMovementRuntime(levelConfig);
     levelState.reset(levelConfig.waves.length);
     handSystem.clear();
-    handSystem.drawTo(deckSystem);
+    for (let i = 0; i < STARTER_HAND_SIZE; i += 1) {
+      const result = handSystem.drawOne(deckSystem);
+      if (!result.ok) break;
+    }
     drawCooldownRemaining = 0;
     pendingReroll = false;
     energySystem = buildEnergySystem(levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY);
