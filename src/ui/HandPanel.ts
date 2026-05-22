@@ -5,7 +5,21 @@ export interface HandCard {
   readonly playable: boolean;
 }
 
-export type DrawState = 'ready' | 'cooldown' | 'full-hand' | 'reroll';
+export type DrawState = 'ready' | 'cooldown' | 'full-hand' | 'confirm-draw' | 'second-draw';
+
+export interface PendingDrawCard {
+  readonly cardId: string;
+  readonly secondDraw: boolean;
+}
+
+export interface DrawActionRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly label: string;
+  readonly enabled: boolean;
+}
 
 export interface HandState {
   readonly cards: readonly HandCard[];
@@ -13,6 +27,7 @@ export interface HandState {
   readonly energyMax: number;
   readonly drawState?: DrawState;
   readonly drawCooldownSeconds?: number;
+  readonly pendingDrawCard?: PendingDrawCard | null;
 }
 
 export interface HandSlotRect {
@@ -39,6 +54,15 @@ export interface HandLayout {
   readonly energyLabel: string;
   readonly drawLabel: string;
   readonly drawButton: DrawButtonRect;
+  readonly drawPreviewCard: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly visible: boolean;
+  };
+  readonly confirmButton: DrawActionRect | null;
+  readonly redrawButton: DrawActionRect | null;
   readonly panel: {
     readonly x: number;
     readonly y: number;
@@ -63,6 +87,11 @@ const DRAW_BUTTON_WIDTH = 132;
 const DRAW_BUTTON_HEIGHT = 44;
 const DRAW_BUTTON_MARGIN_LEFT = 24;
 const DRAW_BUTTON_MARGIN_BOTTOM = 28;
+const DRAW_PREVIEW_WIDTH = 144;
+const DRAW_PREVIEW_HEIGHT = 192;
+const DRAW_PREVIEW_BUTTON_WIDTH = 144;
+const DRAW_PREVIEW_BUTTON_HEIGHT = 44;
+const DRAW_PREVIEW_GAP_Y = 16;
 
 export function layoutHand(state: HandState, viewportWidth: number, viewportHeight: number): HandLayout {
   const cards = state.cards.slice(0, HAND_MAX_CARDS);
@@ -70,13 +99,36 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
   const slotStartX = (viewportWidth - totalSlotsWidth) / 2;
   const y = viewportHeight - SLOT_HEIGHT - HAND_OFFSET_Y;
   const drawLabel = formatDrawLabel(state);
-  const drawButtonEnabled = state.drawState === 'ready' || state.drawState === 'reroll';
+  const drawButtonEnabled = state.drawState === 'ready' || state.drawState === 'confirm-draw' || state.drawState === 'second-draw';
   const panelX = slotStartX - HAND_PANEL_PADDING_X;
   const panelY = y - HAND_PANEL_PADDING_Y;
   const panelWidth = totalSlotsWidth + HAND_PANEL_PADDING_X * 2;
   const panelHeight = SLOT_HEIGHT + HAND_PANEL_PADDING_Y * 2;
   const drawButtonX = DRAW_BUTTON_MARGIN_LEFT;
   const drawButtonY = viewportHeight - DRAW_BUTTON_HEIGHT - DRAW_BUTTON_MARGIN_BOTTOM;
+  const previewVisible = state.pendingDrawCard !== undefined && state.pendingDrawCard !== null;
+  const previewX = (viewportWidth - DRAW_PREVIEW_WIDTH) / 2;
+  const previewY = (viewportHeight - DRAW_PREVIEW_HEIGHT) / 2 - 40;
+  const confirmButton = state.drawState === 'confirm-draw'
+    ? {
+        x: previewX - DRAW_PREVIEW_BUTTON_WIDTH - 12,
+        y: previewY + DRAW_PREVIEW_HEIGHT + DRAW_PREVIEW_GAP_Y,
+        width: DRAW_PREVIEW_BUTTON_WIDTH,
+        height: DRAW_PREVIEW_BUTTON_HEIGHT,
+        label: '确认',
+        enabled: true,
+      }
+    : null;
+  const redrawButton = state.drawState === 'confirm-draw'
+    ? {
+        x: previewX + DRAW_PREVIEW_WIDTH + 12,
+        y: previewY + DRAW_PREVIEW_HEIGHT + DRAW_PREVIEW_GAP_Y,
+        width: DRAW_PREVIEW_BUTTON_WIDTH,
+        height: DRAW_PREVIEW_BUTTON_HEIGHT,
+        label: '再抽一次',
+        enabled: true,
+      }
+    : null;
   return {
     slots: cards.map((card, i) => ({
       slot: card.slot,
@@ -97,6 +149,15 @@ export function layoutHand(state: HandState, viewportWidth: number, viewportHeig
       height: DRAW_BUTTON_HEIGHT,
       enabled: drawButtonEnabled,
     },
+    drawPreviewCard: {
+      x: previewX,
+      y: previewY,
+      width: DRAW_PREVIEW_WIDTH,
+      height: DRAW_PREVIEW_HEIGHT,
+      visible: previewVisible,
+    },
+    confirmButton,
+    redrawButton,
     panel: {
       x: panelX,
       y: panelY,
@@ -117,8 +178,10 @@ function formatDrawLabel(state: HandState): string {
     }
     case 'full-hand':
       return '手牌已满';
-    case 'reroll':
-      return '可重抽';
+    case 'confirm-draw':
+      return '确认换牌';
+    case 'second-draw':
+      return '再抽一次';
   }
 }
 
@@ -134,6 +197,11 @@ export function hitTestHandSlot(layout: HandLayout, px: number, py: number): num
 export function hitTestDrawButton(layout: HandLayout, px: number, py: number): boolean {
   const b = layout.drawButton;
   return px >= b.x && px <= b.x + b.width && py >= b.y && py <= b.y + b.height;
+}
+
+export function hitTestDrawAction(action: DrawActionRect | null, px: number, py: number): boolean {
+  if (!action) return false;
+  return px >= action.x && px <= action.x + action.width && py >= action.y && py <= action.y + action.height;
 }
 
 export function resolveDropIntent(

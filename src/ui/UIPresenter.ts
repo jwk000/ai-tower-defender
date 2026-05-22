@@ -4,8 +4,8 @@ import type { FederatedPointerEvent } from 'pixi.js';
 import type { LevelConfig } from '../config/loader.js';
 
 import type { CardRegistry } from '../unit-system/CardRegistry.js';
-import type { HandPanel, HandState } from './HandPanel.js';
-import { hitTestDrawButton, hitTestHandSlot, layoutHand } from './HandPanel.js';
+import type { HandPanel, HandState, PendingDrawCard } from './HandPanel.js';
+import { hitTestDrawAction, hitTestDrawButton, hitTestHandSlot, layoutHand } from './HandPanel.js';
 import type { RunState } from './HUD.js';
 import { projectHUD } from './HUD.js';
 
@@ -19,6 +19,8 @@ export interface UIPresenterConfig {
   readonly onExitBattle?: () => void;
   readonly onDebugVictory?: () => void;
   readonly onDrawCard?: () => void;
+  readonly onConfirmDrawCard?: () => void;
+  readonly onRedrawCard?: () => void;
   readonly screenToWorld?: (sx: number, sy: number) => { x: number; y: number };
   readonly worldToScreen?: (wx: number, wy: number) => { x: number; y: number };
   readonly getLevelConfig?: () => LevelConfig | null;
@@ -55,12 +57,20 @@ export class UIPresenter {
   private readonly debugVictoryText: Text;
   private readonly drawButtonGraphics: Graphics;
   private readonly drawButtonText: Text;
+  private readonly drawPreviewGraphics: Graphics;
+  private readonly drawPreviewText: Text;
+  private readonly confirmButtonGraphics: Graphics;
+  private readonly confirmButtonText: Text;
+  private readonly redrawButtonGraphics: Graphics;
+  private readonly redrawButtonText: Text;
 
   private readonly handPanel: HandPanel | null;
   private readonly cardRegistry: CardRegistry | null;
   private readonly onExitBattle: (() => void) | null;
   private readonly onDebugVictory: (() => void) | null;
   private readonly onDrawCard: (() => void) | null;
+  private readonly onConfirmDrawCard: (() => void) | null;
+  private readonly onRedrawCard: (() => void) | null;
   private readonly cellSize: number;
   private readonly screenToWorld: (sx: number, sy: number) => { x: number; y: number };
   private readonly worldToScreen: (wx: number, wy: number) => { x: number; y: number };
@@ -82,6 +92,8 @@ export class UIPresenter {
     this.onExitBattle = config.onExitBattle ?? null;
     this.onDebugVictory = config.onDebugVictory ?? null;
     this.onDrawCard = config.onDrawCard ?? null;
+    this.onConfirmDrawCard = config.onConfirmDrawCard ?? null;
+    this.onRedrawCard = config.onRedrawCard ?? null;
     this.cellSize = config.cellSize ?? 64;
     this.screenToWorld = config.screenToWorld ?? ((sx, sy) => ({ x: sx, y: sy }));
     this.worldToScreen = config.worldToScreen ?? ((wx, wy) => ({ x: wx, y: wy }));
@@ -133,7 +145,29 @@ export class UIPresenter {
     this.slotGraphics = new Graphics();
     this.drawButtonGraphics = new Graphics();
     this.drawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16, fontWeight: '600' } });
-    this.handContainer.addChild(this.handBackground, this.slotGraphics, this.drawButtonGraphics, this.energyText, this.drawText, this.drawButtonText);
+    this.drawPreviewGraphics = new Graphics();
+    this.drawPreviewText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 18, fontWeight: '700' } });
+    this.drawPreviewText.anchor.set(0.5, 0.5);
+    this.confirmButtonGraphics = new Graphics();
+    this.confirmButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16, fontWeight: '600' } });
+    this.confirmButtonText.anchor.set(0.5, 0.5);
+    this.redrawButtonGraphics = new Graphics();
+    this.redrawButtonText = new Text({ text: '', style: { fill: 0xffffff, fontSize: 16, fontWeight: '600' } });
+    this.redrawButtonText.anchor.set(0.5, 0.5);
+    this.handContainer.addChild(
+      this.handBackground,
+      this.slotGraphics,
+      this.drawButtonGraphics,
+      this.energyText,
+      this.drawText,
+      this.drawButtonText,
+      this.drawPreviewGraphics,
+      this.drawPreviewText,
+      this.confirmButtonGraphics,
+      this.confirmButtonText,
+      this.redrawButtonGraphics,
+      this.redrawButtonText,
+    );
 
     this.exitBtnGraphics = new Graphics();
     this.exitBtnText = new Text({ text: 'Exit Battle', style: { fill: 0xffffff, fontSize: 15, fontWeight: '600' } });
@@ -192,17 +226,24 @@ export class UIPresenter {
   }
 
   private bindHandEvents(): void {
-    this.battleContainer.eventMode = 'passive';
-    this.drawButtonGraphics.eventMode = 'static';
-    this.drawButtonText.eventMode = 'static';
-    this.drawButtonGraphics.cursor = 'pointer';
-    this.drawButtonText.cursor = 'pointer';
+    this.confirmButtonGraphics.eventMode = 'static';
+    this.confirmButtonText.eventMode = 'static';
+    this.redrawButtonGraphics.eventMode = 'static';
+    this.redrawButtonText.eventMode = 'static';
+    this.confirmButtonGraphics.cursor = 'pointer';
+    this.confirmButtonText.cursor = 'pointer';
+    this.redrawButtonGraphics.cursor = 'pointer';
+    this.redrawButtonText.cursor = 'pointer';
     this.handContainer.on('pointerdown', (e: FederatedPointerEvent) => this.onPointerDown(e));
     this.handContainer.on('pointermove', (e: FederatedPointerEvent) => this.onPointerMove(e));
     this.handContainer.on('pointerup', (e: FederatedPointerEvent) => this.onPointerUp(e));
     this.handContainer.on('pointerupoutside', () => this.clearDrag());
     this.drawButtonGraphics.on('pointertap', (e: FederatedPointerEvent) => this.onDrawButtonTap(e));
     this.drawButtonText.on('pointertap', (e: FederatedPointerEvent) => this.onDrawButtonTap(e));
+    this.confirmButtonGraphics.on('pointertap', (e: FederatedPointerEvent) => this.onConfirmDrawTap(e));
+    this.confirmButtonText.on('pointertap', (e: FederatedPointerEvent) => this.onConfirmDrawTap(e));
+    this.redrawButtonGraphics.on('pointertap', (e: FederatedPointerEvent) => this.onRedrawTap(e));
+    this.redrawButtonText.on('pointertap', (e: FederatedPointerEvent) => this.onRedrawTap(e));
   }
 
   private spawnGhostCard(cardId: string, x: number, y: number): void {
@@ -259,6 +300,20 @@ export class UIPresenter {
     });
     if (!layout.drawButton.enabled) return;
     this.onDrawCard?.();
+  }
+
+  private onConfirmDrawTap(e: FederatedPointerEvent): void {
+    e.stopPropagation();
+    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
+    if (!hitTestDrawAction(layout.confirmButton, e.global.x, e.global.y)) return;
+    this.onConfirmDrawCard?.();
+  }
+
+  private onRedrawTap(e: FederatedPointerEvent): void {
+    e.stopPropagation();
+    const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
+    if (!hitTestDrawAction(layout.redrawButton, e.global.x, e.global.y)) return;
+    this.onRedrawCard?.();
   }
 
   private onPointerDown(e: FederatedPointerEvent): void {
@@ -337,6 +392,40 @@ export class UIPresenter {
     this.handPanel.trigger(slot, local.x, local.y);
   }
 
+  private drawPendingPreview(layout: ReturnType<typeof layoutHand>, pendingDrawCard: PendingDrawCard | null | undefined): void {
+    this.drawPreviewGraphics.clear();
+    this.confirmButtonGraphics.clear();
+    this.redrawButtonGraphics.clear();
+    this.confirmButtonText.visible = false;
+    this.redrawButtonText.visible = false;
+    this.drawPreviewText.visible = false;
+    if (!pendingDrawCard || !layout.drawPreviewCard.visible) return;
+    const preview = layout.drawPreviewCard;
+    this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).fill({ color: 0x1a2633, alpha: 0.96 });
+    this.drawPreviewGraphics.roundRect(preview.x, preview.y, preview.width, preview.height, 18).stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
+    this.drawPreviewText.text = pendingDrawCard.cardId;
+    this.drawPreviewText.position.set(preview.x + preview.width / 2, preview.y + preview.height / 2);
+    this.drawPreviewText.visible = true;
+    if (layout.confirmButton) {
+      this.confirmButtonGraphics.roundRect(layout.confirmButton.x, layout.confirmButton.y, layout.confirmButton.width, layout.confirmButton.height, 14)
+        .fill({ color: 0x2e7d32, alpha: 0.95 });
+      this.confirmButtonGraphics.roundRect(layout.confirmButton.x, layout.confirmButton.y, layout.confirmButton.width, layout.confirmButton.height, 14)
+        .stroke({ width: 2, color: 0xa5d6a7, alpha: 0.95 });
+      this.confirmButtonText.text = layout.confirmButton.label;
+      this.confirmButtonText.position.set(layout.confirmButton.x + layout.confirmButton.width / 2, layout.confirmButton.y + layout.confirmButton.height / 2);
+      this.confirmButtonText.visible = true;
+    }
+    if (layout.redrawButton) {
+      this.redrawButtonGraphics.roundRect(layout.redrawButton.x, layout.redrawButton.y, layout.redrawButton.width, layout.redrawButton.height, 14)
+        .fill({ color: 0x1565c0, alpha: 0.95 });
+      this.redrawButtonGraphics.roundRect(layout.redrawButton.x, layout.redrawButton.y, layout.redrawButton.width, layout.redrawButton.height, 14)
+        .stroke({ width: 2, color: 0x90caf9, alpha: 0.95 });
+      this.redrawButtonText.text = layout.redrawButton.label;
+      this.redrawButtonText.position.set(layout.redrawButton.x + layout.redrawButton.width / 2, layout.redrawButton.y + layout.redrawButton.height / 2);
+      this.redrawButtonText.visible = true;
+    }
+  }
+
   resize(vw: number, vh: number): void {
     this.viewportWidth = vw;
     this.viewportHeight = vh;
@@ -376,6 +465,7 @@ export class UIPresenter {
     this.energyText.text = layout.energyLabel;
     this.energyText.position.set(layout.panel.x + 24, layout.panel.y + 18);
     this.drawText.text = layout.drawLabel;
+    this.drawPendingPreview(layout, frame.hand.pendingDrawCard);
     this.drawText.position.set(layout.drawButton.x, layout.drawButton.y - 28);
     this.drawButtonGraphics.clear();
     this.drawButtonGraphics.roundRect(layout.drawButton.x, layout.drawButton.y, layout.drawButton.width, layout.drawButton.height, 10)

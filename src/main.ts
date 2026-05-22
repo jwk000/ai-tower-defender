@@ -365,59 +365,59 @@ async function bootstrap(): Promise<void> {
 
   let runController!: RunController;
   let drawCooldownRemaining = 0;
-  let pendingReroll = false;
+  let pendingDrawCardId: string | null = null;
+  let pendingSecondDraw = false;
 
-  function tryManualDraw(): void {
-    console.info('[draw] tryManualDraw', {
+  function startPreviewDraw(secondDraw: boolean): void {
+    console.info('[draw] startPreviewDraw', {
+      secondDraw,
       handSize: handSystem.size,
-      pendingReroll,
       drawCooldownRemaining,
       drawPileSize: deckSystem.drawPileSize,
-      discardPileSize: deckSystem.discardPileSize,
     });
     if (handSystem.size >= HAND_MAX_CARDS) {
       console.info('[draw] blocked', { reason: 'full-hand' });
       return;
     }
-    if (pendingReroll) {
-      console.info('[draw] blocked', { reason: 'pending-reroll' });
+    if (pendingDrawCardId !== null) {
+      console.info('[draw] blocked', { reason: 'pending-preview', pendingDrawCardId });
       return;
     }
-    if (drawCooldownRemaining > 0) {
+    if (!secondDraw && drawCooldownRemaining > 0) {
       console.info('[draw] blocked', { reason: 'cooldown', drawCooldownRemaining });
       return;
     }
-    const result = handSystem.drawOne(deckSystem);
-    console.info('[draw] drawOne result', result);
-    if (!result.ok) return;
-    pendingReroll = true;
+    const cardId = deckSystem.drawCard();
+    console.info('[draw] preview result', { cardId, secondDraw });
+    if (cardId === null) return;
+    pendingDrawCardId = cardId;
+    pendingSecondDraw = secondDraw;
   }
 
-  function tryRerollLatestDraw(): void {
-    console.info('[draw] tryRerollLatestDraw', {
-      handSize: handSystem.size,
-      pendingReroll,
-      drawCooldownRemaining,
-      drawPileSize: deckSystem.drawPileSize,
-      discardPileSize: deckSystem.discardPileSize,
-    });
-    if (!pendingReroll) {
-      console.info('[draw] blocked', { reason: 'no-pending-reroll' });
-      return;
-    }
-    const discardIndex = handSystem.size - 1;
-    if (discardIndex < 0) {
-      console.info('[draw] blocked', { reason: 'invalid-discard-index', discardIndex });
-      return;
-    }
-    const discarded = handSystem.discardFromHand(discardIndex, deckSystem);
-    console.info('[draw] discardFromHand result', { discarded, discardIndex });
-    if (discarded === null) return;
-    const redraw = handSystem.drawOne(deckSystem);
-    pendingReroll = false;
+  function commitPendingCardToHand(): boolean {
+    if (pendingDrawCardId === null) return false;
+    if (handSystem.size >= HAND_MAX_CARDS) return false;
+    const nextCards = [...handSystem.cards, pendingDrawCardId];
+    handSystem.setCards(nextCards);
+    return true;
+  }
+
+  function confirmPreviewDraw(): void {
+    console.info('[draw] confirmPreviewDraw', { pendingDrawCardId, pendingSecondDraw, handSize: handSystem.size });
+    if (!commitPendingCardToHand()) return;
+    pendingDrawCardId = null;
+    pendingSecondDraw = false;
     drawCooldownRemaining = MANUAL_DRAW_COOLDOWN_SECONDS;
-    console.info('[draw] redraw result', redraw, { drawCooldownRemaining });
-    if (!redraw.ok) return;
+  }
+
+  function redrawPreviewDraw(): void {
+    console.info('[draw] redrawPreviewDraw', { pendingDrawCardId, handSize: handSystem.size });
+    if (pendingDrawCardId === null) return;
+    pendingDrawCardId = null;
+    pendingSecondDraw = false;
+    startPreviewDraw(true);
+    if (pendingDrawCardId === null) return;
+    confirmPreviewDraw();
   }
   const unitQuery = defineQuery([UnitTag]);
   const projectileQuery = defineQuery([Projectile]);
@@ -588,7 +588,8 @@ async function bootstrap(): Promise<void> {
       if (!result.ok) break;
     }
     drawCooldownRemaining = 0;
-    pendingReroll = false;
+    pendingDrawCardId = null;
+    pendingSecondDraw = false;
     energySystem = buildEnergySystem(levelConfig.startingEnergy ?? DEFAULT_STARTING_ENERGY);
     cardSpawnSystem = new CardSpawnSystem(cardRegistry, {
       playerSoldierHpBonus: runManager.getPlayerSoldierHpBonusFromRelics(),
@@ -660,15 +661,18 @@ async function bootstrap(): Promise<void> {
     },
     onDrawCard: () => {
       console.info('[draw] onDrawCard', {
-        pendingReroll,
+        pendingDrawCardId,
+        pendingSecondDraw,
         drawCooldownRemaining,
         handSize: handSystem.size,
       });
-      if (pendingReroll) {
-        tryRerollLatestDraw();
-      } else {
-        tryManualDraw();
-      }
+      startPreviewDraw(false);
+    },
+    onConfirmDrawCard: () => {
+      confirmPreviewDraw();
+    },
+    onRedrawCard: () => {
+      redrawPreviewDraw();
     },
     screenToWorld: (sx, sy) => renderer.screenToWorld(sx, sy),
     worldToScreen: (wx, wy) => renderer.worldToScreen(wx, wy),
@@ -756,17 +760,14 @@ async function bootstrap(): Promise<void> {
     }
     handSystem.playCard(intent.slot);
     drawCooldownRemaining = MANUAL_DRAW_COOLDOWN_SECONDS;
-    pendingReroll = false;
+    pendingDrawCardId = null;
+    pendingSecondDraw = false;
   });
 
   window.addEventListener('keydown', (event) => {
     if (runManager.phase !== 'Battle') return;
     if (event.key === 'd' || event.key === 'D') {
-      if (pendingReroll) {
-        tryRerollLatestDraw();
-      } else {
-        tryManualDraw();
-      }
+      startPreviewDraw(false);
     }
   });
   let shopRenderer!: ShopRenderer;
@@ -1383,14 +1384,23 @@ async function bootstrap(): Promise<void> {
       if (levelState.phase === 'battle' || levelState.phase === 'wave-break') {
         energySystem.tick(dt);
       }
-      const drawState = pendingReroll
-        ? 'reroll'
+      const drawState = pendingDrawCardId !== null
+        ? (pendingSecondDraw ? 'second-draw' : 'confirm-draw')
         : handSystem.size >= HAND_MAX_CARDS
           ? 'full-hand'
           : drawCooldownRemaining > 0
             ? 'cooldown'
             : 'ready';
-      const uiFrame = projectUIFrame(runManager, levelState, handSystem, energySystem, cardRegistry, drawState, drawCooldownRemaining);
+      const uiFrame = projectUIFrame(
+        runManager,
+        levelState,
+        handSystem,
+        energySystem,
+        cardRegistry,
+        drawState,
+        drawCooldownRemaining,
+        pendingDrawCardId === null ? null : { cardId: pendingDrawCardId, secondDraw: pendingSecondDraw },
+      );
       handPanel.refresh(uiFrame.hand);
       presenter.present(uiFrame);
     }
@@ -1407,8 +1417,9 @@ function projectUIFrame(
   hand: HandSystem,
   energy: EnergySystem,
   registry: CardRegistry,
-  drawState: 'ready' | 'cooldown' | 'full-hand' | 'reroll',
+  drawState: 'ready' | 'cooldown' | 'full-hand' | 'confirm-draw' | 'second-draw',
   drawCooldownSeconds: number,
+  pendingDrawCard: { cardId: string; secondDraw: boolean } | null,
 ): { run: RunState; hand: HandState } {
   const handCards: HandCard[] = hand.cards.map((cardId, i) => {
     const cfg = registry.getCard(cardId);
@@ -1442,6 +1453,7 @@ function projectUIFrame(
       energyMax: energy.max,
       drawState,
       drawCooldownSeconds,
+      pendingDrawCard,
     },
   };
 }

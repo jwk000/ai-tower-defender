@@ -47,27 +47,38 @@ describe('layoutHand', () => {
     expect(layout.drawLabel).toBe('抽卡');
   });
 
-  it('drawLabel shows cooldown/full-hand/reroll states', () => {
+  it('drawLabel shows cooldown/full-hand/confirm-draw/second-draw states', () => {
     expect(layoutHand(state({ drawState: 'cooldown', drawCooldownSeconds: 4.25 }), 1920, 1080).drawLabel).toBe('冷却 4.3s');
     expect(layoutHand(state({ drawState: 'full-hand' }), 1920, 1080).drawLabel).toBe('手牌已满');
-    expect(layoutHand(state({ drawState: 'reroll' }), 1920, 1080).drawLabel).toBe('可重抽');
+    expect(layoutHand(state({ drawState: 'confirm-draw', pendingDrawCard: { cardId: 'fireball', secondDraw: false } }), 1920, 1080).drawLabel).toBe('确认换牌');
+    expect(layoutHand(state({ drawState: 'second-draw', pendingDrawCard: { cardId: 'fireball', secondDraw: true } }), 1920, 1080).drawLabel).toBe('再抽一次');
   });
 
-  it('draw button is placed at bottom-left and only enabled for ready/reroll', () => {
+  it('draw button is placed at bottom-left and enabled for ready/confirm-draw/second-draw', () => {
     const readyLayout = layoutHand(state({ drawState: 'ready' }), 1920, 1080);
     expect(readyLayout.drawButton).toEqual({ x: 24, y: 1008, width: 132, height: 44, enabled: true });
 
     const cooldownLayout = layoutHand(state({ drawState: 'cooldown' }), 1920, 1080);
     expect(cooldownLayout.drawButton.enabled).toBe(false);
 
-    const rerollLayout = layoutHand(state({ drawState: 'reroll' }), 1920, 1080);
-    expect(rerollLayout.drawButton.enabled).toBe(true);
+    const confirmLayout = layoutHand(state({ drawState: 'confirm-draw', pendingDrawCard: { cardId: 'fireball', secondDraw: false } }), 1920, 1080);
+    expect(confirmLayout.drawButton.enabled).toBe(true);
+
+    const secondDrawLayout = layoutHand(state({ drawState: 'second-draw', pendingDrawCard: { cardId: 'fireball', secondDraw: true } }), 1920, 1080);
+    expect(secondDrawLayout.drawButton.enabled).toBe(true);
   });
 
   it('small viewport 下 draw button 仍固定在左下角可点击', () => {
     const layout = layoutHand(state({ drawState: 'ready' }), 1344, 576);
     expect(layout.drawButton).toEqual({ x: 24, y: 504, width: 132, height: 44, enabled: true });
     expect(hitTestDrawButton(layout, layout.drawButton.x + 10, layout.drawButton.y + 10)).toBe(true);
+  });
+
+  it('confirm-draw 状态会显示中间预览卡和两个按钮', () => {
+    const layout = layoutHand(state({ drawState: 'confirm-draw', pendingDrawCard: { cardId: 'fireball', secondDraw: false } }), 1920, 1080);
+    expect(layout.drawPreviewCard.visible).toBe(true);
+    expect(layout.confirmButton?.label).toBe('确认');
+    expect(layout.redrawButton?.label).toBe('再抽一次');
   });
 
   it('slot dimensions are 120×168 with 16px gap', () => {

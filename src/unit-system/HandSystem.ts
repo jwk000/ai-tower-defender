@@ -64,6 +64,14 @@ export class HandSystem {
     return removed ?? null;
   }
 
+  setCards(cards: readonly string[]): void {
+    if (cards.length > this.maxSize) {
+      throw new Error(`[HandSystem] setCards overflow: ${cards.length} > ${this.maxSize}`);
+    }
+    this.hand = [...cards];
+    this.lastDrawWasManual = false;
+  }
+
   clear(): void {
     this.hand = [];
     this.lastDrawWasManual = false;
