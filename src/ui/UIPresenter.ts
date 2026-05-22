@@ -251,6 +251,12 @@ export class UIPresenter {
   private onDrawButtonTap(e: FederatedPointerEvent): void {
     e.stopPropagation();
     const layout = layoutHand(this.lastHandState, this.viewportWidth, this.viewportHeight);
+    console.info('[draw] ui tap', {
+      enabled: layout.drawButton.enabled,
+      drawState: this.lastHandState.drawState ?? 'ready',
+      drawCooldownSeconds: this.lastHandState.drawCooldownSeconds ?? 0,
+      button: layout.drawButton,
+    });
     if (!layout.drawButton.enabled) return;
     this.onDrawCard?.();
   }

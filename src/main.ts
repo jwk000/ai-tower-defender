@@ -367,23 +367,55 @@ async function bootstrap(): Promise<void> {
   let pendingReroll = false;
 
   function tryManualDraw(): void {
-    if (handSystem.size >= 4) return;
-    if (pendingReroll) return;
-    if (drawCooldownRemaining > 0) return;
+    console.info('[draw] tryManualDraw', {
+      handSize: handSystem.size,
+      pendingReroll,
+      drawCooldownRemaining,
+      drawPileSize: deckSystem.drawPileSize,
+      discardPileSize: deckSystem.discardPileSize,
+    });
+    if (handSystem.size >= 4) {
+      console.info('[draw] blocked', { reason: 'full-hand' });
+      return;
+    }
+    if (pendingReroll) {
+      console.info('[draw] blocked', { reason: 'pending-reroll' });
+      return;
+    }
+    if (drawCooldownRemaining > 0) {
+      console.info('[draw] blocked', { reason: 'cooldown', drawCooldownRemaining });
+      return;
+    }
     const result = handSystem.drawOne(deckSystem);
+    console.info('[draw] drawOne result', result);
     if (!result.ok) return;
     pendingReroll = true;
   }
 
   function tryRerollLatestDraw(): void {
-    if (!pendingReroll) return;
+    console.info('[draw] tryRerollLatestDraw', {
+      handSize: handSystem.size,
+      pendingReroll,
+      drawCooldownRemaining,
+      drawPileSize: deckSystem.drawPileSize,
+      discardPileSize: deckSystem.discardPileSize,
+    });
+    if (!pendingReroll) {
+      console.info('[draw] blocked', { reason: 'no-pending-reroll' });
+      return;
+    }
     const discardIndex = handSystem.size - 1;
-    if (discardIndex < 0) return;
+    if (discardIndex < 0) {
+      console.info('[draw] blocked', { reason: 'invalid-discard-index', discardIndex });
+      return;
+    }
     const discarded = handSystem.discardFromHand(discardIndex, deckSystem);
+    console.info('[draw] discardFromHand result', { discarded, discardIndex });
     if (discarded === null) return;
     const redraw = handSystem.drawOne(deckSystem);
     pendingReroll = false;
     drawCooldownRemaining = MANUAL_DRAW_COOLDOWN_SECONDS;
+    console.info('[draw] redraw result', redraw, { drawCooldownRemaining });
     if (!redraw.ok) return;
   }
   const unitQuery = defineQuery([UnitTag]);
@@ -622,6 +654,11 @@ async function bootstrap(): Promise<void> {
       runController.completeCurrentLevel();
     },
     onDrawCard: () => {
+      console.info('[draw] onDrawCard', {
+        pendingReroll,
+        drawCooldownRemaining,
+        handSize: handSystem.size,
+      });
       if (pendingReroll) {
         tryRerollLatestDraw();
       } else {
