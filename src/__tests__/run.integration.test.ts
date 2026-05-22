@@ -540,6 +540,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
       mainMenu: { visible: false },
       levelMap: { visible: false },
       battle: { visible: false },
+      battleWorld: { visible: false },
       interLevel: { visible: false },
       shop: { visible: false },
       mystic: { visible: false },
@@ -575,6 +576,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(controller.phase).toBe(RunPhase.Idle);
     expect(scenes.mainMenu.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
     expect(scenes.interLevel.visible).toBe(false);
     expect(scenes.runResult.visible).toBe(false);
 
@@ -583,11 +585,13 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(scenes.mainMenu.visible).toBe(false);
     expect(scenes.levelMap.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
 
     controller.enterBattle();
     expect(controller.phase).toBe(RunPhase.Battle);
     expect(scenes.levelMap.visible).toBe(false);
     expect(scenes.battle.visible).toBe(true);
+    expect(scenes.battleWorld.visible).toBe(true);
 
     waveSystem.start();
 
@@ -606,6 +610,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(controller.phase).toBe(RunPhase.Result);
     expect(runManager.outcome).toBe('victory');
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
     expect(scenes.runResult.visible).toBe(true);
     expect(levelState.phase).toBe('victory');
 
@@ -639,6 +644,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.outcome).toBe('defeat');
     expect(scenes.runResult.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
     expect(levelState.phase).toBe('defeat');
 
     controller.returnToMainMenu();
@@ -684,6 +690,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(onLevelStart).toHaveBeenCalledTimes(1);
     expect(onLevelStart).toHaveBeenCalledWith(2);
     expect(scenes.battle.visible).toBe(true);
+    expect(scenes.battleWorld.visible).toBe(true);
   });
 
   it('keeps battle scene hidden while staying on level map before entering battle', () => {
@@ -696,12 +703,15 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(controller.phase).toBe(RunPhase.LevelMap);
     expect(scenes.levelMap.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
 
     controller.enterBattle();
     expect(scenes.battle.visible).toBe(true);
+    expect(scenes.battleWorld.visible).toBe(true);
 
     controller.completeCurrentLevel();
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
 
     claimBaseInterLevelRewards(runManager, controller);
     controller.pickInterLevel('shop');
@@ -710,6 +720,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(controller.phase).toBe(RunPhase.LevelMap);
     expect(scenes.levelMap.visible).toBe(true);
     expect(scenes.battle.visible).toBe(false);
+    expect(scenes.battleWorld.visible).toBe(false);
   });
 
   it('non-final battle completion can grant a three-card reward before normal inter-level branching', () => {

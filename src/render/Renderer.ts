@@ -193,27 +193,69 @@ export class Renderer {
     const weather = normalizeWeather(resolveInitialWeather(level.weather).toLowerCase());
     const w = level.mapCols * level.tileSize;
     const h = level.mapRows * level.tileSize;
+    const isRainyScene = weather === 'rain';
     const obstacleByCell = new Map((level.obstacles ?? []).map((ob) => [`${ob.row},${ob.col}`, ob.type]));
     const portalByCell = new Map((level.portals ?? []).map((portal) => [`${portal.row},${portal.col}`, portal.kind]));
 
     const sky = new Graphics();
-    const topColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xa7c7e7
+    const topColor = isRainyScene ? 0x607d8b
+      : scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xa7c7e7
       : scene.includes('沙') ? 0xe6c27a
       : scene.includes('蒸汽') || scene.includes('工厂') ? 0x4f5b62
       : 0x7fbf7f;
-    const bottomColor = scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xdfeaf4
+    const bottomColor = isRainyScene ? 0x233746
+      : scene.includes('雪') || scene.includes('极北') || scene.includes('冰') ? 0xdfeaf4
       : scene.includes('沙') ? 0xc49a5a
       : scene.includes('蒸汽') || scene.includes('工厂') ? 0x263238
       : 0x355e3b;
-    sky.rect(0, 0, w, h * 0.55).fill({ color: topColor, alpha: 1 });
-    sky.rect(0, h * 0.55, w, h * 0.45).fill({ color: bottomColor, alpha: 1 });
+    sky.rect(0, 0, w, h * 0.28).fill({ color: topColor, alpha: 1 });
+    sky.rect(0, h * 0.28, w, h * 0.3).fill({ color: mixHex(topColor, bottomColor, 0.45), alpha: 1 });
+    sky.rect(0, h * 0.58, w, h * 0.42).fill({ color: bottomColor, alpha: 1 });
     this.backgroundLayer.addChild(sky);
 
+    if (isRainyScene) {
+      const rainBackwash = new Graphics();
+      rainBackwash.rect(0, 0, w, h).fill({ color: 0x0f1d28, alpha: 0.12 });
+      rainBackwash.rect(0, h * 0.14, w, h * 0.32).fill({ color: 0x8fb3c9, alpha: 0.06 });
+      this.backgroundLayer.addChild(rainBackwash);
+
+      const distantHills = new Graphics();
+      const ridgeBaseY = h * 0.5;
+      for (let i = 0; i < 4; i++) {
+        const startX = -w * 0.1 + i * (w * 0.28);
+        const peakX = startX + w * 0.16;
+        const endX = startX + w * 0.38;
+        const peakY = ridgeBaseY - 38 - (i % 2) * 18;
+        const footY = ridgeBaseY + i * 8;
+        distantHills.moveTo(startX, h);
+        distantHills.lineTo(startX, footY);
+        distantHills.lineTo(peakX, peakY);
+        distantHills.lineTo(endX, footY + 10);
+        distantHills.lineTo(endX, h);
+        distantHills.lineTo(startX, h);
+      }
+      distantHills.fill({ color: 0x1c2d37, alpha: 0.45 });
+      for (let i = 0; i < 3; i++) {
+        const ridgeY = h * (0.42 + i * 0.065);
+        distantHills.roundRect(-20 + i * 24, ridgeY, w + 40, 26 + i * 8, 18).fill({ color: 0x78909c, alpha: 0.05 + i * 0.015 });
+      }
+      this.backgroundLayer.addChild(distantHills);
+
+      const clouds = new Graphics();
+      for (let i = 0; i < 6; i++) {
+        const cloudX = 32 + i * (w / 5.8);
+        const cloudY = h * 0.18 + (i % 2) * 18;
+        clouds.ellipse(cloudX, cloudY, 54, 18).fill({ color: 0xd7e4ec, alpha: 0.08 });
+        clouds.ellipse(cloudX + 26, cloudY - 8, 42, 14).fill({ color: 0xd7e4ec, alpha: 0.06 });
+      }
+      this.backgroundLayer.addChild(clouds);
+    }
+
     const atmosphere = new Graphics();
-    const atmosphereColor = scene.includes('雪') ? 0xffffff : scene.includes('沙') ? 0xffe0b2 : scene.includes('蒸汽') ? 0xb0bec5 : 0xc8e6c9;
+    const atmosphereColor = isRainyScene ? 0xc5d8e6 : scene.includes('雪') ? 0xffffff : scene.includes('沙') ? 0xffe0b2 : scene.includes('蒸汽') ? 0xb0bec5 : 0xc8e6c9;
     for (let i = 0; i < 6; i++) {
       const bandY = (h / 7) * i;
-      atmosphere.roundRect((i % 2) * 40, bandY, w - 80, h / 10, 24).fill({ color: atmosphereColor, alpha: 0.06 + i * 0.01 });
+      atmosphere.roundRect((i % 2) * 40, bandY, w - 80, h / 10, 24).fill({ color: atmosphereColor, alpha: (isRainyScene ? 0.04 : 0.06) + i * 0.01 });
     }
     this.backgroundLayer.addChild(atmosphere);
 
@@ -226,9 +268,16 @@ export class Renderer {
         const color = level.tileColors[tile] ?? level.tileColors.empty ?? 0x304b3d;
         const x = col * level.tileSize;
         const y = row * level.tileSize;
-        board.rect(x, y, level.tileSize, level.tileSize).fill({ color, alpha: tile === 'empty' ? 0.95 : 1 });
+        const baseTileColor = isRainyScene ? mixHex(color, 0x243846, tile === 'path' || tile === 'spawn' || tile === 'base' ? 0.18 : 0.28) : color;
+        board.rect(x, y, level.tileSize, level.tileSize).fill({ color: baseTileColor, alpha: tile === 'empty' ? 0.95 : 1 });
+        if (isRainyScene && tile === 'empty' && (row + col) % 3 === 0) {
+          board.ellipse(x + level.tileSize * 0.55, y + level.tileSize * 0.66, level.tileSize * 0.16, level.tileSize * 0.07).fill({ color: 0xb9d7ea, alpha: 0.12 });
+        }
         if (tile === 'path' || tile === 'spawn' || tile === 'base') {
-          board.rect(x + 8, y + 8, level.tileSize - 16, level.tileSize - 16).stroke({ width: 3, color: 0xffffff, alpha: 0.14 });
+          board.rect(x + 8, y + 8, level.tileSize - 16, level.tileSize - 16).stroke({ width: 3, color: isRainyScene ? 0xcfe7f5 : 0xffffff, alpha: isRainyScene ? 0.18 : 0.14 });
+          if (isRainyScene) {
+            board.ellipse(x + level.tileSize * 0.48, y + level.tileSize * 0.3, level.tileSize * 0.18, level.tileSize * 0.05).fill({ color: 0xe1f5fe, alpha: 0.08 });
+          }
         }
         if (scene.includes('雪') && tile === 'empty' && (row + col) % 5 === 0) {
           board.circle(x + level.tileSize * 0.24, y + level.tileSize * 0.26, 3).fill({ color: 0xffffff, alpha: 0.35 });
@@ -448,17 +497,33 @@ export class Renderer {
     if (kind === 'rain') {
       const backLayer = layers[0] ?? { kind: 'back', speed: 1, alphaScale: 1 };
       const frontLayer = layers[1] ?? { kind: 'front', speed: 1.55, alphaScale: 1.25 };
-      overlay.rect(0, 0, w, h).fill({ color: 0x10263f, alpha: 0.018 });
+      overlay.rect(0, 0, w, h).fill({ color: 0x09131a, alpha: 0.07 });
+      overlay.roundRect(-24, h * 0.16, w + 48, h * 0.1, 24).fill({ color: 0xc7dbe7, alpha: 0.05 });
+      overlay.roundRect(-32, h * 0.32, w + 64, h * 0.14, 28).fill({ color: 0x9fb7c6, alpha: 0.035 });
       for (const layer of [backLayer, frontLayer]) {
         const density = layer.kind === 'back' ? 18 : 28;
         for (let i = 0; i < density; i++) {
-          const px = (i * (layer.kind === 'back' ? 77 : 59) + time * 180 * layer.speed) % (w + 80) - 40;
-          const py = (i * (layer.kind === 'back' ? 49 : 33) + time * 150 * layer.speed) % (h + 60) - 30;
-          const dx = layer.kind === 'back' ? -8 : -12;
-          const dy = layer.kind === 'back' ? 18 : 28;
+          const jitter = rainJitter(i, layer.kind === 'back' ? 1 : 2);
+          const px = (i * (layer.kind === 'back' ? 77 : 59) + jitter.x * 48 + time * (160 + jitter.speed * 28) * layer.speed) % (w + 96) - 48;
+          const py = (i * (layer.kind === 'back' ? 49 : 33) + jitter.y * 54 + time * (136 + jitter.speed * 24) * layer.speed) % (h + 72) - 36;
+          const dx = (layer.kind === 'back' ? -7 : -11) + Math.sin(time * (1.4 + jitter.phase * 0.6) + i * 0.45) * (layer.kind === 'back' ? 1.2 : 1.8);
+          const dy = (layer.kind === 'back' ? 16 : 24) + jitter.length * (layer.kind === 'back' ? 5 : 9);
           overlay.moveTo(px, py).lineTo(px + dx, py + dy);
+          if (layer.kind === 'front' && i % 6 === 0) {
+            overlay.moveTo(px + 1.5, py - 1).lineTo(px + dx + 1.5, py + dy - 1);
+          }
         }
-        overlay.stroke({ width: layer.kind === 'back' ? 1.6 : 2.4, color: 0xb3e5fc, alpha: (layer.kind === 'back' ? 0.1 : 0.18) * layer.alphaScale });
+        overlay.stroke({ width: layer.kind === 'back' ? 1.4 : 2.1, color: layer.kind === 'back' ? 0x8fb8cf : 0xcfefff, alpha: (layer.kind === 'back' ? 0.12 : 0.22) * layer.alphaScale });
+      }
+      for (let i = 0; i < 10; i++) {
+        const splashX = (i * 53 + time * 96) % (w + 30) - 15;
+        const splashY = h * (0.62 + ((i % 4) * 0.08)) + Math.sin(time * 2.4 + i) * 6;
+        overlay.ellipse(splashX, splashY, 8, 2.4).stroke({ width: 1.4, color: 0xd8f3ff, alpha: 0.12 });
+      }
+      for (let i = 0; i < 14; i++) {
+        const mistX = (i * 67 + time * 22) % (w + 120) - 60;
+        const mistY = h * 0.72 + (i % 3) * 26;
+        overlay.ellipse(mistX, mistY, 34, 10).fill({ color: 0xd9e6ee, alpha: 0.03 + (i % 3) * 0.01 });
       }
       return;
     }
@@ -545,4 +610,37 @@ function resolveInitialWeather(weather: { pool: readonly string[]; initial?: str
 
   const firstRenderable = weather.pool.find((entry) => normalizeWeather(entry.toLowerCase()) !== 'none');
   return firstRenderable ?? weather.pool[0] ?? '';
+}
+
+function mixHex(colorA: number, colorB: number, ratio: number): number {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const rA = (colorA >> 16) & 0xff;
+  const gA = (colorA >> 8) & 0xff;
+  const bA = colorA & 0xff;
+  const rB = (colorB >> 16) & 0xff;
+  const gB = (colorB >> 8) & 0xff;
+  const bB = colorB & 0xff;
+
+  const r = Math.round(rA + (rB - rA) * clamped);
+  const g = Math.round(gA + (gB - gA) * clamped);
+  const b = Math.round(bA + (bB - bA) * clamped);
+
+  return (r << 16) | (g << 8) | b;
+}
+
+function rainJitter(index: number, layerSeed: number): { x: number; y: number; speed: number; length: number; phase: number } {
+  const seed = Math.sin((index + 1) * 12.9898 + layerSeed * 78.233) * 43758.5453;
+  const fracA = seed - Math.floor(seed);
+  const fracBSeed = Math.sin((index + 1) * 26.651 + layerSeed * 11.135) * 19642.3491;
+  const fracB = fracBSeed - Math.floor(fracBSeed);
+  const fracCSeed = Math.sin((index + 1) * 7.137 + layerSeed * 91.713) * 8645.2451;
+  const fracC = fracCSeed - Math.floor(fracCSeed);
+
+  return {
+    x: fracA,
+    y: fracB,
+    speed: fracC,
+    length: fracA * 0.55 + fracB * 0.45,
+    phase: fracC * Math.PI * 2,
+  };
 }

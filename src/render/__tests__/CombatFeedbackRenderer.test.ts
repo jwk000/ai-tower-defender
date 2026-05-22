@@ -173,6 +173,38 @@ describe('Renderer weather animation', () => {
     expect(layers[1]?.speed).toBeGreaterThan(layers[0]?.speed ?? 0);
   });
 
+  it('treats random_from_pool weather as a renderable pool choice', () => {
+    const renderer = new Renderer({
+      canvas: {} as HTMLCanvasElement,
+      worldWidth: 21 * 64,
+      worldHeight: 9 * 64,
+      cellSize: 64,
+      worldScale: 0.5,
+    });
+
+    renderer.drawLevelBackground({
+      mapCols: 2,
+      mapRows: 2,
+      tileSize: 64,
+      tiles: [
+        ['spawn', 'path'],
+        ['empty', 'base'],
+      ],
+      tileColors: {
+        empty: 0x304b3d,
+        path: 0x9c7b63,
+        spawn: 0xff8f00,
+        base: 0x1e88e5,
+      },
+      weather: { pool: ['sunny', 'rain'], initial: 'random_from_pool' },
+    });
+
+    const state = renderer as unknown as { weatherState: { kind: string; layers: readonly unknown[] } | null };
+
+    expect(state.weatherState?.kind).toBe('rain');
+    expect(state.weatherState?.layers.length).toBeGreaterThan(0);
+  });
+
   it('creates animated overlay state for special terrain obstacles', () => {
     const renderer = new Renderer({
       canvas: {} as HTMLCanvasElement,
