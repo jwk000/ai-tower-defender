@@ -624,6 +624,7 @@ async function bootstrap(): Promise<void> {
       mainMenu: mainMenuContainer,
       levelMap: levelMapContainer,
       battle: battleContainer,
+      battleWorld: renderer.worldLayer,
       interLevel: interLevelContainer,
       shop: shopContainer,
       mystic: mysticContainer,

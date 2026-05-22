@@ -136,22 +136,19 @@ describe('Wave 4 content integration: YAML -> full Run with combat', () => {
     expect(econ.sp).toBe(2);
   });
 
-  it('battle start leaves one starter card in deck so manual draw is available', () => {
+  it('battle start keeps full owned starter pool and manual draw remains available', () => {
     const starterDeck = ['arrow_tower_card', 'shield_guard_card', 'spike_trap_card', 'fireball_card'] as const;
     const deck = new DeckSystem({ pool: starterDeck, deckSize: starterDeck.length, rng: makeRng(1) });
     deck.initWithCards(starterDeck);
     const hand = new HandSystem({ maxSize: 4 });
 
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 4; i += 1) {
       const result = hand.drawOne(deck);
       expect(result.ok).toBe(true);
     }
 
-    expect(hand.size).toBe(3);
-    expect(deck.drawPileSize).toBe(1);
-    expect(hand.drawOne(deck)).toEqual({ ok: true, cardId: 'fireball_card' });
     expect(hand.size).toBe(4);
-    expect(deck.drawPileSize).toBe(0);
+    expect(deck.drawPileSize).toBe(4);
   });
 
   it('new run starter card pool contains exactly arrow tower, fireball, shield guard, and spike trap', () => {

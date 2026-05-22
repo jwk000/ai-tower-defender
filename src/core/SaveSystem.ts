@@ -30,10 +30,7 @@ export interface RunSnapshot {
   readonly passiveSources: readonly ActivePassiveSource[];
   readonly cardLevels: readonly CardLevelConfig[];
   readonly deck: {
-    readonly drawPile: string[];
-    readonly discardPile: string[];
-    readonly drawPileInstances?: string[];
-    readonly discardPileInstances?: string[];
+    readonly ownedCards: string[];
   };
 }
 

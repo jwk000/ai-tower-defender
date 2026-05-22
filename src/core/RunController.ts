@@ -11,6 +11,7 @@ export interface RunSceneContainers {
   readonly mainMenu: { visible: boolean };
   readonly levelMap: { visible: boolean };
   readonly battle: { visible: boolean };
+  readonly battleWorld?: { visible: boolean };
   readonly interLevel: { visible: boolean };
   readonly shop: { visible: boolean };
   readonly mystic: { visible: boolean };
@@ -229,9 +230,13 @@ export class RunController {
 
   private syncSceneVisibility(): void {
     const p = this.runManager.phase;
+    const battleVisible = p === RunPhase.Battle;
     this.scenes.mainMenu.visible = p === RunPhase.Idle;
     this.scenes.levelMap.visible = p === RunPhase.LevelMap;
-    this.scenes.battle.visible = p === RunPhase.Battle;
+    this.scenes.battle.visible = battleVisible;
+    if (this.scenes.battleWorld) {
+      this.scenes.battleWorld.visible = battleVisible;
+    }
     this.scenes.interLevel.visible = p === RunPhase.InterLevel;
     this.scenes.shop.visible = p === RunPhase.Shop;
     this.scenes.mystic.visible = p === RunPhase.Mystic;

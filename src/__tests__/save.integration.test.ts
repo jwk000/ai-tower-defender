@@ -34,14 +34,13 @@ function makeManager(totalLevels = 3): RunManager {
 }
 
 describe('DeckSystem snapshot / restoreFrom', () => {
-  it('captures current piles and restores them exactly', () => {
+  it('captures owned cards and restores them exactly', () => {
     const deck = makeDeck(['x', 'y', 'z'], 3);
     deck.drawCard();
     deck.discard('x');
 
     const snap = deck.snapshot();
-    expect(snap.drawPile.length).toBe(2);
-    expect(snap.discardPile).toEqual(['x']);
+    expect(snap.ownedCards).toEqual(['x', 'x', 'x']);
 
     const deck2 = makeDeck(['x', 'y', 'z'], 3);
     deck2.restoreFrom(snap);
@@ -51,13 +50,14 @@ describe('DeckSystem snapshot / restoreFrom', () => {
   it('restoreFrom does not share references with snapshot', () => {
     const deck = makeDeck();
     const snap = deck.snapshot();
-    deck.drawCard();
-    expect(snap.drawPile.length).toBe(3);
+    deck.addCard('d');
+    expect(snap.ownedCards.length).toBe(3);
   });
 
-  it('save / restore preserves unique deck without duplicates', () => {
+  it('save / restore preserves owned card pool with duplicates', () => {
     const deck = makeDeck(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card'], 4);
     deck.initWithCards(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card']);
+    deck.addCard('arrow_tower_card');
 
     const snap = deck.snapshot();
     const restored = makeDeck(['arrow_tower_card', 'shield_guard_card', 'fireball_card', 'cannon_tower_card'], 4);
@@ -168,7 +168,7 @@ describe('SaveSystem latest-only behavior', () => {
       relics: [],
       passiveSources: [],
       cardLevels: [],
-      deck: { drawPile: ['c1', 'c2'], discardPile: ['c3'] },
+      deck: { ownedCards: ['c1', 'c2', 'c3'] },
     };
 
     SaveSystem.saveRun(snap);

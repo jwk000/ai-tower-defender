@@ -61,6 +61,8 @@ interface TerrainEffectState {
  */
 export class Renderer {
   readonly app: Application;
+  /** 战斗世界根层（跟随 battle phase 显隐） */
+  readonly worldLayer: Container;
   /** 地图格子层（跟随 gameWorldRoot 缩放） */
   readonly mapLayer: Container;
   /** 实体渲染层（跟随 gameWorldRoot 缩放） */
@@ -83,6 +85,7 @@ export class Renderer {
     this.config = config;
     this.app = new Application();
     this.gameWorldRoot = new Container();
+    this.worldLayer = this.gameWorldRoot;
     this.mapLayer = new Container();
     this.entityLayer = new Container();
     this.projectileLayer = new Container();
@@ -187,7 +190,7 @@ export class Renderer {
     this.weatherState = null;
     this.terrainEffectState = null;
     const scene = (level.sceneDescription ?? '').toLowerCase();
-    const weather = normalizeWeather((level.weather?.initial ?? level.weather?.pool[0] ?? '').toLowerCase());
+    const weather = normalizeWeather(resolveInitialWeather(level.weather).toLowerCase());
     const w = level.mapCols * level.tileSize;
     const h = level.mapRows * level.tileSize;
     const obstacleByCell = new Map((level.obstacles ?? []).map((ob) => [`${ob.row},${ob.col}`, ob.type]));
@@ -530,4 +533,16 @@ function normalizeWeather(raw: string): WeatherKind {
   if (raw.includes('spore')) return 'spore';
   if (raw.includes('fog')) return 'fog';
   return 'none';
+}
+
+function resolveInitialWeather(weather: { pool: readonly string[]; initial?: string } | undefined): string {
+  if (!weather) return '';
+
+  const initial = weather.initial ?? '';
+  if (initial.toLowerCase() !== 'random_from_pool') {
+    return initial || weather.pool[0] || '';
+  }
+
+  const firstRenderable = weather.pool.find((entry) => normalizeWeather(entry.toLowerCase()) !== 'none');
+  return firstRenderable ?? weather.pool[0] ?? '';
 }

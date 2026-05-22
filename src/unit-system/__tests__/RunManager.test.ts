@@ -446,7 +446,7 @@ describe('RunManager state machine', () => {
       category: 'economy',
     });
 
-    const snap = run.snapshot({ snapshot: () => ({ drawPile: [], discardPile: [] }) } as never);
+    const snap = run.snapshot({ snapshot: () => ({ ownedCards: [] }) } as never);
     const restored = makeManager(3);
     restored.restoreFrom(snap);
 

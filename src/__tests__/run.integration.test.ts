@@ -226,7 +226,8 @@ describe('Run integration: RunManager + Deck/Hand/Energy + CardSpawn + Economy +
 
     const deck = new DeckSystem({ pool: ['card_spike'], deckSize: 2, rng: makeRng(7) });
     hand.drawTo(deck);
-    expect(hand.size).toBe(2);
+    expect(hand.size).toBe(4);
+    expect(deck.drawPileSize).toBe(2);
 
     const playedCard = hand.playCard(0)!;
     expect(playedCard).toBe('card_spike');
@@ -736,7 +737,7 @@ describe('MVP run flow smoke: RunController orchestrates phase + scene + tick', 
     expect(runManager.pendingCardReward).toBeNull();
     expect(deckSystem.getCardInstances()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ cardId: 'archer_card', pile: 'discard' }),
+        expect.objectContaining({ cardId: 'archer_card' }),
       ]),
     );
 

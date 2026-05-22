@@ -15,62 +15,44 @@ function makeRng(sequence: number[]): () => number {
 }
 
 describe('DeckSystem', () => {
-  it('builds a deck of the configured size by sampling the pool with the injected RNG', () => {
+  it('builds an owned pool of the configured size by sampling the pool with the injected RNG', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 5, rng: makeRng([0, 0.25, 0.5, 0.75, 0.99]) });
     expect(deck.drawPileSize).toBe(5);
     expect(deck.discardPileSize).toBe(0);
   });
 
-  it('drawCard removes the top of the draw pile and returns it', () => {
-    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
+  it('drawCard returns a card copy without consuming the owned pool', () => {
+    const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0]) });
     const expected = [...deck.previewDrawPile()];
     const first = deck.drawCard();
     expect(first).toBe(expected[0]);
-    expect(deck.drawPileSize).toBe(2);
+    expect(deck.drawPileSize).toBe(3);
   });
 
-  it('drawCard returns null when both piles are empty', () => {
+  it('drawCard returns null when the owned pool is empty', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 1, rng: makeRng([0]) });
-    deck.drawCard();
+    deck.removeInstance(deck.getCardInstances()[0]!.instanceId);
     expect(deck.drawCard()).toBeNull();
   });
 
-  it('discard moves a card into the discard pile', () => {
+  it('discard is a no-op under clone draw model', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
     const drawn = deck.drawCard()!;
     deck.discard(drawn);
-    expect(deck.discardPileSize).toBe(1);
+    expect(deck.discardPileSize).toBe(0);
+    expect(deck.drawPileSize).toBe(3);
   });
 
-  it('drawCard reshuffles the discard pile back into the draw pile when draw is empty', () => {
-    const deck = new DeckSystem({
-      pool: POOL,
-      deckSize: 2,
-      rng: makeRng([0, 0.5, 0.1, 0.7, 0.2, 0.8]),
-    });
-    const a = deck.drawCard()!;
-    const b = deck.drawCard()!;
-    expect(deck.drawCard()).toBeNull();
-    deck.discard(a);
-    deck.discard(b);
-    expect(deck.drawPileSize).toBe(0);
-    expect(deck.discardPileSize).toBe(2);
-
-    const c = deck.drawCard();
-    expect(c).not.toBeNull();
-    expect(deck.drawPileSize + deck.discardPileSize).toBe(1);
-  });
-
-  it('reshuffle is deterministic given the same RNG seed', () => {
+  it('draw results are deterministic given the same RNG seed', () => {
     const deckA = new DeckSystem({
       pool: POOL,
       deckSize: 3,
-      rng: makeRng([0.1, 0.3, 0.6, 0.2, 0.4, 0.7]),
+      rng: makeRng([0.1, 0.3, 0.6]),
     });
     const deckB = new DeckSystem({
       pool: POOL,
       deckSize: 3,
-      rng: makeRng([0.1, 0.3, 0.6, 0.2, 0.4, 0.7]),
+      rng: makeRng([0.1, 0.3, 0.6]),
     });
     const seqA = [deckA.drawCard(), deckA.drawCard(), deckA.drawCard()];
     const seqB = [deckB.drawCard(), deckB.drawCard(), deckB.drawCard()];
@@ -92,16 +74,15 @@ describe('DeckSystem', () => {
     expect(deck.drawPileSize).toBe(3);
   });
 
-  it('reset rebuilds the draw pile from scratch and clears discard', () => {
+  it('reset rebuilds the owned pool from scratch', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.3, 0.6, 0.1, 0.4, 0.7]) });
-    const a = deck.drawCard()!;
-    deck.discard(a);
+    deck.addCard('bonus');
     deck.reset();
     expect(deck.drawPileSize).toBe(3);
     expect(deck.discardPileSize).toBe(0);
   });
 
-  it('initWithCards can seed the exact four starter cards into draw pile for run start', () => {
+  it('initWithCards can seed the exact four starter cards into owned pool for run start', () => {
     const deck = new DeckSystem({ pool: STARTER_DECK, deckSize: STARTER_DECK.length, rng: makeRng([0]) });
 
     deck.initWithCards(STARTER_DECK);
@@ -111,29 +92,30 @@ describe('DeckSystem', () => {
     expect(deck.discardPileSize).toBe(0);
   });
 
-  it('addCard appends a rewarded card into discard pile with an instance id', () => {
+  it('addCard appends a rewarded card into owned pool with an instance id', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
 
+    const beforeOwned = deck.drawPileSize;
     const added = deck.addCard('reward_fireball');
 
-    expect(added).toMatchObject({ cardId: 'reward_fireball', pile: 'discard' });
+    expect(added).toMatchObject({ cardId: 'reward_fireball' });
     expect(added.instanceId).toMatch(/^reward_fireball_inst_\d+$/);
-    expect(deck.discardPileSize).toBe(1);
+    expect(deck.drawPileSize).toBe(beforeOwned + 1);
     expect(deck.getCardInstances()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ instanceId: added.instanceId, cardId: 'reward_fireball', pile: 'discard' }),
+        expect.objectContaining({ instanceId: added.instanceId, cardId: 'reward_fireball' }),
       ]),
     );
   });
 
-  it('addCard rejects duplicate card ids already present in deck', () => {
+  it('addCard allows duplicate card ids because owned pool can contain multiple copies', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
     const existing = deck.previewDrawPile()[0]!;
 
-    expect(() => deck.addCard(existing)).toThrow(/duplicate cardId/i);
+    expect(() => deck.addCard(existing)).not.toThrow();
   });
 
-  it('removeInstance removes a specific discard-pile card instance without disturbing others', () => {
+  it('removeInstance removes a specific owned card instance without disturbing others', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
 
     const first = deck.addCard('reward_fireball');
@@ -148,7 +130,7 @@ describe('DeckSystem', () => {
     );
     expect(deck.getCardInstances()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ instanceId: second.instanceId, cardId: 'reward_iceball', pile: 'discard' }),
+        expect.objectContaining({ instanceId: second.instanceId, cardId: 'reward_iceball' }),
       ]),
     );
   });
@@ -159,12 +141,12 @@ describe('DeckSystem', () => {
     expect(() => deck.restoreFrom({
       drawPile: ['arrow_tower'],
       discardPile: ['arrow_tower'],
-    })).not.toThrow();
+    } as never)).not.toThrow();
   });
 
-  it('removeInstance can delete a draw-pile card instance by id', () => {
+  it('removeInstance can delete an owned card instance by id', () => {
     const deck = new DeckSystem({ pool: POOL, deckSize: 3, rng: makeRng([0, 0.5, 0.99]) });
-    const target = deck.getCardInstances().find((instance) => instance.pile === 'draw');
+    const target = deck.getCardInstances()[0];
 
     expect(target).toBeDefined();
     expect(deck.removeInstance(target!.instanceId)).toBe(true);
