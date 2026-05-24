@@ -16,12 +16,14 @@ import {
   MissileCharge,
   TargetingMark,
   BuildingTower,
+  Faction,
 } from '../core/components.js';
 import { TowerType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
 import { Sound, type SfxKey } from '../utils/Sound.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 
@@ -139,7 +141,7 @@ export class AttackSystem implements System {
     const validEnemies: number[] = [];
     const allMatches = potentialTargetQuery(world.world);
     for (const eid of allMatches) {
-      if (UnitTag.isEnemy[eid]! === 1 && Health.current[eid]! > 0) {
+      if (Health.current[eid]! > 0) {
         validEnemies.push(eid);
       }
     }
@@ -309,6 +311,33 @@ export class AttackSystem implements System {
     return true;
   }
 
+  /**
+   * Validate whether attackerEid can target targetEid using the 4-faction system
+   * combined with alive check and layer reachability.
+   *
+   * Checks (in order):
+   *   1. Faction hostility via areHostile()
+   *   2. Target is alive (Health.current > 0)
+   *   3. Layer reachability via canAttackLayer()
+   *
+   * Returns false if either entity lacks Faction/Health/Layer components.
+   */
+  static isValidTarget(world: TowerWorld, attackerEid: number, targetEid: number): boolean {
+    const attackerFaction = Faction.value[attackerEid];
+    const targetFaction = Faction.value[targetEid];
+    if (attackerFaction === undefined || targetFaction === undefined) return false;
+    if (!areHostile(attackerFaction, targetFaction)) return false;
+
+    if ((Health.current[targetEid] ?? 0) <= 0) return false;
+
+    const attackerLayer = Layer.value[attackerEid] ?? LayerVal.Ground;
+    const targetLayer = Layer.value[targetEid] ?? LayerVal.Ground;
+    const isRanged = (Attack.isRanged[attackerEid] ?? 0) === 1;
+    if (!AttackSystem.canAttackLayer(attackerLayer, targetLayer, isRanged)) return false;
+
+    return true;
+  }
+
   // ---- Lightning Chain ----
 
   private doLightningAttack(
@@ -364,10 +393,12 @@ export class AttackSystem implements System {
         let nearestDist = chainRange;
 
         const allMatches = potentialTargetQuery(world.world);
+        const towerFaction = Faction.value[towerId]!;
         for (const eid of allMatches) {
           if (hit.has(eid)) continue;
-          if (UnitTag.isEnemy[eid]! !== 1) continue;
-          if (Health.current[eid]! <= 0) continue;
+          const tf = Faction.value[eid];
+          if (tf === undefined || !areHostile(towerFaction, tf)) continue;
+          if ((Health.current[eid] ?? 0) <= 0) continue;
 
           const ex = Position.x[eid]!;
           const ey = Position.y[eid]!;
@@ -687,9 +718,11 @@ export function doLightningAttack(
       let nearestDist = chainRange;
 
       const allMatches = potentialTargetQuery(world.world);
+      const towerFaction = Faction.value[towerId]!;
       for (const eid of allMatches) {
         if (hit.has(eid)) continue;
-        if (UnitTag.isEnemy[eid]! !== 1) continue;
+        const tf = Faction.value[eid];
+        if (tf === undefined || !areHostile(towerFaction, tf)) continue;
         if ((Health.current[eid] ?? 0) <= 0) continue;
 
         const ex = Position.x[eid]!;
@@ -711,7 +744,7 @@ export function doLightningAttack(
  * 扫描指定塔射程内的活敌，返回按距离升序排列的 {id, dist} 列表（design/23 §0.5 工具函数）。
  *
  * 服务 BT 层 LaserBeamNode（多束自扫）及 AttackSystem 内部 update / doLightningAttack 链跳目标搜索。
- * 用 potentialTargetQuery（Position + Health + UnitTag）+ UnitTag.isEnemy === 1 + Health.current > 0 过滤。
+ * 用 potentialTargetQuery（Position + Health + UnitTag）+ areHostile(towerFaction, targetFaction) + Health.current > 0 过滤。
  */
 export function findEnemiesInRange(
   world: TowerWorld,
@@ -720,10 +753,12 @@ export function findEnemiesInRange(
 ): Array<{ id: number; dist: number }> {
   const tx = Position.x[towerId]!;
   const ty = Position.y[towerId]!;
+  const towerFaction = Faction.value[towerId]!;
   const result: Array<{ id: number; dist: number }> = [];
   const allMatches = potentialTargetQuery(world.world);
   for (const eid of allMatches) {
-    if (UnitTag.isEnemy[eid]! !== 1) continue;
+    const tf = Faction.value[eid];
+    if (tf === undefined || !areHostile(towerFaction, tf)) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
     const ex = Position.x[eid]!;
     const ey = Position.y[eid]!;
