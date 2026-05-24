@@ -101,6 +101,18 @@ export const AlertMarkVal = {
   Solid: 2,
 } as const;
 
+export const TrapTypeVal = {
+  SpikeTrap: 0,
+  BearTrap: 1,
+  TarPit: 2,
+  Boulder: 3,
+  Fan: 4,
+  WaterPit: 5,
+  BoxingGlove: 6,
+  MechanicalArm: 7,
+} as const;
+export type TrapTypeVal = (typeof TrapTypeVal)[keyof typeof TrapTypeVal];
+
 // ============================================================
 // 核心组件 — 所有单位共享
 // ============================================================
@@ -303,6 +315,8 @@ export const Trap = defineComponent({
   animDuration: Types.f32,
   triggerCount: Types.ui8, // 触发次数限制
   maxTriggers: Types.ui8,
+  trapType: Types.ui8,     // TrapTypeVal — which trap type this is
+  direction: Types.ui8,    // 0=right, 1=down, 2=left, 3=up (for directional traps)
 });
 
 /** Boss属性 */
