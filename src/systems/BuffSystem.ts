@@ -391,7 +391,7 @@ export function clearAllBuffs(): void {
 function effectivePriority(world: TowerWorld, data: BuffData): number {
   const base = data.priority ?? BuffPriority.Buff;
   if (entityExists(world.world, data.sourceId) && hasComponent(world.world, Faction, data.sourceId)) {
-    if (Faction.value[data.sourceId] === FactionVal.Player) {
+    if (Faction.value[data.sourceId] === FactionVal.Justice) {
       return base - PLAYER_BUFF_PRIORITY_BONUS;
     }
   }

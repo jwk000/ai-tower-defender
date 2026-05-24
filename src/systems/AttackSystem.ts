@@ -37,8 +37,8 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Laser,     // 4
   TowerType.Bat,       // 5
   TowerType.Missile,   // 6
-  TowerType.Vine,      // 7
-  TowerType.Command,   // 8
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
 
@@ -53,8 +53,8 @@ export const TOWER_SHOOT_SOUNDS: SfxKey[] = [
   'tower_laser',     // 4
   'tower_bat',       // 5
   'tower_missile',   // 6
-  'tower_arrow',     // 7  vine (reuse arrow sound)
-  'tower_arrow',     // 8  command (no attack, placeholder)
+  'tower_arrow',     // 7  fire (reuse arrow sound)
+  'tower_arrow',     // 8  poison (reuse arrow sound)
   'tower_arrow',     // 9  ballista (reuse arrow sound)
 ];
 
@@ -97,8 +97,8 @@ const PROJ_VISUAL: Record<number, ProjectileVisual> = {
   4: { speed: 500, shape: ShapeVal.Circle,   colorR: LASER_COLOR[0],    colorG: LASER_COLOR[1],    colorB: LASER_COLOR[2],    size: 8 },
   5: { speed: 350, shape: ShapeVal.Triangle, colorR: BAT_COLOR[0],      colorG: BAT_COLOR[1],      colorB: BAT_COLOR[2],      size: 10 },
   6: { speed: 280, shape: ShapeVal.Arrow,    colorR: 0x1a,              colorG: 0x1a,              colorB: 0x1a,              size: 40 },
-  7: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
-  8: { speed: 0,   shape: ShapeVal.Circle,   colorR: 0,                 colorG: 0,                 colorB: 0,                 size: 0 },
+  7: { speed: 350, shape: ShapeVal.Circle,   colorR: 0xff,              colorG: 0x57,              colorB: 0x22,              size: 10 },
+  8: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
   9: { speed: 500, shape: ShapeVal.Arrow,    colorR: BALLISTA_COLOR[0], colorG: BALLISTA_COLOR[1], colorB: BALLISTA_COLOR[2], size: 30 },
 };
 

@@ -24,7 +24,7 @@ import { getGlobalRandom } from '../utils/Random.js';
 export const dealAoeDamage: RuleHandlerFn = (world, entityId, params, context) => {
   const radius = params['radius'] as number ?? 100;
   const damage = params['damage'] as number ?? 50;
-  const targetFactions = params['targets'] as number[] ?? [FactionVal.Player];
+  const targetFactions = params['targets'] as number[] ?? [FactionVal.Justice];
 
   const posX = Position.x[entityId];
   const posY = Position.y[entityId];

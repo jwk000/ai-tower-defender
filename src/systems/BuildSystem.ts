@@ -23,7 +23,6 @@ import {
   LayerVal,
   BatTower,
   BuildingTower,
-  AI,
   Movement,
   PlayerControllable,
   Skill,
@@ -59,33 +58,9 @@ const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Laser]: 4,
   [TowerType.Bat]: 5,
   [TowerType.Missile]: 6,
-  [TowerType.Vine]: 7,
-  [TowerType.Command]: 8,
+  [TowerType.Fire]: 7,
+  [TowerType.Poison]: 8,
   [TowerType.Ballista]: 9,
-};
-
-/** AI config 字符串 → bitecs AI.configId (ui16)
- *  索引必须与 ALL_AI_CONFIGS 注册顺序一致 */
-const AI_CONFIG_ID: Record<string, number> = {
-  // Towers (0-5, 15-16)
-  tower_basic: 0,
-  tower_cannon: 1,
-  tower_ice: 2,
-  tower_lightning: 3,
-  tower_laser: 4,
-  tower_bat: 5,
-  tower_missile: 15,
-  tower_vine: 16,
-  tower_ballista: 19,
-  // Soldiers (9-11)
-  soldier_tank: 10,
-  soldier_dps: 11,
-  soldier_basic: 9,
-  // Buildings (12)
-  building_production: 12,
-  // Traps (13-14)
-  trap_damage: 13,
-  trap_healing: 14,
 };
 
 /** ProductionType 枚举 → 索引 (用于内部标识) */
@@ -434,7 +409,7 @@ export class BuildSystem implements System {
       idlePhase: 0,
     });
 
-    // UnitTag — AISystem 查询需要（统一冷却 tick 依赖此组件，与 trap/production 一致）
+    // UnitTag — 统一冷却tick 依赖此组件，与 trap/production 一致
     world.addComponent(eid, UnitTag, {
       isEnemy: 0,
       isBoss: 0,
@@ -444,16 +419,6 @@ export class BuildSystem implements System {
       rewardEnergy: 0,
       popCost: 0,
       cost: config.cost,
-    });
-
-    // AI
-    const aiId = AI_CONFIG_ID[this.getTowerAIConfigId(tt)] ?? 0;
-    world.addComponent(eid, AI, {
-      configId: aiId,
-      targetId: 0,
-      lastUpdateTime: 0,
-      updateInterval: 0.1,
-      active: 1,
     });
 
     // Category
@@ -531,7 +496,7 @@ export class BuildSystem implements System {
       magicResist: 0,
     });
 
-    // Attack — BT 行为树通过 AttackNode 施加 DOT 伤害
+    // Attack — DOT 伤害
     world.addComponent(eid, Attack, {
       damage: 20,
       attackSpeed: 1,
@@ -539,15 +504,6 @@ export class BuildSystem implements System {
       damageType: DamageTypeVal.Physical,
       isRanged: 0,
       cooldownTimer: 0,
-    });
-
-    // AI — 行为树控制陷阱检测与伤害
-    world.addComponent(eid, AI, {
-      configId: AI_CONFIG_ID['trap_damage'] ?? 13,
-      targetId: 0,
-      lastUpdateTime: 0,
-      updateInterval: 0.1,
-      active: 1,
     });
 
     // Display name for overhead HUD
@@ -566,9 +522,7 @@ export class BuildSystem implements System {
     const ts = this.map.tileSize;
     const eid = world.createEntity();
 
-    const resourceType = config.resourceType === 'gold'
-      ? ResourceTypeVal.Gold
-      : ResourceTypeVal.Energy;
+    const resourceType = ResourceTypeVal.Gold;
 
     world.addComponent(eid, Position, { x, y });
     world.addComponent(eid, GridOccupant, { row, col });
@@ -600,10 +554,10 @@ export class BuildSystem implements System {
     });
 
     world.addComponent(eid, PlayerOwned);
-    world.addComponent(eid, Category, { value: CategoryVal.Building });
+    world.addComponent(eid, Category, { value: CategoryVal.Tower });
     world.addComponent(eid, Layer, { value: LayerVal.Ground });
 
-    // UnitTag — AISystem 查询需要
+    // UnitTag — 统一冷却tick 依赖此组件
     world.addComponent(eid, UnitTag, {
       isEnemy: 0,
       isBoss: 0,
@@ -615,37 +569,10 @@ export class BuildSystem implements System {
       cost: config.cost ?? 0,
     });
 
-    // AI — 行为树控制资源生产
-    world.addComponent(eid, AI, {
-      configId: AI_CONFIG_ID['building_production'] ?? 12,
-      targetId: 0,
-      lastUpdateTime: 0,
-      updateInterval: 1.0,
-      active: 1,
-    });
-
     // Display name for overhead HUD
     world.setDisplayName(eid, config.name);
 
     return eid;
   }
 
-  // ==========================================================
-  // AI 配置映射
-  // ==========================================================
-
-  private getTowerAIConfigId(towerType: TowerType): string {
-    switch (towerType) {
-      case TowerType.Arrow:     return 'tower_basic';
-      case TowerType.Cannon:    return 'tower_cannon';
-      case TowerType.Ice:       return 'tower_ice';
-      case TowerType.Lightning: return 'tower_lightning';
-      case TowerType.Laser:     return 'tower_laser';
-      case TowerType.Bat:       return 'tower_bat';
-      case TowerType.Missile:   return 'tower_missile';
-      case TowerType.Vine:      return 'tower_vine';
-      case TowerType.Ballista:  return 'tower_ballista';
-      default:                  return 'tower_basic';
-    }
-  }
 }

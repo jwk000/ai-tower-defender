@@ -4,12 +4,10 @@ import type { BehaviorTreeDebugState, BTNodeDebugInfo } from './types.js';
 import type { TowerWorld } from '../core/World.js';
 import type { EntityId } from '../types/index.js';
 import { CType } from '../types/index.js';
-import type { AI } from '../components/AI.js';
 import type { UnitTag } from '../components/UnitTag.js';
 import type { Unit } from '../components/Unit.js';
 import type { Tower } from '../components/Tower.js';
 import type { Enemy } from '../components/Enemy.js';
-import type { BehaviorTreeConfig, BTNodeConfig } from '../types/index.js';
 import type { EconomySystem } from '../systems/EconomySystem.js';
 import { SaveManager } from '../utils/SaveManager.js';
 import { LEVELS } from '../data/levels/index.js';
@@ -29,7 +27,6 @@ export class DebugManager {
   private behaviorTreeWindow: BehaviorTreeWindow;
 
   private selectedEntityId: EntityId | null = null;
-  private aiConfigs: Map<string, BehaviorTreeConfig> = new Map();
 
   private getEconomyFn: (() => EconomySystem | null) | null = null;
   private onLevelProgressChangedFn: (() => void) | null = null;
@@ -64,11 +61,8 @@ export class DebugManager {
     this.debugPanel.setActions(this.buildActions());
   }
 
-  registerAIConfigs(configs: BehaviorTreeConfig[]): void {
-    for (const config of configs) {
-      this.aiConfigs.set(config.id, config);
-    }
-  }
+  /** Phase 0: 行为树已移除，此方法保留为空兼容层 */
+  registerAIConfigs(_configs: unknown[]): void {}
 
   private buildActions(): DebugAction[] {
     const actions: DebugAction[] = [
@@ -165,23 +159,8 @@ export class DebugManager {
   }
 
   private buildCurrentBehaviorTreeState(): BehaviorTreeDebugState | null {
-    if (this.selectedEntityId === null) return null;
-    const ai = this.world.getComponent<AI>(this.selectedEntityId, CType.AI);
-    if (!ai) return null;
-
-    const unitName = this.getEntityDisplayName(this.selectedEntityId);
-    const aiConfig = this.aiConfigs.get(ai.configId) ?? null;
-
-    return {
-      entityId: this.selectedEntityId,
-      unitName,
-      aiConfigId: ai.configId,
-      root: aiConfig ? this.buildBehaviorTreeDebugInfo(aiConfig.root, ai) : null,
-      blackboard: Object.fromEntries(ai.blackboard),
-      currentState: ai.state,
-      targetId: ai.targetId,
-      lastUpdateTime: ai.lastUpdateTime,
-    };
+    // Phase 0: AI/行为树系统已移除，返回 null
+    return null;
   }
 
   private getEntityDisplayName(entityId: EntityId): string {
@@ -194,62 +173,6 @@ export class DebugManager {
     const unit = this.world.getComponent<Unit>(entityId, CType.Unit);
     if (unit) return `Unit_${unit.unitType}`;
     return '未知单位';
-  }
-
-  private buildBehaviorTreeDebugInfo(nodeConfig: BTNodeConfig, ai: AI): BTNodeDebugInfo {
-    const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`;
-    const status: BTNodeDebugInfo['status'] = ai.state === nodeConfig.type ? 'running' : 'idle';
-
-    const result: BTNodeDebugInfo = {
-      id: nodeId,
-      name: nodeConfig.name || this.getNodeDisplayName(nodeConfig.type),
-      type: nodeConfig.type,
-      status,
-      params: nodeConfig.params,
-    };
-
-    if (nodeConfig.children) {
-      result.children = nodeConfig.children.map((child) =>
-        this.buildBehaviorTreeDebugInfo(child, ai),
-      );
-    }
-    return result;
-  }
-
-  private getNodeDisplayName(type: string): string {
-    const displayNames: Record<string, string> = {
-      sequence: '顺序节点',
-      selector: '选择节点',
-      parallel: '并行节点',
-      inverter: '反转节点',
-      repeater: '重复节点',
-      until_fail: '直到失败',
-      always_succeed: '总是成功',
-      cooldown: '冷却节点',
-      check_hp: '检查血量',
-      check_enemy_in_range: '检查范围内敌人',
-      check_ally_in_range: '检查范围内友军',
-      check_buff: '检查Buff',
-      check_cooldown: '检查冷却',
-      check_phase: '检查阶段',
-      check_target_alive: '检查目标存活',
-      check_distance_to_target: '检查与目标距离',
-      check_moving: '检查移动中',
-      check_stunned: '检查眩晕',
-      check_player_control: '检查玩家控制',
-      attack: '攻击',
-      move_to: '移动到',
-      move_towards: '向目标移动',
-      flee: '逃跑',
-      use_skill: '使用技能',
-      wait: '等待',
-      spawn: '生成单位',
-      patrol: '巡逻',
-      set_target: '设置目标',
-      clear_target: '清除目标',
-      play_animation: '播放动画',
-    };
-    return displayNames[type] || type;
   }
 
   destroy(): void {

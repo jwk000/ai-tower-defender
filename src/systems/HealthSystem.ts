@@ -68,10 +68,9 @@ export class HealthSystem implements System {
       else if (GoldChest.goldMin[eid] !== undefined) {
         world.destroyEntity(eid);
       }
-      // Tower or building / production
+      // Tower or production
       else if (
-        Category.value[eid] === CategoryVal.Tower ||
-        Category.value[eid] === CategoryVal.Building
+        Category.value[eid] === CategoryVal.Tower
       ) {
         world.destroyEntity(eid);
       }

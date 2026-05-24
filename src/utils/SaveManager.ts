@@ -123,9 +123,6 @@ export interface BattleSnapshot {
   };
   economy: {
     gold: number;
-    energy: number;
-    population: number;
-    maxPopulation: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     refundMeta: Array<[number, any]>;
   };

@@ -30,8 +30,8 @@ const TOWER_TYPE_NUM: Record<TowerType, number> = {
   [TowerType.Laser]: 4,
   [TowerType.Bat]: 5,
   [TowerType.Missile]: 6,
-  [TowerType.Vine]: 7,
-  [TowerType.Command]: 8,
+  [TowerType.Fire]: 7,
+  [TowerType.Poison]: 8,
   [TowerType.Ballista]: 9,
 };
 

@@ -69,11 +69,11 @@ describe('AvailablePanel', () => {
   });
 
   it('reflects existing available.units as checked checkboxes', () => {
-    const model = makeModel({ towers: [], units: [UnitType.Swordsman] });
+    const model = makeModel({ towers: [], units: [UnitType.ShieldGuard] });
     render(<AvailablePanel model={model} onChange={onChange} />, host);
 
-    expect(checkbox(host, `available-unit-${UnitType.Swordsman}`).checked).toBe(true);
-    expect(checkbox(host, `available-unit-${UnitType.ShieldGuard}`).checked).toBe(false);
+    expect(checkbox(host, `available-unit-${UnitType.ShieldGuard}`).checked).toBe(true);
+    expect(checkbox(host, `available-unit-${UnitType.Archer}`).checked).toBe(false);
   });
 
   it('checking a tower adds it to available.towers', async () => {

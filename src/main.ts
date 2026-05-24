@@ -2,7 +2,6 @@ import { Game } from './core/Game.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { RenderSystem, computeSceneLayout } from './systems/RenderSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
-import { EnemyAttackSystem } from './systems/EnemyAttackSystem.js';
 import { AttackSystem } from './systems/AttackSystem.js';
 import { BatSwarmSystem } from './systems/BatSwarmSystem.js';
 import { LaserBeamSystem } from './systems/LaserBeamSystem.js';
@@ -17,16 +16,9 @@ import { HealthSystem } from './systems/HealthSystem.js';
 import { WaveSystem } from './systems/WaveSystem.js';
 import { EconomySystem } from './systems/EconomySystem.js';
 import { BuildSystem } from './systems/BuildSystem.js';
-import { BuildingSystem } from './systems/BuildingSystem.js';
-import { UISystem, hitTestHandCard, resolveCardToEntityType } from './systems/UISystem.js';
-import { LevelSelectUI } from './systems/LevelSelectUI.js';
+import { UISystem } from './systems/UISystem.js';
 import { TrapSystem } from './systems/TrapSystem.js';
-import { ShamanSystem } from './systems/ShamanSystem.js';
-import { JuggernautSystem } from './systems/JuggernautSystem.js';
-import { CommandTowerSystem } from './systems/CommandTowerSystem.js';
-import { HealingSystem } from './systems/HealingSystem.js';
-import { HotAirBalloonSystem } from './systems/HotAirBalloonSystem.js';
-import { BombSystem } from './systems/BombSystem.js';
+import { LifecycleSystem } from './systems/LifecycleSystem.js';
 import { DeathEffectSystem } from './systems/DeathEffectSystem.js';
 import { ExplosionEffectSystem } from './systems/ExplosionEffectSystem.js';
 import { BloodParticleSystem } from './systems/BloodParticleSystem.js';
@@ -46,14 +38,14 @@ import { registerDamageObserver, clearDamageObservers } from './utils/damageUtil
 import { Sound } from './utils/Sound.js';
 import { Music } from './utils/Music.js';
 import { LEVELS } from './data/levels/index.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, SKILL_CONFIGS, PRODUCTION_CONFIGS, UNIT_TYPE_BY_ID, UNIT_ID_BY_TYPE } from './data/gameData.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, SKILL_CONFIGS, UNIT_TYPE_BY_ID, UNIT_ID_BY_TYPE } from './data/gameData.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
 import { shapeTypeToVal } from './utils/visualHelpers.js';
 
 // ---- bitecs component stores ----
 import {
   Position, Health, Attack, Visual, Tower, PlayerControllable, PlayerOwned,
-  Skill, UnitTag, AI, BatTower, Production, Trap, GridOccupant,
+  Skill, UnitTag, Soldier, BatTower, Production, Trap, GridOccupant,
   DeathEffect, ExplosionEffect, Category, CategoryVal, Boss,
   Movement, ShapeVal, Layer, LayerVal, Faction, FactionVal,
   DamageTypeVal, TargetSelectionVal, AttackModeVal,
@@ -64,48 +56,35 @@ import {
 
 import { hasComponent } from './core/World.js';
 
-// ---- New unit system imports ----
-import { AISystem } from './systems/AISystem.js';
-import { LifecycleSystem } from './systems/LifecycleSystem.js';
-import { UnitFactory } from './systems/UnitFactory.js';
-import { ALL_AI_CONFIGS } from './ai/presets/aiConfigs.js';
-
-// ---- v3.0 Roguelike RunContext —— Phase A3 集成层 ----
-import { createRunContext, startWaveEffect, endWaveEffect, playCard as runPlayCard } from './unit-system/RunContext.js';
-import { SpellSystem } from './unit-system/SpellSystem.js';
-import type { CardConfig } from './config/cardRegistry.js';
-import type { CardInstance } from './unit-system/types.js';
-import { loadAllCardConfigsSync } from './config/loader.js';
-
 // ---- Debug system imports ----
 import { DebugManager } from './debug/DebugManager.js';
 
 // ---- TowerType numeric ID → enum mapping (matches AttackSystem/BuildSystem) ----
 const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Arrow,     // 0
-  TowerType.Cannon,    // 1
-  TowerType.Ice,       // 2
-  TowerType.Lightning, // 3
-  TowerType.Laser,     // 4
-  TowerType.Bat,       // 5
-  TowerType.Missile,   // 6
-  TowerType.Vine,      // 7
-  TowerType.Command,   // 8
-  TowerType.Ballista,  // 9
+  TowerType.Ballista,  // 1
+  TowerType.Cannon,    // 2
+  TowerType.Laser,     // 3
+  TowerType.Bat,       // 4
+  TowerType.Missile,   // 5
+  TowerType.Ice,       // 6
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
+  TowerType.Lightning, // 9
 ];
 
 /** TowerType enum → bitecs ui8 */
 const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Arrow]: 0,
-  [TowerType.Cannon]: 1,
-  [TowerType.Ice]: 2,
-  [TowerType.Lightning]: 3,
-  [TowerType.Laser]: 4,
-  [TowerType.Bat]: 5,
-  [TowerType.Missile]: 6,
-  [TowerType.Vine]: 7,
-  [TowerType.Command]: 8,
-  [TowerType.Ballista]: 9,
+  [TowerType.Ballista]: 1,
+  [TowerType.Cannon]: 2,
+  [TowerType.Laser]: 3,
+  [TowerType.Bat]: 4,
+  [TowerType.Missile]: 5,
+  [TowerType.Ice]: 6,
+  [TowerType.Fire]: 7,
+  [TowerType.Poison]: 8,
+  [TowerType.Lightning]: 9,
 };
 
 // ---- Utility: hex color → RGB ----
@@ -121,8 +100,8 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 class TowerDefenderGame extends Game {
   private currentScreen: GameScreen = GameScreen.LevelSelect;
   private phase: GamePhase = GamePhase.Deployment;
+  private levelSelectUI: any = null;
 
-  private levelSelectUI: LevelSelectUI;
   private currentLevelId: number = 1;
   private currentMap: MapConfig | null = null;
 
@@ -145,17 +124,10 @@ class TowerDefenderGame extends Game {
   private screenShakeSystem!: ScreenShakeSystem;
   private tileDamageSystem!: TileDamageSystem;
 
-  // ---- New unit system ----
-  private aiSystem!: AISystem;
-  private lifecycleSystem!: LifecycleSystem;
-  private unitFactory!: UnitFactory;
-
   // ---- Debug system ----
   public debugManager: DebugManager;
 
   private unitDragId: number | null = null;
-  private spellSystem!: SpellSystem;
-  private pendingSpell: { config: CardConfig; played: CardInstance } | null = null;
   private defeatSfxPlayed = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
 
@@ -174,18 +146,12 @@ class TowerDefenderGame extends Game {
     Sound.preload();
     Sound.initUnlock(canvas);
 
-    this.levelSelectUI = new LevelSelectUI(
-      this.renderer,
-      (levelId) => this.startLevel(levelId),
-      () => this.startEndless(),
-    );
-
+    // LevelSelectUI deleted — stub
     // Debug manager — global lifetime (design/27): button visible across all screens.
     this.debugManager = new DebugManager(this.world, {
       getEconomy: () => (this.currentScreen === GameScreen.Battle ? this.economy : null),
-      onLevelProgressChanged: () => this.levelSelectUI.refresh(),
+      onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
     });
-    this.debugManager.registerAIConfigs(ALL_AI_CONFIGS);
 
     this.enterLevelSelect();
   }
@@ -205,11 +171,11 @@ class TowerDefenderGame extends Game {
     this.uninstallBeforeUnloadGuard();
     this.world.reset();
     Music.play('main_menu');
-    this.onUpdate = (dt) => this.levelSelectUI.update(dt);
+    this.onUpdate = (dt) => this.levelSelectUI?.update?.(dt);
     this.onPostRender = null;
     this.onAfterUpdate = null;
     this.input.onPointerDown = (e: InputEvent) => {
-      this.levelSelectUI.handleClick(e.x, e.y);
+      this.levelSelectUI?.handleClick?.(e.x, e.y);
     };
     this.input.onPointerMove = null;
     this.input.onPointerUp = null;
@@ -258,9 +224,6 @@ class TowerDefenderGame extends Game {
         prngStates: captureStreamState(streams),
         economy: {
           gold: this.economy.gold,
-          energy: this.economy.energy,
-          population: this.economy.population,
-          maxPopulation: this.economy.maxPopulation,
           refundMeta: this.economy.serializeRefundMeta(),
         },
       };
@@ -285,9 +248,6 @@ class TowerDefenderGame extends Game {
       restoreStreamState(streams, snapshot.prngStates);
       this.battleGameTime = snapshot.gameTime;
       this.economy.gold = snapshot.economy.gold;
-      this.economy.energy = snapshot.economy.energy;
-      this.economy.population = snapshot.economy.population;
-      this.economy.maxPopulation = snapshot.economy.maxPopulation;
       this.economy.deserializeRefundMeta(snapshot.economy.refundMeta);
       this.lastSnapshotWave = snapshot.currentWave;
       void config;
@@ -323,10 +283,6 @@ class TowerDefenderGame extends Game {
     this.snapshotTimer = 0;
     this.lastSnapshotWave = 0;
 
-    // Phase A3: 装配 v3.0 卡牌 Roguelike 运行时上下文（容错：cardConfigRegistry
-    // 为空时 deck 留空，不阻塞旧建造流程）
-    this.world.attachRunContext(createRunContext({ seed: runSeed }));
-
     const map = config.map;
     this.currentMap = map;
     this.defeatSfxPlayed = false;
@@ -354,7 +310,7 @@ class TowerDefenderGame extends Game {
       colorB: baseRgb.b,
       size: ts * 0.6,
     });
-    this.world.addComponent(this.baseEntityId, Faction, { value: FactionVal.Player });
+    this.world.addComponent(this.baseEntityId, Faction, { value: FactionVal.Justice });
     this.world.addComponent(this.baseEntityId, Category, { value: CategoryVal.Objective });
     this.world.addComponent(this.baseEntityId, PlayerOwned);
 
@@ -379,15 +335,10 @@ class TowerDefenderGame extends Game {
       (p) => { this.phase = p; },
       () => {
         this.weatherSystem.onWaveEnd();
-        // Phase A3: 波末调度卡牌系统弃手牌（persist 卡跨波保留）
-        const ctx = this.world.runContext;
-        if (ctx) endWaveEffect(ctx);
         this.saveCurrentBattle('wave-end');
       },
-      // Phase A3: 波首调度卡牌系统补能量 + 满手牌
       () => {
-        const ctx = this.world.runContext;
-        if (ctx) startWaveEffect(ctx);
+        // wave start — no-op after roguelike context removal
       },
     );
 
@@ -418,8 +369,6 @@ class TowerDefenderGame extends Game {
     if (config.availableTowers.length > 0 && config.availableTowers[0]) {
       this.buildSystem.selectTower(config.availableTowers[0]);
     }
-
-    this.spellSystem = new SpellSystem(this.world);
 
     // ---- Upgrade tower callback (bitecs component access) ----
     const upgradeTower = (entityId: number) => {
@@ -511,9 +460,6 @@ class TowerDefenderGame extends Game {
         this.uiSystem.selectedTowerEntityId = null;
       },
       () => this.waveSystem.startWave(),
-      () => this.economy.energy,
-      () => this.economy.population,
-      () => this.economy.maxPopulation,
       upgradeTower,
       (entityType, towerType, unitType, productionType) => {
         this.buildSystem.startDrag(entityType as 'tower' | 'unit' | 'production' | 'trap', {
@@ -599,45 +545,26 @@ class TowerDefenderGame extends Game {
     this.tileDamageSystem = new TileDamageSystem(map);
 
     const movementSystem = new MovementSystem(map);
-    const shamanSystem = new ShamanSystem();
-    const juggernautSystem = new JuggernautSystem();
-    const commandTowerSystem = new CommandTowerSystem();
-    const enemyAttackSystem = new EnemyAttackSystem();
     const attackSystem = new AttackSystem(this.weatherSystem, map);
-    const hotAirBalloonSystem = new HotAirBalloonSystem();
-    const bombSystem = new BombSystem();
     this.batSwarmSystem = new BatSwarmSystem(this.weatherSystem, this.renderer);
     const unitSystem = new UnitSystem(map);
     const unitAnimationSystem = new UnitAnimationSystem();
     const projectileSystem = new ProjectileSystem(map);
 
     this.skillSystem = new SkillSystem(
-      (amount) => this.economy.spendEnergy(amount),
+      () => true,
     );
 
     this.buffSystem = new BuffSystem();
 
     const productionSystem = new ProductionSystem(this.economy);
     const trapSystem = new TrapSystem(map.tileSize);
-    const healingSystem = new HealingSystem();
     const deathEffectSystem = new DeathEffectSystem();
     const explosionEffectSystem = new ExplosionEffectSystem();
     const bloodParticleSystem = new BloodParticleSystem();
     const fadingMarkSystem = new FadingMarkSystem();
     const lightningBoltSystem = new LightningBoltSystem(this.renderer);
     this.laserBeamSystem = new LaserBeamSystem(this.renderer);
-
-    // ---- New unit system ----
-    this.aiSystem = new AISystem();
-    this.lifecycleSystem = new LifecycleSystem();
-    const buildingSystem = new BuildingSystem();
-    this.unitFactory = new UnitFactory(this.world);
-
-    // Register AI configurations
-    this.aiSystem.registerAIConfigs(ALL_AI_CONFIGS);
-    this.aiSystem.setWeatherProvider(() => this.weatherSystem.currentWeather);
-    this.aiSystem.setSkillCaster((eid, skillId) => this.skillSystem.castSkill(this.world, eid, skillId));
-    this.aiSystem.setMapConfigProvider(() => this.currentMap);
 
     // ---- UI overlay (onPostRender) ----
     this.onPostRender = () => {
@@ -665,21 +592,9 @@ class TowerDefenderGame extends Game {
     this.input.onPointerDown = (e: InputEvent) => {
       if (this.buildSystem.dragState?.active) return;
       if (this.unitDragId !== null) return;
-      if (this.pendingSpell !== null) {
-        const sceneBottom = RenderSystem.sceneOffsetY + RenderSystem.sceneH;
-        if (e.y < sceneBottom + 8 && e.y >= RenderSystem.sceneOffsetY) {
-          this.spellSystem.executeSpell(this.pendingSpell.config, { x: e.x, y: e.y });
-          Sound.play('build_place');
-        } else {
-          Sound.play('build_deny');
-        }
-        this.pendingSpell = null;
-        return;
-      }
       const handledByUI = this.uiSystem.handleClick(e.x, e.y);
       if (handledByUI) return;
       if (this.paused) return;
-      if (this.tryPlayHandCard(e.x, e.y)) return;
       const sceneBottom = RenderSystem.sceneOffsetY + RenderSystem.sceneH;
       if (e.y >= sceneBottom + 8) return;
 
@@ -786,18 +701,11 @@ class TowerDefenderGame extends Game {
     };
 
     // ---- Register systems ----
-this.world.registerSystem(this.lifecycleSystem);  // Lifecycle first
-this.world.registerSystem(buildingSystem);        // Tick build timers BEFORE AI/Attack so completion frame is immediately attackable
-this.world.registerSystem(this.aiSystem);         // AI system
+    const lifecycleSystem = new LifecycleSystem();
+    this.world.registerSystem(lifecycleSystem);
+    this.world.registerSystem(this.weatherSystem);
     this.world.registerSystem(movementSystem);
-    this.world.registerSystem(shamanSystem);
-    this.world.registerSystem(enemyAttackSystem);
-    this.world.registerSystem(juggernautSystem);
     this.world.registerSystem(attackSystem);
-    this.world.registerSystem(commandTowerSystem);
-this.world.registerSystem(hotAirBalloonSystem);
-this.world.registerSystem(bombSystem);
-this.world.registerSystem(this.weatherSystem);
     this.world.registerSystem(this.batSwarmSystem);
     this.world.registerSystem(unitSystem);
     this.world.registerSystem(projectileSystem);
@@ -807,20 +715,19 @@ this.world.registerSystem(this.weatherSystem);
     this.world.registerSystem(productionSystem);
     this.world.registerSystem(this.waveSystem);
     this.world.registerSystem(trapSystem);
-    this.world.registerSystem(healingSystem);
     this.world.registerSystem(deathEffectSystem);
     this.world.registerSystem(explosionEffectSystem);
     this.world.registerSystem(bloodParticleSystem);
     this.world.registerSystem(fadingMarkSystem);
-    this.world.registerSystem(this.tileDamageSystem);  // tile damage marks from missile explosions
+    this.world.registerSystem(this.tileDamageSystem);
     this.world.registerSystem(this.healthSystem);
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
-    this.world.registerSystem(this.decorationSystem);  // background + decorations — before entity render
-    this.world.registerSystem(this.screenShakeSystem);  // screen shake offset — before render
+    this.world.registerSystem(this.decorationSystem);
+    this.world.registerSystem(this.screenShakeSystem);
     this.world.registerSystem(unitAnimationSystem);
     this.world.registerSystem(renderSystem);
-    this.world.registerSystem(lightningBoltSystem); // direct canvas draw — after buffered render
+    this.world.registerSystem(lightningBoltSystem);
     this.world.registerSystem(this.uiSystem);
 
     // Start auto-countdown for first wave
@@ -863,7 +770,7 @@ this.world.registerSystem(this.weatherSystem);
     }
     SaveManager.clearBattleSnapshot();
 
-    this.levelSelectUI.refresh();
+    this.levelSelectUI?.refresh?.();
     setTimeout(() => this.enterLevelSelect(), 1500);
   }
 
@@ -871,7 +778,7 @@ this.world.registerSystem(this.weatherSystem);
     Music.play('defeat', 0.5);    // BGM: defeat melody via cross-fade
     this.phase = GamePhase.Defeat;
     SaveManager.clearBattleSnapshot();
-    this.levelSelectUI.refresh();
+    this.levelSelectUI?.refresh?.();
     setTimeout(() => this.enterLevelSelect(), 1500);
   }
 
@@ -881,77 +788,6 @@ this.world.registerSystem(this.weatherSystem);
 
   private spawnNeutralUnits(_map: MapConfig): void {
     // Phase 3 neutral units — stub for now
-  }
-
-  // ================================================================
-  // v3.0 Roguelike — 手牌出卡（点击/拖卡触发）
-  // ================================================================
-
-  /**
-   * 命中手牌区时尝试出卡。逐层前置校验，全部通过才扣能量启动建造拖拽：
-   *   1. 命中 slot index 取对应 CardInstance + CardConfig
-   *   2. 能量不足 / 非 unit 类卡 / unitConfigId 未映射到 ECS 单位 → 拒绝，不扣能量、不移卡
-   *      （法术施法将在 Phase B SpellCastSystem 接入后单独处理）
-   *   3. 全部检查通过 → runPlayCard 扣能量 + 从手牌移除（unit 类不入弃牌堆），
-   *      并调 buildSystem.startDrag 让玩家把建造鬼影拖到地图上由 onPointerUp tryDrop 放置
-   *
-   * 返回 true 表示事件被消费（命中手牌区，无论出卡是否成功），调用方不应继续派发。
-   * 返回 false 表示未命中手牌区，调用方继续后续派发（单位选中 / 地图点击）。
-   */
-  private tryPlayHandCard(px: number, py: number): boolean {
-    const ctx = this.world.runContext;
-    if (!ctx) return false;
-    const hand = ctx.hand.state.hand;
-    if (hand.length === 0) return false;
-
-    const slotIdx = hitTestHandCard(px, py, hand.length);
-    if (slotIdx < 0) return false;
-
-    const card = hand[slotIdx];
-    if (!card) return true;
-    const cfg = ctx.registry.get(card.cardId);
-    if (!cfg) return true;
-    if (!ctx.energy.canAfford(cfg.energyCost)) {
-      Sound.play('build_deny');
-      return true;
-    }
-    if (cfg.type === 'spell') {
-      const playedSpell = runPlayCard(ctx, card.instanceId);
-      if (!playedSpell) {
-        Sound.play('build_deny');
-        return true;
-      }
-      this.pendingSpell = { config: playedSpell.config, played: playedSpell.instance };
-      return true;
-    }
-
-    const mapping = resolveCardToEntityType(cfg.unitConfigId);
-    if (!mapping) {
-      Sound.play('build_deny');
-      return true;
-    }
-
-    const played = runPlayCard(ctx, card.instanceId);
-    if (!played) {
-      Sound.play('build_deny');
-      return true;
-    }
-
-    switch (mapping.entityType) {
-      case 'tower':
-        this.buildSystem.startDrag('tower', { towerType: mapping.towerType });
-        break;
-      case 'unit':
-        this.buildSystem.startDrag('unit', { unitType: mapping.unitType });
-        break;
-      case 'trap':
-        this.buildSystem.startDrag('trap');
-        break;
-      case 'production':
-        this.buildSystem.startDrag('production', { productionType: mapping.productionType });
-        break;
-    }
-    return true;
   }
 
   // ================================================================
@@ -1236,21 +1072,14 @@ this.world.registerSystem(this.weatherSystem);
       partsId,
     });
 
-    // AI component — based on unit type
-    const aiConfigId = this.getUnitAIConfig(dragUnitType);
-    // Map AI config string to numeric ID（与 ALL_AI_CONFIGS 注册顺序一致）
-    const AI_NUM_IDS: Record<string, number> = {
-      soldier_generic: 20,
-      soldier_tank: 10,
-      soldier_dps: 11,
-      soldier_basic: 9,
-    };
-    this.world.addComponent(id, AI, {
-      configId: AI_NUM_IDS[aiConfigId] ?? 8,
-      targetId: 0,
-      lastUpdateTime: 0,
-      updateInterval: 0.1,
-      active: 1,
+    // Soldier AI component — state machine for autonomous behavior
+    this.world.addComponent(id, Soldier, {
+      state: 0,  // SoldierState.Idle
+      homeX: x,
+      homeY: y,
+      moveRange: config.moveRange,
+      attackTarget: 0,
+      stateTimer: 0,
     });
 
     // Category: Soldier
@@ -1259,29 +1088,14 @@ this.world.registerSystem(this.weatherSystem);
     // Layer: Ground
     this.world.addComponent(id, Layer, { value: LayerVal.Ground });
 
-    // Faction: Player
-    this.world.addComponent(id, Faction, { value: FactionVal.Player });
+    // Faction: Justice
+    this.world.addComponent(id, Faction, { value: FactionVal.Justice });
 
     // Display name for overhead HUD
     this.world.setDisplayName(id, config.name);
 
     // P1-#11: register for refund tracking
     this.economy.registerBuild(id, config.cost);
-  }
-
-  // ================================================================
-  // AI config mapping
-  // ================================================================
-
-  private getUnitAIConfig(unitType: UnitType): string {
-    switch (unitType) {
-      case UnitType.ShieldGuard:
-        return 'soldier_tank';
-      case UnitType.Swordsman:
-        return 'soldier_dps';
-      default:
-        return 'soldier_basic';
-    }
   }
 
   // ================================================================
@@ -1312,16 +1126,6 @@ this.world.registerSystem(this.weatherSystem);
         refund = Math.floor((UnitTag.cost[entityId] ?? 0) * 0.5);
       } else if (Trap.damagePerSecond[entityId] !== undefined) {
         refund = Math.floor(40 * 0.5);
-      } else if (Production.rate[entityId] !== undefined) {
-        const prodLevel = Production.level[entityId] ?? 1;
-        const cfg = PRODUCTION_CONFIGS[
-          Production.resourceType[entityId] === 0 ? ProductionType.GoldMine : ProductionType.EnergyTower
-        ];
-        if (cfg) {
-          let invested = cfg.cost;
-          for (let i = 0; i < prodLevel - 1; i++) invested += cfg.upgradeCosts[i] ?? 0;
-          refund = Math.floor(invested * 0.5);
-        }
       }
     }
 
@@ -1354,11 +1158,6 @@ this.world.registerSystem(this.weatherSystem);
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas element not found');
-
-// Phase A4-YAML: 启动期同步装载所有卡牌 YAML 到 cardConfigRegistry，
-// 使 initBattle 里 createRunContext 能拿到非空 registry 抽出 12 张开局卡组。
-// 同步语义来自 import.meta.glob({ eager: true })，详见 src/config/loader.ts。
-loadAllCardConfigsSync();
 
 const game = new TowerDefenderGame(canvas);
 game.start();

@@ -6,7 +6,6 @@ import { Health } from '../components/Health.js';
 import { Attack } from '../components/Attack.js';
 import { Render } from '../components/Render.js';
 import { UnitTag } from '../components/UnitTag.js';
-import { AI } from '../components/AI.js';
 import { Lifecycle } from '../components/Lifecycle.js';
 import { Movement } from '../components/Movement.js';
 import { Production } from '../components/Production.js';
@@ -74,19 +73,7 @@ export class UnitFactory {
       config.special?.maxLevel as number ?? 5
     ));
 
-    // Add AI component (if unit has AI config)
-    if (config.aiConfig) {
-      const ai = new AI(config.aiConfig);
-      
-      // Set home position for soldiers
-      if (config.category === 'soldier') {
-        ai.setBlackboard('home_x', x);
-        ai.setBlackboard('home_y', y);
-      }
-      
-      this.world.addComponent(entityId, ai);
-    }
-
+    // Phase 0: AI component removed — skip AI initialization
     // Add Lifecycle component
     this.world.addComponent(entityId, new Lifecycle(config.lifecycle));
 

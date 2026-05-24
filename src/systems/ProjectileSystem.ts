@@ -302,21 +302,21 @@ export class ProjectileSystem implements System {
       }
     }
 
-    // -- Vine: stacking DOT true damage --
-    if (sourceTowerType === 7 && isAlive(targetId)) {
-      const vineCfg = TOWER_CONFIGS[TowerType.Vine];
-      if (vineCfg?.dotDamage !== undefined && vineCfg?.dotDuration !== undefined) {
+    // -- DOT: stacking poison/fire damage (sourceTowerType 7=Fire, 8=Poison) --
+    if ((sourceTowerType === 7 || sourceTowerType === 8) && isAlive(targetId)) {
+      const dotCfg = TOWER_CONFIGS[TowerType.Poison];
+      if (dotCfg?.dotDamage !== undefined && dotCfg?.dotDuration !== undefined) {
         const existing = this.dotEntries.get(targetId);
         if (existing) {
           existing.stackCount = Math.min(
             existing.stackCount + 1,
-            vineCfg.dotMaxStacks ?? 5,
+            dotCfg.dotMaxStacks ?? 5,
           );
-          existing.ticksRemaining = vineCfg.dotDuration;
+          existing.ticksRemaining = dotCfg.dotDuration;
         } else {
           this.dotEntries.set(targetId, {
-            damagePerTick: vineCfg.dotDamage,
-            ticksRemaining: vineCfg.dotDuration,
+            damagePerTick: dotCfg.dotDamage,
+            ticksRemaining: dotCfg.dotDuration,
             stackCount: 1,
             timer: 1.0,
           });

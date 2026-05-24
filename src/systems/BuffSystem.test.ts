@@ -36,7 +36,7 @@ function makeBuff(overrides: Partial<BuffData>): BuffData {
   };
 }
 
-function makeEntity(world: TowerWorld, faction: number = FactionVal.Enemy): number {
+function makeEntity(world: TowerWorld, faction: number = FactionVal.Evil): number {
   const eid = world.createEntity();
   world.addComponent(eid, Faction, { value: faction });
   return eid;
@@ -125,8 +125,8 @@ describe('BuffSystem v1.1 — player-faction protection (§3.2.1)', () => {
 
   it('玩家阵营施加的 buff 不会被敌方 buff 淘汰', () => {
     const target = makeEntity(world);
-    const playerSource = makeEntity(world, FactionVal.Player);
-    const enemySource = makeEntity(world, FactionVal.Enemy);
+    const playerSource = makeEntity(world, FactionVal.Justice);
+    const enemySource = makeEntity(world, FactionVal.Evil);
 
     // 玩家加 1 个低优先级 buff (Mark)
     addBuff(world, target, makeBuff({ id: 'player_mark', priority: BuffPriority.Mark, sourceId: playerSource }));

@@ -158,15 +158,15 @@ export interface GridPos {
 
 export enum TowerType {
   Arrow = 'arrow',
+  Ballista = 'ballista',
   Cannon = 'cannon',
-  Ice = 'ice',
-  Lightning = 'lightning',
   Laser = 'laser',
   Bat = 'bat',
   Missile = 'missile',
-  Vine = 'vine',
-  Command = 'command',
-  Ballista = 'ballista',
+  Ice = 'ice',
+  Fire = 'fire',
+  Poison = 'poison',
+  Lightning = 'lightning',
 }
 
 export interface TowerConfig {
@@ -221,16 +221,35 @@ export interface TowerConfig {
 // ---- Enemy ----
 
 export enum EnemyType {
-  Grunt = 'grunt',
-  Runner = 'runner',
-  Heavy = 'heavy',
-  Mage = 'mage',
-  Exploder = 'exploder',
-  BossCommander = 'boss_commander',
-  BossBeast = 'boss_beast',
-  HotAirBalloon = 'hot_air_balloon',
-  Shaman = 'shaman',
-  Juggernaut = 'juggernaut',
+  // 绿野仙踪（怪兽族）
+  Goblin = 'goblin',
+  Boar = 'boar',
+  Elephant = 'elephant',
+  Giant = 'giant',
+  GiantSlime = 'giant_slime',
+  // 沙漠虫潮（虫族）
+  DesertBeetle = 'desert_beetle',
+  BurrowBeetle = 'burrow_beetle',
+  Locust = 'locust',
+  BombBeetle = 'bomb_beetle',
+  QueenBeetle = 'queen_beetle',
+  // 黑暗古堡（黑暗族）
+  Werewolf = 'werewolf',
+  VampireBat = 'vampire_bat',
+  Wizard = 'wizard',
+  Priest = 'priest',
+  Frankenstein = 'frankenstein',
+  Lucifer = 'lucifer',
+  // 末日废土（机械族）
+  Plane = 'plane',
+  Tank = 'tank',
+  OilTruck = 'oil_truck',
+  RobotDog = 'robot_dog',
+  GiantRobot = 'giant_robot',
+  Drone = 'drone',
+  SuperRobot = 'super_robot',
+  // 深渊裂隙
+  AbyssLord = 'abyss_lord',
 }
 
 export interface EnemyConfig {
@@ -296,7 +315,9 @@ export interface EnemyConfig {
 
 export enum UnitType {
   ShieldGuard = 'shield_guard',
-  Swordsman = 'swordsman',
+  Archer = 'archer',
+  Mage = 'mage',
+  Priest = 'priest',
 }
 
 export interface UnitConfig {
@@ -424,10 +445,7 @@ export interface SkillConfig {
 
 export interface PlayerResources {
   gold: number;
-  energy: number;
   lives: number;
-  population: number;
-  maxPopulation: number;
 }
 
 // ---- Wave ----
@@ -641,14 +659,15 @@ export const CType = {
   GoldChest: 'GoldChest',
   DeathEffect: 'DeathEffect',
   ExplosionEffect: 'ExplosionEffect',
-  Bomb: 'Bomb',
   // New unified unit system components
   UnitTag: 'UnitTag',
-  AI: 'AI',
   Lifecycle: 'Lifecycle',
   BatSwarmMember: 'BatSwarmMember',
   BatTower: 'BatTower',
   LaserBeam: 'LaserBeam',
+  Soldier: 'Soldier',
+  Elite: 'Elite',
+  CardComponent: 'CardComponent',
 } as const;
 
 export type ComponentType = (typeof CType)[keyof typeof CType];
@@ -697,11 +716,11 @@ export enum UnitCategory {
   Tower = 'tower',           // 防御塔
   Enemy = 'enemy',           // 敌人
   Soldier = 'soldier',       // 士兵（玩家单位）
-  Building = 'building',     // 建筑（生产建筑等）
   Trap = 'trap',             // 陷阱
   Decoration = 'decoration', // 场景装饰
   Objective = 'objective',   // 目标点（出生点、大本营等）
   Effect = 'effect',         // 特效单位
+  Boss = 'boss',             // BOSS
 }
 
 /**
@@ -802,102 +821,12 @@ export interface EffectConfig {
 }
 
 // ============================================================
-// AI System — Behavior Tree
+// v4.0 Soldier AI — 四状态机
 // ============================================================
 
-/** Behavior tree node status */
-export enum NodeStatus {
-  Success = 'success',
-  Failure = 'failure',
-  Running = 'running',
-}
-
-/** Behavior tree node types */
-export enum BTNodeType {
-  // Composite
-  Sequence = 'sequence',
-  Selector = 'selector',
-  Parallel = 'parallel',
-
-  // Decorator
-  Inverter = 'inverter',
-  Repeater = 'repeater',
-  UntilFail = 'until_fail',
-  AlwaysSucceed = 'always_succeed',
-  Cooldown = 'cooldown',
-
-  // Condition
-  CheckHP = 'check_hp',
-  CheckEnemyInRange = 'check_enemy_in_range',
-  CheckAllyInRange = 'check_ally_in_range',
-  CheckBuff = 'check_buff',
-  CheckCooldown = 'check_cooldown',
-  CheckPhase = 'check_phase',
-  CheckTargetAlive = 'check_target_alive',
-  CheckDistanceToTarget = 'check_distance_to_target',
-  CheckMoving = 'check_moving',
-  CheckStunned = 'check_stunned',
-  CheckPlayerControl = 'check_player_control',
-
-  // Action
-  Attack = 'attack',
-  MoveTo = 'move_to',
-  MoveTowards = 'move_towards',
-  Flee = 'flee',
-  UseSkill = 'use_skill',
-  Wait = 'wait',
-  Spawn = 'spawn',
-  Patrol = 'patrol',
-  SetTarget = 'set_target',
-  ClearTarget = 'clear_target',
-  PlayAnimation = 'play_animation',
-}
-
-/** Target selection types */
-export enum TargetType {
-  Self = 'self',
-  NearestEnemy = 'nearest_enemy',
-  NearestAlly = 'nearest_ally',
-  WeakestEnemy = 'weakest_enemy',
-  StrongestEnemy = 'strongest_enemy',
-  LowestHPAlly = 'lowest_hp_ally',
-  PathWaypoint = 'path_waypoint',
-  Home = 'home',
-  PlayerTarget = 'player_target',
-  AllInRange = 'all_in_range',
-}
-
-/** Behavior tree node configuration */
-export interface BTNodeConfig {
-  type: string;
-  name?: string;
-  params?: Record<string, unknown>;
-  children?: BTNodeConfig[];
-}
-
-/** Behavior tree configuration */
-export interface BehaviorTreeConfig {
-  id: string;
-  name: string;
-  description?: string;
-  version?: string;
-  blackboard?: Record<string, unknown>;
-  root: BTNodeConfig;
-}
-
-/** AI preset configuration */
-export interface AIPresetConfig {
-  id: string;
-  name: string;
-  description?: string;
-  tree: BehaviorTreeConfig;
-}
-
-/** Comparison operators for conditions */
-export type ComparisonOperator = '==' | '!=' | '<' | '>' | '<=' | '>=';
-
-/** Comparison expression */
-export interface ComparisonExpr {
-  op: ComparisonOperator;
-  value: number;
+export enum SoldierState {
+  Idle = 0,
+  Combat = 1,
+  Returning = 2,
+  Healing = 3,
 }

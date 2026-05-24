@@ -69,6 +69,10 @@ export const RARITY_BORDER_COLORS = {
   legendary: '#ffc107',
 } as const;
 
+export function rarityBorderColor(rarity: string): string {
+  return (RARITY_BORDER_COLORS as Record<string, string>)[rarity] ?? '#ffffff';
+}
+
 /**
  * v3.0 roguelike — 手牌区几何边界（design space），renderHandZone 与命中判定共用。
  * 与 design/20 §4.5.2 一致：bottom-center offset(0,-130), size 800×180。
@@ -383,8 +387,8 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Laser,     // 4
   TowerType.Bat,       // 5
   TowerType.Missile,   // 6
-  TowerType.Vine,      // 7
-  TowerType.Command,   // 8
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
 
@@ -504,9 +508,6 @@ export class UISystem implements System {
     private getSelectedTower: () => TowerType | null,
     private selectTower: (type: TowerType) => void,
     private startWave: () => void,
-    private getEnergy: () => number,
-    private getPopulation: () => number,
-    private getMaxPopulation: () => number,
     private onUpgradeTower: ((entityId: number) => void) | null = null,
     private onStartDrag: ((entityType: string, towerType?: TowerType, unitType?: UnitType, productionType?: ProductionType) => void) | null = null,
     private getDragState: (() => DragState | null) | null = null,
@@ -818,7 +819,7 @@ export class UISystem implements System {
 
       const affordable = currentEnergy >= config.energyCost;
       const cardAlpha = affordable ? 1 : 0.4;
-      const borderColor = RARITY_BORDER_COLORS[config.rarity];
+      const borderColor = rarityBorderColor(config.rarity);
 
       this.renderer.push({
         shape: 'rect',
@@ -970,7 +971,7 @@ export class UISystem implements System {
     const GAP = 16;
     const anchor = computeTooltipAnchor(idx, cards.length, REGION_W, CARD_W, GAP);
     const lines = buildCardTooltipLines(config);
-    const borderColor = RARITY_BORDER_COLORS[config.rarity];
+    const borderColor = rarityBorderColor(config.rarity);
 
     this.renderer.push({
       shape: 'rect',
@@ -1317,7 +1318,7 @@ export class UISystem implements System {
       const instance = cards[cell.index];
       if (instance === undefined) continue;
       const config = runContext.registry.get(instance.cardId);
-      const rarityColor = config !== undefined ? RARITY_BORDER_COLORS[config.rarity] : '#444';
+      const rarityColor = config !== undefined ? rarityBorderColor(config.rarity) : '#444';
       this.renderer.push({
         shape: 'rect',
         x: cell.x + cell.w / 2,

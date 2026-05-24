@@ -30,9 +30,6 @@ import {
 import * as components from '../core/components.js';
 import type { UnitVisualParts } from '../types/index.js';
 
-// v3.0 Roguelike Run 上下文（设计 §2-§6），通过 attachRunContext 挂载
-import type { RunContext } from '../unit-system/RunContext.js';
-
 // Debug logging
 import { entityCreated, entityDestroyed, componentAdded, componentRemoved } from '../utils/debugLog.js';
 
@@ -74,18 +71,14 @@ export class TowerWorld {
 
   private unitVisualPartsTable: UnitVisualParts[] = [];
 
-  /**
-   * v3.0 Roguelike 当前 Run 上下文（卡组/手牌/能量/Run 状态）。
-   * 由 main.ts initBattle() 调用 attachRunContext() 挂载；World.reset() 时清空。
-   * 系统通过 world.runContext 访问，不为 null 才表示 Run 已开始。
-   */
-  runContext: RunContext | null = null;
+  /** Phase 0: RunContext type removed, use any as compatibility stub */
+  runContext: any | null = null;
 
   /**
    * 挂载新 Run 的运行时上下文（每次进入战斗调用）。
-   * 调用方负责构造 RunContext（用 createRunContext(seed, registry)）。
+   * Phase 0: 类型擦除为 any，Phase 3 恢复具体类型。
    */
-  attachRunContext(ctx: RunContext): void {
+  attachRunContext(ctx: any): void {
     this.runContext = ctx;
   }
 

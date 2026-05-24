@@ -16,9 +16,10 @@ export type { World };
 // ============================================================
 
 export const FactionVal = {
-  Player: 0,
-  Enemy: 1,
-  Neutral: 2,
+  Justice: 0,
+  Evil: 1,
+  Chaos: 2,
+  Neutral: 3,
 } as const;
 export type FactionVal = (typeof FactionVal)[keyof typeof FactionVal];
 
@@ -36,11 +37,11 @@ export const CategoryVal = {
   Tower: 0,
   Soldier: 1,
   Enemy: 2,
-  Building: 3,
-  Trap: 4,
-  Neutral: 5,
-  Objective: 6,
-  Effect: 7,
+  Trap: 3,
+  Boss: 4,
+  Objective: 5,
+  Effect: 6,
+  Decoration: 7,
 } as const;
 export type CategoryVal = (typeof CategoryVal)[keyof typeof CategoryVal];
 
@@ -73,7 +74,6 @@ export const MoveModeVal = {
 
 export const ResourceTypeVal = {
   Gold: 0,
-  Energy: 1,
 } as const;
 
 export const TargetSelectionVal = {
@@ -312,13 +312,9 @@ export const Boss = defineComponent({
   transitionTimer: Types.f32,
 });
 
-/** 炸弹（重力下落 + 触底 AOE）— ownerFaction 之外阵营受伤 */
-export const Bomb = defineComponent({
-  targetY: Types.f32,
-  fallSpeed: Types.f32,
-  damage: Types.f32,
-  radius: Types.f32,
-  ownerFaction: Types.ui8,
+/** 精英敌人标记 */
+export const Elite = defineComponent({
+  cardOptions: Types.ui8,   // 可选卡牌数量（3选1）
 });
 
 /** 死亡特效 */
@@ -392,16 +388,17 @@ export const TileDamageMark = defineComponent({
 });
 
 // ============================================================
-// AI组件
+// 士兵 AI 组件（替代行为树）
 // ============================================================
 
-/** AI行为树引用 */
-export const AI = defineComponent({
-  configId: Types.ui16,    // AI配置ID
-  targetId: Types.eid,
-  lastUpdateTime: Types.f32,
-  updateInterval: Types.f32,
-  active: Types.ui8,       // 是否激活 (0/1)
+/** 士兵 AI 状态机 */
+export const Soldier = defineComponent({
+  state: Types.ui8,       // 0=idle, 1=combat, 2=returning, 3=healing
+  homeX: Types.f32,        // 部署位置X
+  homeY: Types.f32,        // 部署位置Y
+  moveRange: Types.f32,    // 移动范围限制
+  attackTarget: Types.eid, // 当前攻击目标
+  stateTimer: Types.f32,   // 状态持续时间
 });
 
 // ============================================================
@@ -554,21 +551,13 @@ export const UnitTag = defineComponent({
 });
 
 // ============================================================
-// v3.0 卡牌 Roguelike — Energy 组件（出卡能量，singleton）
-//
-// 设计文档: design/25-card-roguelike-refactor.md §4 能量系统
-// 验收: design/14-acceptance-criteria.md §3.3
-//
-// 一个 Run 只挂一个 Energy 实体（meta singleton），由 EnergySystem 管理。
-// 卡组/手牌/Run 状态因含动态字符串数组，不适合 bitecs SoA 存储，
-// 改放普通 TS 类（见 src/unit-system/）。
+// 卡牌关联组件
 // ============================================================
 
-/** 关内出卡能量（v3.0 卡牌系统专用，与 EconomySystem.energy 旧字段分离） */
-export const Energy = defineComponent({
-  current: Types.f32,
-  max: Types.f32,           // 默认 10，永久升级可达 12
-  regenPerWave: Types.f32,  // 每波开始恢复量，默认 5
+/** 卡牌关联 — 标记由卡牌生成的单位 */
+export const CardComponent = defineComponent({
+  cardConfigId: Types.ui16,  // CardConfig 注册表索引
+  handIndex: Types.ui8,      // 手牌位置（0-3）
 });
 
 // ============================================================
@@ -637,6 +626,12 @@ export const projectileQuery = defineQuery([Position, Projectile]);
 
 /** Boss实体 */
 export const bossQuery = defineQuery([Position, Health, Boss]);
+
+/** 精英实体 */
+export const eliteQuery = defineQuery([Position, Health, Elite]);
+
+/** 士兵实体 */
+export const soldierQuery = defineQuery([Position, Health, Soldier]);
 
 /** 警戒标记实体 */
 export const alertMarkQuery = defineQuery([Position, AlertMark, Visual]);

@@ -5,7 +5,6 @@ import {
   Movement,
   UnitTag,
   Visual,
-  AI,
   Boss,
   Attack,
   Category,
@@ -19,7 +18,6 @@ import {
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../types/index.js';
-import { generateEndlessWave } from './EndlessWaveGenerator.js';
 import { RenderSystem } from './RenderSystem.js';
 import { Sound } from '../utils/Sound.js';
 import { shapeTypeToVal } from '../utils/visualHelpers.js';
@@ -29,17 +27,6 @@ import type { SpawnPoint } from '../level/graph/types.js';
 // ---- bitecs query for alive enemy check ----
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
-
-// ---- AI config string → numeric index mapping ----
-// 索引必须与 ALL_AI_CONFIGS 注册顺序一致
-
-const ENEMY_AI_IDS: Record<string, number> = {
-  enemy_basic: 6,
-  enemy_ranged: 7,
-  enemy_boss: 8,
-  enemy_shaman: 17,
-  enemy_balloon: 18,
-};
 
 // ---- hex color → RGB helper ----
 
@@ -140,11 +127,20 @@ export class WaveSystem implements System {
     this.startWave();
   }
 
+  /** Stub endless wave generator — Phase 3 will rewrite */
+  private generateEndlessWaveStub(waveNum: number): WaveConfig {
+    return {
+      waveNumber: waveNum,
+      spawnDelay: 2,
+      enemies: [{ enemyType: EnemyType.Goblin, count: 5 + waveNum * 2, spawnInterval: 1.0 }],
+    };
+  }
+
   /** Player clicks "start wave" — begin spawning */
   startWave(): void {
     if (this.isEndless) {
       Sound.play('wave_start');
-      const wave = generateEndlessWave(this.currentWaveIndex + 1);
+      const wave = this.generateEndlessWaveStub(this.currentWaveIndex + 1);
       this.isBossWave = wave.isBossWave ?? false;
       if (this.isBossWave) Sound.play('wave_boss');
       this.spawnQueue = wave.enemies.map((g) => ({
@@ -321,26 +317,12 @@ export class WaveSystem implements System {
       value: CategoryVal.Enemy,
     });
 
-    // HotAirBalloon uses LowAir layer (flies over ground)
-    if (type === EnemyType.HotAirBalloon) {
-      this.world.addComponent(eid, Layer, {
-        value: LayerVal.LowAir,
-      });
-      // Add Attack component for bomb dropping
-      this.world.addComponent(eid, Attack, {
-        damage: config.bombDamage ?? config.atk,
-        attackSpeed: 1 / (config.bombInterval ?? 3.5),
-        range: 32, // checks directly below
-        damageType: DamageTypeVal.Physical,
-        isRanged: 1,
-      });
-    } else {
-      this.world.addComponent(eid, Layer, {
-        value: LayerVal.Ground,
-      });
-    }
+    // Ground enemies — all default to Ground layer
+    this.world.addComponent(eid, Layer, {
+      value: LayerVal.Ground,
+    });
     this.world.addComponent(eid, Faction, {
-      value: FactionVal.Enemy,
+      value: FactionVal.Evil,
     });
 
     // Ranged attackers get an Attack component (replaces old EnemyAttacker)
@@ -362,14 +344,6 @@ export class WaveSystem implements System {
       });
     }
 
-    // AI component
-    const aiConfigId = this.getEnemyAIConfig(type);
-    this.world.addComponent(eid, AI, {
-      configId: ENEMY_AI_IDS[aiConfigId] ?? 0,
-      active: 1,
-      updateInterval: 0.1,
-    });
-
     // Display name for overhead HUD
     this.world.setDisplayName(eid, config.name);
 
@@ -378,28 +352,5 @@ export class WaveSystem implements System {
     if (this.spawnSoundCounter % 3 === 0) {
       Sound.play('enemy_spawn');
     }
-  }
-
-  private getEnemyAIConfig(enemyType: EnemyType): string {
-    switch (enemyType) {
-      case EnemyType.Grunt:
-      case EnemyType.Runner:
-      case EnemyType.Heavy:
-      case EnemyType.Exploder:
-        return 'enemy_basic';
-      case EnemyType.Mage:
-        return 'enemy_ranged';
-      case EnemyType.BossCommander:
-      case EnemyType.BossBeast:
-        return 'enemy_boss';
-      case EnemyType.Shaman:
-        return 'enemy_shaman';
-      case EnemyType.HotAirBalloon:
-        return 'enemy_balloon';
-      case EnemyType.Juggernaut:
-        return 'enemy_basic';
-      default:
-        return 'enemy_basic';
     }
   }
-}

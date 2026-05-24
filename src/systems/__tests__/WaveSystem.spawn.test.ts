@@ -17,7 +17,7 @@ function makeSingleWave(): WaveConfig[] {
   return [{
     waveNumber: 1,
     spawnDelay: 0,
-    enemies: [{ enemyType: EnemyType.Grunt, count: 1, spawnInterval: 0 }],
+    enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
   }];
 }
 
