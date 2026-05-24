@@ -403,7 +403,6 @@ class TowerDefenderGame extends Game {
           Attack.damage[entityId]! += towerCfg.upgradeAtkBonus[costIdx] ?? 0;
           Attack.range[entityId]! += towerCfg.upgradeRangeBonus[costIdx] ?? 0;
         }
-        this.weatherSystem.onTowerUpgraded(entityId);
         Sound.play('upgrade');
       }
     };
@@ -470,8 +469,8 @@ class TowerDefenderGame extends Game {
       },
       () => this.buildSystem.dragState,
       () => this.input.pointerPosition,
-      () => this.economy.endlessScore,
-      () => this.economy.isEndless,
+      null,  // endlessScore removed in v4.0
+      null,  // isEndless removed in v4.0
       () => this.waveSystem.skipCountdown(),
       () => { this.gameSpeed = this.gameSpeed === 1.0 ? 2.0 : 1.0; },
       () => { this.paused = true; },
@@ -502,10 +501,7 @@ class TowerDefenderGame extends Game {
         Sound.play('gold_earn');
       },
       (unitId) => {
-        const popCost = UnitTag.popCost[unitId];
-        if (popCost !== undefined) {
-          this.economy.releaseUnit(popCost);
-        }
+        // v4.0: population system removed — no releaseUnit
         // Death effect for player units
         const posX = Position.x[unitId];
         const posY = Position.y[unitId];
@@ -952,10 +948,9 @@ class TowerDefenderGame extends Game {
       if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) return;
     }
 
-    if (!this.economy.canDeployUnit(config.popCost)) return;
+    // v4.0: population system removed — no canDeployUnit/deployUnit
     if (!this.economy.spendGold(config.cost)) return;
 
-    this.economy.deployUnit(config.popCost);
     Sound.play('build_place');
 
     const skillCfg = SKILL_CONFIGS[config.skillId];
@@ -1141,9 +1136,7 @@ class TowerDefenderGame extends Game {
     this.economy.addGold(refund);
     this.economy.clearRefundMeta(entityId);
 
-    if (UnitTag.isEnemy[entityId] === 0 && UnitTag.popCost[entityId] !== undefined) {
-      this.economy.releaseUnit(UnitTag.popCost[entityId]!);
-    }
+    // v4.0: population system removed — no releaseUnit
 
     Sound.play('sell');
     this.world.destroyEntity(entityId);
