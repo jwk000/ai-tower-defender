@@ -160,18 +160,12 @@ export function cardTypeGlyph(type: CardType): string {
 export type ResolvedCardEntity =
   | { entityType: 'tower'; towerType: TowerType }
   | { entityType: 'unit'; unitType: UnitType }
-  | { entityType: 'trap' }
-  | { entityType: 'production'; productionType: ProductionType };
+  | { entityType: 'trap' };
 
 export function resolveCardToEntityType(
   unitConfigId: string | undefined,
 ): ResolvedCardEntity | null {
   if (!unitConfigId) return null;
-
-  const productionValues = Object.values(ProductionType) as string[];
-  if (productionValues.includes(unitConfigId)) {
-    return { entityType: 'production', productionType: unitConfigId as ProductionType };
-  }
 
   if (unitConfigId === 'spike_trap') {
     return { entityType: 'trap' };

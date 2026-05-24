@@ -460,11 +460,10 @@ class TowerDefenderGame extends Game {
       },
       () => this.waveSystem.startWave(),
       upgradeTower,
-      (entityType, towerType, unitType, productionType) => {
-        this.buildSystem.startDrag(entityType as 'tower' | 'unit' | 'production' | 'trap', {
+      (entityType, towerType, unitType) => {
+        this.buildSystem.startDrag(entityType as 'tower' | 'unit' | 'trap', {
           towerType: towerType ?? undefined,
           unitType: unitType ?? undefined,
-          productionType: productionType ?? undefined,
         });
       },
       () => this.buildSystem.dragState,

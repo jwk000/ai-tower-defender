@@ -1,8 +1,9 @@
 // ============================================================
-// Tower Defender — BuildSystem (bitecs migration)
+// Tower Defender — BuildSystem v4.0
 //
-// 处理玩家建造交互：拖拽放置塔/陷阱/生产建筑/单位。
-// 使用 bitecs 组件存储 + defineQuery 查询网格占用。
+// 处理玩家建造交互：拖拽放置塔/陷阱/士兵。
+// v4.0: 移除 Production（金币矿/能量塔），添加 Faction 阵营标记，
+//       网格占用检查改为多层级（同格可同时有 AboveGrid + Ground + LowAir）
 // ============================================================
 
 import { TowerWorld, System, defineQuery } from '../core/World.js';
@@ -15,33 +16,28 @@ import {
   GridOccupant,
   PlayerOwned,
   UnitTag,
-  Production,
   Trap,
   Category,
   CategoryVal,
   Layer,
   LayerVal,
+  Faction,
+  FactionVal,
   BatTower,
   BuildingTower,
-  Movement,
-  PlayerControllable,
-  Skill,
   ShapeVal,
   DamageTypeVal,
-  ResourceTypeVal,
   TargetSelectionVal,
   AttackModeVal,
-  MoveModeVal,
 } from '../core/components.js';
 import {
   TowerType,
   UnitType,
-  ProductionType,
   type MapConfig,
   TileType,
   GamePhase,
 } from '../types/index.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS } from '../data/gameData.js';
+import { TOWER_CONFIGS } from '../data/gameData.js';
 import { RenderSystem } from './RenderSystem.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 
@@ -63,12 +59,6 @@ const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Ballista]: 9,
 };
 
-/** ProductionType 枚举 → 索引 (用于内部标识) */
-const PRODUCTION_TYPE_ID: Record<ProductionType, number> = {
-  [ProductionType.GoldMine]: 0,
-  [ProductionType.EnergyTower]: 1,
-};
-
 // ============================================================
 // Helper: hex 颜色 → RGB 分量
 // ============================================================
@@ -83,32 +73,16 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 // ============================================================
-// Helper: 形状名 → ShapeVal
-// ============================================================
-
-function shapeNameToVal(shape: string): number {
-  switch (shape) {
-    case 'rect': return ShapeVal.Rect;
-    case 'circle': return ShapeVal.Circle;
-    case 'triangle': return ShapeVal.Triangle;
-    case 'diamond': return ShapeVal.Diamond;
-    case 'hexagon': return ShapeVal.Hexagon;
-    case 'arrow': return ShapeVal.Arrow;
-    default: return ShapeVal.Circle;
-  }
-}
-
-// ============================================================
 // DragState
 // ============================================================
 
 export interface DragState {
   active: boolean;
-  entityType: 'tower' | 'unit' | 'production' | 'trap';
+  entityType: 'tower' | 'unit' | 'trap';
   towerType?: TowerType;
   unitType?: UnitType;
-  productionType?: ProductionType;
-  trap?: boolean;
+  /** v4.0: 8种机关类型，0=地刺(默认) */
+  trapType?: number;
 }
 
 // ============================================================
@@ -174,11 +148,11 @@ export class BuildSystem implements System {
   // ==========================================================
 
   startDrag(
-    entityType: 'tower' | 'unit' | 'production' | 'trap',
+    entityType: 'tower' | 'unit' | 'trap',
     opts?: {
       towerType?: TowerType;
       unitType?: UnitType;
-      productionType?: ProductionType;
+      trapType?: number;
     },
   ): void {
     this.dragState = {
@@ -186,8 +160,7 @@ export class BuildSystem implements System {
       entityType,
       towerType: opts?.towerType,
       unitType: opts?.unitType,
-      productionType: opts?.productionType,
-      trap: entityType === 'trap',
+      trapType: opts?.trapType ?? 0,
     };
   }
 
@@ -245,13 +218,19 @@ export class BuildSystem implements System {
       }
     }
 
-    // 网格占用检查 (bitecs query)
+    // 网格占用检查 (多层级: 同格可同时有 AboveGrid + Ground + LowAir)
+    // design/02-gameplay.md §1.4
+    const myLayer = ds.entityType === 'trap' ? LayerVal.AboveGrid : LayerVal.Ground;
     const occupantEntities = this.gridQuery(world.world);
     for (let i = 0; i < occupantEntities.length; i++) {
       const eid = occupantEntities[i]!;
       if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) {
-        this.cancelDrag();
-        return false;
+        // 同层级冲突才拒绝
+        const existingLayer = Layer.value[eid] ?? LayerVal.Ground;
+        if (existingLayer === myLayer) {
+          this.cancelDrag();
+          return false;
+        }
       }
     }
 
@@ -261,10 +240,9 @@ export class BuildSystem implements System {
 
     // 按实体类型分发
     switch (ds.entityType) {
-      case 'tower':     return this.placeTower(world, x, y, row, col);
-      case 'trap':      return this.placeTrap(world, x, y, row, col);
-      case 'production': return this.placeProduction(world, x, y, row, col);
-      case 'unit':      return this.placeUnit();
+      case 'tower': return this.placeTower(world, x, y, row, col);
+      case 'trap':  return this.placeTrap(world, x, y, row, col);
+      case 'unit':  return this.placeUnit();
       default: { this.cancelDrag(); return false; }
     }
   }
@@ -291,19 +269,6 @@ export class BuildSystem implements System {
 
     const eid = this.createTrapEntity(world, x, y, row, col);
     this.onBuilt?.(eid, TRAP_REFUND_META);
-    this.cancelDrag();
-    return eid;
-  }
-
-  private placeProduction(world: TowerWorld, x: number, y: number, row: number, col: number): number | false {
-    const pt = this.dragState?.productionType;
-    if (!pt) { this.cancelDrag(); return false; }
-
-    const config = PRODUCTION_CONFIGS[pt];
-    if (!config) { this.cancelDrag(); return false; }
-
-    const eid = this.createProductionEntity(world, x, y, row, col, pt);
-    this.onBuilt?.(eid, config.cost);
     this.cancelDrag();
     return eid;
   }
@@ -423,6 +388,8 @@ export class BuildSystem implements System {
 
     // Category
     world.addComponent(eid, Category, { value: CategoryVal.Tower });
+    // Faction — v4.0: player-placed units belong to Justice
+    world.addComponent(eid, Faction, { value: FactionVal.Justice });
     world.addComponent(eid, Layer, { value: LayerVal.Ground });
 
     // 建造中状态 — buildTime 秒内不可攻击、不被锁定、不可选中
@@ -474,6 +441,8 @@ export class BuildSystem implements System {
 
     world.addComponent(eid, PlayerOwned);
     world.addComponent(eid, Category, { value: CategoryVal.Trap });
+    // Faction — v4.0: player-placed traps belong to Justice
+    world.addComponent(eid, Faction, { value: FactionVal.Justice });
     world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
 
     // UnitTag — AISystem 查询需要
@@ -508,69 +477,6 @@ export class BuildSystem implements System {
 
     // Display name for overhead HUD
     world.setDisplayName(eid, '地刺');
-
-    return eid;
-  }
-
-  private createProductionEntity(
-    world: TowerWorld,
-    x: number, y: number,
-    row: number, col: number,
-    pt: ProductionType,
-  ): number {
-    const config = PRODUCTION_CONFIGS[pt]!;
-    const ts = this.map.tileSize;
-    const eid = world.createEntity();
-
-    const resourceType = ResourceTypeVal.Gold;
-
-    world.addComponent(eid, Position, { x, y });
-    world.addComponent(eid, GridOccupant, { row, col });
-    world.addComponent(eid, Health, {
-      current: config.hp,
-      max: config.hp,
-      armor: 0,
-      magicResist: 0,
-    });
-    world.addComponent(eid, Production, {
-      resourceType,
-      rate: config.baseRate,
-      level: 1,
-      maxLevel: config.maxLevel,
-      accumulator: 0,
-    });
-
-    const rgb = hexToRgb(config.color);
-    world.addComponent(eid, Visual, {
-      shape: ShapeVal.Circle,
-      colorR: rgb.r,
-      colorG: rgb.g,
-      colorB: rgb.b,
-      size: ts * 0.6,
-      alpha: 1,
-      outline: 1,
-      hitFlashTimer: 0,
-      idlePhase: 0,
-    });
-
-    world.addComponent(eid, PlayerOwned);
-    world.addComponent(eid, Category, { value: CategoryVal.Tower });
-    world.addComponent(eid, Layer, { value: LayerVal.Ground });
-
-    // UnitTag — 统一冷却tick 依赖此组件
-    world.addComponent(eid, UnitTag, {
-      isEnemy: 0,
-      isBoss: 0,
-      isRanged: 0,
-      canAttackBuildings: 0,
-      rewardGold: 0,
-      rewardEnergy: 0,
-      popCost: 0,
-      cost: config.cost ?? 0,
-    });
-
-    // Display name for overhead HUD
-    world.setDisplayName(eid, config.name);
 
     return eid;
   }
