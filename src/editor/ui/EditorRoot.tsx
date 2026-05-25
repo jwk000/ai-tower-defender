@@ -4,6 +4,8 @@ import {
   parseYamlToModel,
   serializeModelToYaml,
   type LevelFormModel,
+  type MapModel,
+  type TileCell,
 } from '../state/levelModel.js';
 import { validateLevel, type ValidationError } from '../state/levelValidation.js';
 import { MetadataPanel } from './panels/MetadataPanel.js';
@@ -11,6 +13,28 @@ import { StartingPanel } from './panels/StartingPanel.js';
 import { AvailablePanel } from './panels/AvailablePanel.js';
 import { WaveListPanel } from './panels/WaveListPanel.js';
 import { WeatherPanel } from './panels/WeatherPanel.js';
+import { MapToolbar, BRUSH_TILE_TYPES } from './panels/MapToolbar.js';
+import { MapView } from './MapView.js';
+import type { MapPreviewModel } from '../preview/MapCanvas.js';
+import type { GraphModel } from '../preview/graphDrawOps.js';
+import { SpawnPanel } from './panels/SpawnPanel.js';
+import { addSpawn, removeSpawn, renameSpawn } from '../state/spawnOps.js';
+import { GraphToolbar, type GraphTool } from './panels/GraphToolbar.js';
+import { DifficultyPanel } from './panels/DifficultyPanel.js';
+import type { Game } from '../../core/Game.js';
+import { modelToLevelConfig } from '../state/modelToLevelConfig.js';
+import { NodePanel } from './panels/NodePanel.js';
+import {
+  addNode,
+  removeNode,
+  addEdge,
+  removeEdge,
+  setNodeRole,
+  setPortalTarget,
+  setEdgeWeight,
+  generateNodeId,
+} from '../state/graphOps.js';
+import type { PathGraph, PathNodeRole } from '../../level/graph/types.js';
 
 type EditTab = 'form' | 'raw';
 
@@ -31,6 +55,7 @@ function tryParseModel(content: string | null): ParseResult {
 export interface EditorRootProps {
   editor: LevelEditor;
   onClose: () => void;
+  game?: Game;
 }
 
 interface ViewState {
@@ -41,6 +66,8 @@ interface ViewState {
   isDirty: boolean;
   lastError: string | null;
   canMigrate: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 function snapshot(editor: LevelEditor): ViewState {
@@ -52,13 +79,65 @@ function snapshot(editor: LevelEditor): ViewState {
     isDirty: editor.isDirty,
     lastError: editor.lastError,
     canMigrate: editor.canMigrate(),
+    canUndo: editor.canUndo,
+    canRedo: editor.canRedo,
   };
 }
 
-export function EditorRoot({ editor, onClose }: EditorRootProps) {
+function tileCellToString(cell: TileCell): string {
+  if (typeof cell === 'string') return cell;
+  switch (cell) {
+    case 0: return 'empty';
+    case 1: return 'path';
+    case 2: return 'blocked';
+    case 3: return 'spawn';
+    case 4: return 'base';
+    default: return 'empty';
+  }
+}
+
+function buildPreviewModel(map: MapModel): MapPreviewModel {
+  const tileSize = map.tileSize > 0 ? map.tileSize : 64;
+  const tiles: string[][] = map.tiles.map((row) => row.map(tileCellToString));
+  return {
+    cols: map.cols,
+    rows: map.rows,
+    tileSize,
+    tiles,
+  };
+}
+
+function buildGraphModel(map: MapModel): GraphModel {
+  return {
+    graph: map.pathGraph ?? { nodes: [], edges: [] },
+    spawns: map.spawns ?? [],
+    tileSize: map.tileSize > 0 ? map.tileSize : 64,
+  };
+}
+
+function withTileAt(model: LevelFormModel, row: number, col: number, tile: string): LevelFormModel {
+  const oldTiles = model.map.tiles;
+  if (row < 0 || row >= oldTiles.length) return model;
+  const oldRow = oldTiles[row];
+  if (oldRow === undefined || col < 0 || col >= oldRow.length) return model;
+  const newRow: TileCell[] = oldRow.slice();
+  newRow[col] = tile;
+  const newTiles: TileCell[][] = oldTiles.slice();
+  newTiles[row] = newRow;
+  return {
+    ...model,
+    map: { ...model.map, tiles: newTiles },
+  };
+}
+
+export function EditorRoot({ editor, onClose, game }: EditorRootProps) {
   const [view, setView] = useState<ViewState>(() => snapshot(editor));
   const [tab, setTab] = useState<EditTab>('raw');
   const [validationState, setValidationState] = useState<{ content: string | null; errors: ValidationError[] }>({ content: null, errors: [] });
+  const [brushTile, setBrushTile] = useState<string>(BRUSH_TILE_TYPES[1] ?? 'path');
+  const [graphTool, setGraphTool] = useState<GraphTool>('select');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [pendingEdgeFrom, setPendingEdgeFrom] = useState<string | null>(null);
 
   useEffect(() => {
     const onChange = () => setView(snapshot(editor));
@@ -67,13 +146,159 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
     return () => editor.removeEventListener('change', onChange);
   }, [editor]);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+      if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) {
+          editor.redo();
+        } else {
+          editor.undo();
+        }
+        e.preventDefault();
+      } else if (e.key === 'y' || e.key === 'Y') {
+        editor.redo();
+        e.preventDefault();
+      } else if (e.key === 's' || e.key === 'S') {
+        onSave();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editor]);
+
   const parsed = useMemo<ParseResult>(
     () => tryParseModel(view.currentContent),
     [view.currentContent],
   );
 
+  const previewModel = useMemo<MapPreviewModel>(
+    () => parsed.model !== null
+      ? buildPreviewModel(parsed.model.map)
+      : { cols: 0, rows: 0, tileSize: 64, tiles: [] },
+    [parsed.model],
+  );
+
+  const graphModel = useMemo<GraphModel | undefined>(
+    () => parsed.model !== null ? buildGraphModel(parsed.model.map) : undefined,
+    [parsed.model],
+  );
+
   const onFormChange = (next: LevelFormModel): void => {
     editor.setCurrentContent(serializeModelToYaml(next));
+  };
+
+  const onTileClick = (row: number, col: number, button: number): void => {
+    if (parsed.model === null) return;
+    const targetTile = button === 2 ? 'empty' : brushTile;
+    const currentTile = tileCellToString(parsed.model.map.tiles[row]?.[col] ?? 'empty');
+    let nextMap = parsed.model.map;
+
+    if (targetTile === 'spawn') {
+      nextMap = addSpawn(nextMap, row, col);
+    } else {
+      if (currentTile === 'spawn') {
+        const victimSpawn = nextMap.spawns?.find((s) => s.row === row && s.col === col);
+        if (victimSpawn !== undefined) {
+          nextMap = removeSpawn(nextMap, victimSpawn.id);
+        }
+      }
+      nextMap = withTileAt({ ...parsed.model, map: nextMap }, row, col, targetTile).map;
+    }
+
+    editor.setCurrentContent(serializeModelToYaml({ ...parsed.model, map: nextMap }));
+  };
+
+  const applyGraphChange = (nextGraph: PathGraph): void => {
+    if (parsed.model === null) return;
+    const nextMap = { ...parsed.model.map, pathGraph: nextGraph };
+    editor.setCurrentContent(serializeModelToYaml({ ...parsed.model, map: nextMap }));
+  };
+
+  const onNodeClick = (nodeId: string): void => {
+    if (graphTool === 'select') {
+      setSelectedNodeId(nodeId);
+    } else if (graphTool === 'delete') {
+      if (parsed.model === null) return;
+      const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+      applyGraphChange(removeNode(graph, nodeId));
+      if (selectedNodeId === nodeId) setSelectedNodeId(null);
+    } else if (graphTool === 'add-edge') {
+      if (pendingEdgeFrom === null) {
+        setPendingEdgeFrom(nodeId);
+      } else if (pendingEdgeFrom !== nodeId) {
+        if (parsed.model !== null) {
+          const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+          try {
+            applyGraphChange(addEdge(graph, { from: pendingEdgeFrom, to: nodeId }));
+          } catch { /* cycle or missing node — silently skip */ }
+        }
+        setPendingEdgeFrom(null);
+      }
+    } else if (graphTool === 'mark-branch') {
+      if (parsed.model === null) return;
+      const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+      const node = graph.nodes.find((n) => n.id === nodeId);
+      if (node !== undefined && node.role !== 'spawn' && node.role !== 'crystal_anchor') {
+        applyGraphChange(setNodeRole(graph, nodeId, 'branch'));
+      }
+    }
+  };
+
+  const onEdgeClick = (from: string, to: string): void => {
+    if (graphTool === 'delete') {
+      if (parsed.model === null) return;
+      const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+      applyGraphChange(removeEdge(graph, from, to));
+    }
+  };
+
+  const onGraphCanvasClick = (row: number, col: number): void => {
+    if (graphTool === 'add-node' || graphTool === 'add-portal') {
+      if (parsed.model === null) return;
+      const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+      const role: PathNodeRole = graphTool === 'add-portal' ? 'portal' : 'waypoint';
+      const id = generateNodeId(graph.nodes.map((n) => n.id));
+      applyGraphChange(addNode(graph, { id, row, col, role }));
+    }
+  };
+
+  const onSetNodeRole = (nodeId: string, role: PathNodeRole): void => {
+    if (parsed.model === null) return;
+    const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+    applyGraphChange(setNodeRole(graph, nodeId, role));
+  };
+
+  const onSetPortalTarget = (nodeId: string, target: string | undefined): void => {
+    if (parsed.model === null) return;
+    const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+    applyGraphChange(setPortalTarget(graph, nodeId, target));
+  };
+
+  const onSetEdgeWeight = (from: string, to: string, weight: number): void => {
+    if (parsed.model === null) return;
+    const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+    applyGraphChange(setEdgeWeight(graph, from, to, weight));
+  };
+
+  const onEdgeDelete = (from: string, to: string): void => {
+    if (parsed.model === null) return;
+    const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+    applyGraphChange(removeEdge(graph, from, to));
+  };
+
+  const onRemoveSpawn = (spawnId: string): void => {
+    if (parsed.model === null) return;
+    const nextMap = removeSpawn(parsed.model.map, spawnId);
+    editor.setCurrentContent(serializeModelToYaml({ ...parsed.model, map: nextMap }));
+  };
+
+  const onRenameSpawn = (spawnId: string, name: string): void => {
+    if (parsed.model === null) return;
+    const nextMap = renameSpawn(parsed.model.map, spawnId, name);
+    editor.setCurrentContent(serializeModelToYaml({ ...parsed.model, map: nextMap }));
   };
 
   const onPickLevel = (id: string): void => {
@@ -108,6 +333,21 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
     editor.migrateCurrent();
   };
 
+  const onPreview = async (): Promise<void> => {
+    if (!game || parsed.model === null) return;
+    if (view.isDirty) {
+      await editor.saveCurrent();
+    }
+    const config = modelToLevelConfig(parsed.model);
+    game.paused = false;
+    game.startBattleWithConfig(config, {
+      onExit: () => {
+        game.paused = true;
+      },
+    });
+    onClose();
+  };
+
   const onDuplicate = async (): Promise<void> => {
     if (view.currentId === null) return;
     const suggested = `${view.currentId}_copy`;
@@ -118,6 +358,18 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
     const result = await editor.duplicate(view.currentId, trimmed);
     if (result.ok) {
       await editor.refreshList();
+    }
+  };
+
+  const onNew = async (): Promise<void> => {
+    const newId = window.prompt('输入新关卡 ID（小写、数字、下划线、连字符）:', 'level_new');
+    if (newId === null) return;
+    const trimmed = newId.trim();
+    if (trimmed === '') return;
+    const result = await editor.createLevel(trimmed);
+    if (result.ok) {
+      await editor.refreshList();
+      await editor.loadLevel(trimmed);
     }
   };
 
@@ -132,6 +384,7 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
   const showEditor = view.currentId !== null && view.currentContent !== null;
   const canSave = showEditor && view.isDirty && view.status !== 'saving';
   const canDuplicate = view.currentId !== null;
+  const canPreview = !!game && showEditor && parsed.model !== null && view.status !== 'saving';
 
   return (
     <div class="editor-root" style={rootStyle} data-testid="editor-root">
@@ -151,6 +404,15 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
         <section style={listSectionStyle}>
           <div style={listToolbarStyle}>
             <h3 style={sectionTitleStyle}>关卡列表</h3>
+            <button
+              type="button"
+              onClick={() => { void onNew(); }}
+              style={newButtonStyle}
+              data-testid="editor-new"
+              title="新建空白关卡"
+            >
+              + 新建
+            </button>
             <button
               type="button"
               onClick={() => { void onDuplicate(); }}
@@ -224,6 +486,26 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
                 <div style={{ flex: 1 }} />
                 <button
                   type="button"
+                  onClick={() => editor.undo()}
+                  disabled={!view.canUndo}
+                  style={{ ...undoRedoButtonStyle, opacity: view.canUndo ? 1 : 0.35, cursor: view.canUndo ? 'pointer' : 'not-allowed' }}
+                  data-testid="editor-undo"
+                  title="撤销 (Ctrl+Z)"
+                >
+                  ↩ 撤销
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor.redo()}
+                  disabled={!view.canRedo}
+                  style={{ ...undoRedoButtonStyle, opacity: view.canRedo ? 1 : 0.35, cursor: view.canRedo ? 'pointer' : 'not-allowed' }}
+                  data-testid="editor-redo"
+                  title="重做 (Ctrl+Y / Ctrl+Shift+Z)"
+                >
+                  ↪ 重做
+                </button>
+                <button
+                  type="button"
                   onClick={onMigrate}
                   disabled={!view.canMigrate}
                   style={{ ...migrateButtonStyle, opacity: view.canMigrate ? 1 : 0.4, cursor: view.canMigrate ? 'pointer' : 'not-allowed' }}
@@ -241,6 +523,18 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
                 >
                   {view.status === 'saving' ? '保存中…' : '保存 (Ctrl+S)'}
                 </button>
+                {game && (
+                  <button
+                    type="button"
+                    onClick={() => { void onPreview(); }}
+                    disabled={!canPreview}
+                    style={{ ...previewButtonStyle, opacity: canPreview ? 1 : 0.4, cursor: canPreview ? 'pointer' : 'not-allowed' }}
+                    data-testid="editor-preview"
+                    title="先保存后试玩当前关卡"
+                  >
+                    ▶ 试玩
+                  </button>
+                )}
               </div>
               {validationErrors.length > 0 && (
                 <div style={validationPanelStyle} data-testid="editor-validation-errors">
@@ -279,6 +573,47 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
                 </div>
               ) : (
                 <div style={formScrollStyle} data-testid="editor-form-container">
+                  <div data-testid="panel-map">
+                    <MapToolbar activeTile={brushTile} onSelectTile={setBrushTile} />
+                    <GraphToolbar activeTool={graphTool} onSelectTool={setGraphTool} />
+                    <MapView
+                      model={previewModel}
+                      onTileClick={onTileClick}
+                      graphModel={graphModel}
+                      onNodeClick={onNodeClick}
+                      onEdgeClick={onEdgeClick}
+                      onOverlayBlankClick={(px, py) => {
+                        const tileSize = previewModel.tileSize > 0 ? previewModel.tileSize : 64;
+                        const row = Math.floor(py / tileSize);
+                        const col = Math.floor(px / tileSize);
+                        onGraphCanvasClick(row, col);
+                      }}
+                    />
+                    {selectedNodeId !== null && parsed.model !== null && (() => {
+                      const graph = parsed.model.map.pathGraph ?? { nodes: [], edges: [] };
+                      const selNode = graph.nodes.find((n) => n.id === selectedNodeId) ?? null;
+                      const outEdges = graph.edges.filter((e) => e.from === selectedNodeId);
+                      const inEdges = graph.edges.filter((e) => e.to === selectedNodeId);
+                      return (
+                        <NodePanel
+                          node={selNode}
+                          outEdges={outEdges}
+                          inEdges={inEdges}
+                          allNodes={graph.nodes}
+                          spawns={parsed.model.map.spawns ?? []}
+                          onSetRole={onSetNodeRole}
+                          onSetPortalTarget={onSetPortalTarget}
+                          onRemoveEdge={onEdgeDelete}
+                          onSetEdgeWeight={onSetEdgeWeight}
+                        />
+                      );
+                    })()}
+                    <SpawnPanel
+                      spawns={parsed.model.map.spawns ?? []}
+                      onRemoveSpawn={onRemoveSpawn}
+                      onRenameSpawn={onRenameSpawn}
+                    />
+                  </div>
                   <div data-testid="panel-metadata">
                     <MetadataPanel model={parsed.model} onChange={onFormChange} />
                   </div>
@@ -293,6 +628,9 @@ export function EditorRoot({ editor, onClose }: EditorRootProps) {
                   </div>
                   <div data-testid="panel-weather">
                     <WeatherPanel model={parsed.model} onChange={onFormChange} />
+                  </div>
+                  <div data-testid="panel-difficulty">
+                    <DifficultyPanel model={parsed.model} onChange={onFormChange} />
                   </div>
                 </div>
               )}
@@ -416,6 +754,17 @@ const listToolbarStyle = {
   marginBottom: 8,
 };
 
+const newButtonStyle = {
+  background: '#1a4a2a',
+  border: '1px solid #2a6a3a',
+  color: '#8fdd9f',
+  padding: '4px 10px',
+  borderRadius: 4,
+  fontSize: 12,
+  cursor: 'pointer',
+  marginRight: 4,
+};
+
 const duplicateButtonStyle = {
   background: '#2a3a5a',
   border: '1px solid #3a4a7a',
@@ -464,6 +813,16 @@ const saveButtonStyle = {
   fontSize: 13,
 };
 
+const undoRedoButtonStyle = {
+  background: '#2a2a3a',
+  border: '1px solid #3a3a4a',
+  color: '#c0c0d0',
+  padding: '4px 10px',
+  borderRadius: 4,
+  fontSize: 12,
+  marginRight: 4,
+};
+
 const migrateButtonStyle = {
   background: '#3a3a6a',
   border: '1px solid #4a4a8a',
@@ -472,6 +831,16 @@ const migrateButtonStyle = {
   borderRadius: 4,
   fontSize: 12,
   marginRight: 8,
+};
+
+const previewButtonStyle = {
+  background: '#2a4a6a',
+  border: '1px solid #3a6a9a',
+  color: '#fff',
+  padding: '6px 14px',
+  borderRadius: 4,
+  fontSize: 13,
+  marginLeft: 8,
 };
 
 const textareaStyle = {

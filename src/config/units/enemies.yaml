@@ -399,3 +399,2529 @@ boss_beast:
         effect: boss_death
       - type: play_sound
         sound: SFX_BOSS_DIE
+
+---
+# 钻地蠕虫 — 关2沙漠虫潮，钻地免伤变体
+e_burrow_worm:
+  id: e_burrow_worm
+  name: 钻地蠕虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 70
+    atk: 8
+    attackSpeed: 1.0
+    speed: 90
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 12
+
+  visual:
+    shape: rectangle
+    color: "#8b5a2b"
+    size: 30
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canTunnel: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 蝗虫群 — 关2沙漠虫潮，飞行层群体小兵
+e_locust_swarm:
+  id: e_locust_swarm
+  name: 蝗虫群
+  category: Enemy
+  faction: Enemy
+  layer: Air
+  tier: L1
+
+  stats:
+    hp: 25
+    atk: 3
+    attackSpeed: 1.2
+    speed: 110
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 6
+
+  visual:
+    shape: triangle
+    color: "#cdb24b"
+    size: 18
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      ignoreBuildings: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 地走虫 — 关2沙漠虫潮，极快移速地面小兵
+e_ground_skitter:
+  id: e_ground_skitter
+  name: 地走虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L1
+
+  stats:
+    hp: 40
+    atk: 6
+    attackSpeed: 1.0
+    speed: 160
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 8
+
+  visual:
+    shape: circle
+    color: "#bf8e5a"
+    size: 22
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 腐蚀炮虫 — 关2沙漠虫潮，远程酸液攻击建筑
+e_acid_artillery:
+  id: e_acid_artillery
+  name: 腐蚀炮虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 100
+    atk: 22
+    attackSpeed: 0.5
+    range: 260
+    speed: 50
+    armor: 5
+    mr: 40
+    damageType: magic
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: hexagon
+    color: "#a4c639"
+    size: 28
+    outline: true
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: acid_pool
+      name: 腐蚀酸池
+      cooldown: 8
+      range: 260
+      value: 60
+      description: "在目标位置留下腐蚀酸池（范围60），持续4s，降低范围内塔攻速30%"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 巨甲虫 — 关2沙漠虫潮，高护甲重装变体
+e_giant_beetle:
+  id: e_giant_beetle
+  name: 巨甲虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 320
+    atk: 14
+    attackSpeed: 0.6
+    range: 32
+    speed: 35
+    armor: 90
+    mr: 20
+    damageType: physical
+
+  reward:
+    gold: 28
+
+  visual:
+    shape: circle
+    color: "#6b4226"
+    size: 50
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_heavy
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 母虫（关末精英）— 关2沙漠虫潮，召唤型关末Boss
+e_queen_mother:
+  id: e_queen_mother
+  name: 母虫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 700
+    atk: 28
+    attackSpeed: 0.8
+    range: 80
+    speed: 40
+    armor: 50
+    mr: 30
+    damageType: physical
+
+  reward:
+    gold: 110
+    energy: 30
+
+  visual:
+    shape: circle
+    color: "#e98c2d"
+    size: 64
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  ai_tree: queen_mother_ai
+
+  skills:
+    - id: summon_burrow_worm
+      name: 召唤钻地虫
+      cooldown: 8
+      range: 150
+      value: 3
+      description: "每8s在周围召唤3只钻地蠕虫"
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.5"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: play_effect
+          effect: boss_rage
+        - type: change_color
+          color: "#d32f2f"
+          blend: 0.35
+        - type: stat_change
+          attackSpeedBonus: 0.3
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+---
+# 寒霜劫掠者 — 关3极地暴雪，高护甲中坚单位
+e_frost_marauder:
+  id: e_frost_marauder
+  name: 寒霜劫掠者
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 400
+    atk: 18
+    attackSpeed: 0.7
+    range: 32
+    speed: 50
+    armor: 80
+    mr: 30
+    damageType: physical
+
+  reward:
+    gold: 30
+
+  visual:
+    shape: circle
+    color: "#dde8f0"
+    size: 40
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_heavy
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 冰霜女巫 — 关3极地暴雪，形态切换远程法师
+e_ice_witch:
+  id: e_ice_witch
+  name: 冰霜女巫
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 180
+    atk: 24
+    attackSpeed: 0.5
+    range: 240
+    speed: 55
+    armor: 10
+    mr: 70
+    damageType: magic
+
+  reward:
+    gold: 26
+
+  visual:
+    shape: hexagon
+    color: "#a6d3e0"
+    size: 30
+    outline: true
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: frost_aura
+      name: 寒冰光环
+      cooldown: 0
+      range: 80
+      value: 0.2
+      description: "持续光环：范围80内玩家塔攻速降低20%"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 雪人冲撞兽 — 关3极地暴雪，冲撞击退近战单位
+e_yeti_charger:
+  id: e_yeti_charger
+  name: 雪人冲撞兽
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 280
+    atk: 30
+    attackSpeed: 0.4
+    range: 32
+    speed: 80
+    armor: 60
+    mr: 15
+    damageType: physical
+
+  reward:
+    gold: 32
+
+  visual:
+    shape: circle
+    color: "#9eb8c8"
+    size: 38
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      knockback: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 暴风雪精灵 — 关3极地暴雪，飞行层远程冰冻单位
+e_blizzard_sprite:
+  id: e_blizzard_sprite
+  name: 暴风雪精灵
+  category: Enemy
+  faction: Enemy
+  layer: Air
+  tier: L2
+
+  stats:
+    hp: 90
+    atk: 12
+    attackSpeed: 0.8
+    range: 220
+    speed: 70
+    armor: 5
+    mr: 55
+    damageType: magic
+
+  reward:
+    gold: 18
+
+  visual:
+    shape: triangle
+    color: "#b3d9f0"
+    size: 26
+    outline: true
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 冰川泰坦 — 关3极地暴雪，双肉墙关末精英（W10出2只）
+e_glacier_titan:
+  id: e_glacier_titan
+  name: 冰川泰坦
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 1200
+    atk: 35
+    attackSpeed: 0.4
+    range: 48
+    speed: 25
+    armor: 100
+    mr: 40
+    damageType: physical
+
+  reward:
+    gold: 150
+
+  visual:
+    shape: circle
+    color: "#5a89a3"
+    size: 70
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  ai_tree: glacier_titan_ai
+
+  skills:
+    - id: frost_slam
+      name: 寒冰震荡
+      cooldown: 10
+      range: 150
+      value: 40
+      description: "150px范围AOE 40物理伤害，击中目标减速50%持续3s"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.4"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: play_effect
+          effect: boss_rage
+        - type: stat_change
+          attackSpeedBonus: 0.4
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+# ============================================================
+# 关 4 — 失落神庙 敌人
+# ============================================================
+
+---
+
+# 神庙守卫 — 近战装甲步兵，可攻击建筑
+e_temple_guard:
+  id: e_temple_guard
+  name: 神庙守卫
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 110
+    atk: 12
+    attackSpeed: 1.0
+    range: 40
+    speed: 60
+    armor: 30
+    mr: 10
+    damageType: physical
+
+  reward:
+    gold: 14
+
+  visual:
+    shape: rectangle
+    color: "#9c8e5a"
+    size: 32
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 丛林狂热者 — 高速轻甲近战，突袭型
+e_jungle_zealot:
+  id: e_jungle_zealot
+  name: 丛林狂热者
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 70
+    atk: 9
+    attackSpeed: 1.2
+    range: 36
+    speed: 100
+    armor: 0
+    mr: 10
+    damageType: physical
+
+  reward:
+    gold: 12
+
+  visual:
+    shape: circle
+    color: "#7cb342"
+    size: 24
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 神庙祭司 — 远程治疗辅助，持续光环回血
+e_temple_priest:
+  id: e_temple_priest
+  name: 神庙祭司
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 100
+    atk: 8
+    attackSpeed: 0.5
+    range: 220
+    speed: 50
+    armor: 10
+    mr: 50
+    damageType: magic
+
+  reward:
+    gold: 18
+
+  visual:
+    shape: hexagon
+    color: "#fbc02d"
+    size: 28
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: heal_aura
+      name: 治疗光环
+      cooldown: 0
+      range: 100
+      value: 15
+      description: "范围内友军每秒回血 15（持续光环）"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 复活神像 — 高甲重型支援，定期复活已死亡友军
+e_revival_idol:
+  id: e_revival_idol
+  name: 复活神像
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 180
+    atk: 0
+    attackSpeed: 1.0
+    range: 40
+    speed: 35
+    armor: 60
+    mr: 60
+    damageType: physical
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: rectangle
+    color: "#d6a86b"
+    size: 36
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: revive_aura
+      name: 复活光环
+      cooldown: 20
+      range: 80
+      value: 1
+      description: "每 20 秒复活 1 只范围内已死亡的友军"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 石化先知 — 远程魔法控制，对最强塔施加石化
+e_petrify_oracle:
+  id: e_petrify_oracle
+  name: 石化先知
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 130
+    atk: 20
+    attackSpeed: 0.4
+    range: 200
+    speed: 45
+    armor: 15
+    mr: 40
+    damageType: magic
+
+  reward:
+    gold: 20
+
+  visual:
+    shape: hexagon
+    color: "#8c8c8c"
+    size: 30
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: petrify
+      name: 石化
+      cooldown: 8
+      range: 200
+      value: 3
+      description: "对玩家最强塔施加石化 3s（无法攻击）"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 石巨像 — 关 4 Mini-Boss，高甲高血，群体石化+地震
+e_stone_colossus:
+  id: e_stone_colossus
+  name: 石巨像
+  category: enemy
+  faction: temple
+  layer: ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 1500
+    atk: 50
+    attackSpeed: 0.4
+    range: 60
+    speed: 25
+    armor: 180
+    mr: 60
+    damageType: physical
+
+  reward:
+    gold: 90
+    energy: 25
+
+  visual:
+    shape: circle
+    color: "#a0a0a0"
+    size: 75
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  ai_tree: stone_colossus_ai
+
+  skills:
+    - id: mass_petrify
+      name: 群体石化
+      cooldown: 15
+      range: 200
+      value: 4
+      description: "对范围内所有玩家塔施加石化 4s"
+    - id: ground_quake
+      name: 地震
+      cooldown: 12
+      range: 180
+      value: 60
+      description: "180px AOE 60 物伤 + 击退 80px"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.4"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: play_effect
+          effect: boss_rage
+        - type: stat_change
+          attackSpeedBonus: 0.3
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+# ============================================================
+# 关 5 — 沉没港口 敌人
+# ============================================================
+
+---
+
+# 海盗长枪兵 — 标准近战步兵，港口先头部队
+e_corsair_pikeman:
+  id: e_corsair_pikeman
+  name: 海盗长枪兵
+  category: enemy
+  faction: corsair
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 80
+    atk: 11
+    attackSpeed: 1.0
+    range: 48
+    speed: 70
+    armor: 10
+    mr: 5
+    damageType: physical
+
+  reward:
+    gold: 12
+
+  visual:
+    shape: rectangle
+    color: "#4d6c7f"
+    size: 28
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 码头打手 — 快速近战骚扰兵，低甲高速
+e_dock_brawler:
+  id: e_dock_brawler
+  name: 码头打手
+  category: enemy
+  faction: corsair
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 95
+    atk: 10
+    attackSpeed: 1.1
+    range: 36
+    speed: 85
+    armor: 5
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 13
+
+  visual:
+    shape: circle
+    color: "#7a98a6"
+    size: 26
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 咸水冲撞兵 — 重型近战，可攻击建筑，带击退
+e_brine_charger:
+  id: e_brine_charger
+  name: 咸水冲撞兵
+  category: enemy
+  faction: corsair
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 200
+    atk: 26
+    attackSpeed: 0.7
+    range: 32
+    speed: 80
+    armor: 35
+    mr: 15
+    damageType: physical
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: circle
+    color: "#3a7d8f"
+    size: 36
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      knockback: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 海妖触手 — 远程魔法精英，触手抓取控制最强塔
+e_kraken_tendril:
+  id: e_kraken_tendril
+  name: 海妖触手
+  category: enemy
+  faction: corsair
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 280
+    atk: 30
+    attackSpeed: 0.5
+    range: 250
+    speed: 30
+    armor: 20
+    mr: 35
+    damageType: magic
+
+  reward:
+    gold: 30
+
+  visual:
+    shape: hexagon
+    color: "#5b3a7f"
+    size: 44
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: tendril_grab
+      name: 触手抓取
+      cooldown: 9
+      range: 250
+      value: 2
+      description: "拖拽玩家最强塔进入射程 2s，期间塔失效"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 潮汐战领 — 关 5 二形态 Boss，海潮巨浪+召唤触手
+e_tide_warlord:
+  id: e_tide_warlord
+  name: 潮汐战领
+  category: enemy
+  faction: corsair
+  layer: ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 3000
+    atk: 55
+    attackSpeed: 0.6
+    range: 64
+    speed: 40
+    armor: 100
+    mr: 50
+    damageType: physical
+
+  reward:
+    gold: 120
+    energy: 35
+
+  visual:
+    shape: circle
+    color: "#1976d2"
+    size: 78
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  ai_tree: tide_warlord_ai
+
+  skills:
+    - id: tidal_wave
+      name: 海潮巨浪
+      cooldown: 12
+      range: 200
+      value: 70
+      description: "200px AOE 70 物伤 + 击退 100px"
+    - id: summon_kraken
+      name: 召唤触手
+      cooldown: 18
+      range: 150
+      value: 2
+      description: "每 18 秒召唤 2 只 e_kraken_tendril"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.5"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: play_effect
+          effect: boss_rage
+        - type: change_color
+          color: "#0d47a1"
+        - type: stat_change
+          attackSpeedBonus: 0.4
+          speedBonus: 0.3
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+# ============================================================
+# 关 6 — 齿轮工厂（Cogforge Bastion）敌人
+# ============================================================
+
+---
+
+# 发条小兵 — 标准机械步兵，无明显短板
+e_clockwork_grunt:
+  id: e_clockwork_grunt
+  name: 发条小兵
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 260
+    atk: 18
+    attackSpeed: 0.8
+    range: 32
+    speed: 65
+    armor: 50
+    mr: 25
+    damageType: physical
+
+  reward:
+    gold: 26
+
+  visual:
+    shape: circle
+    color: "#78909c"
+    size: 30
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 蒸汽长矛兵 — 远程能量弹，完全无视护甲
+e_steam_lancer:
+  id: e_steam_lancer
+  name: 蒸汽长矛兵
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 200
+    atk: 26
+    attackSpeed: 0.6
+    range: 240
+    speed: 55
+    armor: 30
+    mr: 40
+    damageType: magic
+
+  reward:
+    gold: 30
+
+  visual:
+    shape: rectangle
+    color: "#b0bec5"
+    size: 34
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      armorPenetration: 1.0
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 反建筑工蜂 — 绕过士兵直冲塔，专克建筑
+e_hammergrub_drone:
+  id: e_hammergrub_drone
+  name: 反建筑工蜂
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 130
+    atk: 35
+    attackSpeed: 1.0
+    range: 32
+    speed: 80
+    armor: 25
+    mr: 25
+    damageType: physical
+
+  reward:
+    gold: 32
+
+  visual:
+    shape: triangle
+    color: "#ffa000"
+    size: 26
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      targetBuildings: true
+      ignoreUnits: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 矿车撞锤 — 极高HP重甲冲锤，撞到塔则永久摧毁
+e_minecart_juggernaut:
+  id: e_minecart_juggernaut
+  name: 矿车撞锤
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 800
+    atk: 60
+    attackSpeed: 0.4
+    range: 32
+    speed: 110
+    armor: 100
+    mr: 30
+    damageType: physical
+
+  reward:
+    gold: 60
+
+  visual:
+    shape: rectangle
+    color: "#546e7a"
+    size: 52
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      destroyBuildingOnHit: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_heavy
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 修理机器人 — 给周围机械友军施加吸收盾光环
+e_repair_bot:
+  id: e_repair_bot
+  name: 修理机器人
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 180
+    atk: 12
+    attackSpeed: 0.5
+    range: 96
+    speed: 50
+    armor: 35
+    mr: 35
+    damageType: physical
+
+  reward:
+    gold: 28
+
+  visual:
+    shape: hexagon
+    color: "#90a4ae"
+    size: 30
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: shield_aura
+      name: 护盾光环
+      cooldown: 0
+      range: 96
+      value: 150
+      description: "持续光环：每次刷新给范围内 3-5 个机械友军施加 1 层 150HP 吸收盾"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 钢铁巨匠 — 关 6 二形态 Boss，形态1召唤工蜂；形态2自爆倒计时20s
+e_steel_artisan:
+  id: e_steel_artisan
+  name: 钢铁巨匠
+  category: enemy
+  faction: cogforge
+  layer: ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 2200
+    atk: 55
+    attackSpeed: 0.5
+    range: 96
+    speed: 28
+    armor: 120
+    mr: 30
+    damageType: physical
+
+  reward:
+    gold: 320
+    energy: 60
+
+  visual:
+    shape: circle
+    color: "#455a64"
+    size: 82
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+
+  ai_tree: steel_artisan_ai
+
+  skills:
+    - id: summon_drones
+      name: 召唤工蜂
+      cooldown: 8
+      range: 0
+      value: 2
+      description: "每 8s 释放 2 只 e_hammergrub_drone 朝玩家最贵塔"
+    - id: self_destruct_timer
+      name: 自爆倒计时
+      cooldown: 0
+      range: 0
+      value: 20
+      description: "形态2进入时启动 20s 自爆 timer，倒计时归零玩家直接失败"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.3"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: play_effect
+          effect: boss_rage
+        - type: change_color
+          color: "#b71c1c"
+        - type: stat_change
+          attackSpeedBonus: 0.3
+          speedBonus: 1.5
+          armorOverride: 30
+          mrOverride: 20
+        - type: start_timer
+          timerId: self_destruct
+          duration: 20
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+---
+
+# 孢子幼体 — 快速小型孢子单位，死亡释放孢子云强化周围友军
+e_sporeling:
+  id: e_sporeling
+  name: 孢子幼体
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 60
+    atk: 6
+    attackSpeed: 1.0
+    range: 0
+    speed: 80
+    armor: 0
+    mr: 10
+    damageType: physical
+
+  reward:
+    gold: 8
+
+  visual:
+    shape: circle
+    color: "#a5d6a7"
+    size: 20
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: release_spore_cloud
+        radius: 80
+        duration: 4
+        buffHpPct: 30
+        buffSpdPct: 20
+        buffAtkPct: 20
+      - type: play_effect
+        effect: death_spore
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 菌丝感染体 — 中型近战，死亡分裂为 2 只孢子幼体
+e_myco_charger:
+  id: e_myco_charger
+  name: 菌丝感染体
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 180
+    atk: 14
+    attackSpeed: 0.9
+    range: 32
+    speed: 65
+    armor: 20
+    mr: 30
+    damageType: physical
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: circle
+    color: "#66bb6a"
+    size: 34
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: split_into
+        unitId: e_sporeling
+        count: 2
+      - type: play_effect
+        effect: death_split
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 扭曲女巫 — 远程支援单位，可对我方士兵施加变形控制
+e_warped_witch:
+  id: e_warped_witch
+  name: 扭曲女巫
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 160
+    atk: 18
+    attackSpeed: 0.5
+    range: 220
+    speed: 55
+    armor: 10
+    mr: 55
+    damageType: magic
+
+  reward:
+    gold: 28
+
+  visual:
+    shape: circle
+    color: "#ce93d8"
+    size: 28
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: polymorph_sheep
+      name: 变形诅咒
+      cooldown: 10
+      range: 220
+      duration: 6
+      description: "对我方士兵施加变形 6s，不能攻击不能移动"
+
+  lifecycle:
+    onAttack:
+      - type: apply_buff
+        target: soldier
+        buffId: polymorph_sheep
+        duration: 6
+        effects:
+          - cannot_attack
+          - cannot_move
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 菌母蘑菇 — 驻守型召唤单位，原地持续召唤孢子幼体
+e_brood_mother:
+  id: e_brood_mother
+  name: 菌母蘑菇
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 380
+    atk: 0
+    attackSpeed: 0
+    range: 0
+    speed: 0
+    armor: 50
+    mr: 40
+    damageType: physical
+
+  reward:
+    gold: 50
+
+  visual:
+    shape: circle
+    color: "#8d6e63"
+    size: 44
+
+  behavior:
+    targetSelection: none
+    attackMode: none
+    movementMode: hold_position
+
+  lifecycle:
+    onCondition:
+      condition: "interval_4s"
+      effects:
+        - type: spawn_unit
+          unitId: e_sporeling
+          count: 2
+          maxActive: 8
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_boss_small
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 腐疫吐液者 — 远程毒液单位，攻击留下持续伤害毒池
+e_blight_spitter:
+  id: e_blight_spitter
+  name: 腐疫吐液者
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 140
+    atk: 16
+    attackSpeed: 0.7
+    range: 180
+    speed: 60
+    armor: 15
+    mr: 35
+    damageType: magic
+
+  reward:
+    gold: 22
+
+  visual:
+    shape: circle
+    color: "#9ccc65"
+    size: 30
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onAttack:
+      - type: create_poison_pool
+        radius: 40
+        duration: 3
+        dps: 30
+        effect: poison_pool
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: play_effect
+        effect: flash
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 菌核之母 — 关 7 二形态 Mini-Boss，召唤菌母；HP<50% 切换形态对玩家最强塔施加变形
+e_mycelial_core:
+  id: e_mycelial_core
+  name: 菌核之母
+  category: enemy
+  faction: fungal
+  layer: ground
+  tier: L3
+  isBoss: true
+
+  stats:
+    hp: 2000
+    atk: 0
+    attackSpeed: 0
+    range: 0
+    speed: 0
+    armor: 80
+    mr: 50
+    damageType: physical
+
+  reward:
+    gold: 350
+    energy: 70
+
+  visual:
+    shape: circle
+    color: "#558b2f"
+    size: 72
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: none
+    attackMode: none
+    movementMode: hold_position
+
+  ai_tree: mycelial_core_ai
+
+  skills:
+    - id: summon_brood_mother
+      name: 召唤菌母
+      cooldown: 0
+      range: 0
+      value: 2
+      description: "形态 1：召唤 2 只 e_brood_mother"
+    - id: polymorph_mushroom
+      name: 真菌变形
+      cooldown: 20
+      range: 0
+      duration: 10
+      description: "形态 2：对玩家最强塔施加变形 10s，无法攻击"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: spawn_unit
+        unitId: e_brood_mother
+        count: 2
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+    onCondition:
+      condition: "hp_ratio < 0.5"
+      fireOnce: true
+      effects:
+        - type: enter_phase2
+        - type: stat_change
+          hp: 1500
+          atk: 30
+          attackSpeed: 0.6
+          speed: 50
+          armor: 40
+          mr: 40
+        - type: apply_buff
+          target: strongest_player_tower
+          buffId: polymorph_mushroom
+          duration: 10
+          effects:
+            - cannot_attack
+        - type: play_effect
+          effect: boss_rage
+        - type: change_color
+          color: "#1b5e20"
+    onKill:
+      - type: play_effect
+        effect: boss_death
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+
+# ============================================================
+# 关 8 — 异界终战 敌人
+# ============================================================
+
+---
+
+# 虚空闪烁者 — 每6s瞬移接近水晶，死亡后开启虚空传送门
+e_void_blinker:
+  id: e_void_blinker
+  name: 虚空闪烁者
+  category: enemy
+  faction: void
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 280
+    atk: 32
+    attackSpeed: 0.7
+    range: 32
+    speed: 60
+    armor: 30
+    mr: 40
+    damageType: physical
+
+  reward:
+    gold: 35
+
+  visual:
+    shape: circle
+    color: "#7b1fa2"
+    size: 30
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: void_blink
+      name: 虚空闪现
+      cooldown: 6
+      range: 128
+      value: 128
+      description: "每6s向水晶方向瞬移128px"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: spawn_portal
+        duration: 8
+        spawnUnit: e_void_thrall
+        spawnInterval: 2
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 虚空奴仆 — 仅由虚空传送门召唤，无技能的基础虚空炮灰
+e_void_thrall:
+  id: e_void_thrall
+  name: 虚空奴仆
+  category: enemy
+  faction: void
+  layer: ground
+  tier: L1
+
+  stats:
+    hp: 80
+    atk: 10
+    attackSpeed: 1.0
+    range: 0
+    speed: 75
+    armor: 5
+    mr: 15
+    damageType: physical
+
+  reward:
+    gold: 10
+
+  visual:
+    shape: circle
+    color: "#4a148c"
+    size: 20
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      summonedOnly: true
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 摧塔之眼 — 静止远程炮台，对塔标记毁灭倒计时，击杀则解除所有标记
+e_eye_of_collapse:
+  id: e_eye_of_collapse
+  name: 摧塔之眼
+  category: enemy
+  faction: void
+  layer: ground
+  tier: L3
+
+  stats:
+    hp: 220
+    atk: 25
+    attackSpeed: 0.5
+    range: 280
+    speed: 0
+    armor: 20
+    mr: 50
+    damageType: magic
+
+  reward:
+    gold: 36
+
+  visual:
+    shape: hexagon
+    color: "#b71c1c"
+    size: 36
+    outline: true
+
+  behavior:
+    targetSelection: weakest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      canAttackBuildings: true
+
+  skills:
+    - id: mark_for_destruction
+      name: 毁灭标记
+      cooldown: 10
+      range: 280
+      value: 10
+      description: "对目标塔施加毁灭标记，10s倒计时结束后永久摧毁该塔；击杀本单位立即取消所有标记"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: cancel_marks
+      - type: play_effect
+        effect: death_magic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 诅咒复仇者 — 攻击时对相邻敌方施加易爆诅咒，被诅咒者死亡触发AOE清场
+e_cursed_avenger:
+  id: e_cursed_avenger
+  name: 诅咒复仇者
+  category: enemy
+  faction: void
+  layer: ground
+  tier: L2
+
+  stats:
+    hp: 240
+    atk: 22
+    attackSpeed: 0.7
+    range: 32
+    speed: 60
+    armor: 30
+    mr: 35
+    damageType: physical
+
+  reward:
+    gold: 32
+
+  visual:
+    shape: circle
+    color: "#880e4f"
+    size: 32
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  skills:
+    - id: curse_volatile
+      name: 易爆诅咒
+      cooldown: 0
+      range: 0
+      value: 5
+      description: "攻击时对相邻敌方单位附加易爆诅咒（5s），被诅咒者死亡时在半径80px内触发AOE清场（含玩家友军）"
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+
+# 旧日支配者 — 关8终战三形态Boss：形态1超高物甲/形态2超高魔抗/形态3免控狂暴
+e_old_one_warden:
+  id: e_old_one_warden
+  name: 旧日支配者
+  category: enemy
+  faction: void
+  layer: ground
+  tier: L4
+  isBoss: true
+
+  stats:
+    hp: 3500
+    atk: 70
+    attackSpeed: 0.5
+    range: 96
+    speed: 40
+    armor: 400
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 500
+    energy: 100
+
+  visual:
+    shape: circle
+    color: "#1a0033"
+    size: 96
+    outline: true
+    crown: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      immune_to_crystal_kill: true
+
+  ai_tree: old_one_warden_ai
+
+  skills:
+    - id: void_eruption
+      name: 虚空喷发
+      cooldown: 15
+      range: 200
+      value: 80
+      description: "200px范围AOE 80魔法伤害+随机击退所有命中单位"
+    - id: mass_summon
+      name: 虚空群召
+      cooldown: 20
+      range: 150
+      value: 4
+      description: "召唤4只虚空奴仆；形态2/3额外召唤2只诅咒复仇者"
+    - id: reality_warp
+      name: 现实扭曲
+      cooldown: 18
+      range: 300
+      value: 8
+      description: "对场上3个随机玩家塔施加虚空扭曲debuff（8s，ATK-50%），形态3升至5个目标"
+
+  lifecycle:
+    onCreate:
+      - type: hp_bar_boss
+      - type: play_sound
+        sound: SFX_BOSS_SPAWN
+      - type: play_effect
+        effect: boss_void_enter
+    onCondition:
+      - condition: "hp_ratio < 0.66"
+        fireOnce: true
+        phase: 2
+        effects:
+          - type: enter_phase2
+          - type: play_effect
+            effect: boss_phase_shift
+          - type: pause_world
+            duration: 1.5
+          - type: change_color
+            color: "#0d47a1"
+            blend: 0.5
+          - type: stat_change
+            armorOverride: 0
+            mrOverride: 400
+            hpSet: 4500
+            atkOverride: 55
+            attackSpeedOverride: 0.4
+            speedOverride: 35
+            rangeOverride: 240
+            damageTypeOverride: magic
+          - type: play_sound
+            sound: SFX_BOSS_PHASE2
+      - condition: "hp_ratio < 0.33"
+        fireOnce: true
+        phase: 3
+        effects:
+          - type: enter_phase3
+          - type: play_effect
+            effect: boss_phase_shift
+          - type: pause_world
+            duration: 1.5
+          - type: change_color
+            color: "#b71c1c"
+            blend: 0.6
+          - type: stat_change
+            armorOverride: 0
+            mrOverride: 0
+            hpSet: 3000
+            atkOverride: 80
+            attackSpeedOverride: 0.9
+            speedOverride: 80
+            rangeOverride: 32
+            damageTypeOverride: physical
+          - type: apply_buff
+            buffId: immune_to_slow
+          - type: apply_buff
+            buffId: immune_to_stun
+          - type: apply_buff
+            buffId: immune_to_freeze
+          - type: play_sound
+            sound: SFX_BOSS_PHASE3
+    onKill:
+      - type: boss_death
+      - type: play_effect
+        effect: boss_death_void
+      - type: play_sound
+        sound: SFX_BOSS_DIE
+      - type: final_victory
+
+---
+# 关2 沙漠虫潮 L1 小兵 — 蛮族战士（蓝图关 2 主流前排）
+e_kraal_grunt:
+  id: e_kraal_grunt
+  name: 蛮族战士
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L1
+
+  stats:
+    hp: 60
+    atk: 6
+    attackSpeed: 1.0
+    speed: 80
+    armor: 5
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 11
+
+  visual:
+    shape: circle
+    color: "#bf6f3a"
+    size: 24
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 关3 极地暴雪 L1 小兵 — 雪人幼崽（蓝图关 3 主流前排）
+e_yeti_runt:
+  id: e_yeti_runt
+  name: 雪人幼崽
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L1
+
+  stats:
+    hp: 70
+    atk: 6
+    attackSpeed: 1.0
+    speed: 70
+    armor: 10
+    mr: 0
+    damageType: physical
+
+  reward:
+    gold: 12
+
+  visual:
+    shape: circle
+    color: "#e3f2fd"
+    size: 26
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 关3 极地暴雪 L2 矛兵 — 寒霜枪手（远程戳塔，蓝图关 3 中前期压力源）
+e_frost_lancer:
+  id: e_frost_lancer
+  name: 寒霜枪手
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 130
+    atk: 18
+    attackSpeed: 0.7
+    range: 60
+    speed: 75
+    armor: 15
+    mr: 5
+    damageType: physical
+
+  reward:
+    gold: 18
+
+  visual:
+    shape: rectangle
+    color: "#90caf9"
+    size: 28
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+
+---
+# 关8 异界终战 L2 — 鲜血诡术师（onDeath 复活僵尸；数值参考 MDA §21 L1398）
+e_blood_trickster:
+  id: e_blood_trickster
+  name: 鲜血诡术师
+  category: Enemy
+  faction: Enemy
+  layer: Ground
+  tier: L2
+
+  stats:
+    hp: 150
+    atk: 12
+    attackSpeed: 0.8
+    range: 32
+    speed: 70
+    armor: 30
+    mr: 35
+    damageType: magical
+
+  reward:
+    gold: 24
+
+  visual:
+    shape: circle
+    color: "#b71c1c"
+    size: 26
+    outline: true
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+
+  lifecycle:
+    onDeath:
+      - type: drop_gold
+      - type: spawn_unit
+        unitId: zombie_trickster_revive
+        count: 1
+      - type: play_effect
+        effect: death_basic
+      - type: play_sound
+        sound: SFX_ENEMY_DIE
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onCreate:
+      - type: play_sound
+        sound: SFX_ENEMY_SPAWN
+

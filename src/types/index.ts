@@ -68,6 +68,39 @@ export enum ObstacleType {
   Pillar = 'pillar',
   Brazier = 'brazier',
   Rubble = 'rubble',
+  // ---- v3.2 8 关 roguelike 装饰（不影响 gameplay，DecorationSystem fallback 到通用几何） ----
+  // 关 2 沙漠虫潮
+  SandDune = 'sand_dune',
+  TunnelEntrance = 'tunnel_entrance',
+  TunnelExit = 'tunnel_exit',
+  // 关 3 极地暴雪
+  IcePillar = 'ice_pillar',
+  SnowPile = 'snow_pile',
+  IceTile = 'ice_tile',
+  // 关 4 失落神庙
+  TemplePillar = 'temple_pillar',
+  AncientStatue = 'ancient_statue',
+  VineOvergrowth = 'vine_overgrowth',
+  // 关 5 沉没港口
+  ShipWreck = 'ship_wreck',
+  DockCrate = 'dock_crate',
+  Buoy = 'buoy',
+  TideShoal = 'tide_shoal',
+  // 关 6 齿轮工厂
+  ConveyorBelt = 'conveyor_belt',
+  GearDecoration = 'gear_decoration',
+  SteamPipe = 'steam_pipe',
+  CoalPile = 'coal_pile',
+  // 关 7 孢子菌林
+  MushroomCluster = 'mushroom_cluster',
+  SporePod = 'spore_pod',
+  MoldSpawner = 'mold_spawner',
+  HyphalRoot = 'hyphal_root',
+  // 关 8 异界终战
+  AlienPillar = 'alien_pillar',
+  CorruptedObelisk = 'corrupted_obelisk',
+  VoidRift = 'void_rift',
+  RealityWarp = 'reality_warp',
 }
 
 export interface ObstaclePlacement {
@@ -391,6 +424,13 @@ export enum WeatherType {
   Snow = 'snow',
   Fog = 'fog',
   Night = 'night',
+  // ---- v3.2 8 关 roguelike 主题天气 (16-level-blueprints §0-§9) ----
+  Sandstorm = 'sandstorm',   // 关 2 沙漠虫潮
+  Blizzard = 'blizzard',     // 关 3 极地暴雪要塞
+  Storm = 'storm',           // 关 5 沉没港口（暴雨）
+  Smog = 'smog',             // 关 6 齿轮工厂（煤烟）
+  SporeMist = 'spore_mist',  // 关 7 孢子菌林
+  Void = 'void',             // 关 8 异界终战
 }
 
 export interface WeatherModifier {
@@ -454,6 +494,7 @@ export interface WaveEnemyGroup {
   enemyType: EnemyType;
   count: number;
   spawnInterval: number;
+  spawnId?: string;
 }
 
 export interface WaveConfig {
