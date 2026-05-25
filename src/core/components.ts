@@ -324,14 +324,14 @@ export const Trap = defineComponent({
 
 /** Boss属性 */
 export const Boss = defineComponent({
-  bossType: Types.ui8,      // 0=GiantSlime, 1=QueenWorm, 2=Lucifer, 3=SuperRobot, 4=AbyssLord
-  phase: Types.ui8,          // 当前阶段 1/2
-  phase2HpRatio: Types.f32,  // 进入二阶段的血量比例
-  transitionTimer: Types.f32,
-  abilityTimer: Types.f32,   // 通用技能冷却计时（SuperRobot导弹、AbyssLord吞噬）
-  spawnTimer: Types.f32,     // 召唤计时（QueenWorm虫群、Lucifer骷髅）
-  splitCount: Types.ui8,     // GiantSlime分裂层级: 0=巨型(可再分2次), 1=中型(可再分1次), 2=小型(不再分)
-  immuneToTowers: Types.ui8, // QueenWorm塔免疫标记: 0=可被塔攻击, 1=免疫塔攻击
+  bossType: Types.ui8,        // BossType enum (0-4, see BossSystem.ts)
+  phase: Types.ui8,           // 当前阶段 1/2
+  phase2HpRatio: Types.f32,   // 进入二阶段的血量比例
+  transitionTimer: Types.f32, // 阶段过渡计时/暴怒标记(Lucifer)
+  abilityTimer: Types.f32,    // 技能冷却计时（通用: SuperRobot/AbyssLord 等）
+  spawnTimer: Types.f32,      // 召唤间隔计时（通用: QueenWorm/Lucifer）
+  splitCount: Types.ui8,      // GiantSlime 分裂层级: 0=giant, 1=medium, 2=small
+  immuneToTowers: Types.ui8,  // QueenWorm 免疫塔攻击: 0/1
 });
 
 /** 精英敌人标记 */
