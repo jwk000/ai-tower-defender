@@ -462,6 +462,8 @@ export interface WaveConfig {
   spawnDelay: number;
   isBossWave?: boolean;
   spawnPointIndex?: number;
+  /** 波次通关奖励金币 */
+  reward?: number;
 }
 
 // ---- Game State ----

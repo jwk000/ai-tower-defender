@@ -329,6 +329,9 @@ export const Boss = defineComponent({
 /** 精英敌人标记 */
 export const Elite = defineComponent({
   cardOptions: Types.ui8,   // 可选卡牌数量（3选1）
+  hpMultiplier: Types.f32,  // HP 倍率（默认 2.0）
+  atkMultiplier: Types.f32, // ATK 倍率（默认 1.5）
+  visualScale: Types.f32,   // 体型缩放倍率（默认 1.2）
 });
 
 /** 死亡特效 */
@@ -550,6 +553,7 @@ export const PlayerOwned = defineComponent({});
 /** 统一单位标签 — 存储附加类型标记 */
 export const UnitTag = defineComponent({
   isEnemy: Types.ui8,         // 0/1
+  isElite: Types.ui8,         // 0/1 精英敌人标记
   isBoss: Types.ui8,          // 0/1
   isRanged: Types.ui8,        // 0/1 远程攻击
   canAttackBuildings: Types.ui8, // 0/1
