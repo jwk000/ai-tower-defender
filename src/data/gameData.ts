@@ -17,183 +17,211 @@ import {
 } from '../types/index.js';
 import { migrateEnemyPathToGraph } from '../level/graph/migration.js';
 
-// ---- Tower Configs ----
+// ============================================================
+// TOWER_CONFIGS — v4.0 塔配置（per design/03-units.md §2）
+// ============================================================
+// 升级数量变更摘要（v3.1 → v4.0）：
+//   Arrow: 4 → 2, Ballista: 4 → 2, Cannon: 4 → 2, Laser: 4 → 1,
+//   Bat: 4 → 2, Missile: 4 → 2, Ice: 4 → 2, Fire: 4 → 1,
+//   Poison: 4 → 1, Lightning: 4 → 3（唯一有 L4 的塔）
 
 export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
+  // ---- 2.1 箭塔 ----
   [TowerType.Arrow]: {
     type: TowerType.Arrow,
     name: '箭塔',
     cost: 50,
-    hp: 100,
-    atk: 11,
-    attackSpeed: 1.0,
-    range: 200,
+    hp: 150,
+    atk: 15,
+    attackSpeed: 2.5,
+    range: 180,
     damageType: 'physical',
-    upgradeCosts: [45, 65, 95, 140],
-    upgradeAtkBonus: [5, 7, 10, 15],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    // L2: 同时射 2 箭（可锁不同目标）; L3: 3 箭 + 射程 200
+    upgradeCosts: [80, 150],
+    upgradeAtkBonus: [0, 0],
+    upgradeRangeBonus: [0, 20],
     color: '#4fc3f7',
     buildTime: 1.5,
   },
+
+  // ---- 2.2 弩塔 ----
+  [TowerType.Ballista]: {
+    type: TowerType.Ballista,
+    name: '弩塔',
+    cost: 100,
+    hp: 120,
+    atk: 45,
+    attackSpeed: 0.8,
+    range: 220,
+    damageType: 'physical',
+    pierceCount: 99, // 穿透：箭矢直线飞行，伤害路径上所有敌人
+    // L2: ATK=65; L3: ATK=65 + AS=1.2 + range=240
+    upgradeCosts: [100, 180],
+    upgradeAtkBonus: [20, 0],
+    upgradeRangeBonus: [0, 20],
+    color: '#8d6e63',
+    buildTime: 2.0,
+  },
+
+  // ---- 2.3 炮塔 ----
   [TowerType.Cannon]: {
     type: TowerType.Cannon,
     name: '炮塔',
     cost: 85,
     hp: 120,
-    atk: 24,
-    attackSpeed: 0.4,
-    range: 180,
+    atk: 30,
+    attackSpeed: 1.0,
+    range: 160,
     damageType: 'physical',
-    splashRadius: 80,
-    stunDuration: 0.8,
-    upgradeCosts: [55, 85, 120, 165],
-    upgradeAtkBonus: [8, 11, 14, 18],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    splashRadius: 60,
+    // L2: ATK=40 + 30% 概率眩晕 1s; L3: ATK=50 + splash=80 + 眩晕 + 击退
+    upgradeCosts: [120, 200],
+    upgradeAtkBonus: [10, 10],
+    upgradeRangeBonus: [0, 20],
     color: '#ff8a65',
     buildTime: 2.0,
   },
-  [TowerType.Ice]: {
-    type: TowerType.Ice,
-    name: '冰塔',
-    cost: 60,
-    hp: 100,
-    atk: 8,
-    attackSpeed: 1.1,
-    range: 200,
-    damageType: 'magic',
-    slowPercent: 25,
-    slowMaxStacks: 4,
-    freezeDuration: 1.0,
-    upgradeCosts: [45, 65, 90, 130],
-    upgradeAtkBonus: [3, 4, 5, 7],
-    upgradeRangeBonus: [15, 20, 20, 25],
-    color: '#81d4fa',
-    buildTime: 1.5,
-  },
-  [TowerType.Lightning]: {
-    type: TowerType.Lightning,
-    name: '电塔',
-    cost: 80,
-    hp: 100,
-    atk: 13,
-    attackSpeed: 0.9,
-    range: 170,
-    damageType: 'magic',
-    chainCount: 3,
-    chainDecay: 0.22,
-    upgradeCosts: [55, 80, 115, 155],
-    upgradeAtkBonus: [6, 8, 11, 14],
-    upgradeRangeBonus: [15, 20, 20, 25],
-    color: '#fff176',
-    buildTime: 2.0,
-  },
+
+  // ---- 2.4 激光塔 ----
   [TowerType.Laser]: {
     type: TowerType.Laser,
     name: '激光塔',
     cost: 90,
     hp: 80,
-    atk: 20,
-    attackSpeed: 0.5,
-    range: 260,
+    atk: 8,
+    attackSpeed: 5, // 5 ticks/s（实际 DPS = 40）
+    range: 200,
     damageType: 'magic',
-    upgradeCosts: [55, 75, 105, 145],
-    upgradeAtkBonus: [6, 8, 10, 13],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    // L2: 蓄能机制 — 锁同一目标每持续 1s 伤害×1.2，上限×3
+    upgradeCosts: [150],
+    upgradeAtkBonus: [0],
+    upgradeRangeBonus: [0],
     color: '#e040fb',
     buildTime: 2.0,
   },
+
+  // ---- 2.5 蝙蝠塔 ----
   [TowerType.Bat]: {
     type: TowerType.Bat,
     name: '蝙蝠塔',
     cost: 85,
     hp: 90,
-    atk: 12,
-    attackSpeed: 0.8,
+    atk: 10,
+    attackSpeed: 1.0,
     range: 200,
-    damageType: 'magic',
-    upgradeCosts: [55, 75, 105, 150],
-    upgradeAtkBonus: [5, 6, 8, 10],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    damageType: 'physical',
+    batCount: 3,
+    batReplenishCD: 8,
+    batHP: 30,
+    batDamage: 10,
+    batAttackRange: 80,
+    batAttackSpeed: 1.0,
+    batSpeed: 60,
+    // L2: 4 bats + ATK=14 + CD=7s; L3: 5 bats + ATK=18 + CD=6s
+    upgradeCosts: [100, 150],
+    upgradeAtkBonus: [0, 0],
+    upgradeRangeBonus: [0, 0],
     color: '#7c4dff',
     buildTime: 2.0,
-    batCount: 4,
-    batReplenishCD: 12,
-    batHP: 30,
-    batDamage: 6,
-    batAttackRange: 150,
-    batAttackSpeed: 0.8,
-    batSpeed: 120,
   },
+
+  // ---- 2.6 导弹塔 ----
   [TowerType.Missile]: {
     type: TowerType.Missile,
     name: '导弹塔',
     cost: 220,
     hp: 150,
-    atk: 90,
-    attackSpeed: 0.14,
-    range: 600,
+    atk: 80,
+    attackSpeed: 0.3,
+    range: 9999, // 全图射程
     damageType: 'physical',
-    splashRadius: 130,
-    upgradeCosts: [120, 180, 260, 360],
-    upgradeAtkBonus: [30, 35, 45, 60],
-    upgradeRangeBonus: [0, 0, 0, 0],
+    splashRadius: 80,
+    cantTargetFlying: true,
+    // L2: 2 missiles × 60 dmg; L3: 3 missiles × 45 dmg
+    upgradeCosts: [200, 300],
+    upgradeAtkBonus: [0, 0],
+    upgradeRangeBonus: [0, 0],
     color: '#ff1744',
     buildTime: 3.0,
-    cantTargetFlying: true,
-    centerBonusRadiusRatio: 0.1,
-    centerBonusMultiplier: 1.2,
   },
+
+  // ---- 2.7 冰塔 ----
+  [TowerType.Ice]: {
+    type: TowerType.Ice,
+    name: '冰塔',
+    cost: 60,
+    hp: 100,
+    atk: 10,
+    attackSpeed: 1.5,
+    range: 160,
+    damageType: 'magic',
+    slowPercent: 30,
+    // L2: ATK=15 + 30% 冰冻 1s; L3: ATK=20 + 40% 冰冻 + ATK-20%/3s
+    upgradeCosts: [120, 180],
+    upgradeAtkBonus: [5, 5],
+    upgradeRangeBonus: [0, 20],
+    color: '#81d4fa',
+    buildTime: 1.5,
+  },
+
+  // ---- 2.8 火塔 ----
   [TowerType.Fire]: {
     type: TowerType.Fire,
     name: '火塔',
     cost: 75,
     hp: 100,
-    atk: 15,
-    attackSpeed: 0.8,
-    range: 180,
+    atk: 12,
+    attackSpeed: 1.2,
+    range: 150,
     damageType: 'magic',
-    dotDamage: 8,
+    dotDamage: 5,
     dotDuration: 3,
-    dotMaxStacks: 3,
-    upgradeCosts: [50, 70, 100, 140],
-    upgradeAtkBonus: [5, 7, 10, 15],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    // L2: ATK=18 + DOT=8/s×3s + 5% 直接击杀（非 BOSS）
+    upgradeCosts: [150],
+    upgradeAtkBonus: [6],
+    upgradeRangeBonus: [0],
     color: '#ff5722',
     buildTime: 2.0,
   },
+
+  // ---- 2.9 毒塔 ----
   [TowerType.Poison]: {
     type: TowerType.Poison,
     name: '毒塔',
     cost: 70,
     hp: 90,
-    atk: 8,
-    attackSpeed: 0.7,
-    range: 180,
+    atk: 10,
+    attackSpeed: 1.0,
+    range: 150,
     damageType: 'magic',
-    dotDamage: 10,
+    dotDamage: 4,
     dotDuration: 5,
-    dotMaxStacks: 5,
-    upgradeCosts: [45, 65, 90, 130],
-    upgradeAtkBonus: [3, 4, 6, 8],
-    upgradeRangeBonus: [15, 20, 20, 25],
+    // L2: ATK=15 + DOT=6/s×5s + 传染（3 hops, 80px, half damage）
+    upgradeCosts: [150],
+    upgradeAtkBonus: [5],
+    upgradeRangeBonus: [0],
     color: '#66bb6a',
     buildTime: 1.5,
   },
-  [TowerType.Ballista]: {
-    type: TowerType.Ballista,
-    name: '弩炮塔',
-    cost: 100,
-    hp: 110,
-    atk: 45,
-    attackSpeed: 0.25,
-    range: 320,
-    damageType: 'physical',
-    pierceCount: 2,
-    armorPenetration: 0,
-    upgradeCosts: [70, 100, 140, 190],
-    upgradeAtkBonus: [13, 17, 21, 29],
-    upgradeRangeBonus: [20, 20, 20, 20],
-    color: '#8d6e63',
+
+  // ---- 2.10 电塔 ----
+  [TowerType.Lightning]: {
+    type: TowerType.Lightning,
+    name: '电塔',
+    cost: 80,
+    hp: 100,
+    atk: 20,
+    attackSpeed: 1.5,
+    range: 160,
+    damageType: 'magic',
+    chainCount: 1,
+    chainDecay: 0.2,
+    // L2: ATK=25, chain=2; L3: ATK=30, range=180, chain=3;
+    // L4: 弹跳 + 10% 全屏闪电（1.5x, CD≥10s）
+    upgradeCosts: [100, 160, 220],
+    upgradeAtkBonus: [5, 5, 0],
+    upgradeRangeBonus: [0, 20, 0],
+    color: '#fff176',
     buildTime: 2.0,
   },
 };
@@ -383,34 +411,148 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
   ],
 };
 
-// ---- Enemy Configs ----
+// ============================================================
+// ENEMY_CONFIGS — v4.0 敌人配置（per design/03-units.md §5-6）
+// ============================================================
+// 字段映射: defense=armor, attackRange=射程, rewardGold=击杀奖励
 
 export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
-  // Phase 0: stub configs — Phase 3 will fill real data
-  [EnemyType.Goblin]: { type: EnemyType.Goblin, name: '哥布林', hp: 60, speed: 75, atk: 5, defense: 0, magicResist: 0, attackRange: 0, attackSpeed: 1, canAttackBuildings: false, rewardGold: 10, color: '#ef5350', radius: 16, attackAnimDuration: 0.45 },
-  [EnemyType.Boar]: { type: EnemyType.Boar, name: '野猪', hp: 120, speed: 120, atk: 8, defense: 10, magicResist: 0, attackRange: 0, attackSpeed: 1, canAttackBuildings: false, rewardGold: 15, color: '#8d6e63', radius: 18, attackAnimDuration: 0.4 },
-  [EnemyType.Elephant]: { type: EnemyType.Elephant, name: '巨象', hp: 500, speed: 30, atk: 25, defense: 50, magicResist: 10, attackRange: 0, attackSpeed: 0.6, canAttackBuildings: true, rewardGold: 40, color: '#78909c', radius: 30, attackAnimDuration: 0.6 },
-  [EnemyType.Giant]: { type: EnemyType.Giant, name: '巨人', hp: 800, speed: 25, atk: 40, defense: 70, magicResist: 15, attackRange: 0, attackSpeed: 0.5, canAttackBuildings: true, rewardGold: 60, color: '#4e342e', radius: 32, isBoss: true, attackAnimDuration: 0.7 },
-  [EnemyType.GiantSlime]: { type: EnemyType.GiantSlime, name: '巨型史莱姆', hp: 300, speed: 50, atk: 10, defense: 30, magicResist: 40, attackRange: 0, attackSpeed: 1, canAttackBuildings: false, rewardGold: 30, color: '#66bb6a', radius: 26, attackAnimDuration: 0.5 },
-  [EnemyType.DesertBeetle]: { type: EnemyType.DesertBeetle, name: '沙漠甲虫', hp: 80, speed: 60, atk: 7, defense: 15, magicResist: 0, attackRange: 0, attackSpeed: 1, canAttackBuildings: false, rewardGold: 12, color: '#c8a96e', radius: 14, attackAnimDuration: 0.35 },
-  [EnemyType.BurrowBeetle]: { type: EnemyType.BurrowBeetle, name: '钻地甲虫', hp: 100, speed: 70, atk: 12, defense: 20, magicResist: 0, attackRange: 0, attackSpeed: 0.8, canAttackBuildings: false, rewardGold: 18, color: '#a1887f', radius: 16, attackAnimDuration: 0.4 },
-  [EnemyType.Locust]: { type: EnemyType.Locust, name: '蝗虫', hp: 30, speed: 150, atk: 3, defense: 0, magicResist: 0, attackRange: 0, attackSpeed: 1.5, canAttackBuildings: false, rewardGold: 5, color: '#cddc39', radius: 8, attackAnimDuration: 0.2 },
-  [EnemyType.BombBeetle]: { type: EnemyType.BombBeetle, name: '炸弹甲虫', hp: 45, speed: 80, atk: 8, defense: 5, magicResist: 0, attackRange: 0, attackSpeed: 1, canAttackBuildings: false, rewardGold: 20, color: '#ff5722', radius: 12, specialOnDeath: 'explode', deathDamage: 50, deathRadius: 100, attackAnimDuration: 0.3 },
-  [EnemyType.QueenBeetle]: { type: EnemyType.QueenBeetle, name: '甲虫女王', hp: 1200, speed: 30, atk: 30, defense: 60, magicResist: 30, attackRange: 0, attackSpeed: 0.5, canAttackBuildings: true, rewardGold: 100, color: '#d32f2f', radius: 34, isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.7 },
-  [EnemyType.Werewolf]: { type: EnemyType.Werewolf, name: '狼人', hp: 200, speed: 100, atk: 20, defense: 15, magicResist: 10, attackRange: 0, attackSpeed: 0.9, canAttackBuildings: false, rewardGold: 25, color: '#5d4037', radius: 20, attackAnimDuration: 0.4 },
-  [EnemyType.VampireBat]: { type: EnemyType.VampireBat, name: '吸血蝙蝠', hp: 70, speed: 120, atk: 10, defense: 5, magicResist: 15, attackRange: 120, attackSpeed: 1.2, canAttackBuildings: false, rewardGold: 15, color: '#6a1b9a', radius: 12, attackAnimDuration: 0.3 },
-  [EnemyType.Wizard]: { type: EnemyType.Wizard, name: '巫师', hp: 100, speed: 45, atk: 25, defense: 10, magicResist: 50, attackRange: 250, attackSpeed: 0.6, canAttackBuildings: true, rewardGold: 22, color: '#7b1fa2', radius: 14, attackAnimDuration: 0.5 },
-  [EnemyType.Priest]: { type: EnemyType.Priest, name: '祭司', hp: 120, speed: 40, atk: 8, defense: 20, magicResist: 45, attackRange: 0, attackSpeed: 0.7, canAttackBuildings: false, rewardGold: 25, color: '#e0e0e0', radius: 16, attackAnimDuration: 0.45 },
-  [EnemyType.Frankenstein]: { type: EnemyType.Frankenstein, name: '弗兰肯斯坦', hp: 600, speed: 35, atk: 35, defense: 50, magicResist: 20, attackRange: 0, attackSpeed: 0.5, canAttackBuildings: true, rewardGold: 50, color: '#2e7d32', radius: 28, attackAnimDuration: 0.6 },
-  [EnemyType.Lucifer]: { type: EnemyType.Lucifer, name: '路西法', hp: 1500, speed: 30, atk: 50, defense: 60, magicResist: 50, attackRange: 300, attackSpeed: 0.5, canAttackBuildings: true, rewardGold: 150, color: '#b71c1c', radius: 36, isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.8 },
-  [EnemyType.Plane]: { type: EnemyType.Plane, name: '战机', hp: 120, speed: 200, atk: 15, defense: 5, magicResist: 5, attackRange: 0, attackSpeed: 1, canAttackBuildings: true, rewardGold: 30, color: '#78909c', radius: 20, attackAnimDuration: 0.25 },
-  [EnemyType.Tank]: { type: EnemyType.Tank, name: '坦克', hp: 400, speed: 25, atk: 30, defense: 80, magicResist: 15, attackRange: 250, attackSpeed: 0.4, canAttackBuildings: true, rewardGold: 45, color: '#505050', radius: 28, attackAnimDuration: 0.7 },
-  [EnemyType.OilTruck]: { type: EnemyType.OilTruck, name: '油罐车', hp: 200, speed: 40, atk: 10, defense: 15, magicResist: 0, attackRange: 0, attackSpeed: 1, canAttackBuildings: true, rewardGold: 35, color: '#bf360c', radius: 24, specialOnDeath: 'explode', deathDamage: 100, deathRadius: 150, attackAnimDuration: 0.35 },
-  [EnemyType.RobotDog]: { type: EnemyType.RobotDog, name: '机器狗', hp: 80, speed: 130, atk: 12, defense: 10, magicResist: 5, attackRange: 0, attackSpeed: 1.2, canAttackBuildings: false, rewardGold: 12, color: '#90a4ae', radius: 14, attackAnimDuration: 0.3 },
-  [EnemyType.GiantRobot]: { type: EnemyType.GiantRobot, name: '巨型机器人', hp: 1000, speed: 20, atk: 45, defense: 90, magicResist: 30, attackRange: 280, attackSpeed: 0.3, canAttackBuildings: true, rewardGold: 80, color: '#37474f', radius: 34, isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.8 },
-  [EnemyType.Drone]: { type: EnemyType.Drone, name: '无人机', hp: 50, speed: 180, atk: 8, defense: 0, magicResist: 5, attackRange: 200, attackSpeed: 1.5, canAttackBuildings: false, rewardGold: 15, color: '#4fc3f7', radius: 10, attackAnimDuration: 0.2 },
-  [EnemyType.SuperRobot]: { type: EnemyType.SuperRobot, name: '超级机器人', hp: 2000, speed: 15, atk: 60, defense: 100, magicResist: 50, attackRange: 350, attackSpeed: 0.2, canAttackBuildings: true, rewardGold: 200, color: '#212121', radius: 40, isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.9 },
-  [EnemyType.AbyssLord]: { type: EnemyType.AbyssLord, name: '深渊领主', hp: 3000, speed: 20, atk: 80, defense: 80, magicResist: 60, attackRange: 400, attackSpeed: 0.3, canAttackBuildings: true, rewardGold: 300, color: '#4a148c', radius: 44, isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 1.0 },
+  // ===== §5.1 绿野仙踪（怪兽族）=====
+  [EnemyType.Goblin]: {
+    type: EnemyType.Goblin, name: '哥布林', hp: 80, speed: 45, atk: 8,
+    defense: 3, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
+    canAttackBuildings: false, rewardGold: 5, color: '#ef5350', radius: 16, attackAnimDuration: 0.45,
+  },
+  [EnemyType.Boar]: {
+    type: EnemyType.Boar, name: '疯狂野猪', hp: 60, speed: 80, atk: 12,
+    defense: 0, magicResist: 0, attackRange: 30, attackSpeed: 1.5,
+    canAttackBuildings: false, rewardGold: 8, color: '#8d6e63', radius: 18, attackAnimDuration: 0.4,
+  },
+  [EnemyType.Elephant]: {
+    type: EnemyType.Elephant, name: '铁甲大象', hp: 300, speed: 20, atk: 15,
+    defense: 25, magicResist: 5, attackRange: 40, attackSpeed: 0.6,
+    canAttackBuildings: true, rewardGold: 20, color: '#78909c', radius: 30, attackAnimDuration: 0.6,
+  },
+  [EnemyType.Giant]: {
+    type: EnemyType.Giant, name: '草原巨人', hp: 400, speed: 15, atk: 30,
+    defense: 15, magicResist: 10, attackRange: 60, attackSpeed: 0.5,
+    canAttackBuildings: true, rewardGold: 30, color: '#4e342e', radius: 32, attackAnimDuration: 0.7,
+  },
+
+  // ===== §5.2 沙漠虫潮（虫族）=====
+  [EnemyType.DesertBeetle]: {
+    type: EnemyType.DesertBeetle, name: '沙漠黑虫', hp: 40, speed: 35, atk: 6,
+    defense: 2, magicResist: 0, attackRange: 20, attackSpeed: 1.5,
+    canAttackBuildings: false, rewardGold: 3, color: '#c8a96e', radius: 14, attackAnimDuration: 0.35,
+  },
+  [EnemyType.BurrowBeetle]: {
+    type: EnemyType.BurrowBeetle, name: '钻地甲虫', hp: 120, speed: 40, atk: 15,
+    defense: 10, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
+    canAttackBuildings: false, rewardGold: 12, color: '#a1887f', radius: 16, attackAnimDuration: 0.4,
+  },
+  [EnemyType.Locust]: {
+    type: EnemyType.Locust, name: '吸血蝗虫', hp: 30, speed: 25, atk: 10,
+    defense: 0, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
+    canAttackBuildings: false, rewardGold: 4, color: '#cddc39', radius: 8, attackAnimDuration: 0.2,
+  },
+  [EnemyType.BombBeetle]: {
+    type: EnemyType.BombBeetle, name: '自爆甲虫', hp: 50, speed: 50, atk: 80,
+    defense: 0, magicResist: 0, attackRange: 60, attackSpeed: 1.0,
+    canAttackBuildings: true, rewardGold: 15, color: '#ff5722', radius: 12,
+    specialOnDeath: 'explode', deathDamage: 80, deathRadius: 50, attackAnimDuration: 0.3,
+  },
+
+  // ===== §5.3 黑暗古堡（黑暗族）=====
+  [EnemyType.Werewolf]: {
+    type: EnemyType.Werewolf, name: '狼人', hp: 150, speed: 55, atk: 20,
+    defense: 8, magicResist: 5, attackRange: 40, attackSpeed: 1.5,
+    canAttackBuildings: false, rewardGold: 12, color: '#5d4037', radius: 20, attackAnimDuration: 0.4,
+  },
+  [EnemyType.VampireBat]: {
+    type: EnemyType.VampireBat, name: '吸血蝙蝠', hp: 40, speed: 60, atk: 8,
+    defense: 0, magicResist: 5, attackRange: 40, attackSpeed: 1.2,
+    canAttackBuildings: false, rewardGold: 5, color: '#6a1b9a', radius: 12, attackAnimDuration: 0.3,
+  },
+  [EnemyType.Wizard]: {
+    type: EnemyType.Wizard, name: '巫师', hp: 100, speed: 30, atk: 25,
+    defense: 5, magicResist: 20, attackRange: 180, attackSpeed: 0.8,
+    canAttackBuildings: true, rewardGold: 15, color: '#7b1fa2', radius: 14, attackAnimDuration: 0.5,
+  },
+  [EnemyType.Priest]: {
+    type: EnemyType.Priest, name: '黑暗牧师', hp: 120, speed: 25, atk: 0,
+    defense: 10, magicResist: 15, attackRange: 150, attackSpeed: 0,
+    canAttackBuildings: false, rewardGold: 18, color: '#e0e0e0', radius: 16, attackAnimDuration: 0.45,
+  },
+  [EnemyType.Frankenstein]: {
+    type: EnemyType.Frankenstein, name: '弗兰肯斯坦', hp: 500, speed: 20, atk: 35,
+    defense: 20, magicResist: 10, attackRange: 50, attackSpeed: 0.6,
+    canAttackBuildings: true, rewardGold: 30, color: '#2e7d32', radius: 28, attackAnimDuration: 0.6,
+  },
+
+  // ===== §5.4 末日废土（机械族）=====
+  [EnemyType.Plane]: {
+    type: EnemyType.Plane, name: '飞机', hp: 80, speed: 70, atk: 15,
+    defense: 5, magicResist: 5, attackRange: 60, attackSpeed: 1.0,
+    canAttackBuildings: true, rewardGold: 10, color: '#78909c', radius: 20, attackAnimDuration: 0.25,
+  },
+  [EnemyType.Tank]: {
+    type: EnemyType.Tank, name: '坦克', hp: 350, speed: 15, atk: 40,
+    defense: 35, magicResist: 5, attackRange: 80, attackSpeed: 0.5,
+    canAttackBuildings: true, rewardGold: 25, color: '#505050', radius: 28, attackAnimDuration: 0.7,
+  },
+  [EnemyType.OilTruck]: {
+    type: EnemyType.OilTruck, name: '油罐车', hp: 150, speed: 35, atk: 5,
+    defense: 10, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
+    canAttackBuildings: true, rewardGold: 18, color: '#bf360c', radius: 24,
+    specialOnDeath: 'explode', deathDamage: 50, deathRadius: 70, attackAnimDuration: 0.35,
+  },
+  [EnemyType.RobotDog]: {
+    type: EnemyType.RobotDog, name: '机器狗', hp: 50, speed: 80, atk: 10,
+    defense: 5, magicResist: 0, attackRange: 25, attackSpeed: 2.0,
+    canAttackBuildings: false, rewardGold: 6, color: '#90a4ae', radius: 14, attackAnimDuration: 0.3,
+  },
+  [EnemyType.GiantRobot]: {
+    type: EnemyType.GiantRobot, name: '巨型机器人', hp: 600, speed: 10, atk: 50,
+    defense: 40, magicResist: 10, attackRange: 100, attackSpeed: 0.4,
+    canAttackBuildings: true, rewardGold: 40, color: '#37474f', radius: 34, attackAnimDuration: 0.8,
+  },
+  [EnemyType.Drone]: {
+    type: EnemyType.Drone, name: '无人机', hp: 30, speed: 65, atk: 8,
+    defense: 0, magicResist: 5, attackRange: 50, attackSpeed: 1.5,
+    canAttackBuildings: false, rewardGold: 4, color: '#4fc3f7', radius: 10, attackAnimDuration: 0.2,
+  },
+
+  // ===== §6 BOSS =====
+  [EnemyType.GiantSlime]: {
+    type: EnemyType.GiantSlime, name: '巨型史莱姆', hp: 800, speed: 15, atk: 20,
+    defense: 10, magicResist: 5, attackRange: 50, attackSpeed: 0.5,
+    canAttackBuildings: true, rewardGold: 100, color: '#66bb6a', radius: 26,
+    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.5,
+  },
+  [EnemyType.QueenBeetle]: {
+    type: EnemyType.QueenBeetle, name: '虫族女王', hp: 1000, speed: 20, atk: 30,
+    defense: 15, magicResist: 20, attackRange: 80, attackSpeed: 0.6,
+    canAttackBuildings: true, rewardGold: 150, color: '#d32f2f', radius: 34,
+    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.7,
+  },
+  [EnemyType.Lucifer]: {
+    type: EnemyType.Lucifer, name: '路西法', hp: 1200, speed: 18, atk: 40,
+    defense: 20, magicResist: 25, attackRange: 60, attackSpeed: 0.5,
+    canAttackBuildings: true, rewardGold: 200, color: '#b71c1c', radius: 36,
+    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.8,
+  },
+  [EnemyType.SuperRobot]: {
+    type: EnemyType.SuperRobot, name: '超级机器人', hp: 2000, speed: 10, atk: 60,
+    defense: 40, magicResist: 15, attackRange: 100, attackSpeed: 0.3,
+    canAttackBuildings: true, rewardGold: 250, color: '#212121', radius: 40,
+    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.9,
+  },
+  [EnemyType.AbyssLord]: {
+    type: EnemyType.AbyssLord, name: '深渊领主', hp: 3000, speed: 8, atk: 50,
+    defense: 30, magicResist: 30, attackRange: 150, attackSpeed: 0.5,
+    canAttackBuildings: true, rewardGold: 400, color: '#4a148c', radius: 44,
+    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 1.0,
+  },
 };
 
 // ---- MVP Map ----
@@ -498,25 +640,28 @@ export const MVP_WAVES: WaveConfig[] = [
   },
 ];
 
-// ---- Unit Configs ----
+// ============================================================
+// UNIT_CONFIGS — v4.0 士兵配置（per design/03-units.md §3）
+// ============================================================
 
 export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
+  // ---- 3.1 盾卫 ----
   [UnitType.ShieldGuard]: {
     type: UnitType.ShieldGuard,
     name: '盾卫',
-    hp: 400,
-    atk: 6,
-    attackSpeed: 0.7,
-    attackRange: 64,
+    hp: 300,
+    atk: 12,
+    attackSpeed: 1.0,
+    attackRange: 40,
     alertRange: 200,
-    speed: 60,
+    speed: 40,
     defense: 30,
     popCost: 2,
     color: '#64b5f6',
     size: 28,
     skillId: 'taunt',
     cost: 55,
-    moveRange: 180,
+    moveRange: 120,
     tauntCapacity: 2,
     tauntCapacityPerLevel: 1,
     maxLevel: 3,
@@ -553,74 +698,78 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
       ],
     },
   },
+  // ---- 3.2 弓手 ----
   [UnitType.Archer]: {
     type: UnitType.Archer,
     name: '弓箭手',
-    hp: 150,
-    atk: 18,
-    attackSpeed: 1.2,
-    attackRange: 250,
+    hp: 120,
+    atk: 30,
+    attackSpeed: 1.5,
+    attackRange: 200,
     alertRange: 300,
-    speed: 70,
+    speed: 35,
     defense: 5,
     popCost: 2,
     color: '#66bb6a',
     size: 20,
     skillId: 'volley',
     cost: 50,
-    moveRange: 200,
+    moveRange: 100,
     maxLevel: 3,
     upgradeCosts: [40, 60],
-    upgradeHpBonus: [50, 75],
-    upgradeAtkBonus: [5, 8],
+    upgradeHpBonus: [40, 60],
+    upgradeAtkBonus: [8, 12],
     shape: 'rect',
     attackAnimDuration: 0.35,
   },
+  // ---- 3.3 法师 ----
   [UnitType.Mage]: {
     type: UnitType.Mage,
     name: '法师',
-    hp: 120,
+    hp: 100,
     atk: 25,
-    attackSpeed: 0.8,
-    attackRange: 280,
-    alertRange: 320,
-    speed: 55,
-    defense: 3,
+    attackSpeed: 1.0,
+    attackRange: 150,
+    alertRange: 280,
+    speed: 30,
+    defense: 5,
     popCost: 2,
     color: '#7b1fa2',
     size: 18,
     skillId: 'fireball',
     cost: 60,
-    moveRange: 180,
+    moveRange: 80,
+    splashRadius: 40,
     maxLevel: 3,
     upgradeCosts: [45, 65],
-    upgradeHpBonus: [40, 60],
+    upgradeHpBonus: [35, 55],
     upgradeAtkBonus: [7, 11],
     shape: 'rect',
     attackAnimDuration: 0.4,
   },
+  // ---- 3.4 牧师（治疗者） ----
   [UnitType.Priest]: {
     type: UnitType.Priest,
     name: '祭司',
-    hp: 130,
-    atk: 10,
-    attackSpeed: 0.6,
-    attackRange: 200,
+    hp: 100,
+    atk: 0,
+    attackSpeed: 1.0,
+    attackRange: 150,
     alertRange: 250,
-    speed: 60,
-    defense: 8,
+    speed: 30,
+    defense: 5,
     popCost: 2,
     color: '#ffffff',
     size: 20,
     skillId: 'heal',
     cost: 55,
-    moveRange: 180,
+    moveRange: 80,
     maxLevel: 3,
     upgradeCosts: [40, 60],
-    upgradeHpBonus: [45, 70],
-    upgradeAtkBonus: [3, 5],
+    upgradeHpBonus: [40, 60],
+    upgradeAtkBonus: [0, 0],
     shape: 'rect',
-    attackAnimDuration: 0.35,
+    attackAnimDuration: 0,
   },
 };
 
@@ -638,59 +787,55 @@ export const UNIT_ID_BY_TYPE: Readonly<Record<UnitType, number>> = {
   [UnitType.Priest]: 3,
 };
 
-// ---- Production Configs ----
+// ---- Skill Configs (v4.0 士兵技能) ----
 
-export const PRODUCTION_CONFIGS: Record<ProductionType, ProductionConfig> = {
-  [ProductionType.GoldMine]: {
-    type: ProductionType.GoldMine,
-    name: '金矿',
-    cost: 85,
-    hp: 80,
-    resourceType: 'gold',
-    baseRate: 2.5,
-    upgradeRateBonus: 2.5,
-    upgradeCosts: [55, 100],
-    maxLevel: 3,
-    color: '#ffd54f',
-  },
-  [ProductionType.EnergyTower]: {
-    type: ProductionType.EnergyTower,
-    name: '能量塔 (Phase 3)',
-    cost: 65,
-    hp: 60,
-    resourceType: 'energy',
-    baseRate: 1.5,
-    upgradeRateBonus: 1.0,
-    upgradeCosts: [50, 90],
-    maxLevel: 3,
-    color: '#81c784',
-  },
-};
-
-// ---- Skill Configs ----
+// v4.0: Production buildings removed. Keep for backward compat; empty record.
+export const PRODUCTION_CONFIGS: Partial<Record<ProductionType, ProductionConfig>> = {};
 
 export const SKILL_CONFIGS: Record<string, SkillConfig> = {
   taunt: {
     id: 'taunt',
     name: '嘲讽',
-    trigger: SkillTrigger.Active,
-    cooldown: 8,
-    energyCost: 20,
+    trigger: SkillTrigger.Passive,
+    cooldown: 0,
+    energyCost: 0,
     range: 130,
     value: 3,
     buffId: null,
-    description: '强制周围敌人攻击自己3秒',
+    description: '范围内敌人优先攻击盾卫',
   },
-  whirlwind: {
-    id: 'whirlwind',
-    name: '旋风斩',
+  volley: {
+    id: 'volley',
+    name: '齐射',
     trigger: SkillTrigger.Active,
-    cooldown: 6,
-    energyCost: 15,
-    range: 80,
-    value: 35,
+    cooldown: 10,
+    energyCost: 25,
+    range: 200,
+    value: 30,
     buffId: null,
-    description: '对周围敌人造成AOE伤害',
+    description: '对目标区域连射3箭',
+  },
+  heal: {
+    id: 'heal',
+    name: '治疗',
+    trigger: SkillTrigger.Passive,
+    cooldown: 1.0,
+    energyCost: 0,
+    range: 150,
+    value: 15,
+    buffId: null,
+    description: '持续治疗范围内HP最低的友方单位',
+  },
+  fireball: {
+    id: 'fireball',
+    name: '火球术',
+    trigger: SkillTrigger.Passive,
+    cooldown: 0,
+    energyCost: 0,
+    range: 150,
+    value: 25,
+    buffId: null,
+    description: '法师普攻自带AOE（半径40px）',
   },
 };
 

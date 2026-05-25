@@ -142,14 +142,14 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     // Verify UnitTag.isElite
     expect(UnitTag.isElite[eliteEid]).toBe(1);
 
-    // Verify enhanced HP (Goblin base HP=60, ×2.0 elite × difficulty multiplier)
+    // Verify enhanced HP (Goblin base HP=80, ×2.0 elite × difficulty multiplier)
     // Wave 1/1 → ratio=0, stage 开局 hpMult=0.8
-    // elite HP = 60 * 2.0 * 0.8 = 96
-    expect(Health.max[eliteEid]).toBe(96);
-    expect(Health.current[eliteEid]).toBe(96);
+    // elite HP = 80 * 2.0 * 0.8 = 128
+    expect(Health.max[eliteEid]).toBe(128);
+    expect(Health.current[eliteEid]).toBe(128);
 
-    // Verify enhanced ATK (Goblin base ATK=5, ×1.5 elite × 0.8 difficulty = 6)
-    expect(UnitTag.atk[eliteEid]).toBe(6);
+    // Verify enhanced ATK (Goblin base ATK=8, ×1.5 elite × 0.8 difficulty ≈ 9.6 → 10 rounded)
+    expect(UnitTag.atk[eliteEid]).toBe(10);
 
     // Verify gold visual (elite gets gold color #FFD700 = R:255 G:215 B:0)
     expect(Visual.colorR[eliteEid]).toBe(255);
@@ -313,10 +313,10 @@ describe('WaveSystem v4.0 — difficulty scaling', () => {
     // First enemy (eid=0) is regular, second (eid=1) is elite
     const regularEid = allEnemies[0]!;
     expect(UnitTag.isElite[regularEid]).toBe(0);
-    // Goblin base HP=60, ×0.8 = 48
-    expect(Health.max[regularEid]).toBe(48);
-    // Goblin base ATK=5, ×0.8 = 4
-    expect(UnitTag.atk[regularEid]).toBe(4);
+    // Goblin base HP=80, ×0.8 = 64
+    expect(Health.max[regularEid]).toBe(64);
+    // Goblin base ATK=8, ×0.8 = 6.4 → 6 (floored)
+    expect(UnitTag.atk[regularEid]).toBe(6);
   });
 });
 
