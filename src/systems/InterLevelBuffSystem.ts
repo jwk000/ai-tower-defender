@@ -61,6 +61,9 @@ export class InterLevelBuffSystem implements System {
   /** 当前 Run 中所有已激活的 Buff */
   private activeBuffs: BuffOption[] = [];
 
+  /** 预注入的 Buff 池（由 initialize 设置） */
+  private buffPool: BuffOption[] = [];
+
   /** Buff 选择开始回调 */
   onSelectionStart?: () => void;
 
@@ -80,20 +83,31 @@ export class InterLevelBuffSystem implements System {
   // ============================================================
 
   /**
+   * 初始化 Buff 池（在关间选择开始前注入）。
+   * 设置后可通过 startSelection() 无参调用来启动选择。
+   *
+   * @param buffPool 可用 Buff 池
+   */
+  initialize(buffPool: BuffOption[]): void {
+    this.buffPool = [...buffPool];
+  }
+
+  /**
    * 启动关间 Buff 选择。
    * 从 buffPool 中随机选取 SELECTION_OPTIONS_COUNT 个候选 Buff。
    *
    * @param buffPool 可用 Buff 池
    */
   startSelection(buffPool: BuffOption[]): void {
-    if (buffPool.length === 0) {
+    const pool = buffPool.length > 0 ? buffPool : this.buffPool;
+    if (pool.length === 0) {
       return;
     }
 
     this.active = true;
 
     // Fisher-Yates shuffle，取前 SELECTION_OPTIONS_COUNT 个
-    const shuffled = [...buffPool];
+    const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];

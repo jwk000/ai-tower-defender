@@ -28,6 +28,11 @@ import { TileDamageSystem } from './systems/TileDamageSystem.js';
 import { LightningBoltSystem } from './systems/LightningBoltSystem.js';
 import { DecorationSystem } from './systems/DecorationSystem.js';
 import { ScreenFXSystem } from './systems/ScreenFXSystem.js';
+import { HandSystem } from './systems/HandSystem.js';
+import { CardDraftSystem } from './systems/CardDraftSystem.js';
+import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
+import { SoldierAISystem } from './systems/SoldierAISystem.js';
+import { BossSystem } from './systems/BossSystem.js';
 import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
 import { SaveManager } from './utils/SaveManager.js';
 import {
@@ -39,6 +44,8 @@ import { Sound } from './utils/Sound.js';
 import { Music } from './utils/Music.js';
 import { LEVELS } from './data/levels/index.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, SKILL_CONFIGS, UNIT_TYPE_BY_ID, UNIT_ID_BY_TYPE } from './data/gameData.js';
+import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL, FULL_DRAFT_POOL } from './data/cards.js';
+import { ALL_BUFFS } from './data/buffs.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
 import { shapeTypeToVal } from './utils/visualHelpers.js';
 
@@ -117,6 +124,11 @@ class TowerDefenderGame extends Game {
   private baseEntityId: number | null = null;
   private batSwarmSystem!: BatSwarmSystem;
   private laserBeamSystem!: LaserBeamSystem;
+  private handSystem!: HandSystem;
+  private cardDraftSystem!: CardDraftSystem;
+  private interLevelBuffSystem!: InterLevelBuffSystem;
+  private soldierAISystem!: SoldierAISystem;
+  private bossSystem!: BossSystem;
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
@@ -503,6 +515,45 @@ class TowerDefenderGame extends Game {
       upgradeUnit,
     );
 
+    // ---- Hand System (card management) ----
+    this.handSystem = new HandSystem();
+
+    // Select card pool based on level
+    const cardPoolByLevel: Record<number, typeof LEVEL_1_CARD_POOL> = {
+      1: LEVEL_1_CARD_POOL,
+      2: LEVEL_2_CARD_POOL,
+      3: LEVEL_3_CARD_POOL,
+      4: LEVEL_4_CARD_POOL,
+      5: LEVEL_5_CARD_POOL,
+    };
+    const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
+    this.handSystem.initialize(initialPool);
+
+    // ---- Card Draft System ----
+    this.cardDraftSystem = new CardDraftSystem();
+    this.cardDraftSystem.onDraftStart = () => {
+      this.paused = true;
+    };
+    this.cardDraftSystem.onDraftComplete = (_selectedCard, _replacedCard) => {
+      this.paused = false;
+    };
+
+    // ---- Inter-Level Buff System ----
+    this.interLevelBuffSystem = new InterLevelBuffSystem();
+    this.interLevelBuffSystem.initialize(ALL_BUFFS);
+    this.interLevelBuffSystem.onSelectionStart = () => {
+      this.paused = true;
+    };
+    this.interLevelBuffSystem.onSelectionComplete = (_selected) => {
+      this.paused = false;
+    };
+
+    // ---- Soldier AI System ----
+    this.soldierAISystem = new SoldierAISystem();
+
+    // ---- Boss System ----
+    this.bossSystem = new BossSystem();
+
     // ---- Health system ----
     this.healthSystem = new HealthSystem(
       () => this.phase,
@@ -712,8 +763,12 @@ class TowerDefenderGame extends Game {
     const lifecycleSystem = new LifecycleSystem();
     this.world.registerSystem(lifecycleSystem);
     this.world.registerSystem(this.weatherSystem);
+    this.world.registerSystem(this.handSystem);
+    this.world.registerSystem(this.cardDraftSystem);
+    this.world.registerSystem(this.interLevelBuffSystem);
     this.world.registerSystem(movementSystem);
     this.world.registerSystem(attackSystem);
+    this.world.registerSystem(this.bossSystem);
     this.world.registerSystem(this.batSwarmSystem);
     this.world.registerSystem(unitSystem);
     this.world.registerSystem(projectileSystem);
@@ -731,6 +786,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.healthSystem);
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
+    this.world.registerSystem(this.soldierAISystem);
     this.world.registerSystem(this.decorationSystem);
     this.world.registerSystem(this.screenShakeSystem);
     this.world.registerSystem(unitAnimationSystem);
