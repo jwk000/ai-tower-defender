@@ -1185,4 +1185,3 @@ if (!canvas) throw new Error('Canvas element not found');
   window.addEventListener('resize', () => game.resize());
   (window as unknown as Record<string, unknown>).game = game;
   (window as unknown as Record<string, unknown>).Sound = Sound;
-})();

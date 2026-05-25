@@ -103,8 +103,8 @@ function runSim(map: MapConfig, head: GridPos, ticks: number, dt: number): {
     positions.push({
       x: Position.x[eid] ?? -1,
       y: Position.y[eid] ?? -1,
-      pathIndex: Movement.currentNodeIdx[eid] ?? -1,
-      currentNodeIdx: Movement.currentNodeIdx[eid] ?? -1,
+      pathIndex: Movement.pathIndex[eid] ?? -1,
+      currentNodeIdx: Movement.pathIndex[eid] ?? -1,
       progress: Movement.progress[eid] ?? -1,
     });
   }

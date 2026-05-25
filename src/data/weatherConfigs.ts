@@ -45,12 +45,7 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.Sandstorm]: {
     type: WeatherType.Sandstorm,
     name: '沙暴',
-    modifiers: [
-      { targetType: 'tower', attribute: BuffAttribute.Range, value: -20, isPercent: true },
-      { targetType: 'arrow_tower', attribute: BuffAttribute.AttackSpeed, value: -20, isPercent: true },
-      { targetType: 'cannon_tower', attribute: BuffAttribute.ATK, value: 10, isPercent: true },
-      { targetType: 'enemy', attribute: BuffAttribute.Speed, value: -8, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(210,170,90,0.28)',
     screenAlpha: 0.28,
   },
@@ -58,12 +53,7 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.Blizzard]: {
     type: WeatherType.Blizzard,
     name: '暴风雪',
-    modifiers: [
-      { targetType: 'enemy', attribute: BuffAttribute.Speed, value: -30, isPercent: true },
-      { targetType: 'ice_tower', attribute: BuffAttribute.ATK, value: 40, isPercent: true },
-      { targetType: 'tower', attribute: BuffAttribute.Range, value: -10, isPercent: true },
-      { targetType: 'lightning_tower', attribute: BuffAttribute.ATK, value: -10, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(220,235,250,0.22)',
     screenAlpha: 0.22,
   },
@@ -71,12 +61,7 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.Storm]: {
     type: WeatherType.Storm,
     name: '暴雨',
-    modifiers: [
-      { targetType: 'cannon_tower', attribute: BuffAttribute.ATK, value: -40, isPercent: true },
-      { targetType: 'lightning_tower', attribute: BuffAttribute.ATK, value: 50, isPercent: true },
-      { targetType: 'arrow_tower', attribute: BuffAttribute.ATK, value: -15, isPercent: true },
-      { targetType: 'enemy', attribute: BuffAttribute.Speed, value: -8, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(20,40,80,0.30)',
     screenAlpha: 0.30,
   },
@@ -84,11 +69,7 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.Smog]: {
     type: WeatherType.Smog,
     name: '煤烟',
-    modifiers: [
-      { targetType: 'tower', attribute: BuffAttribute.Range, value: -15, isPercent: true },
-      { targetType: 'laser_tower', attribute: BuffAttribute.ATK, value: 15, isPercent: true },
-      { targetType: 'arrow_tower', attribute: BuffAttribute.AttackSpeed, value: -15, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(60,55,50,0.32)',
     screenAlpha: 0.32,
   },
@@ -96,12 +77,7 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.SporeMist]: {
     type: WeatherType.SporeMist,
     name: '孢子雾',
-    modifiers: [
-      { targetType: 'tower', attribute: BuffAttribute.Range, value: -10, isPercent: true },
-      { targetType: 'soldier', attribute: BuffAttribute.HP, value: -10, isPercent: true },
-      { targetType: 'vine_tower', attribute: BuffAttribute.ATK, value: 25, isPercent: true },
-      { targetType: 'enemy', attribute: BuffAttribute.Speed, value: -5, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(150,80,160,0.28)',
     screenAlpha: 0.28,
   },
@@ -109,13 +85,9 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
   [WeatherType.Void]: {
     type: WeatherType.Void,
     name: '虚空',
-    modifiers: [
-      { targetType: 'tower', attribute: BuffAttribute.Range, value: -10, isPercent: true },
-      { targetType: 'laser_tower', attribute: BuffAttribute.ATK, value: 20, isPercent: true },
-      { targetType: 'lightning_tower', attribute: BuffAttribute.AttackSpeed, value: 20, isPercent: true },
-      { targetType: 'enemy', attribute: BuffAttribute.Speed, value: 10, isPercent: true },
-    ],
+    modifiers: [],
     screenTint: 'rgba(60,20,90,0.40)',
     screenAlpha: 0.40,
   },
-};
+
+} as const;

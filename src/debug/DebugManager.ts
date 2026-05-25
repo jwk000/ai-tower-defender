@@ -1,6 +1,5 @@
 import { DebugPanel, type DebugAction } from './DebugPanel.js';
 import { BehaviorTreeWindow } from './BehaviorTreeWindow.js';
-import { InspectorWindow, buildInspectorState } from './InspectorWindow.js';
 import type { BehaviorTreeDebugState, BTNodeDebugInfo } from './types.js';
 import type { TowerWorld } from '../core/World.js';
 import type { EntityId } from '../types/index.js';
@@ -26,7 +25,6 @@ export class DebugManager {
   private world: TowerWorld;
   private debugPanel: DebugPanel;
   private behaviorTreeWindow: BehaviorTreeWindow;
-  private inspectorWindow: InspectorWindow;
 
   private selectedEntityId: EntityId | null = null;
 
@@ -41,7 +39,6 @@ export class DebugManager {
     this.onOpenLevelEditorFn = hooks.onOpenLevelEditor ?? null;
 
     this.behaviorTreeWindow = new BehaviorTreeWindow();
-    this.inspectorWindow = new InspectorWindow();
     this.debugPanel = new DebugPanel(this.buildActions());
     this.setupKeyboardShortcuts();
   }
@@ -91,13 +88,6 @@ export class DebugManager {
         isEnabled: () => true,
         onClick: () => this.openBehaviorTreeWindow(),
       },
-      {
-        id: 'open_inspector',
-        label: '打开 Inspector',
-        icon: '🔍',
-        isEnabled: () => true,
-        onClick: () => this.openInspectorWindow(),
-      },
     ];
     if (this.onOpenLevelEditorFn) {
       const openEditor = this.onOpenLevelEditorFn;
@@ -139,20 +129,13 @@ export class DebugManager {
     this.behaviorTreeWindow.show(state);
   }
 
-  private openInspectorWindow(): void {
-    const state = buildInspectorState(this.world, this.selectedEntityId);
-    this.inspectorWindow.show(state);
-  }
-
   private setupKeyboardShortcuts(): void {
     document.addEventListener('keydown', (e) => {
       if (e.key === '`') {
         e.preventDefault();
         this.debugPanel.toggle();
       } else if (e.key === 'Escape') {
-        if (this.inspectorWindow.getIsOpen()) {
-          this.inspectorWindow.hide();
-        } else if (this.behaviorTreeWindow.getIsOpen()) {
+        if (this.behaviorTreeWindow.getIsOpen()) {
           this.behaviorTreeWindow.hide();
         } else if (this.debugPanel.getIsExpanded()) {
           this.debugPanel.collapse();
@@ -166,18 +149,12 @@ export class DebugManager {
     if (this.behaviorTreeWindow.getIsOpen()) {
       this.behaviorTreeWindow.updateState(this.buildCurrentBehaviorTreeState());
     }
-    if (this.inspectorWindow.getIsOpen()) {
-      this.inspectorWindow.updateState(buildInspectorState(this.world, this.selectedEntityId));
-    }
   }
 
   update(): void {
     this.debugPanel.refresh();
     if (this.selectedEntityId !== null && this.behaviorTreeWindow.getIsOpen()) {
       this.behaviorTreeWindow.updateState(this.buildCurrentBehaviorTreeState());
-    }
-    if (this.inspectorWindow.getIsOpen()) {
-      this.inspectorWindow.updateState(buildInspectorState(this.world, this.selectedEntityId));
     }
   }
 
@@ -201,6 +178,5 @@ export class DebugManager {
   destroy(): void {
     this.debugPanel.destroy();
     this.behaviorTreeWindow.destroy();
-    this.inspectorWindow.destroy();
   }
 }

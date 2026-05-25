@@ -77,44 +77,6 @@ npm run release      # clean + typecheck + build
 - **配置驱动**: 单位/卡牌/关卡/技能 Buff 全部由 YAML 配置定义，策划可编辑、运行时加载。
 - **规则引擎**: 将声明式配置（如 `onDeath`、`onHit` 生命周期、目标选择/攻击模式行为规则）转换为运行时行为，在 ECS 系统之间提供配置驱动的调度层。
 
-```
-src/
-  main.ts            入口 —— 装配 PixiJS App + bitecs World + 系统管线 + 输入派发
-  core/              引擎核心
-    Game.ts          主循环 + 协调器
-    World.ts         bitecs World 封装（TowerWorld）
-    components.ts    所有组件 defineComponent 定义（SoA 数据）
-    pipeline.ts      系统管线（8 阶段拓扑排序）
-    RuleEngine.ts    规则引擎（生命周期 + 行为规则分发）
-    RuleHandlers.ts  规则处理器实现（deal_aoe_damage、apply_buff 等）
-  config/            配置层（策划可编辑）
-    loader.ts        YAML 配置加载器
-    registry.ts      单位/卡牌配置注册表
-    units/           单位 YAML：towers / soldiers / enemies / buildings / neutrals / objectives
-    levels/          关卡 YAML：8 关 + 终战 + 波次 + 随机池
-    cards/           v3.0 卡牌配置：单位卡 / 法术卡 / 陷阱卡 / 生产卡
-  systems/           系统逻辑（纯函数 + bitecs query）
-                     MovementSystem / AttackSystem / ProjectileSystem / WaveSystem
-                     HealthSystem / EconomySystem / BuildSystem / UnitSystem
-                     SkillSystem / BuffSystem / BossSystem / ProductionSystem
-                     TrapSystem / WeatherSystem / LifecycleSystem / RenderSystem 等
-  ai/                行为树（复杂 AI 补充，简单 AI 走配置规则）
-    BehaviorTree.ts
-    presets/         boss_commander_ai / abyss_lord_ai 等行为树定义
-  render/            PixiJS 渲染层
-    Renderer.ts / MapRenderer.ts / EntityRenderer.ts
-    ProjectileRenderer.ts / ParticleRenderer.ts / UIRenderer.ts
-  unit-system/       v3.0 卡牌/Run 子系统（DeckSystem / HandSystem / EnergySystem
-                     / CardSpawnSystem / SpellCastSystem / RunManager 等）
-  ui/                HUD / 手牌区 / 关间面板 / 商店 / 秘境 / 卡池 / Run 结算
-  components/        旧版组件包装（重构遗留，逐步迁移到 core/components.ts）
-  input/             InputManager.ts —— 事件队列，每帧 flush
-  data/              运行时数据/公式（balance.ts、EndlessWaveGenerator.ts）
-  debug/             调试系统（一键通关、行为树查看等）
-  utils/             通用工具（runRandom 6 流 PRNG、debugLog 等）
-  types/             共享类型、配置接口、枚举
-```
-
 ### ECS 规则（bitecs）
 
 - **组件**: 使用 `defineComponent({ field: Types.f32 })` 定义，组件即字段集合，数据以 SoA 形式存储。组件本体没有方法，纯数据。
@@ -128,7 +90,7 @@ src/
   4. `PHASE_GAMEPLAY` —— 移动 / 攻击 / 弹道 / 技能 / 陷阱 / 生产
   5. `PHASE_LIFECYCLE` —— 生命周期事件分发 + 死亡检测
   6. `PHASE_CREATION` —— 建造 / 实体新建
-  7. `PHASE_AI` —— 行为树执行
+  7. `PHASE_AI` —— AI执行
   8. `PHASE_RENDER` —— `RenderSystem` + `UISystem`，始终最后
 - **死亡实体清理**: `destroyEntity(eid)` 标记延迟删除，在 `World.update()` 末尾统一 `removeEntity` 清理。
 
@@ -137,7 +99,6 @@ src/
 - **生命周期事件**: `onCreate` / `onDeath` / `onHit` / `onAttack` / `onKill` / `onUpgrade` / `onDestroy` / `onEnter` / `onLeave`。
 - **触发流程**: 系统检测事件 → 调用 `ruleEngine.dispatch(event, entity, context)` → 引擎查找该单位配置的规则 → 执行对应 `RuleHandler`（如 `deal_aoe_damage`、`apply_buff`、`spawn_unit`）。
 - **行为规则**: 单位配置中声明 `targetSelection` / `attackMode` / `movementMode`，规则引擎在 AttackSystem / MovementSystem 中提供决策。
-- **行为树补充**: 若单位配置了 `ai_tree`，则行为树接管目标选择和攻击决策；生命周期规则仍由规则引擎处理。两者互不冲突。
 - **新增规则**: 在 `core/RuleHandlers.ts` 注册新 handler，再在单位 YAML 中引用，无需改动系统代码。
 
 ### 渲染层级（PixiJS）
@@ -154,26 +115,7 @@ src/
 - `onPointerDown` 派发优先级：UI 按钮 → 手牌区拖卡 → 战场建造放置 → 单位选择。
 - UI 面板区域（坐标根据响应式布局动态计算）不进入战场点击逻辑。
 
-### TypeScript 注意事项
 
-- `noUncheckedIndexedAccess: true` —— 任何数组下标访问返回 `T | undefined`，必须处理。
-- 导入使用 `.js` 后缀（如 `import { Foo } from './bar.js'`）—— Vite 的 `bundler` moduleResolution 要求。
-- 路径别名：`@/`、`@core/`、`@components/`、`@systems/`、`@data/`、`@ui/`、`@render/`、`@input/`、`@utils/`、`@types/`。
-- 启用：`strict: true`、`noImplicitOverride: true`、`forceConsistentCasingInFileNames: true`。
-
-### 游戏状态
-
-- **关内阶段**: `GamePhase` 枚举驱动 —— `Deployment（部署）→ Battle（战斗）→ WaveBreak（波间）→ Victory/Defeat（胜利/失败）`。系统通过回调读取阶段，而不是直接访问状态。
-- **Run 长征**（v3.0）: `RunManager` 管理 8 关 + 终战连闯流程；关间在 `InterLevelNode`（商店 / 秘境）二选一；水晶 HP 跨关继承；死亡从第 1 关重开，结算金币 → 火花碎片。
-
-### 新增内容（配置驱动）
-
-- **新增单位**（塔 / 士兵 / 敌人 / 中立机关）: 在 `config/units/*.yaml` 添加配置（含 `stats` / `behavior` / `lifecycle` / `ai` / `visual`），无需改代码。规则引擎与渲染层自动接管。
-- **新增卡牌**（v3.0）: 在 `config/cards/*.yaml` 添加 `CardConfig`，并关联单位/法术配置；卡池界面与 Run 抽卡逻辑自动生效。
-- **新增关卡**: 在 `config/levels/*.yaml` 编写波次与随机池配置。
-- **新增组件**: 在 `core/components.ts` 用 `defineComponent` 定义新字段集合 → 在需要的系统中 `defineQuery` 引用 → 添加挂载/移除逻辑。
-- **新增生命周期/行为规则**: 在 `core/RuleHandlers.ts` 注册新 handler → 在单位 YAML 中通过名字引用，无需改系统。
-- **新增行为树节点**: 在 `ai/BehaviorTree.ts` 添加节点类型 → 在 `ai/presets/` 中编写行为树预设 → 单位配置 `ai_tree` 字段引用。
 
 ## 开发流程
 
@@ -183,44 +125,3 @@ src/
 4. **变更先入文档。** 任何验收问题或需求变更必须先写入文档，再修改代码。
 5. **始终用中文回复。** 本项目所有沟通必须使用中文。
 6. **开发日志。** 每次对话结束时，agent 必须写一份开发日志。日志按日期归档（每天一个文件），保留完整历史。
-
-<!-- UBF_MEMORY_SYSTEM_START -->
-## 记忆系统
-
-### ⚠️ 路径约束
-
-记忆分两级存储，根目录不同：
-
-- **项目记忆**：`ubf_agent_root/.memory/` — 项目目录下的子目录，存本项目的知识
-- **全局知识**：`$UBF_AI_ROOT/.memory/` — **独立的 git 仓库**（不在项目目录内），通过环境变量 `$UBF_AI_ROOT` 定位，存跨项目共享知识（me.md、conventions.md、stack.md 等）
-
-> `$UBF_AI_ROOT` 由 `/ubf_init` 自动发现并持久化到 shell 环境。访问全局知识前先确认该变量存在。
-
-> **⛔ 项目级记忆只写 `ubf_agent_root/.memory/`。全局仓库是只读参考，禁止在其中创建项目子目录。**
-
-### 目录分类
-
-| 目录 | 放什么 | 判定 |
-|------|--------|------|
-| **`modules/`** | 架构分析、技术原理、接口说明 | **会随理解加深而迭代** |
-| **`references/`** | 需求文档、产品规格、现状快照 | **不会迭代的只读基线**（⛔ 不可修改删除） |
-| `decisions/` | ADR 格式的取舍记录 | — |
-| `handoffs/` | 会话交接摘要 | — |
-| `known-issues/` | bug、workaround | — |
-
-### 读写规则
-
-- **读取**：先查 `_index.md`，再按需读具体文件
-- **写入**：写入后告知用户路径；`_index.md` 由脚本生成，**禁止手工编辑**
-- **命名**：`{中文标题}_V{版本}_{YYYY.MM.DD_HH.mm.ss}.md`（禁止冒号和空格）
-
-> **⚠️ 凡涉及记忆读写操作（检索、写入、交接、索引重建、归档），必须先加载 `ubf-memory` skill 再执行。** 该 skill 包含完整的操作规范、权限边界和脚本调用流程。
-
-### 项目记忆路径
-
-- 模块知识: `ubf_agent_root/.memory/modules/_index.md`
-- 参考资料: `ubf_agent_root/.memory/references/_index.md`
-- 项目决策: `ubf_agent_root/.memory/decisions/_index.md`
-- 最近交接: `ubf_agent_root/.memory/handoffs/_latest.md`
-- 已知问题: `ubf_agent_root/.memory/known-issues/_index.md`
-<!-- UBF_MEMORY_SYSTEM_END -->
