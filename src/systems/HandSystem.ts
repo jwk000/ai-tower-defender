@@ -20,7 +20,7 @@ export interface CardInstance {
   /** 显示名称 */
   name: string;
   /** 卡牌类型 */
-  type: 'unit' | 'spell' | 'arcane';
+  type: 'unit' | 'spell' | 'arcane' | 'trap' | 'production';
   /** 一句话机制描述 */
   description: string;
 }

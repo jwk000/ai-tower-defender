@@ -108,61 +108,61 @@ const priest: CardInstance = {
   description: '治疗单位，持续恢复友方HP',
 };
 
-// ---- 机关（8种 — 卡牌类型映射为 'unit'）----
+// ---- 机关（8种）----
 
 const spikeTrap: CardInstance = {
   id: 'card_spike_trap',
   name: '地刺',
-  type: 'unit',
+  type: 'trap',
   description: '路径陷阱，对经过敌人造成持续伤害',
 };
 
 const bearTrap: CardInstance = {
   id: 'card_bear_trap',
   name: '捕兽夹',
-  type: 'unit',
+  type: 'trap',
   description: '一次性陷阱，触发后困住敌人1秒',
 };
 
 const tarPit: CardInstance = {
   id: 'card_tar_pit',
   name: '焦油坑',
-  type: 'unit',
+  type: 'trap',
   description: '路径减速，经过的地面敌人减速20%',
 };
 
 const boulder: CardInstance = {
   id: 'card_boulder',
   name: '巨石',
-  type: 'unit',
+  type: 'trap',
   description: '路障，阻挡敌人前进必须被破坏',
 };
 
 const fan: CardInstance = {
   id: 'card_fan',
   name: '风扇',
-  type: 'unit',
+  type: 'trap',
   description: '前方3格路径敌人减速20%',
 };
 
 const waterPit: CardInstance = {
   id: 'card_water_pit',
   name: '水坑',
-  type: 'unit',
+  type: 'trap',
   description: '50%概率直接秒杀经过的敌人',
 };
 
 const boxingGlove: CardInstance = {
   id: 'card_boxing_glove',
   name: '拳击套',
-  type: 'unit',
+  type: 'trap',
   description: '击退前方1格路径上的敌人',
 };
 
 const mechanicalArm: CardInstance = {
   id: 'card_mechanical_arm',
   name: '机械臂',
-  type: 'unit',
+  type: 'trap',
   description: '拉回前方2格路径上的敌人',
 };
 
