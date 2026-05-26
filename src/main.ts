@@ -548,6 +548,10 @@ class TowerDefenderGame extends Game {
       this.paused = false;
     };
 
+    // Inject systems into UISystem for overlay rendering
+    this.uiSystem.setCardDraftSystem(this.cardDraftSystem);
+    this.uiSystem.setInterLevelBuffSystem(this.interLevelBuffSystem);
+
     // ---- Soldier AI System ----
     this.soldierAISystem = new SoldierAISystem();
 

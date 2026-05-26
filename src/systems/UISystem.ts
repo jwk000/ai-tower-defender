@@ -30,6 +30,8 @@ import {
   PlayerOwned,
 } from '../core/components.js';
 import type { CardConfig, CardType } from '../config/cardRegistry.js';
+import type { CardDraftSystem } from './CardDraftSystem.js';
+import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
 import {
   computeEnergyBarRatio,
   computeCardSlotsLayout,
@@ -215,6 +217,19 @@ export class UISystem implements System {
     this.overlayMode = 'closed';
   }
 
+  // ---- v3.0 roguelike: CardDraft & BuffSelection system references ----
+
+  private cardDraftSystem: CardDraftSystem | null = null;
+  private interLevelBuffSystem: InterLevelBuffSystem | null = null;
+
+  setCardDraftSystem(sys: CardDraftSystem): void {
+    this.cardDraftSystem = sys;
+  }
+
+  setInterLevelBuffSystem(sys: InterLevelBuffSystem): void {
+    this.interLevelBuffSystem = sys;
+  }
+
   selectEnemy(id: number): void {
     this.selectedEntityId = null;
     this.selectedEntityType = null;
@@ -312,6 +327,19 @@ export class UISystem implements System {
       if (this.enemySelectTimer <= 0) {
         this.enemyEntityId = null;
       }
+    }
+
+    // CardDraft / BuffSelection overlays take priority over pause overlay
+    if (this.cardDraftSystem?.isActive()) {
+      this.buildTopHUD(phase);
+      this.renderCardDraftOverlay();
+      return;
+    }
+
+    if (this.interLevelBuffSystem?.isActive()) {
+      this.buildTopHUD(phase);
+      this.renderBuffSelectionOverlay();
+      return;
     }
 
     if (this.isPaused?.()) {
@@ -1276,10 +1304,233 @@ export class UISystem implements System {
   }
 
   // ============================================================
+  // CardDraft Overlay — 3选1抽卡面板
+  // ============================================================
+
+  private renderCardDraftOverlay(): void {
+    const sys = this.cardDraftSystem;
+    if (!sys) return;
+
+    const options = sys.getOptions();
+    if (options.length === 0) return;
+
+    const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
+    const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
+
+    // Full-screen dim
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: RenderSystem.sceneW,
+      h: RenderSystem.sceneH,
+      color: '#000000', alpha: 0.6,
+    });
+
+    const panelW = 700;
+    const panelH = 280;
+    const panelX = mapCenterX - panelW / 2;
+    const panelY = mapCenterY - panelH / 2;
+
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#7c4dff', strokeWidth: 2,
+    });
+
+    this.infos.push({
+      x: mapCenterX, y: panelY + 30,
+      text: '选择一张卡牌加入手牌',
+      color: '#ffffff', size: 24, align: 'center',
+    });
+
+    const cardW = 180;
+    const cardH = 200;
+    const gap = 20;
+    const totalW = options.length * cardW + (options.length - 1) * gap;
+    const startX = mapCenterX - totalW / 2 + cardW / 2;
+    const cardY = panelY + 100;
+
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i]!;
+      const cx = startX + i * (cardW + gap);
+      const runContext = this._world?.runContext;
+      const config = runContext?.registry.get(opt.id);
+      const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
+      const canAfford = runContext ? runContext.energy.current >= (config?.energyCost ?? 0) : true;
+
+      this.renderer.push({
+        shape: 'rect',
+        x: cx, y: cardY,
+        size: cardW, h: cardH,
+        color: '#1a2332', alpha: canAfford ? 0.95 : 0.5,
+        stroke: borderColor, strokeWidth: 2,
+      });
+
+      this.infos.push({
+        x: cx, y: cardY - 30,
+        text: opt.name, color: '#ffffff', size: 16, align: 'center',
+      });
+
+      this.infos.push({
+        x: cx, y: cardY + 10,
+        text: opt.description,
+        color: '#90a4ae', size: 12, align: 'center',
+      });
+
+      if (config) {
+        this.infos.push({
+          x: cx, y: cardY + cardH / 2 + 20,
+          text: `◇ ${config.energyCost}`,
+          color: canAfford ? '#bbdefb' : '#ef5350', size: 16, align: 'center',
+        });
+      }
+
+      this.buttons.push({
+        x: cx - cardW / 2, y: cardY - cardH / 2,
+        w: cardW, h: cardH,
+        label: '选择',
+        color: '#7c4dff', textColor: '#ffffff',
+        enabled: canAfford,
+        onClick: () => {
+          sys.selectOption(i);
+        },
+      });
+    }
+  }
+
+  // ============================================================
+  // BuffSelection Overlay — 关间2选1 Buff面板
+  // ============================================================
+
+  private renderBuffSelectionOverlay(): void {
+    const sys = this.interLevelBuffSystem;
+    if (!sys) return;
+
+    const options = sys.getOptions();
+    if (options.length === 0) return;
+
+    const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
+    const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
+
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: RenderSystem.sceneW,
+      h: RenderSystem.sceneH,
+      color: '#000000', alpha: 0.6,
+    });
+
+    const panelW = 650;
+    const panelH = 320;
+    const panelX = mapCenterX - panelW / 2;
+    const panelY = mapCenterY - panelH / 2;
+
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#ff9800', strokeWidth: 2,
+    });
+
+    this.infos.push({
+      x: mapCenterX, y: panelY + 30,
+      text: '选择一个 Buff 带入下一关',
+      color: '#ffffff', size: 24, align: 'center',
+    });
+
+    const cardW = 260;
+    const cardH = 220;
+    const gap = 30;
+    const totalW = options.length * cardW + (options.length - 1) * gap;
+    const startX = mapCenterX - totalW / 2 + cardW / 2;
+    const cardY = panelY + 100;
+
+    const rarityColors: Record<string, string> = {
+      common: '#ffffff',
+      rare: '#2196f3',
+      epic: '#9c27b0',
+    };
+
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i]!;
+      const cx = startX + i * (cardW + gap);
+      const borderColor = rarityColors[opt.rarity] ?? '#ffffff';
+
+      this.renderer.push({
+        shape: 'rect',
+        x: cx, y: cardY,
+        size: cardW, h: cardH,
+        color: '#1a2332', alpha: 0.95,
+        stroke: borderColor, strokeWidth: 3,
+      });
+
+      this.infos.push({
+        x: cx, y: cardY - cardH / 2 + 30,
+        text: opt.name, color: '#ffffff', size: 18, align: 'center',
+      });
+
+      const rarityLabel = opt.rarity.charAt(0).toUpperCase() + opt.rarity.slice(1);
+      this.infos.push({
+        x: cx, y: cardY - cardH / 2 + 52,
+        text: rarityLabel, color: borderColor, size: 13, align: 'center',
+      });
+
+      this.infos.push({
+        x: cx, y: cardY,
+        text: opt.description,
+        color: '#b0bec5', size: 13, align: 'center',
+      });
+
+      this.infos.push({
+        x: cx, y: cardY + 50,
+        text: `${opt.effect.type}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
+        color: '#ffcc80', size: 14, align: 'center',
+      });
+
+      this.buttons.push({
+        x: cx - cardW / 2, y: cardY - cardH / 2,
+        w: cardW, h: cardH,
+        label: `选择 ${opt.name}`,
+        color: '#ff9800', textColor: '#ffffff',
+        enabled: true,
+        onClick: () => {
+          sys.selectBuff(i);
+        },
+      });
+    }
+  }
+
+  // ============================================================
   // Input — button hit-testing (unchanged)
   // ============================================================
 
   handleClick(x: number, y: number): boolean {
+    // CardDraft / BuffSelection overlays consume all clicks (buttons handle their own)
+    if (this.cardDraftSystem?.isActive()) {
+      for (const btn of this.buttons) {
+        const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+        if (enabled && x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          btn.onClick();
+          return true;
+        }
+      }
+      return true; // consume click even outside buttons (block everything else)
+    }
+
+    if (this.interLevelBuffSystem?.isActive()) {
+      for (const btn of this.buttons) {
+        const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+        if (enabled && x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          btn.onClick();
+          return true;
+        }
+      }
+      return true;
+    }
+
     if (this.overlayMode !== 'closed') {
       const layout = buildDeckOverlayLayout(0);
       const region = classifyOverlayClick(x, y, layout.modal);
