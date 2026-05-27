@@ -15,7 +15,7 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
-  Tower, TargetingMark,
+  Tower, TargetingMark, ScreenShake,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { Sound } from '../utils/Sound.js';
@@ -61,6 +61,20 @@ const SUPERROBOT_WARNING_DURATION = 2;
 const ABYSSLORD_ANNIHILATE_INTERVAL = 5;
 const ABYSSLORD_ANNIHILATE_RADIUS = 150;
 const ABYSSLORD_HEAL_RATIO = 0.02;     // 2% max HP per kill
+
+// ============================================================
+// Screen shake helper
+// ============================================================
+
+function triggerScreenShake(world: TowerWorld, intensity: number, duration: number, frequency: number): void {
+  const eid = world.createEntity();
+  world.addComponent(eid, ScreenShake, {
+    intensity,
+    duration,
+    elapsed: 0,
+    frequency,
+  });
+}
 
 // ============================================================
 // BossSystem
@@ -163,6 +177,7 @@ export class BossSystem implements System {
     }
 
     Sound.play('boss_split');
+    triggerScreenShake(world, 3, 0.3, 10);
 
     // Destroy original
     world.destroyEntity(eid);
@@ -260,6 +275,7 @@ export class BossSystem implements System {
       Boss.spawnTimer[eid] = 0;
       this.spawnQueenWormMinions(world, eid);
       Sound.play('boss_summon');
+      triggerScreenShake(world, 2, 0.2, 12);
     }
   }
 
@@ -458,6 +474,7 @@ export class BossSystem implements System {
       const warnTimer = Boss.abilityTimer[eid] ?? 0;
       if (warnTimer >= SUPERROBOT_WARNING_DURATION) {
         Sound.play('boss_missile');
+        triggerScreenShake(world, 8, 0.5, 20);
         this.detonateMissile(world, eid);
         Boss.abilityTimer[eid] = 0;
         Boss.phase[eid] = 0;
@@ -591,6 +608,7 @@ export class BossSystem implements System {
     if (abilityTimer >= ABYSSLORD_ANNIHILATE_INTERVAL) {
       Boss.abilityTimer[eid] = 0;
       Sound.play('boss_devour');
+      triggerScreenShake(world, 12, 0.8, 15);
       this.performAbyssAnnihilation(world, eid);
     }
   }
