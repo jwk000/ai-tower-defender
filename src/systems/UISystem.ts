@@ -32,6 +32,7 @@ import {
 import type { CardConfig, CardType } from '../config/cardRegistry.js';
 import type { CardDraftSystem } from './CardDraftSystem.js';
 import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
+import { Sound } from '../utils/Sound.js';
 import {
   computeEnergyBarRatio,
   computeCardSlotsLayout,
@@ -1394,6 +1395,7 @@ export class UISystem implements System {
         color: '#7c4dff', textColor: '#ffffff',
         enabled: canAfford,
         onClick: () => {
+          Sound.play('draft_select');
           sys.selectOption(i);
         },
       });
@@ -1497,6 +1499,7 @@ export class UISystem implements System {
         color: '#ff9800', textColor: '#ffffff',
         enabled: true,
         onClick: () => {
+          Sound.play('buff_select');
           sys.selectBuff(i);
         },
       });

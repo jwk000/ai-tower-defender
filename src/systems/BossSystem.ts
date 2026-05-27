@@ -18,6 +18,7 @@ import {
   Tower, TargetingMark,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
+import { Sound } from '../utils/Sound.js';
 
 // ============================================================
 // Boss type enum
@@ -161,6 +162,8 @@ export class BossSystem implements System {
       this.spawnSlimeChild(world, x, y, stats.hp, stats.atk, sc + 1, faction);
     }
 
+    Sound.play('boss_split');
+
     // Destroy original
     world.destroyEntity(eid);
   }
@@ -256,6 +259,7 @@ export class BossSystem implements System {
     if (spawnTimer >= QUEENWORM_SPAWN_INTERVAL) {
       Boss.spawnTimer[eid] = 0;
       this.spawnQueenWormMinions(world, eid);
+      Sound.play('boss_summon');
     }
   }
 
@@ -341,6 +345,7 @@ export class BossSystem implements System {
     if (spawnTimer >= interval) {
       Boss.spawnTimer[eid] = 0;
       this.spawnLuciferSkeletons(world, eid);
+      Sound.play('boss_summon');
     }
   }
 
@@ -452,6 +457,7 @@ export class BossSystem implements System {
     if (Boss.phase[eid] === 1) {
       const warnTimer = Boss.abilityTimer[eid] ?? 0;
       if (warnTimer >= SUPERROBOT_WARNING_DURATION) {
+        Sound.play('boss_missile');
         this.detonateMissile(world, eid);
         Boss.abilityTimer[eid] = 0;
         Boss.phase[eid] = 0;
@@ -584,6 +590,7 @@ export class BossSystem implements System {
     const abilityTimer = Boss.abilityTimer[eid] ?? 0;
     if (abilityTimer >= ABYSSLORD_ANNIHILATE_INTERVAL) {
       Boss.abilityTimer[eid] = 0;
+      Sound.play('boss_devour');
       this.performAbyssAnnihilation(world, eid);
     }
   }
