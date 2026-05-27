@@ -23,47 +23,47 @@ const tiles: TileType[][] = [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty,
   ],
-  // Row 1 — spawn_a enters here, path runs left toward col 5
+  // Row 1 (empty — tower placement zone above path)
   [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Spawn,
-  ],
-  // Row 2 — spawn_b enters here, path runs left toward col 5
-  [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Path,    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Empty, TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Spawn,
-  ],
-  // Row 3 — S-bend: path goes RIGHT from col 5 to col 16
-  [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Path,    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Empty, TileType.Empty, TileType.Path,    TileType.Empty, TileType.Empty,
     TileType.Empty,
   ],
-  // Row 4 — vertical column connecting row 3→5 at col 16
+  // Row 2 (empty)
   [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Path,    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
-    TileType.Empty, TileType.Empty, TileType.Path,    TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty,
   ],
-  // Row 5 — final leftward sprint to the crystal at col 0
+  // Row 3 (empty)
   [
-    TileType.Base,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,    TileType.Path,
-    TileType.Path,    TileType.Path,    TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty,
   ],
-  // Row 6 (empty — tower placement zone below path)
+  // Row 4 — main path: spawn → crystal (straight line)
+  [
+    TileType.Spawn,  TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,
+    TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,
+    TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,
+    TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,   TileType.Path,
+    TileType.Base,
+  ],
+  // Row 5 (empty — tower placement zone below path)
+  [
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
+    TileType.Empty,
+  ],
+  // Row 6 (empty)
   [
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
     TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty, TileType.Empty,
@@ -105,39 +105,26 @@ export const LEVEL_01: LevelConfig = {
 
     pathGraph: {
       nodes: [
-        { id: 'n_spawn_a',  row: 1, col: 20, role: 'spawn',          spawnId: 'spawn_a' },
-        { id: 'n_spawn_b',  row: 2, col: 20, role: 'spawn',          spawnId: 'spawn_b' },
-        { id: 'n_turn1_a',  row: 1, col: 5,  role: 'waypoint' },
-        { id: 'n_merge',    row: 2, col: 5,  role: 'waypoint' },
-        { id: 'n_s_right',  row: 3, col: 16, role: 'waypoint' },
-        { id: 'n_s_down',   row: 5, col: 16, role: 'waypoint' },
-        { id: 'n_crystal',  row: 5, col: 0,  role: 'crystal_anchor' },
+        { id: 'n_spawn',   row: 4, col: 0,  role: 'spawn',          spawnId: 'spawn_0' },
+        { id: 'n_crystal', row: 4, col: 20, role: 'crystal_anchor' },
       ],
       edges: [
-        { from: 'n_spawn_a',  to: 'n_turn1_a',  weight: 15 },
-        { from: 'n_spawn_b',  to: 'n_merge',     weight: 15 },
-        { from: 'n_turn1_a',  to: 'n_merge',     weight: 1 },
-        { from: 'n_merge',    to: 'n_s_right',    weight: 12 },
-        { from: 'n_s_right',  to: 'n_s_down',     weight: 2 },
-        { from: 'n_s_down',   to: 'n_crystal',   weight: 16 },
+        { from: 'n_spawn', to: 'n_crystal' },
       ],
     },
 
     spawns: [
-      { id: 'spawn_a', row: 1, col: 20 },
-      { id: 'spawn_b', row: 2, col: 20 },
+      { id: 'spawn_0', row: 4, col: 0 },
     ],
 
     obstaclePlacements: [
-      { row: 0, col: 5,  type: ObstacleType.Tree },
-      { row: 2, col: 8,  type: ObstacleType.Tree },
-      { row: 2, col: 10, type: ObstacleType.Bush },
-      { row: 3, col: 8,  type: ObstacleType.Bush },
-      { row: 3, col: 12, type: ObstacleType.Tree },
-      { row: 4, col: 10, type: ObstacleType.Tree },
-      { row: 4, col: 14, type: ObstacleType.Bush },
-      { row: 6, col: 5,  type: ObstacleType.Tree },
-      { row: 7, col: 16, type: ObstacleType.Bush },
+      { row: 1, col: 5,  type: ObstacleType.Tree },
+      { row: 2, col: 10, type: ObstacleType.Tree },
+      { row: 2, col: 15, type: ObstacleType.Bush },
+      { row: 6, col: 8,  type: ObstacleType.Tree },
+      { row: 6, col: 14, type: ObstacleType.Bush },
+      { row: 7, col: 4,  type: ObstacleType.Bush },
+      { row: 7, col: 18, type: ObstacleType.Flower },
     ],
   },
 
