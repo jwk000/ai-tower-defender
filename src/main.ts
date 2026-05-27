@@ -1,5 +1,6 @@
 import { Game } from './core/Game.js';
 import { LayoutManager } from './ui/LayoutManager.js';
+import { LevelSelectUI } from './ui/LevelSelectUI.js';
 import { RenderSystem, computeSceneLayout } from './systems/RenderSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { AttackSystem } from './systems/AttackSystem.js';
@@ -159,7 +160,12 @@ class TowerDefenderGame extends Game {
     Sound.preload();
     Sound.initUnlock(canvas);
 
-    // LevelSelectUI deleted — stub
+    // LevelSelectUI — renders level selection menu
+    this.levelSelectUI = new LevelSelectUI(
+      this.renderer,
+      (levelId) => this.startLevel(levelId),
+    );
+
     // Debug manager — global lifetime (design/27): button visible across all screens.
     this.debugManager = new DebugManager(this.world, {
       getEconomy: () => (this.currentScreen === GameScreen.Battle ? this.economy : null),
