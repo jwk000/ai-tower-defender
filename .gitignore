@@ -42,3 +42,18 @@ tmp/
 
 # Level editor recycle bin (DEV runtime artifact, see design/29 §8)
 .editor-trash/
+.codegraph/
+
+# CodeGraph data files
+# These are local to each machine and should not be committed
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Cache
+cache/
+
+# Hook markers
+.dirty
