@@ -112,6 +112,7 @@ export class BuildSystem implements System {
 
   // —— bitecs 查询（只定义一次） ——
   private gridQuery = defineQuery([GridOccupant]);
+  private buildingQuery = defineQuery([BuildingTower]);
 
   constructor(
     map: MapConfig,
@@ -127,9 +128,22 @@ export class BuildSystem implements System {
   // System 接口
   // ==========================================================
 
-  /** 每帧缓存 world 引用，供建造方法使用 */
-  update(world: TowerWorld, _dt: number): void {
+  /** 每帧更新：建造进度倒计时 + 缓存 world 引用 */
+  update(world: TowerWorld, dt: number): void {
     this._world = world;
+
+    // Update building tower timers
+    const buildingTowers = this.buildingQuery(world.world);
+    for (const eid of buildingTowers) {
+      const timer = BuildingTower.timer[eid] ?? 0;
+      if (timer > 0) {
+        BuildingTower.timer[eid] = timer - dt;
+        // Building complete — remove BuildingTower component
+        if (BuildingTower.timer[eid]! <= 0) {
+          world.removeComponent(eid, BuildingTower);
+        }
+      }
+    }
   }
 
   // ==========================================================

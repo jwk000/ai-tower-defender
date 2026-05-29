@@ -29,8 +29,10 @@ import {
   MoveModeVal,
   Stunned,
   Frozen,
+  DamageTypeVal,
 } from '../core/components.js';
 import { areHostile } from '../utils/factionUtils.js';
+import { applyDamageToTarget } from '../utils/damageUtils.js';
 
 // ============================================================
 // 状态常量
@@ -216,6 +218,25 @@ export class SoldierAISystem implements System {
 
     // Still in combat — set Attack.targetId for damage systems
     Attack.targetId[eid] = attackTarget;
+
+    // Handle attack cooldown and deal damage
+    const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
+    if (cooldownTimer > 0) {
+      Attack.cooldownTimer[eid] = cooldownTimer - dt;
+    } else {
+      // Attack is ready — deal damage
+      const damage = Attack.damage[eid] ?? 0;
+      const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
+      if (damage > 0 && attackSpeed > 0) {
+        applyDamageToTarget(world, attackTarget, damage, DamageTypeVal.Physical);
+        Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
+
+        // Hit flash on target
+        if (Visual.hitFlashTimer[attackTarget] !== undefined) {
+          Visual.hitFlashTimer[attackTarget] = 0.12;
+        }
+      }
+    }
 
     // Check if too far from home
     if (this.isTooFarFromHome(eid)) {
