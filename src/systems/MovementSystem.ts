@@ -7,7 +7,7 @@ import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
-import { linearizeForLegacy } from '../level/graph/PathGraph.js';
+import { linearizeSpawnPaths } from '../level/graph/PathGraph.js';
 
 interface CollisionResult {
   blocked: boolean;
@@ -39,17 +39,19 @@ export class MovementSystem implements System {
   /** Query: base objective entities (Category.Objective) for damage on enemy reach-end */
   private baseQuery = defineQuery([Position, Health, Category]);
 
-  private readonly path: readonly GridPos[];
+  /** Per-spawn paths: paths[spawnIdx] = ordered GridPos[] from spawn to crystal_anchor */
+  private readonly paths: readonly (readonly GridPos[])[];
 
-  /** Static path data — used by findNearestPathIndex for other systems */
-  private static _path: readonly GridPos[] = [];
+  /** Static per-spawn paths — used by findNearestPathIndex for other systems */
+  private static _paths: readonly (readonly GridPos[])[] = [];
   /** Static tile size — used by findNearestPathIndex */
   private static _tileSize = 0;
 
   constructor(private map: MapConfig) {
     const resolved = resolveGraphFromMap(map);
-    this.path = linearizeForLegacy({ pathGraph: resolved.pathGraph, spawns: resolved.spawns });
-    MovementSystem._path = this.path;
+    const spawnPaths = linearizeSpawnPaths({ pathGraph: resolved.pathGraph, spawns: resolved.spawns });
+    this.paths = spawnPaths.map((sp) => sp.path);
+    MovementSystem._paths = this.paths;
     MovementSystem._tileSize = map.tileSize;
   }
 
@@ -67,7 +69,7 @@ export class MovementSystem implements System {
 
   private processEnemies(world: TowerWorld, dt: number): void {
     const entities = this.movingQuery(world.world);
-    const path = this.path;
+    const paths = this.paths;
     const ts = this.map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
@@ -87,6 +89,10 @@ export class MovementSystem implements System {
       // Skip if not in follow-path mode
       if (Movement.moveMode[eid] !== MoveModeVal.FollowPath) continue;
 
+      // Select path for this enemy's spawn point
+      const spawnIdx = Movement.spawnIdx[eid]!;
+      const path = (spawnIdx >= 0 && spawnIdx < paths.length) ? paths[spawnIdx]! : paths[0]!;
+
       const pathIndex = Movement.pathIndex[eid]!;
 
       // Reached end of path — damage base and destroy
@@ -99,7 +105,7 @@ export class MovementSystem implements System {
       const posY = Position.y[eid]!;
 
       // --- Path-recovery: detect if enemy was pushed off-path ---
-      if (this.tryPathRecovery(eid, pathIndex, path, ts, ox, oy, posX, posY)) {
+      if (this.tryPathRecovery(eid, pathIndex, path, ts, ox, oy, posX, posY, spawnIdx)) {
         continue; // position already snapped to nearest waypoint
       }
 
@@ -202,6 +208,7 @@ export class MovementSystem implements System {
     oy: number,
     posX: number,
     posY: number,
+    spawnIdx: number,
   ): boolean {
     if (pathIndex >= path.length - 1) return false;
 
@@ -683,27 +690,33 @@ export class MovementSystem implements System {
    * @returns Index of the nearest path waypoint (0-based), or 0 if path is empty
    */
   static findNearestPathIndex(_world: TowerWorld, x: number, y: number, tileSize: number): number {
-    const path = MovementSystem._path;
+    const allPaths = MovementSystem._paths;
     const ts = tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
 
-    if (path.length === 0) return 0;
+    if (allPaths.length === 0) return 0;
 
-    let nearestIdx = 0;
+    // Search across all paths, return the index within the nearest path
+    let bestPathIdx = 0;
+    let bestPointIdx = 0;
     let nearestDistSq = Infinity;
-    for (let i = 0; i < path.length; i++) {
-      const wp = path[i]!;
-      const wx = wp.col * ts + ts / 2 + ox;
-      const wy = wp.row * ts + ts / 2 + oy;
-      const dx = x - wx;
-      const dy = y - wy;
-      const dsq = dx * dx + dy * dy;
-      if (dsq < nearestDistSq) {
-        nearestDistSq = dsq;
-        nearestIdx = i;
+    for (let p = 0; p < allPaths.length; p++) {
+      const path = allPaths[p]!;
+      for (let i = 0; i < path.length; i++) {
+        const wp = path[i]!;
+        const wx = wp.col * ts + ts / 2 + ox;
+        const wy = wp.row * ts + ts / 2 + oy;
+        const dx = x - wx;
+        const dy = y - wy;
+        const dsq = dx * dx + dy * dy;
+        if (dsq < nearestDistSq) {
+          nearestDistSq = dsq;
+          bestPathIdx = p;
+          bestPointIdx = i;
+        }
       }
     }
-    return nearestIdx;
+    return bestPointIdx;
   }
 }

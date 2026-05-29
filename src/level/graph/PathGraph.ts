@@ -282,6 +282,68 @@ export function linearizeForLegacy(input: LinearizeInput): readonly GridPos[] {
   throw new Error('[linearizeForLegacy] 从 spawn 出发未抵达 crystal_anchor');
 }
 
+/** Per-spawn path entry: spawnId → ordered GridPos[] from spawn to crystal_anchor */
+export interface SpawnPath {
+  spawnId: string;
+  path: readonly GridPos[];
+}
+
+/**
+ * Linearize each spawn-to-crystal_anchor chain independently.
+ * Returns an ordered array (matching the order spawns appear in the graph).
+ * Each entry maps a spawnId to the GridPos[] from that spawn to its crystal_anchor.
+ */
+export function linearizeSpawnPaths(input: LinearizeInput): readonly SpawnPath[] {
+  const { pathGraph } = input;
+  const index = buildPathGraphIndex(pathGraph);
+
+  const spawnNodes = pathGraph.nodes.filter((n) => n.role === 'spawn');
+  if (spawnNodes.length === 0) {
+    throw new Error('[linearizeSpawnPaths] 图中没有 spawn 节点');
+  }
+
+  const results: SpawnPath[] = [];
+
+  for (const spawn of spawnNodes) {
+    const visited = new Set<string>();
+    const result: GridPos[] = [];
+    let cursor: PathNode | undefined = spawn;
+
+    while (cursor !== undefined) {
+      if (visited.has(cursor.id)) {
+        throw new Error(`[linearizeSpawnPaths] spawn ${spawn.spawnId ?? spawn.id} 路径检测到环路（节点 ${cursor.id} 重复访问）`);
+      }
+      visited.add(cursor.id);
+      result.push({ row: cursor.row, col: cursor.col });
+
+      if (cursor.role === 'crystal_anchor') {
+        break;
+      }
+
+      const out = index.outEdges.get(cursor.id) ?? [];
+      if (out.length === 0) {
+        throw new Error(
+          `[linearizeSpawnPaths] 节点 ${cursor.id} 无出边但不是 crystal_anchor`,
+        );
+      }
+      if (out.length > 1) {
+        throw new Error(
+          `[linearizeSpawnPaths] 节点 ${cursor.id} 存在分支（${out.length} 条出边），不支持线性化`,
+        );
+      }
+      cursor = index.nodeById.get(out[0]!.to);
+    }
+
+    if (result.length === 0 || result[result.length - 1]!.row !== (cursor?.row ?? -1)) {
+      throw new Error(`[linearizeSpawnPaths] 从 spawn ${spawn.spawnId ?? spawn.id} 出发未抵达 crystal_anchor`);
+    }
+
+    results.push({ spawnId: spawn.spawnId ?? spawn.id, path: result });
+  }
+
+  return results;
+}
+
 export interface GraphAlgorithmInput {
   spawns: SpawnPoint[];
   pathGraph: PathGraph;

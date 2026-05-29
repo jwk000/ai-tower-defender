@@ -252,6 +252,7 @@ export class BossSystem implements System {
       targetY: 0,
       pathIndex: 0,
       progress: 0,
+      spawnIdx: 0,
       homeX: x,
       homeY: y,
       moveRange: 0,
@@ -331,7 +332,7 @@ export class BossSystem implements System {
         speed: 35,
         currentSpeed: 35,
         moveMode: MoveModeVal.FollowPath,
-        targetX: 0, targetY: 0, pathIndex: 0, progress: 0,
+        targetX: 0, targetY: 0, pathIndex: 0, progress: 0, spawnIdx: 0,
         homeX: sx, homeY: sy, moveRange: 0,
       });
       world.setDisplayName(eid, '沙漠黑虫');
@@ -438,7 +439,7 @@ export class BossSystem implements System {
         speed: 50,
         currentSpeed: 50,
         moveMode: MoveModeVal.FollowPath,
-        targetX: 0, targetY: 0, pathIndex: 0, progress: 0,
+        targetX: 0, targetY: 0, pathIndex: 0, progress: 0, spawnIdx: 0,
         homeX: sx, homeY: sy, moveRange: 0,
       });
       world.setDisplayName(eid, '骷髅');

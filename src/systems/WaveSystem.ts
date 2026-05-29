@@ -52,6 +52,7 @@ export interface SpawnEnemyOptions {
   isElite?: boolean;
   cardOptions?: number;
   spawnPointIndex?: number;
+  spawnId?: string;
 }
 
 /** Manages wave progression and enemy spawning */
@@ -61,7 +62,7 @@ export class WaveSystem implements System {
   private world: TowerWorld;
   private waves: WaveConfig[];
   private currentWaveIndex: number = 0;
-  private spawnQueue: { enemyType: EnemyType; count: number; interval: number }[] = [];
+  private spawnQueue: { enemyType: EnemyType; count: number; interval: number; spawnId?: string }[] = [];
   private spawnTimer: number = 0;
   private spawnIntervalTimer: number = 0;
   private spawnedInWave: number = 0;
@@ -192,6 +193,7 @@ export class WaveSystem implements System {
         enemyType: g.enemyType,
         count: g.count,
         interval: g.spawnInterval,
+        spawnId: g.spawnId,
       }));
       this.spawnTimer = wave.spawnDelay;
       this.spawnIntervalTimer = 0;
@@ -219,6 +221,7 @@ export class WaveSystem implements System {
       enemyType: g.enemyType,
       count: g.count,
       interval: g.spawnInterval,
+      spawnId: g.spawnId,
     }));
     this.spawnTimer = wave.spawnDelay;
     this.spawnIntervalTimer = 0;
@@ -283,7 +286,7 @@ export class WaveSystem implements System {
       this.spawnIntervalTimer -= dt;
       if (this.spawnIntervalTimer <= 0) {
         const group = this.spawnQueue[0]!;
-        this.spawnEnemy(group.enemyType);
+        this.spawnEnemy(group.enemyType, { spawnId: group.spawnId });
         group.count--;
         this.spawnedInWave++;
 
@@ -360,7 +363,7 @@ export class WaveSystem implements System {
     if (!config) return 0;
 
     // v4.0: resolve spawn point (options override, then wave config, then distribute)
-    const spawn = this.resolveSpawnPoint(options?.spawnPointIndex);
+    const [spawn, spawnIdx] = this.resolveSpawnPoint(options?.spawnPointIndex, options?.spawnId);
     const ts = this.map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
@@ -386,6 +389,7 @@ export class WaveSystem implements System {
     this.world.addComponent(eid, Movement, {
       speed: config.speed,
       moveMode: MoveModeVal.FollowPath,
+      spawnIdx: spawnIdx,
     });
 
     const effectiveAtk = Math.round(config.atk * atkMult);
@@ -474,24 +478,32 @@ export class WaveSystem implements System {
     return eid;
   }
 
-  /** v4.0: resolve which spawn point to use for an enemy */
-  private resolveSpawnPoint(overrideIndex?: number): SpawnPoint {
+  /** v4.0: resolve which spawn point to use for an enemy.
+   *  Returns [spawnPoint, spawnIndex] */
+  private resolveSpawnPoint(overrideIndex?: number, spawnId?: string): [SpawnPoint, number] {
+    // spawnId string takes priority — resolve to index via map.spawns
+    if (spawnId !== undefined && this.map.spawns) {
+      const idx = this.map.spawns.findIndex((s) => s.id === spawnId);
+      if (idx >= 0 && idx < this.resolvedSpawns.length) {
+        return [this.resolvedSpawns[idx]!, idx];
+      }
+    }
     // Options override takes priority
     if (overrideIndex !== undefined && overrideIndex >= 0 && overrideIndex < this.resolvedSpawns.length) {
-      return this.resolvedSpawns[overrideIndex]!;
+      return [this.resolvedSpawns[overrideIndex]!, overrideIndex];
     }
     // Wave config spawnPointIndex
     const waveIndex = this.waveSpawnPointIndex;
     if (waveIndex !== undefined && waveIndex >= 0 && waveIndex < this.resolvedSpawns.length) {
-      return this.resolvedSpawns[waveIndex]!;
+      return [this.resolvedSpawns[waveIndex]!, waveIndex];
     }
     // -1 or undefined → distribute across all spawns (round-robin)
     if (this.resolvedSpawns.length <= 1) {
-      return this.resolvedSpawns[0]!;
+      return [this.resolvedSpawns[0]!, 0];
     }
     const idx = this.spawnDistributionCounter % this.resolvedSpawns.length;
     this.spawnDistributionCounter++;
-    return this.resolvedSpawns[idx]!;
+    return [this.resolvedSpawns[idx]!, idx];
   }
 
   /** v4.0: spawn the elite enemy for the current wave */
