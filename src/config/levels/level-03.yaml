@@ -1,330 +1,160 @@
+# ============================================================
+# 第3关：黑暗古堡
+# design/04-levels.md §4
+# ============================================================
 id: level_03
-name: 极地暴雪要塞
-description: 冰封的极北要塞，S 形蜿蜒的雪道贯穿整片冰原。冰霜雪怪在暴风雪的掩护下列阵攻来，冰面减速区与霜冻塔联动是击退双泰坦的关键。
-sceneDescription: 永夜降临的极北要塞，21 格宽的冰原在暴风雪中若隐若现。从西侧寨门 (0,4) 出发的雪路蜿蜒 S 形穿越冰原，两段冰面 (row=7 col=14-17) 是天然减速带，最终抵达东侧水晶锚点 (20,4)。厚实的冰柱与积雪堆散布四周，寒风呼啸不止。
+name: 黑暗古堡
+description: 森林古堡，暗夜笼罩
+
 map:
   cols: 21
   rows: 9
   tileSize: 64
   tiles:
-    # row 0
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 1
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 2
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 3
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 4 (spawn S0 -> S 形主路 -> base B)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - base
-    # row 5
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 6
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 7 (含冰面格 col 14-17 在路径上)
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-    # row 8
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#b0c4de'
-    path: '#e8e8f0'
-    blocked: '#546e7a'
-    spawn: '#ff8f00'
-    base: '#1e88e5'
+    empty: '#9e9e9e'
+    path: '#616161'
+    blocked: '#212121'
+    spawn: '#ffc107'
+    base: '#42a5f5'
   obstacles:
-    - { type: ice_tile, row: 7, col: 14 }
-    - { type: ice_tile, row: 7, col: 15 }
-    - { type: ice_tile, row: 7, col: 16 }
-    - { type: ice_tile, row: 7, col: 17 }
-    - { type: snow_pile, row: 2, col: 10 }
-    - { type: snow_pile, row: 5, col: 8 }
-    - { type: snow_pile, row: 6, col: 18 }
-    - { type: snow_pile, row: 8, col: 4 }
-    - { type: ice_pillar, row: 3, col: 12 }
-    - { type: ice_pillar, row: 5, col: 3 }
-    - { type: ice_pillar, row: 6, col: 10 }
-    - { type: ice_pillar, row: 8, col: 16 }
+    - { type: pillar, row: 0, col: 10 }
+    - { type: pillar, row: 6, col: 5 }
+    - { type: wall, row: 2, col: 15 }
+    - { type: dead_tree, row: 7, col: 18 }
   spawns:
     - id: spawn_0
-      row: 4
+      row: 1
       col: 0
   pathGraph:
     nodes:
-      - { id: n0, row: 4, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 4, col: 6, role: waypoint }
-      - { id: n2, row: 1, col: 6, role: waypoint }
-      - { id: n3, row: 1, col: 14, role: waypoint }
-      - { id: n4, row: 7, col: 14, role: waypoint }
-      - { id: n5, row: 7, col: 20, role: waypoint }
-      - { id: n6, row: 4, col: 20, role: crystal_anchor }
+      - { id: n0, row: 1, col: 0, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 1, col: 7, role: waypoint }
+      - { id: n2, row: 3, col: 7, role: waypoint }
+      - { id: n3, row: 3, col: 13, role: waypoint }
+      - { id: n4, row: 5, col: 13, role: waypoint }
+      - { id: n5, row: 5, col: 20, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
       - { from: n2, to: n3 }
       - { from: n3, to: n4 }
       - { from: n4, to: n5 }
-      - { from: n5, to: n6 }
-waves:
-  # 设计稿 §4.4：10 波 SIEGE flavor，总敌数 64
-  - waveNumber: 1
-    spawnDelay: 2
-    enemies:
-      - { enemyType: e_yeti_runt, count: 3, spawnInterval: 1.0 }
-  - waveNumber: 2
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_yeti_runt, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_frost_lancer, count: 1, spawnInterval: 1.5 }
-  - waveNumber: 3
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_yeti_charger, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_yeti_runt, count: 4, spawnInterval: 1.0 }
-  - waveNumber: 4
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_ice_witch, count: 1, spawnInterval: 2.0 }
-      - { enemyType: e_frost_lancer, count: 2, spawnInterval: 1.5 }
-      - { enemyType: e_yeti_runt, count: 3, spawnInterval: 1.0 }
-  - waveNumber: 5
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_yeti_charger, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_yeti_runt, count: 4, spawnInterval: 1.0 }
-  - waveNumber: 6
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_ice_witch, count: 1, spawnInterval: 2.0 }
-      - { enemyType: e_frost_lancer, count: 3, spawnInterval: 1.5 }
-      - { enemyType: e_yeti_runt, count: 3, spawnInterval: 1.0 }
-  - waveNumber: 7
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_yeti_charger, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_ice_witch, count: 1, spawnInterval: 2.0 }
-      - { enemyType: e_yeti_runt, count: 4, spawnInterval: 1.0 }
-  - waveNumber: 8
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_yeti_charger, count: 3, spawnInterval: 1.8 }
-      - { enemyType: e_frost_lancer, count: 3, spawnInterval: 1.5 }
-  - waveNumber: 9
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_ice_witch, count: 2, spawnInterval: 2.0 }
-      - { enemyType: e_frost_lancer, count: 4, spawnInterval: 1.5 }
-      - { enemyType: e_yeti_runt, count: 3, spawnInterval: 1.0 }
-  - waveNumber: 10
-    spawnDelay: 30
-    isBossWave: true
-    enemies:
-      - { enemyType: e_glacier_titan, count: 2, spawnInterval: 3.0 }
-      - { enemyType: e_yeti_charger, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_yeti_runt, count: 6, spawnInterval: 1.0 }
+
+weather:
+  pool:
+    - Night
+  initial: Night
+
+crystal:
+  hp: 900
+
 starting:
-  gold: 0
-  energy: 0
-  maxPopulation: 6
+  gold: 300
+  energy: 50
+  maxPopulation: 10
+
 available:
   towers:
     - arrow
-    - cannon
-    - frost
-    - lightning
+    - laser
+    - bat
   units:
-    - swordsman
-    - archer
-    - knight
-weather:
-  pool:
-    - blizzard
-  initial: blizzard
+    - shield_guard
+    - mage
+    - priest
+
+waves:
+  # 波次1: 狼人×6
+  - waveNumber: 1
+    spawnDelay: 2
+    enemies:
+      - { enemyType: werewolf, count: 6, spawnInterval: 2.0 }
+    reward: 30
+  # 波次2: 狼人×5 + 蝙蝠×5
+  - waveNumber: 2
+    spawnDelay: 30
+    enemies:
+      - { enemyType: werewolf, count: 5, spawnInterval: 2.0 }
+      - { enemyType: vampire_bat, count: 5, spawnInterval: 2.0 }
+    reward: 40
+  # 波次3: 狼人×4 + 蝙蝠×4 + 巫师×2
+  - waveNumber: 3
+    spawnDelay: 30
+    enemies:
+      - { enemyType: werewolf, count: 4, spawnInterval: 2.0 }
+      - { enemyType: vampire_bat, count: 4, spawnInterval: 2.0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0 }
+    reward: 50
+  # 波次4: 狼人×4 + 蝙蝠×3 + 巫师×2 + 牧师×1
+  - waveNumber: 4
+    spawnDelay: 30
+    enemies:
+      - { enemyType: werewolf, count: 4, spawnInterval: 2.0 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.0 }
+    reward: 60
+  # 波次5: 狼人×3 + 蝙蝠×3 + 巫师×2 + 牧师×1 + 弗兰肯斯坦×1
+  - waveNumber: 5
+    spawnDelay: 30
+    enemies:
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.5 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.5 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 2.5 }
+    reward: 70
+  # 波次6: 狼人×5 + 蝙蝠×4 + 巫师×3 + 牧师×2
+  - waveNumber: 6
+    spawnDelay: 30
+    enemies:
+      - { enemyType: werewolf, count: 5, spawnInterval: 2.0 }
+      - { enemyType: vampire_bat, count: 4, spawnInterval: 2.0 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.0 }
+    reward: 80
+  # 波次7: BOSS + 狼人×3 + 牧师×2
+  - waveNumber: 7
+    spawnDelay: 30
+    enemies:
+      - { enemyType: lucifer, count: 1, spawnInterval: 0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.0 }
+    isBossWave: true
+    reward: 120
+
+cardPool:
+  - card_arrow_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_shield_guard
+  - card_mage
+  - card_priest
+  - card_bear_trap
+
+draftPool:
+  - card_arrow_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_ice_tower
+  - card_shield_guard
+  - card_mage
+  - card_priest
+  - card_boulder
+  - card_boxing_glove
+  - card_blizzard
+  - card_emergency_shield
+  - card_arrow_boost
+
 banPool: []
 neutralPool: []
-
-# ============================================================
-# 设计稿引用：design/10-gameplay/16-level-blueprints.md §4
-# 数值乘数：50-mda §21.2  enemyHpMult=1.25  enemyDmgMult=1.05  enemySpeedMult=0.9
-# Flavor: SIEGE  目标时长 8-10 min  总敌数 64
-# 通关 HP 损失预算：0-10
-# ============================================================

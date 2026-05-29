@@ -38,6 +38,7 @@ import {
   GamePhase,
 } from '../types/index.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
+import { unitConfigRegistry } from '../config/registry.js';
 import { RenderSystem } from './RenderSystem.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 
@@ -81,8 +82,8 @@ export interface DragState {
   entityType: 'tower' | 'unit' | 'trap';
   towerType?: TowerType;
   unitType?: UnitType;
-  /** v4.0: 8种机关类型，0=地刺(默认) */
-  trapType?: number;
+  /** v4.0: 机关类型ID（如 'spike_trap', 'bear_trap' 等） */
+  trapTypeId?: string;
 }
 
 // ============================================================
@@ -152,7 +153,7 @@ export class BuildSystem implements System {
     opts?: {
       towerType?: TowerType;
       unitType?: UnitType;
-      trapType?: number;
+      trapTypeId?: string;
     },
   ): void {
     this.dragState = {
@@ -160,7 +161,7 @@ export class BuildSystem implements System {
       entityType,
       towerType: opts?.towerType,
       unitType: opts?.unitType,
-      trapType: opts?.trapType ?? 0,
+      trapTypeId: opts?.trapTypeId ?? 'spike_trap',
     };
   }
 
@@ -411,28 +412,61 @@ export class BuildSystem implements System {
     row: number, col: number,
   ): number {
     const ts = this.map.tileSize;
+    const trapTypeId = this.dragState?.trapTypeId ?? 'spike_trap';
+    const config = unitConfigRegistry.get(trapTypeId);
+
+    // Map trap type ID to TrapTypeVal
+    const trapTypeMap: Record<string, number> = {
+      'spike_trap': 0,    // TrapTypeVal.SpikeTrap
+      'bear_trap': 1,     // TrapTypeVal.BearTrap
+      'tar_pit': 2,       // TrapTypeVal.TarPit
+      'boulder': 3,       // TrapTypeVal.Boulder
+      'fan': 4,           // TrapTypeVal.Fan
+      'water_pit': 5,     // TrapTypeVal.WaterPit
+      'boxing_glove': 6,  // TrapTypeVal.BoxingGlove
+      'mechanical_arm': 7, // TrapTypeVal.MechanicalArm
+    };
+
+    const trapTypeVal = trapTypeMap[trapTypeId] ?? 0;
+    const trapConfig = (config as Record<string, unknown>)?.trap as Record<string, unknown> | undefined;
+    const layerStr = config?.layer ?? 'AboveGrid';
+    const layerVal = layerStr === 'Ground' ? LayerVal.Ground :
+                     layerStr === 'LowAir' ? LayerVal.LowAir :
+                     layerStr === 'BelowGrid' ? LayerVal.BelowGrid :
+                     LayerVal.AboveGrid;
+
     const eid = world.createEntity();
 
     world.addComponent(eid, Position, { x, y });
     world.addComponent(eid, GridOccupant, { row, col });
     world.addComponent(eid, Trap, {
-      damagePerSecond: 20,
-      radius: 32,
-      cooldown: 0,
+      trapType: trapTypeVal,
+      damagePerSecond: (trapConfig?.damagePerSecond as number) ?? 8,
+      radius: (trapConfig?.radius as number) ?? 32,
+      cooldown: (trapConfig?.cooldown as number) ?? 0,
       cooldownTimer: 0,
       animTimer: 0,
       animDuration: 0.4,
       triggerCount: 0,
-      maxTriggers: 0,
+      maxTriggers: (trapConfig?.maxTriggers as number) ?? 0,
+      direction: 0,
     });
 
-    const rgb = hexToRgb('#e53935');
+    // Visual from config
+    const color = config?.visual?.color ?? '#757575';
+    const size = config?.visual?.size ?? 28;
+    const shapeStr = config?.visual?.shape ?? 'triangle';
+    const shapeVal = shapeStr === 'circle' ? ShapeVal.Circle :
+                     shapeStr === 'rect' ? ShapeVal.Rect :
+                     shapeStr === 'hexagon' ? ShapeVal.Hexagon :
+                     ShapeVal.Triangle;
+    const rgb = hexToRgb(color);
     world.addComponent(eid, Visual, {
-      shape: ShapeVal.Triangle,
+      shape: shapeVal,
       colorR: rgb.r,
       colorG: rgb.g,
       colorB: rgb.b,
-      size: ts * 0.5,
+      size,
       alpha: 1,
       outline: 1,
       hitFlashTimer: 0,
@@ -441,9 +475,8 @@ export class BuildSystem implements System {
 
     world.addComponent(eid, PlayerOwned);
     world.addComponent(eid, Category, { value: CategoryVal.Trap });
-    // Faction — v4.0: player-placed traps belong to Justice
     world.addComponent(eid, Faction, { value: FactionVal.Justice });
-    world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
+    world.addComponent(eid, Layer, { value: layerVal });
 
     // UnitTag — AISystem 查询需要
     world.addComponent(eid, UnitTag, {
@@ -454,29 +487,32 @@ export class BuildSystem implements System {
       rewardGold: 0,
       rewardEnergy: 0,
       popCost: 0,
-      cost: 0,
+      cost: config?.cost?.build ?? 40,
     });
 
-    // Health — 陷阱不可摧毁（超大血量）
+    // Health — 从配置读取（巨石有有限HP，其他机关超高HP）
+    const hp = config?.stats?.hp ?? 99999;
+    const armor = config?.stats?.armor ?? 0;
+    const mr = config?.stats?.mr ?? 0;
     world.addComponent(eid, Health, {
-      current: 99999,
-      max: 99999,
-      armor: 0,
-      magicResist: 0,
+      current: hp,
+      max: hp,
+      armor,
+      magicResist: mr,
     });
 
-    // Attack — DOT 伤害
+    // Attack — 从配置读取
     world.addComponent(eid, Attack, {
-      damage: 20,
+      damage: (trapConfig?.damagePerSecond as number) ?? 8,
       attackSpeed: 1,
-      range: 32,
+      range: (trapConfig?.radius as number) ?? 32,
       damageType: DamageTypeVal.Physical,
       isRanged: 0,
       cooldownTimer: 0,
     });
 
     // Display name for overhead HUD
-    world.setDisplayName(eid, '地刺');
+    world.setDisplayName(eid, config?.name ?? '机关');
 
     return eid;
   }

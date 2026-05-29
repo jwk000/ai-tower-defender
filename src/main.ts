@@ -49,6 +49,7 @@ import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEV
 import { ALL_BUFFS } from './data/buffs.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
 import { shapeTypeToVal } from './utils/visualHelpers.js';
+import { hitTestHandCard, resolveCardToEntityType } from './ui/LayoutConstants.js';
 
 // ---- bitecs component stores ----
 import {
@@ -491,10 +492,11 @@ class TowerDefenderGame extends Game {
       },
       () => this.waveSystem.startWave(),
       upgradeTower,
-      (entityType, towerType, unitType) => {
+      (entityType, towerType, unitType, productionType, trapTypeId) => {
         this.buildSystem.startDrag(entityType as 'tower' | 'unit' | 'trap', {
           towerType: towerType ?? undefined,
           unitType: unitType ?? undefined,
+          trapTypeId: trapTypeId ?? undefined,
         });
       },
       () => this.buildSystem.dragState,
@@ -534,6 +536,40 @@ class TowerDefenderGame extends Game {
     };
     const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
     this.handSystem.initialize(initialPool);
+
+    // ---- Create RunContext for UISystem ----
+    // UISystem expects runContext with hand, energy, registry, deck
+    const cardRegistry = new Map<string, { type: string; rarity: string; energyCost: number; name: string; description: string }>();
+    for (const card of initialPool) {
+      cardRegistry.set(card.id, {
+        type: card.type,
+        rarity: 'common',
+        energyCost: 0,
+        name: card.name,
+        description: card.description,
+      });
+    }
+    const handSystemRef = this.handSystem;
+    this.world.attachRunContext({
+      hand: {
+        get state() {
+          return {
+            hand: handSystemRef.getHand().filter(c => c !== null).map(c => ({
+              cardId: c!.id,
+              instanceId: c!.id,
+            })),
+          };
+        },
+      },
+      energy: { current: 999, max: 999 },
+      registry: { get: (id: string) => cardRegistry.get(id) },
+      deck: {
+        state: {
+          drawPile: [],
+          discardPile: [],
+        },
+      },
+    });
 
     // ---- Card Draft System ----
     this.cardDraftSystem = new CardDraftSystem();
@@ -664,6 +700,32 @@ class TowerDefenderGame extends Game {
       const handledByUI = this.uiSystem.handleClick(e.x, e.y);
       if (handledByUI) return;
       if (this.paused) return;
+
+      // Check if clicking on a hand card
+      const runContext = this.world.runContext;
+      if (runContext) {
+        const cards = runContext.hand.state.hand;
+        const cardIdx = hitTestHandCard(e.x, e.y, cards.length);
+        if (cardIdx >= 0 && cardIdx < cards.length) {
+          const card = cards[cardIdx];
+          if (card) {
+            // Derive unitConfigId from cardId: card_arrow_tower -> arrow_tower
+            const unitConfigId = card.cardId.startsWith('card_')
+              ? card.cardId.substring(5)
+              : card.cardId;
+            const resolved = resolveCardToEntityType(unitConfigId);
+            if (resolved) {
+              this.buildSystem.startDrag(resolved.entityType as 'tower' | 'unit' | 'trap', {
+                towerType: 'towerType' in resolved ? resolved.towerType : undefined,
+                unitType: 'unitType' in resolved ? resolved.unitType : undefined,
+                trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
+              });
+              return;
+            }
+          }
+        }
+      }
+
       const sceneBottom = RenderSystem.sceneOffsetY + RenderSystem.sceneH;
       if (e.y >= sceneBottom + 8) return;
 

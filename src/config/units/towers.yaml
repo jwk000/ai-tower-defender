@@ -361,3 +361,269 @@ bat_tower:
       - type: spawn_bat_swarm
       - type: play_sound
         sound: SFX_BAT_ATTACK
+
+---
+# 弩塔 — 穿透型单体物理输出，攻速慢、单发伤害高
+ballista_tower:
+  id: ballista_tower
+  name: 弩塔
+  category: Tower
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 120
+    atk: 45
+    attackSpeed: 0.8
+    range: 220
+    armor: 0
+    mr: 0
+    damageType: physical
+
+  cost:
+    build: 90
+    upgrade: [60, 100, 160, 220]
+    atkGrowth: [15, 20, 25, 30]
+    rangeGrowth: [20, 20, 30, 30]
+
+  visual:
+    shape: rect
+    color: "#78909c"
+    size: 38
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: piercing
+    movementMode: hold_position
+    special:
+      pierceDecay: 0.0
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: destruction_particles
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: bolt
+      - type: play_sound
+        sound: SFX_BALLISTA_SHOOT
+
+  passives:
+    l3:
+      id: heavy_bolt
+      name: 重弩
+      description: 穿透伤害不衰减，击中3个以上目标时额外造成50%伤害
+      params:
+        pierceDecay: 0.0
+        multiHitBonus: 0.5
+        multiHitThreshold: 3
+
+---
+# 导弹塔 — 全图射程大范围伤害，战略武器
+missile_tower:
+  id: missile_tower
+  name: 导弹塔
+  category: Tower
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 100
+    atk: 80
+    attackSpeed: 0.3
+    range: 9999
+    armor: 0
+    mr: 0
+    damageType: true
+
+  cost:
+    build: 200
+    upgrade: [120, 200, 300]
+    atkGrowth: [20, 30, 40]
+    rangeGrowth: [0, 0, 0]
+
+  visual:
+    shape: rect
+    color: "#d32f2f"
+    size: 42
+    outline: false
+
+  behavior:
+    targetSelection: highest_threat
+    attackMode: aoe_splash
+    movementMode: hold_position
+    special:
+      splashRadius: 80
+      splashPercent: 1.0
+      ignoreAir: true
+      projectileSpeed: 400
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: explosion_large
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: missile
+      - type: play_sound
+        sound: SFX_MISSILE_LAUNCH
+
+  passives:
+    l2:
+      id: dual_launcher
+      name: 双联发射
+      description: 同时发射2枚导弹
+      params:
+        projectileCount: 2
+    l3:
+      id: cluster_missile
+      name: 集束导弹
+      description: 同时发射3枚导弹，AOE半径+20%
+      params:
+        projectileCount: 3
+        splashRadiusBonus: 1.2
+
+---
+# 火塔 — 魔法DOT型塔，灼烧持续伤害
+fire_tower:
+  id: fire_tower
+  name: 火塔
+  category: Tower
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 90
+    atk: 12
+    attackSpeed: 1.2
+    range: 150
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 70
+    upgrade: [50, 90, 140, 200]
+    atkGrowth: [5, 8, 12, 16]
+    rangeGrowth: [15, 15, 20, 20]
+
+  visual:
+    shape: rect
+    color: "#ff5722"
+    size: 34
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      dotDamage: 5
+      dotDuration: 3.0
+      dotType: burn
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: fire_burst
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: apply_buff
+        buffId: burn_dot
+        duration: 3.0
+      - type: spawn_projectile
+        projectile: fireball
+      - type: play_sound
+        sound: SFX_FIRE_SHOOT
+
+  passives:
+    l2:
+      id: inferno
+      name: 真火
+      description: 灼烧DOT伤害提升至8/s，5%概率直接击杀非BOSS单位
+      params:
+        dotDamage: 8
+        executeChance: 0.05
+        executeImmuneBoss: true
+
+---
+# 毒塔 — 魔法DOT+传染型塔
+poison_tower:
+  id: poison_tower
+  name: 毒塔
+  category: Tower
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 85
+    atk: 10
+    attackSpeed: 1.0
+    range: 150
+    armor: 0
+    mr: 0
+    damageType: magic
+
+  cost:
+    build: 75
+    upgrade: [55, 100, 150, 210]
+    atkGrowth: [4, 7, 10, 14]
+    rangeGrowth: [15, 15, 20, 20]
+
+  visual:
+    shape: rect
+    color: "#4caf50"
+    size: 34
+    outline: false
+
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: hold_position
+    special:
+      dotDamage: 4
+      dotDuration: 5.0
+      dotType: poison
+      contagionRadius: 80
+      contagionJumps: 3
+      contagionDecay: 0.5
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: poison_burst
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: apply_buff
+        buffId: poison_dot
+        duration: 5.0
+      - type: spawn_projectile
+        projectile: poison
+      - type: play_sound
+        sound: SFX_POISON_SHOOT
+
+  passives:
+    l2:
+      id: viral_poison
+      name: 病毒
+      description: 中毒+传染：跳数≤3次、半径≤80px、每跳伤害减半
+      params:
+        dotDamage: 6
+        contagionRadius: 80
+        contagionJumps: 3
+        contagionDecay: 0.5

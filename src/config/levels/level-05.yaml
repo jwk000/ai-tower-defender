@@ -1,361 +1,261 @@
+# ============================================================
+# 第5关：深渊裂隙
+# design/04-levels.md §6
+# ============================================================
 id: level_05
-name: 沉没港口
-description: 曾经繁荣的港口在一场神秘海潮后半数沉没，锈迹斑斑的铁锚与破旧船骸散布其间。海盗与深海生物从三个方向同时涌入，共同指向水晶停泊处的残破灯塔。退潮时浅滩露出，路径在瞬息之间改变，守方必须随机应变。
-sceneDescription: 黄昏时分的沉没港口，海水漫过半截码头，残破的木栈道只剩三条勉强能行的通道——上路、中路、下路——最终汇聚于东侧那座依然燃烧的灯塔。海盗旗插在西岸礁石上，克拉肯的触手偶尔从水面探出，潮汐机关控制着中路浅滩的现身与隐没。
+name: 深渊裂隙
+description: 深渊地下，终极挑战
+
 map:
   cols: 21
   rows: 9
   tileSize: 64
   tiles:
-    # row 0
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 1 (上路 spawn -> 东侧垂直汇合列)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-    # row 2
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 3
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 4 (中路 spawn -> base)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - base
-    # row 5
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 6
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-    # row 7 (下路 spawn -> 东侧垂直汇合列)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-    # row 8
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#1a3a4a'
-    path: '#4a6a7a'
-    blocked: '#2a2a3a'
-    spawn: '#ff8f00'
-    base: '#1e88e5'
+    empty: '#1a0033'
+    path: '#311b92'
+    blocked: '#0d0019'
+    spawn: '#aa00ff'
+    base: '#ffd54f'
   obstacles:
-    - { type: tide_shoal, row: 4, col: 5 }
-    - { type: tide_shoal, row: 4, col: 7 }
-    - { type: tide_shoal, row: 4, col: 9 }
-    - { type: tide_shoal, row: 4, col: 11 }
-    - { type: tide_shoal, row: 4, col: 13 }
-    - { type: tide_shoal, row: 4, col: 15 }
-    - { type: dock_crate, row: 0, col: 10 }
-    - { type: dock_crate, row: 3, col: 8 }
-    - { type: dock_crate, row: 5, col: 8 }
-    - { type: dock_crate, row: 8, col: 12 }
-    - { type: ship_wreck, row: 2, col: 4 }
-    - { type: ship_wreck, row: 2, col: 15 }
-    - { type: ship_wreck, row: 6, col: 4 }
-    - { type: ship_wreck, row: 6, col: 15 }
-    - { type: buoy, row: 3, col: 18 }
-    - { type: buoy, row: 5, col: 18 }
-    - { type: buoy, row: 0, col: 5 }
+    - { type: floating_rock, row: 0, col: 10 }
+    - { type: purple_flame, row: 2, col: 5 }
+    - { type: crystal, row: 4, col: 15 }
+    - { type: crystal, row: 6, col: 8 }
   spawns:
     - id: spawn_0
       row: 1
       col: 0
     - id: spawn_1
-      row: 4
+      row: 3
       col: 0
     - id: spawn_2
-      row: 7
+      row: 5
       col: 0
   pathGraph:
     nodes:
       - { id: n0, row: 1, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 4, col: 0, role: spawn, spawnId: spawn_1 }
-      - { id: n2, row: 7, col: 0, role: spawn, spawnId: spawn_2 }
-      - { id: n3, row: 1, col: 20, role: waypoint }
-      - { id: n4, row: 4, col: 20, role: crystal_anchor }
-      - { id: n5, row: 7, col: 20, role: waypoint }
+      - { id: n1, row: 1, col: 20, role: crystal_anchor }
+      - { id: n2, row: 3, col: 0, role: spawn, spawnId: spawn_1 }
+      - { id: n3, row: 3, col: 20, role: crystal_anchor }
+      - { id: n4, row: 5, col: 0, role: spawn, spawnId: spawn_2 }
+      - { id: n5, row: 5, col: 20, role: crystal_anchor }
     edges:
-      - { from: n0, to: n3 }
-      - { from: n3, to: n4 }
-      - { from: n1, to: n4 }
-      - { from: n2, to: n5 }
-      - { from: n5, to: n4 }
-waves:
-  # 设计稿 §6：12 波 BASELINE→SWARM flavor，总敌数 108
-  - waveNumber: 1
-    spawnDelay: 2
-    enemies:
-      - { enemyType: e_corsair_pikeman, count: 3, spawnInterval: 1.0 }
-      - { enemyType: e_dock_brawler, count: 2, spawnInterval: 1.2 }
-  - waveNumber: 2
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_corsair_pikeman, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_dock_brawler, count: 3, spawnInterval: 1.2 }
-  - waveNumber: 3
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_brine_charger, count: 1, spawnInterval: 1.5 }
-      - { enemyType: e_dock_brawler, count: 4, spawnInterval: 1.2 }
-      - { enemyType: e_corsair_pikeman, count: 2, spawnInterval: 1.0 }
-  - waveNumber: 4
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_corsair_pikeman, count: 5, spawnInterval: 1.0 }
-      - { enemyType: e_brine_charger, count: 2, spawnInterval: 1.5 }
-  - waveNumber: 5
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_brine_charger, count: 2, spawnInterval: 1.5 }
-      - { enemyType: e_dock_brawler, count: 5, spawnInterval: 1.2 }
-      - { enemyType: e_corsair_pikeman, count: 2, spawnInterval: 1.0 }
-  - waveNumber: 6
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_kraken_tendril, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_corsair_pikeman, count: 5, spawnInterval: 1.0 }
-      - { enemyType: e_brine_charger, count: 2, spawnInterval: 1.5 }
-  - waveNumber: 7
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_brine_charger, count: 3, spawnInterval: 1.5 }
-      - { enemyType: e_kraken_tendril, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_corsair_pikeman, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_dock_brawler, count: 2, spawnInterval: 1.2 }
-  - waveNumber: 8
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_kraken_tendril, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_brine_charger, count: 3, spawnInterval: 1.5 }
-      - { enemyType: e_corsair_pikeman, count: 5, spawnInterval: 1.0 }
-  - waveNumber: 9
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_kraken_tendril, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_brine_charger, count: 4, spawnInterval: 1.5 }
-      - { enemyType: e_dock_brawler, count: 5, spawnInterval: 1.2 }
-  - waveNumber: 10
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_brine_charger, count: 4, spawnInterval: 1.5 }
-      - { enemyType: e_kraken_tendril, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_corsair_pikeman, count: 6, spawnInterval: 1.0 }
-      - { enemyType: e_dock_brawler, count: 2, spawnInterval: 1.2 }
-  - waveNumber: 11
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_kraken_tendril, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_brine_charger, count: 3, spawnInterval: 1.5 }
-      - { enemyType: e_corsair_pikeman, count: 4, spawnInterval: 1.0 }
-  - waveNumber: 12
-    spawnDelay: 30
-    isBossWave: true
-    enemies:
-      - { enemyType: e_tide_warlord, count: 1, spawnInterval: 0 }
-      - { enemyType: e_kraken_tendril, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_brine_charger, count: 3, spawnInterval: 1.5 }
-      - { enemyType: e_corsair_pikeman, count: 6, spawnInterval: 1.0 }
+      - { from: n0, to: n1 }
+      - { from: n2, to: n3 }
+      - { from: n4, to: n5 }
+
+weather:
+  pool:
+    - Night
+  initial: Night
+
+crystal:
+  hp: 1500
+
 starting:
-  gold: 0
-  energy: 0
-  maxPopulation: 6
+  gold: 400
+  energy: 50
+  maxPopulation: 15
+
 available:
   towers:
     - arrow
+    - ballista
     - cannon
-    - frost
-    - lightning
-    - flame
+    - laser
+    - bat
+    - missile
+    - ice
+    - fire
     - poison
+    - lightning
   units:
-    - swordsman
+    - shield_guard
     - archer
-    - knight
     - mage
     - priest
-weather:
-  pool:
-    - rain
-    - storm
-  initial: rain
+
+waves:
+  # 波次1: 哥布林×6 + 黑虫×8（2出生点）
+  - waveNumber: 1
+    spawnDelay: 2
+    enemies:
+      - { enemyType: goblin, count: 6, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5, spawnId: spawn_1 }
+    reward: 40
+  # 波次2: 野猪×4 + 钻地甲虫×3 + 狼人×3（2出生点）
+  - waveNumber: 2
+    spawnDelay: 30
+    enemies:
+      - { enemyType: boar, count: 4, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+    reward: 50
+  # 波次3: 大象×2 + 蝗虫×5 + 蝙蝠×5（2出生点）
+  - waveNumber: 3
+    spawnDelay: 30
+    enemies:
+      - { enemyType: elephant, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: locust, count: 5, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 5, spawnInterval: 2.0, spawnId: spawn_1 }
+    reward: 60
+  # 波次4: 巨人×2 + 巫师×3 + 机器狗×6（3出生点）
+  - waveNumber: 4
+    spawnDelay: 30
+    enemies:
+      - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 6, spawnInterval: 2.0, spawnId: spawn_2 }
+    reward: 70
+  # 波次5: BOSS: 巨型史莱姆 + 黑虫×6
+  - waveNumber: 5
+    spawnDelay: 30
+    enemies:
+      - { enemyType: giant_slime, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 6, spawnInterval: 2.0, spawnId: spawn_1 }
+    isBossWave: true
+    reward: 100
+  # 波次6: 自爆甲虫×4 + 牧师×2 + 无人机×5 + 弗兰肯斯坦×1（3出生点）
+  - waveNumber: 6
+    spawnDelay: 30
+    enemies:
+      - { enemyType: bomb_beetle, count: 4, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: drone, count: 5, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 2.0, spawnId: spawn_1 }
+    reward: 80
+  # 波次7: BOSS: 虫族女王 + 蝗虫×8
+  - waveNumber: 7
+    spawnDelay: 30
+    enemies:
+      - { enemyType: queen_beetle, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: locust, count: 8, spawnInterval: 2.0, spawnId: spawn_0 }
+    isBossWave: true
+    reward: 120
+  # 波次8: 坦克×2 + 飞机×3 + 油罐车×3 + 巨型机器人×1（3出生点）
+  - waveNumber: 8
+    spawnDelay: 30
+    enemies:
+      - { enemyType: tank, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: plane, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: oil_truck, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 2.0, spawnId: spawn_0 }
+    reward: 90
+  # 波次9: BOSS: 路西法 + 狼人×4 + 巫师×2
+  - waveNumber: 9
+    spawnDelay: 30
+    enemies:
+      - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: werewolf, count: 4, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+    isBossWave: true
+    reward: 140
+  # 波次10: 所有普通敌人混编×15（3出生点，密集）
+  - waveNumber: 10
+    spawnDelay: 30
+    enemies:
+      - { enemyType: goblin, count: 3, spawnInterval: 1.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 1.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.0, spawnId: spawn_2 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.0, spawnId: spawn_1 }
+      - { enemyType: tank, count: 3, spawnInterval: 1.0, spawnId: spawn_2 }
+    reward: 100
+  # 波次11: BOSS: 超级机器人 + 坦克×2 + 无人机×6
+  - waveNumber: 11
+    spawnDelay: 30
+    enemies:
+      - { enemyType: super_robot, count: 1, spawnInterval: 0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 6, spawnInterval: 2.0, spawnId: spawn_1 }
+    isBossWave: true
+    reward: 160
+  # 波次12: BOSS: 深渊领主 + 随机敌人×8
+  - waveNumber: 12
+    spawnDelay: 30
+    enemies:
+      - { enemyType: abyss_lord, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: frankenstein, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: giant_robot, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+    isBossWave: true
+    reward: 250
+
+cardPool:
+  - card_arrow_tower
+  - card_ballista_tower
+  - card_cannon_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_missile_tower
+  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_lightning_tower
+  - card_shield_guard
+  - card_archer
+  - card_mage
+  - card_priest
+  - card_spike_trap
+  - card_bear_trap
+  - card_tar_pit
+  - card_boulder
+  - card_fan
+  - card_water_pit
+  - card_boxing_glove
+  - card_mechanical_arm
+  - card_fireball
+  - card_arrow_rain
+  - card_blizzard
+  - card_bomb
+  - card_emergency_shield
+  - card_arrow_boost
+  - card_shield_boost
+  - card_gold_rush
+  - card_speed_boost
+
+draftPool:
+  - card_arrow_tower
+  - card_ballista_tower
+  - card_cannon_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_missile_tower
+  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_lightning_tower
+  - card_shield_guard
+  - card_archer
+  - card_mage
+  - card_priest
+  - card_spike_trap
+  - card_bear_trap
+  - card_tar_pit
+  - card_boulder
+  - card_fan
+  - card_water_pit
+  - card_boxing_glove
+  - card_mechanical_arm
+  - card_fireball
+  - card_arrow_rain
+  - card_blizzard
+  - card_bomb
+  - card_emergency_shield
+  - card_arrow_boost
+  - card_shield_boost
+  - card_gold_rush
+  - card_speed_boost
+
 banPool: []
 neutralPool: []
-
-# ============================================================
-# 设计稿引用：16-blueprints §6 / 数值乘数：50-mda §21.2  enemyHpMult=1.3  enemyDmgMult=1.2  enemySpeedMult=1.05
-# Flavor: BASELINE→SWARM (A→C 切换)  目标时长 9-11 min  总敌数 108
-# 通关 HP 损失预算：10-25
-# ============================================================

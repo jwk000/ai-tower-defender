@@ -1,213 +1,31 @@
+# ============================================================
+# 第1关：绿野仙踪
+# design/04-levels.md §2
+# ============================================================
 id: level_01
-name: 边境绿野
-description: 翠绿的草原上一条直道从西延伸到东。哥布林从远方涌来，村民们以最简单的箭塔和弩弓抵御第一波入侵。本关是 Run 的起始，教学单 spawn 直线推进与建塔基本操作。
-sceneDescription: 春末黄昏的边境草原，最后一缕阳光斜照过 21 格宽的平原。从西侧寨门 (0,4) 一路向东延伸到东侧水晶 (20,4) 的土路是哥布林南下的唯一通道。两侧麦田随风起伏，几棵孤树点缀其间。
+name: 绿野仙踪
+description: 翠绿草原，入门关卡
+
 map:
   cols: 21
   rows: 9
   tileSize: 64
   tiles:
-    # row 0
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 1
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 2
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 3
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 4 (主路 spawn -> base)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - base
-    # row 5
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 6
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 7
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 8
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
+    # row 0-3: empty
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    # row 4: main path spawn(0) -> base(20)
+    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
+    # row 5-8: empty
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#3a7d44'
-    path: '#a1887f'
+    empty: '#7cb342'
+    path: '#8d6e63'
     blocked: '#546e7a'
     spawn: '#ff8f00'
     base: '#1e88e5'
@@ -232,72 +50,90 @@ map:
       - { id: n1, row: 4, col: 20, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
-waves:
-  # 设计稿 §2.4：8 波 BASELINE flavor，总敌数 56
-  - waveNumber: 1
-    spawnDelay: 2
-    enemies:
-      - { enemyType: grunt, count: 4, spawnInterval: 1.5 }
-  - waveNumber: 2
-    spawnDelay: 30
-    enemies:
-      - { enemyType: grunt, count: 5, spawnInterval: 1.0 }
-      - { enemyType: runner, count: 2, spawnInterval: 0.6 }
-  - waveNumber: 3
-    spawnDelay: 30
-    enemies:
-      - { enemyType: grunt, count: 6, spawnInterval: 1.0 }
-      - { enemyType: runner, count: 2, spawnInterval: 0.6 }
-  - waveNumber: 4
-    spawnDelay: 30
-    enemies:
-      - { enemyType: heavy, count: 1, spawnInterval: 0 }
-      - { enemyType: grunt, count: 4, spawnInterval: 1.0 }
-  - waveNumber: 5
-    spawnDelay: 30
-    enemies:
-      - { enemyType: mage, count: 1, spawnInterval: 0 }
-      - { enemyType: runner, count: 3, spawnInterval: 0.5 }
-      - { enemyType: grunt, count: 3, spawnInterval: 1.0 }
-  - waveNumber: 6
-    spawnDelay: 30
-    enemies:
-      - { enemyType: exploder, count: 2, spawnInterval: 1.5 }
-      - { enemyType: grunt, count: 5, spawnInterval: 1.0 }
-  - waveNumber: 7
-    spawnDelay: 30
-    enemies:
-      - { enemyType: heavy, count: 2, spawnInterval: 2.0 }
-      - { enemyType: mage, count: 2, spawnInterval: 1.5 }
-      - { enemyType: runner, count: 3, spawnInterval: 0.5 }
-  - waveNumber: 8
-    spawnDelay: 30
-    enemies:
-      - { enemyType: heavy, count: 2, spawnInterval: 2.0 }
-      - { enemyType: mage, count: 2, spawnInterval: 1.5 }
-      - { enemyType: exploder, count: 2, spawnInterval: 1.5 }
-      - { enemyType: grunt, count: 3, spawnInterval: 1.0 }
+
+weather:
+  pool:
+    - Rain
+  initial: Rain
+
+crystal:
+  hp: 500
+
 starting:
   gold: 200
   energy: 50
   maxPopulation: 6
+
 available:
   towers:
     - arrow
-    - cannon
-  units: []
-weather:
-  pool:
-    - sunny
-    - rain
-    - fog
-  initial: random_from_pool
+    - ice
+  units:
+    - shield_guard
+    - archer
+
+waves:
+  # 波次1: 哥布林×8
+  - waveNumber: 1
+    spawnDelay: 2
+    enemies:
+      - { enemyType: goblin, count: 8, spawnInterval: 1.5 }
+    reward: 20
+  # 波次2: 哥布林×6 + 野猪×3
+  - waveNumber: 2
+    spawnDelay: 30
+    enemies:
+      - { enemyType: goblin, count: 6, spawnInterval: 1.5 }
+      - { enemyType: boar, count: 3, spawnInterval: 1.5 }
+    reward: 30
+  # 波次3: 哥布林×5 + 野猪×3 + 大象×2
+  - waveNumber: 3
+    spawnDelay: 30
+    enemies:
+      - { enemyType: goblin, count: 5, spawnInterval: 2.0 }
+      - { enemyType: boar, count: 3, spawnInterval: 2.0 }
+      - { enemyType: elephant, count: 2, spawnInterval: 2.0 }
+    reward: 40
+  # 波次4: 野猪×4 + 大象×2 + 巨人×2
+  - waveNumber: 4
+    spawnDelay: 30
+    enemies:
+      - { enemyType: boar, count: 4, spawnInterval: 2.0 }
+      - { enemyType: elephant, count: 2, spawnInterval: 2.0 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.0 }
+    reward: 50
+  # 波次5: BOSS + 哥布林×4 + 野猪×2
+  - waveNumber: 5
+    spawnDelay: 30
+    enemies:
+      - { enemyType: giant_slime, count: 1, spawnInterval: 0 }
+      - { enemyType: goblin, count: 4, spawnInterval: 2.0 }
+      - { enemyType: boar, count: 2, spawnInterval: 2.0 }
+    isBossWave: true
+    reward: 80
+
+cardPool:
+  - card_arrow_tower
+  - card_ice_tower
+  - card_shield_guard
+  - card_archer
+  - card_spike_trap
+  - card_bear_trap
+  - card_fireball
+
+draftPool:
+  - card_arrow_tower
+  - card_ice_tower
+  - card_cannon_tower
+  - card_shield_guard
+  - card_archer
+  - card_mage
+  - card_spike_trap
+  - card_bear_trap
+  - card_tar_pit
+  - card_boulder
+  - card_fireball
+  - card_arrow_rain
+
 banPool: []
 neutralPool: []
-
-# ============================================================
-# 设计稿引用：design/10-gameplay/16-level-blueprints.md §2
-# 数值乘数：50-mda §21.2  enemyHpMult=0.8  enemyDmgMult=0.8
-# Flavor: BASELINE  目标时长 5-7 min  总敌数 56
-# 通关 HP 损失预算：0-3
-# ============================================================

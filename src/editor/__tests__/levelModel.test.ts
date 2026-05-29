@@ -23,11 +23,11 @@ describe('levelModel: parseYamlToModel', () => {
     const model = parseYamlToModel(yaml);
 
     expect(model.id).toBe('level_01');
-    expect(model.name).toBe('边境绿野');
+    expect(model.name).toBe('绿野仙踪');
     expect(model.map.rows).toBe(9);
     expect(model.map.cols).toBe(21);
     expect(model.waves.length).toBeGreaterThan(0);
-    expect(model.available?.towers).toEqual(expect.arrayContaining(['arrow', 'cannon']));
+    expect(model.available?.towers).toEqual(expect.arrayContaining(['arrow', 'ice']));
   });
 
   it('preserves map.tiles dimensions for all 5 levels', () => {

@@ -249,7 +249,7 @@ export class UISystem implements System {
     private selectTower: (type: TowerType) => void,
     private startWave: () => void,
     private onUpgradeTower: ((entityId: number) => void) | null = null,
-    private onStartDrag: ((entityType: string, towerType?: TowerType, unitType?: UnitType, productionType?: ProductionType) => void) | null = null,
+    private onStartDrag: ((entityType: string, towerType?: TowerType, unitType?: UnitType, productionType?: ProductionType, trapTypeId?: string) => void) | null = null,
     private getDragState: (() => DragState | null) | null = null,
     private getPointerPosition: (() => { x: number; y: number }) | null = null,
     private getEndlessScore: (() => number) | null = null,

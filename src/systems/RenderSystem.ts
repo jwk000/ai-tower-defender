@@ -691,8 +691,21 @@ export class RenderSystem implements System {
         (selectedUnitId !== null && eid === selectedUnitId) ||
         (selectedTrapId !== null && eid === selectedTrapId) ||
         (selectedProductionId !== null && eid === selectedProductionId);
-      const strokeColor = isSelected ? '#ffffff' : (Visual.outline[eid] ? '#ffffff' : undefined);
-      const strokeW = isSelected ? 3 : (Visual.outline[eid] ? 2 : undefined);
+      let strokeColor = isSelected ? '#ffffff' : (Visual.outline[eid] ? '#ffffff' : undefined);
+      let strokeW = isSelected ? 3 : (Visual.outline[eid] ? 2 : undefined);
+
+      // ========================================
+      // Elite enemy rendering — gold border + 20% size increase
+      // design/02-gameplay.md §2.4: 金色边框+体型增大20%
+      // ========================================
+      const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
+      if (isEliteEnemy) {
+        drawSize = drawSize * 1.2;
+        if (!isSelected) {
+          strokeColor = '#FFD700';
+          strokeW = 3;
+        }
+      }
 
       // ========================================
       // Unit move-range circle (when selected)

@@ -1,341 +1,176 @@
+# ============================================================
+# 第4关：末日废土
+# design/04-levels.md §5
+# ============================================================
 id: level_04
-name: 失落神庙
-description: 丛林深处的沉没神庙，两条钳形通道将守军拦截点一分为二。上古石柱机关横亘要道，石化巨像在最终波次从幽暗中醒来，以毁灭性的质量石化横扫一切抵抗。
-sceneDescription: 赤道密林笼罩的远古神庙遗址，21 格宽的丛林沼地被两条蜿蜒钳形古道贯穿。上路从西北 spawn S0 (row=2,col=0) 沿 row 2 水平东进，在 col=10 折向南方与下路汇合；下路从西南 spawn S1 (row=6,col=0) 沿 row 6 水平东进，同样在 col=10 折向北方与上路会合，随后由 row 4 直抵东侧水晶 B (row=4,col=20)。八根神庙石柱林立于汇合段两侧，残破的古像点缀路旁，藤蔓蔓延每一道裂隙。
+name: 末日废土
+description: 废弃城市，浓雾弥漫
+
 map:
   cols: 21
   rows: 9
   tileSize: 64
   tiles:
-    # row 0
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 1
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 2 (上路 spawn S0 → col=10 汇合点)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 3
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 4 (汇合后主路 col=10 → base col=20)
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - base
-    # row 5
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 6 (下路 spawn S1 → col=10 汇合点)
-    - - spawn
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - path
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 7
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-    # row 8
-    - - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
-      - empty
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#4a3728'
-    path: '#7a6550'
-    blocked: '#2d2416'
-    spawn: '#ff8f00'
-    base: '#1e88e5'
+    empty: '#4e342e'
+    path: '#5d4037'
+    blocked: '#1a0000'
+    spawn: '#ff5722'
+    base: '#546e7a'
   obstacles:
-    - { type: temple_pillar, row: 1, col: 9 }
-    - { type: temple_pillar, row: 1, col: 10 }
-    - { type: temple_pillar, row: 2, col: 11 }
-    - { type: temple_pillar, row: 3, col: 11 }
-    - { type: temple_pillar, row: 5, col: 11 }
-    - { type: temple_pillar, row: 6, col: 11 }
-    - { type: temple_pillar, row: 7, col: 9 }
-    - { type: temple_pillar, row: 7, col: 10 }
-    - { type: ancient_statue, row: 0, col: 5 }
-    - { type: ancient_statue, row: 0, col: 15 }
-    - { type: ancient_statue, row: 8, col: 5 }
-    - { type: ancient_statue, row: 8, col: 15 }
-    - { type: vine_overgrowth, row: 3, col: 3 }
-    - { type: vine_overgrowth, row: 5, col: 3 }
-    - { type: vine_overgrowth, row: 4, col: 17 }
+    - { type: rubble, row: 0, col: 8 }
+    - { type: car, row: 5, col: 10 }
+    - { type: pillar, row: 6, col: 15 }
   spawns:
     - id: spawn_0
       row: 2
       col: 0
     - id: spawn_1
-      row: 6
+      row: 4
       col: 0
   pathGraph:
     nodes:
       - { id: n0, row: 2, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 2, col: 10, role: waypoint }
-      - { id: n2, row: 4, col: 10, role: waypoint }
-      - { id: n3, row: 4, col: 20, role: crystal_anchor }
-      - { id: n4, row: 6, col: 0, role: spawn, spawnId: spawn_1 }
-      - { id: n5, row: 6, col: 10, role: waypoint }
+      - { id: n1, row: 2, col: 8, role: waypoint }
+      - { id: n2, row: 2, col: 12, role: waypoint }
+      - { id: n3, row: 2, col: 20, role: crystal_anchor }
+      - { id: n4, row: 4, col: 0, role: spawn, spawnId: spawn_1 }
+      - { id: n5, row: 4, col: 12, role: waypoint }
+      - { id: n6, row: 4, col: 20, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
       - { from: n2, to: n3 }
       - { from: n4, to: n5 }
-      - { from: n5, to: n2 }
+      - { from: n5, to: n6 }
+
+weather:
+  pool:
+    - Fog
+  initial: Fog
+
+crystal:
+  hp: 1200
+
+starting:
+  gold: 350
+  energy: 50
+  maxPopulation: 12
+
+available:
+  towers:
+    - missile
+    - lightning
+    - cannon
+    - ice
+  units:
+    - archer
+    - mage
+
 waves:
-  # 设计稿 §5.4：10 波 ELITE-SPIKE flavor，总敌数 78
+  # 波次1: 机器狗×8
   - waveNumber: 1
     spawnDelay: 2
     enemies:
-      - { enemyType: e_temple_guard, count: 3, spawnInterval: 1.2 }
-      - { enemyType: e_jungle_zealot, count: 2, spawnInterval: 1.0 }
+      - { enemyType: robot_dog, count: 8, spawnInterval: 1.5 }
+    reward: 35
+  # 波次2: 机器狗×6 + 无人机×5
   - waveNumber: 2
     spawnDelay: 30
     enemies:
-      - { enemyType: e_jungle_zealot, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_temple_guard, count: 2, spawnInterval: 1.2 }
+      - { enemyType: robot_dog, count: 6, spawnInterval: 1.5 }
+      - { enemyType: drone, count: 5, spawnInterval: 1.5 }
+    reward: 45
+  # 波次3: 机器狗×5 + 无人机×4 + 飞机×2
   - waveNumber: 3
     spawnDelay: 30
     enemies:
-      - { enemyType: e_temple_priest, count: 1, spawnInterval: 1.5 }
-      - { enemyType: e_jungle_zealot, count: 3, spawnInterval: 1.0 }
-      - { enemyType: e_temple_guard, count: 2, spawnInterval: 1.2 }
+      - { enemyType: robot_dog, count: 5, spawnInterval: 2.0 }
+      - { enemyType: drone, count: 4, spawnInterval: 2.0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0 }
+    reward: 55
+  # 波次4: 机器狗×4 + 无人机×3 + 飞机×2 + 油罐车×2
   - waveNumber: 4
     spawnDelay: 30
     enemies:
-      - { enemyType: e_petrify_oracle, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_temple_guard, count: 4, spawnInterval: 1.2 }
-      - { enemyType: e_jungle_zealot, count: 2, spawnInterval: 1.0 }
+      - { enemyType: robot_dog, count: 4, spawnInterval: 2.0 }
+      - { enemyType: drone, count: 3, spawnInterval: 2.0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.0 }
+    reward: 65
+  # 波次5: 机器狗×4 + 无人机×4 + 飞机×2 + 油罐车×2 + 坦克×1
   - waveNumber: 5
     spawnDelay: 30
     enemies:
-      - { enemyType: e_revival_idol, count: 2, spawnInterval: 2.0 }
-      - { enemyType: e_jungle_zealot, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_temple_guard, count: 2, spawnInterval: 1.2 }
+      - { enemyType: robot_dog, count: 4, spawnInterval: 2.0 }
+      - { enemyType: drone, count: 4, spawnInterval: 2.0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.0 }
+      - { enemyType: tank, count: 1, spawnInterval: 2.0 }
+    reward: 75
+  # 波次6: 机器狗×3 + 无人机×3 + 飞机×2 + 油罐车×2 + 坦克×2 + 巨型机器人×1
   - waveNumber: 6
     spawnDelay: 30
     enemies:
-      - { enemyType: e_temple_priest, count: 2, spawnInterval: 1.5 }
-      - { enemyType: e_temple_guard, count: 3, spawnInterval: 1.2 }
-      - { enemyType: e_jungle_zealot, count: 3, spawnInterval: 1.0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0 }
+      - { enemyType: drone, count: 3, spawnInterval: 2.0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.0 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.0 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 2.0 }
+    reward: 85
+  # 波次7: 机器狗×5 + 无人机×4 + 飞机×3 + 油罐车×3 + 坦克×2
   - waveNumber: 7
     spawnDelay: 30
     enemies:
-      - { enemyType: e_petrify_oracle, count: 1, spawnInterval: 1.8 }
-      - { enemyType: e_temple_priest, count: 1, spawnInterval: 1.5 }
-      - { enemyType: e_jungle_zealot, count: 4, spawnInterval: 1.0 }
-      - { enemyType: e_temple_guard, count: 3, spawnInterval: 1.2 }
+      - { enemyType: robot_dog, count: 5, spawnInterval: 2.0 }
+      - { enemyType: drone, count: 4, spawnInterval: 2.0 }
+      - { enemyType: plane, count: 3, spawnInterval: 2.0 }
+      - { enemyType: oil_truck, count: 3, spawnInterval: 2.0 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.0 }
+    reward: 95
+  # 波次8: BOSS + 无人机×5 + 坦克×2
   - waveNumber: 8
     spawnDelay: 30
     enemies:
-      - { enemyType: e_revival_idol, count: 2, spawnInterval: 2.0 }
-      - { enemyType: e_temple_priest, count: 2, spawnInterval: 1.5 }
-      - { enemyType: e_temple_guard, count: 4, spawnInterval: 1.2 }
-  - waveNumber: 9
-    spawnDelay: 30
-    enemies:
-      - { enemyType: e_petrify_oracle, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_jungle_zealot, count: 5, spawnInterval: 1.0 }
-      - { enemyType: e_temple_guard, count: 3, spawnInterval: 1.2 }
-  - waveNumber: 10
-    spawnDelay: 30
+      - { enemyType: super_robot, count: 1, spawnInterval: 0 }
+      - { enemyType: drone, count: 5, spawnInterval: 2.0 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.0 }
     isBossWave: true
-    enemies:
-      - { enemyType: e_stone_colossus, count: 1, spawnInterval: 0 }
-      - { enemyType: e_petrify_oracle, count: 2, spawnInterval: 1.8 }
-      - { enemyType: e_temple_priest, count: 2, spawnInterval: 1.5 }
-      - { enemyType: e_jungle_zealot, count: 6, spawnInterval: 1.0 }
-starting:
-  gold: 0
-  energy: 0
-  maxPopulation: 6
-available:
-  towers:
-    - arrow
-    - cannon
-    - frost
-    - lightning
-    - flame
-  units:
-    - swordsman
-    - archer
-    - knight
-    - mage
-weather:
-  pool:
-    - fog
-  initial: fog
+    reward: 150
+
+cardPool:
+  - card_missile_tower
+  - card_lightning_tower
+  - card_cannon_tower
+  - card_ice_tower
+  - card_archer
+  - card_mage
+  - card_water_pit
+
+draftPool:
+  - card_missile_tower
+  - card_lightning_tower
+  - card_cannon_tower
+  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_archer
+  - card_mage
+  - card_mechanical_arm
+  - card_fan
+  - card_bomb
+  - card_gold_rush
+  - card_shield_boost
+
 banPool: []
 neutralPool: []
-
-# ============================================================
-# 设计稿引用：design/10-gameplay/16-level-blueprints.md §5 / 数值乘数：50-mda §21.2  enemyHpMult=1.15  enemyDmgMult=1.15
-# Flavor: ELITE-SPIKE  目标时长 7-9 min  总敌数 78
-# 通关 HP 损失预算：5-15
-# ============================================================

@@ -151,7 +151,7 @@ export function cardTypeGlyph(type: CardType): string {
 export type ResolvedCardEntity =
   | { entityType: 'tower'; towerType: TowerType }
   | { entityType: 'unit'; unitType: UnitType }
-  | { entityType: 'trap' };
+  | { entityType: 'trap'; trapTypeId: string };
 
 /**
  * v3.0 roguelike — 把 CardConfig.unitConfigId 映射成可被 BuildSystem.startDrag 消费的实体描述。
@@ -161,8 +161,13 @@ export function resolveCardToEntityType(
 ): ResolvedCardEntity | null {
   if (!unitConfigId) return null;
 
-  if (unitConfigId === 'spike_trap') {
-    return { entityType: 'trap' };
+  // 8种机关类型
+  const TRAP_IDS = [
+    'spike_trap', 'bear_trap', 'tar_pit', 'boulder',
+    'fan', 'water_pit', 'boxing_glove', 'mechanical_arm',
+  ];
+  if (TRAP_IDS.includes(unitConfigId)) {
+    return { entityType: 'trap', trapTypeId: unitConfigId };
   }
 
   if (unitConfigId.endsWith('_tower')) {
