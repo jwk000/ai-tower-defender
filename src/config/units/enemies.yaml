@@ -2925,3 +2925,418 @@ e_blood_trickster:
       - type: play_sound
         sound: SFX_ENEMY_SPAWN
 
+---
+
+# ============================================================
+# 第1关 — 绿野仙踪 敌人 (design/03-units.md §5.1)
+# ============================================================
+
+goblin:
+  id: goblin
+  name: "哥布林"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 80, atk: 8, attackSpeed: 1.0, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
+  reward: { gold: 5 }
+  visual: { shape: circle, color: "#4caf50", size: 22, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+boar:
+  id: boar
+  name: "疯狂野猪"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 60, atk: 12, attackSpeed: 1.5, range: 30, speed: 80, armor: 0, mr: 0, damageType: physical }
+  reward: { gold: 8 }
+  visual: { shape: circle, color: "#8d6e63", size: 26, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+elephant:
+  id: elephant
+  name: "铁甲大象"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 300, atk: 15, attackSpeed: 0.6, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
+  reward: { gold: 20 }
+  visual: { shape: circle, color: "#78909c", size: 44, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+giant:
+  id: giant
+  name: "草原巨人"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 400, atk: 30, attackSpeed: 0.5, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
+  reward: { gold: 30 }
+  visual: { shape: circle, color: "#558b2f", size: 50, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+giant_slime:
+  id: giant_slime
+  name: "巨型史莱姆"
+  category: Boss
+  faction: Evil
+  layer: Ground
+  isBoss: true
+  stats: { hp: 800, atk: 20, attackSpeed: 0.5, range: 50, speed: 15, armor: 10, mr: 5, damageType: physical }
+  reward: { gold: 100 }
+  visual: { shape: circle, color: "#66bb6a", size: 64, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  boss: { bossType: GiantSlime, splitCount: 0 }
+  lifecycle:
+    onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onKill: [{ type: play_effect, effect: boss_death }, { type: play_sound, sound: SFX_BOSS_DIE }]
+
+---
+
+# ============================================================
+# 第2关 — 沙漠虫潮 敌人 (design/03-units.md §5.2)
+# ============================================================
+
+desert_beetle:
+  id: desert_beetle
+  name: "沙漠黑虫"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 40, atk: 6, attackSpeed: 1.5, range: 20, speed: 35, armor: 2, mr: 0, damageType: physical }
+  reward: { gold: 3 }
+  visual: { shape: circle, color: "#5d4037", size: 18, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+burrow_beetle:
+  id: burrow_beetle
+  name: "钻地甲虫"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 120, atk: 15, attackSpeed: 1.0, range: 30, speed: 40, armor: 10, mr: 0, damageType: physical }
+  reward: { gold: 12 }
+  visual: { shape: circle, color: "#795548", size: 30, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canTunnel: true, tunnelInterval: 3.0, tunnelDuration: 2.0, tunnelSpeedBonus: 0.5 } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+locust:
+  id: locust
+  name: "吸血蝗虫"
+  category: Enemy
+  faction: Evil
+  layer: LowAir
+  stats: { hp: 30, atk: 10, attackSpeed: 1.0, range: 30, speed: 25, armor: 0, mr: 0, damageType: physical }
+  reward: { gold: 4 }
+  visual: { shape: triangle, color: "#afb42b", size: 16, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+bomb_beetle:
+  id: bomb_beetle
+  name: "自爆甲虫"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 50, atk: 80, attackSpeed: 0, range: 60, speed: 50, armor: 0, mr: 0, damageType: physical }
+  reward: { gold: 15 }
+  visual: { shape: circle, color: "#ff5722", size: 24, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { targetBuildings: true, ignoreTaunt: true, selfDestruct: true, explosionRadius: 50 } }
+  lifecycle:
+    onDeath: [{ type: deal_aoe_damage, radius: 50, damage: 80, targets: [Tower] }, { type: play_effect, effect: explosion_red }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+queen_beetle:
+  id: queen_beetle
+  name: "虫族女王"
+  category: Boss
+  faction: Evil
+  layer: Ground
+  isBoss: true
+  stats: { hp: 1000, atk: 30, attackSpeed: 0.6, range: 80, speed: 20, armor: 15, mr: 20, damageType: physical }
+  reward: { gold: 150 }
+  visual: { shape: circle, color: "#e65100", size: 68, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  boss: { bossType: QueenWorm, immuneToTowers: true, spawnInterval: 15.0, spawnUnit: desert_beetle, spawnCount: 3 }
+  lifecycle:
+    onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onKill: [{ type: play_effect, effect: boss_death }, { type: play_sound, sound: SFX_BOSS_DIE }]
+
+---
+
+# ============================================================
+# 第3关 — 黑暗古堡 敌人 (design/03-units.md §5.3)
+# ============================================================
+
+werewolf:
+  id: werewolf
+  name: "狼人"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 150, atk: 20, attackSpeed: 1.5, range: 40, speed: 55, armor: 8, mr: 5, damageType: physical }
+  reward: { gold: 12 }
+  visual: { shape: circle, color: "#5d4037", size: 32, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+vampire_bat:
+  id: vampire_bat
+  name: "吸血蝙蝠"
+  category: Enemy
+  faction: Evil
+  layer: LowAir
+  stats: { hp: 40, atk: 8, attackSpeed: 1.2, range: 40, speed: 60, armor: 0, mr: 5, damageType: physical }
+  reward: { gold: 5 }
+  visual: { shape: triangle, color: "#4a148c", size: 18, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+wizard:
+  id: wizard
+  name: "巫师"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 100, atk: 25, attackSpeed: 0.8, range: 180, speed: 30, armor: 5, mr: 20, damageType: magic }
+  reward: { gold: 15 }
+  visual: { shape: hexagon, color: "#7b1fa2", size: 28, outline: true }
+  behavior: { targetSelection: weakest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_magic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+dark_priest:
+  id: dark_priest
+  name: "黑暗牧师"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 120, atk: 0, attackSpeed: 0, range: 150, speed: 25, armor: 10, mr: 15, damageType: physical }
+  reward: { gold: 18 }
+  visual: { shape: hexagon, color: "#311b92", size: 30, outline: true }
+  behavior: { targetSelection: nearest, attackMode: none, movementMode: follow_path }
+  skills: [{ id: revive, name: "复活", cooldown: 8.0, range: 150, value: 1 }]
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_magic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+frankenstein:
+  id: frankenstein
+  name: "弗兰肯斯坦"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 500, atk: 35, attackSpeed: 0.6, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
+  reward: { gold: 30 }
+  visual: { shape: circle, color: "#455a64", size: 48, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+lucifer:
+  id: lucifer
+  name: "路西法"
+  category: Boss
+  faction: Chaos
+  layer: Ground
+  isBoss: true
+  stats: { hp: 1200, atk: 40, attackSpeed: 0.5, range: 60, speed: 18, armor: 20, mr: 25, damageType: physical }
+  reward: { gold: 200 }
+  visual: { shape: circle, color: "#9c27b0", size: 72, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  boss: { bossType: Lucifer, spawnInterval: 10.0, spawnIntervalEnraged: 5.0, spawnUnit: skeleton, spawnCount: 3, skeletonCap: 12, enrageHpRatio: 0.3, enrageAtkBonus: 0.5 }
+  lifecycle:
+    onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onKill: [{ type: play_effect, effect: boss_death }, { type: play_sound, sound: SFX_BOSS_DIE }]
+
+skeleton:
+  id: skeleton
+  name: "骷髅"
+  category: Enemy
+  faction: Chaos
+  layer: Ground
+  stats: { hp: 60, atk: 8, attackSpeed: 1.0, range: 30, speed: 50, armor: 0, mr: 0, damageType: physical }
+  reward: { gold: 5 }
+  visual: { shape: circle, color: "#e0e0e0", size: 20, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+---
+
+# ============================================================
+# 第4关 — 末日废土 敌人 (design/03-units.md §5.4)
+# ============================================================
+
+plane:
+  id: plane
+  name: "飞机"
+  category: Enemy
+  faction: Evil
+  layer: LowAir
+  stats: { hp: 80, atk: 15, attackSpeed: 1.0, range: 60, speed: 70, armor: 5, mr: 5, damageType: physical }
+  reward: { gold: 10 }
+  visual: { shape: triangle, color: "#78909c", size: 28, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+tank:
+  id: tank
+  name: "坦克"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 350, atk: 40, attackSpeed: 0.5, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
+  reward: { gold: 25 }
+  visual: { shape: rect, color: "#546e7a", size: 48, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+oil_truck:
+  id: oil_truck
+  name: "油罐车"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 150, atk: 5, attackSpeed: 1.0, range: 30, speed: 35, armor: 10, mr: 0, damageType: physical }
+  reward: { gold: 18 }
+  visual: { shape: rect, color: "#ff8f00", size: 36, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: deal_aoe_damage, radius: 70, damage: 50, targets: [Player] }, { type: drop_gold }, { type: play_effect, effect: explosion_large }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+robot_dog:
+  id: robot_dog
+  name: "机器狗"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 50, atk: 10, attackSpeed: 2.0, range: 25, speed: 80, armor: 5, mr: 0, damageType: physical }
+  reward: { gold: 6 }
+  visual: { shape: circle, color: "#90a4ae", size: 22, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+giant_robot:
+  id: giant_robot
+  name: "巨型机器人"
+  category: Enemy
+  faction: Evil
+  layer: Ground
+  stats: { hp: 600, atk: 50, attackSpeed: 0.4, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
+  reward: { gold: 40 }
+  visual: { shape: rect, color: "#37474f", size: 56, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+drone:
+  id: drone
+  name: "无人机"
+  category: Enemy
+  faction: Evil
+  layer: LowAir
+  stats: { hp: 30, atk: 8, attackSpeed: 1.5, range: 50, speed: 65, armor: 0, mr: 5, damageType: physical }
+  reward: { gold: 4 }
+  visual: { shape: triangle, color: "#b0bec5", size: 16, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
+  lifecycle:
+    onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onCreate: [{ type: play_sound, sound: SFX_ENEMY_SPAWN }]
+
+super_robot:
+  id: super_robot
+  name: "超级机器人"
+  category: Boss
+  faction: Evil
+  layer: Ground
+  isBoss: true
+  stats: { hp: 2000, atk: 60, attackSpeed: 0.3, range: 100, speed: 10, armor: 40, mr: 15, damageType: physical }
+  reward: { gold: 250 }
+  visual: { shape: rect, color: "#d32f2f", size: 80, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  boss: { bossType: SuperRobot, missileInterval: 10.0, warningDuration: 2.0, missileDamage: 80, missileRadius: 80 }
+  lifecycle:
+    onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onKill: [{ type: play_effect, effect: boss_death }, { type: play_sound, sound: SFX_BOSS_DIE }]
+
+---
+
+# ============================================================
+# 第5关 — 深渊裂隙 BOSS (design/03-units.md §6.5)
+# ============================================================
+
+abyss_lord:
+  id: abyss_lord
+  name: "深渊领主"
+  category: Boss
+  faction: Evil
+  layer: Ground
+  isBoss: true
+  stats: { hp: 3000, atk: 50, attackSpeed: 0.5, range: 150, speed: 8, armor: 30, mr: 30, damageType: physical }
+  reward: { gold: 400 }
+  visual: { shape: circle, color: "#1a0033", size: 96, outline: true }
+  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  boss: { bossType: AbyssLord, annihilateInterval: 5.0, annihilateRadius: 150, healRatio: 0.02 }
+  lifecycle:
+    onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
+    onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
+    onKill: [{ type: play_effect, effect: boss_death }, { type: play_sound, sound: SFX_BOSS_DIE }]

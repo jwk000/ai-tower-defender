@@ -67,3 +67,43 @@ bat_tower_card:
   unitConfigId: bat_tower
   placement:
     targetType: tile
+
+ballista_tower_card:
+  name: 弩塔
+  description: 穿透型物理塔，箭矢穿透路径上所有敌人
+  type: unit
+  rarity: rare
+  energyCost: 4
+  unitConfigId: ballista_tower
+  placement:
+    targetType: tile
+
+missile_tower_card:
+  name: 导弹塔
+  description: 全图射程战略武器，大范围AOE伤害
+  type: unit
+  rarity: epic
+  energyCost: 6
+  unitConfigId: missile_tower
+  placement:
+    targetType: tile
+
+fire_tower_card:
+  name: 火塔
+  description: 魔法DOT塔，攻击附带灼烧持续伤害
+  type: unit
+  rarity: common
+  energyCost: 3
+  unitConfigId: fire_tower
+  placement:
+    targetType: tile
+
+poison_tower_card:
+  name: 毒塔
+  description: 魔法DOT+传染塔，中毒效果可传染给周围敌人
+  type: unit
+  rarity: rare
+  energyCost: 4
+  unitConfigId: poison_tower
+  placement:
+    targetType: tile

@@ -67,3 +67,13 @@ assassin_card:
   unitConfigId: assassin
   placement:
     targetType: tile
+
+mage_card:
+  name: 法师
+  description: 远程魔法AOE输出，对目标周围造成范围伤害
+  type: unit
+  rarity: rare
+  energyCost: 4
+  unitConfigId: mage
+  placement:
+    targetType: tile

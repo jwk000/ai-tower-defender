@@ -337,3 +337,66 @@ assassin:
       - type: teleport_effect
       - type: play_animation
         animation: slash_cross
+
+---
+
+# 法师 — 远程魔法AOE输出
+mage:
+  id: mage
+  name: 法师
+  category: Soldier
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 100
+    atk: 25
+    attackSpeed: 1.0
+    range: 150
+    speed: 30
+    armor: 5
+    mr: 20
+    damageType: magic
+    moveRange: 80
+
+  cost:
+    build: 55
+    pop: 2
+
+  visual:
+    shape: rect
+    color: "#9c27b0"
+    size: 24
+    outline: true
+    symbol: cross
+
+  behavior:
+    targetSelection: closest_to_crystal
+    attackMode: aoe_splash
+    movementMode: player_directed
+    special:
+      splashRadius: 40
+      splashPercent: 1.0
+
+  skills:
+    - id: arcane_blast
+      name: 奥术爆破
+      cooldown: 8
+      energyCost: 20
+      range: 200
+      value: 40
+      description: 对目标区域造成40点魔法AOE伤害
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: death_soldier
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: magic_bolt
+      - type: play_sound
+        sound: SFX_MAGIC_SHOOT

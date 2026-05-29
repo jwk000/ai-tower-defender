@@ -19,3 +19,80 @@ spike_trap_card:
   placement:
     targetType: tile
     range: path
+
+bear_trap_card:
+  name: 捕兽夹
+  description: 一次性陷阱，困住敌人1秒，BOSS免疫
+  type: trap
+  rarity: common
+  energyCost: 3
+  unitConfigId: bear_trap
+  placement:
+    targetType: tile
+    range: path
+
+tar_pit_card:
+  name: 焦油坑
+  description: 路径减速陷阱，经过的敌人减速20%
+  type: trap
+  rarity: common
+  energyCost: 2
+  unitConfigId: tar_pit
+  placement:
+    targetType: tile
+    range: path
+
+boulder_card:
+  name: 巨石
+  description: 路障，阻挡敌人前进直到被破坏
+  type: trap
+  rarity: rare
+  energyCost: 4
+  unitConfigId: boulder
+  placement:
+    targetType: tile
+    range: path
+
+fan_card:
+  name: 风扇
+  description: 前方3格路径上的敌人减速20%
+  type: trap
+  rarity: rare
+  energyCost: 3
+  unitConfigId: fan
+  placement:
+    targetType: tile
+    range: path_adjacent
+
+water_pit_card:
+  name: 水坑
+  description: 50%概率直接秒杀经过的敌人
+  type: trap
+  rarity: epic
+  energyCost: 5
+  unitConfigId: water_pit
+  placement:
+    targetType: tile
+    range: path_adjacent
+
+boxing_glove_card:
+  name: 拳击套
+  description: 击退前方1格路径上的敌人，3秒冷却
+  type: trap
+  rarity: rare
+  energyCost: 4
+  unitConfigId: boxing_glove
+  placement:
+    targetType: tile
+    range: path_adjacent
+
+mechanical_arm_card:
+  name: 机械臂
+  description: 拉回前方2格路径上的敌人，4秒冷却
+  type: trap
+  rarity: rare
+  energyCost: 4
+  unitConfigId: mechanical_arm
+  placement:
+    targetType: tile
+    range: path_adjacent
