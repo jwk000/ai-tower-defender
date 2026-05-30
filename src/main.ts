@@ -321,6 +321,16 @@ class TowerDefenderGame extends Game {
     this.previousPhase = GamePhase.Deployment;
     Music.play('battle_default');
 
+    // Select card pool based on level (defined early for use in callbacks)
+    const cardPoolByLevel: Record<number, typeof LEVEL_1_CARD_POOL> = {
+      1: LEVEL_1_CARD_POOL,
+      2: LEVEL_2_CARD_POOL,
+      3: LEVEL_3_CARD_POOL,
+      4: LEVEL_4_CARD_POOL,
+      5: LEVEL_5_CARD_POOL,
+    };
+    const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
+
     // ---- Create base entity ----
     const resolvedGraph = resolveGraphFromMap(map);
     const crystalAnchor = resolvedGraph.pathGraph.nodes.find((n) => n.role === 'crystal_anchor')
@@ -371,6 +381,11 @@ class TowerDefenderGame extends Game {
       },
       () => {
         // wave start — no-op after roguelike context removal
+      },
+      undefined, // onWaveReward
+      () => {
+        // 精英敌人被击杀 → 触发 3选1 抽卡
+        this.cardDraftSystem.startDraft(initialPool, this.handSystem);
       },
     );
 
@@ -525,16 +540,6 @@ class TowerDefenderGame extends Game {
 
     // ---- Hand System (card management) ----
     this.handSystem = new HandSystem();
-
-    // Select card pool based on level
-    const cardPoolByLevel: Record<number, typeof LEVEL_1_CARD_POOL> = {
-      1: LEVEL_1_CARD_POOL,
-      2: LEVEL_2_CARD_POOL,
-      3: LEVEL_3_CARD_POOL,
-      4: LEVEL_4_CARD_POOL,
-      5: LEVEL_5_CARD_POOL,
-    };
-    const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
     this.handSystem.initialize(initialPool);
 
     // ---- Create RunContext for UISystem ----
@@ -779,7 +784,6 @@ class TowerDefenderGame extends Game {
           const spawnResult = this.spawnUnitAt(e.x, e.y);
           if (spawnResult && ds.cardIndex !== undefined) {
             this.handSystem.playCard(ds.cardIndex);
-            this.handSystem.drawRandomCard();
           }
           this.buildSystem.cancelDrag();
         } else {
@@ -790,10 +794,9 @@ class TowerDefenderGame extends Game {
             this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
               ds.entityType === 'trap' ? 'trap' :
               ds.entityType === 'production' ? 'production' : null;
-            // 从手牌中移除已使用的卡牌并补充新卡牌
+            // 从手牌中移除已使用的卡牌
             if (ds.cardIndex !== undefined) {
               this.handSystem.playCard(ds.cardIndex);
-              this.handSystem.drawRandomCard();
             }
           } else if (result === false) {
             Sound.play('build_deny');
