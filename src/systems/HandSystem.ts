@@ -101,6 +101,27 @@ export class HandSystem implements System {
   }
 
   /**
+   * 从卡牌库中随机抽一张牌补充手牌。
+   * @returns true 若抽牌成功，false 若手牌已满或卡牌库为空
+   */
+  drawRandomCard(): boolean {
+    if (this.isFull()) return false;
+    if (this.cardLibrary.size === 0) return false;
+
+    const slot = this.hand.findIndex((s) => s === null);
+    if (slot === -1) return false;
+
+    // 从卡牌库中随机选择一张
+    const cards = Array.from(this.cardLibrary.values());
+    const randomIndex = Math.floor(Math.random() * cards.length);
+    const card = cards[randomIndex];
+    if (!card) return false;
+
+    this.hand[slot] = card;
+    return true;
+  }
+
+  /**
    * 打出手牌中指定位置的牌，将其从手牌中移除。
    * 触发 onCardPlayed 回调。
    * @returns 被打出卡牌的 cardId，若该位置为空则返回 null

@@ -779,6 +779,7 @@ class TowerDefenderGame extends Game {
           const spawnResult = this.spawnUnitAt(e.x, e.y);
           if (spawnResult && ds.cardIndex !== undefined) {
             this.handSystem.playCard(ds.cardIndex);
+            this.handSystem.drawRandomCard();
           }
           this.buildSystem.cancelDrag();
         } else {
@@ -789,9 +790,10 @@ class TowerDefenderGame extends Game {
             this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
               ds.entityType === 'trap' ? 'trap' :
               ds.entityType === 'production' ? 'production' : null;
-            // 从手牌中移除已使用的卡牌
+            // 从手牌中移除已使用的卡牌并补充新卡牌
             if (ds.cardIndex !== undefined) {
               this.handSystem.playCard(ds.cardIndex);
+              this.handSystem.drawRandomCard();
             }
           } else if (result === false) {
             Sound.play('build_deny');
