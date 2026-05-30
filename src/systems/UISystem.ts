@@ -8,7 +8,7 @@
 // Pure layout/constants functions extracted to ../ui/LayoutConstants.ts
 // ============================================================
 
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS } from '../data/gameData.js';
@@ -28,6 +28,7 @@ import {
   CategoryVal,
   Trap,
   PlayerOwned,
+  BatTower,
 } from '../core/components.js';
 import type { CardConfig, CardType } from '../config/cardRegistry.js';
 import type { CardDraftSystem } from './CardDraftSystem.js';
@@ -370,16 +371,24 @@ export class UISystem implements System {
     if (id === null || !this._world) return;
 
     const px = Position.x[id];
-    const py = Position.y[id]!;
-    if (px === undefined) return;
+    const py = Position.y[id];
+    if (px === undefined || py === undefined) return;
 
     let diameter = 0;
     let color = '#ffffff';
 
     if (this.selectedEntityType === 'tower') {
-      const atkRange = Attack.range[id];
       const towerTypeVal = Tower.towerType[id];
-      if (atkRange === undefined || towerTypeVal === undefined) return;
+      if (towerTypeVal === undefined) return;
+
+      let atkRange: number | undefined;
+      // Bat towers use BatTower component, others use Attack component
+      if (towerTypeVal === 5 && hasComponent(this._world.world, BatTower, id)) {
+        atkRange = BatTower.batAttackRange[id];
+      } else {
+        atkRange = Attack.range[id];
+      }
+      if (atkRange === undefined) return;
 
       const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal];
       const config = towerTypeEnum ? TOWER_CONFIGS[towerTypeEnum] : undefined;
@@ -399,16 +408,18 @@ export class UISystem implements System {
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.15,
+      alpha: 0.25,
+      z: 20,
     });
     this.renderer.push({
       shape: 'circle',
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.4,
+      alpha: 0.6,
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: 3,
+      z: 20,
     });
   }
 
@@ -1315,43 +1326,61 @@ export class UISystem implements System {
     const options = sys.getOptions();
     if (options.length === 0) return;
 
+    // Apply gaussian blur to background for modal effect
+    this.renderer.applyBlur(8);
+
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    // Full-screen dim
+    // Full-screen dim overlay (lighter to show blur effect)
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
       size: RenderSystem.sceneW,
       h: RenderSystem.sceneH,
-      color: '#000000', alpha: 0.6,
+      color: '#000000', alpha: 0.4,
     });
 
     const panelW = 700;
-    const panelH = 280;
+    const panelH = 320;
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
+    // Panel background with glow effect
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: panelW + 8, h: panelH + 8,
+      color: '#7c4dff', alpha: 0.3,
+    });
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
       size: panelW, h: panelH,
-      color: '#1a1a2e', alpha: 0.95,
-      stroke: '#7c4dff', strokeWidth: 2,
+      color: '#1a1a2e', alpha: 0.98,
+      stroke: '#7c4dff', strokeWidth: 3,
     });
 
+    // Title
     this.infos.push({
-      x: mapCenterX, y: panelY + 30,
-      text: '选择一张卡牌加入手牌',
-      color: '#ffffff', size: 24, align: 'center',
+      x: mapCenterX, y: panelY + 35,
+      text: '✨ 选择一张卡牌加入手牌 ✨',
+      color: '#ffffff', size: 26, align: 'center',
     });
 
-    const cardW = 180;
-    const cardH = 200;
-    const gap = 20;
+    // Subtitle
+    this.infos.push({
+      x: mapCenterX, y: panelY + 65,
+      text: '精英敌人已被击败！选择一张卡牌强化你的牌组',
+      color: '#90a4ae', size: 14, align: 'center',
+    });
+
+    const cardW = 190;
+    const cardH = 220;
+    const gap = 25;
     const totalW = options.length * cardW + (options.length - 1) * gap;
     const startX = mapCenterX - totalW / 2 + cardW / 2;
-    const cardY = panelY + 100;
+    const cardY = panelY + 160;
 
     for (let i = 0; i < options.length; i++) {
       const opt = options[i]!;
@@ -1361,33 +1390,72 @@ export class UISystem implements System {
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
       const canAfford = runContext ? runContext.energy.current >= (config?.energyCost ?? 0) : true;
 
+      // Card glow effect
+      this.renderer.push({
+        shape: 'rect',
+        x: cx, y: cardY,
+        size: cardW + 6, h: cardH + 6,
+        color: borderColor, alpha: 0.2,
+      });
+
+      // Card background
       this.renderer.push({
         shape: 'rect',
         x: cx, y: cardY,
         size: cardW, h: cardH,
-        color: '#1a2332', alpha: canAfford ? 0.95 : 0.5,
-        stroke: borderColor, strokeWidth: 2,
+        color: '#1a2332', alpha: canAfford ? 0.98 : 0.6,
+        stroke: borderColor, strokeWidth: 3,
       });
 
-      this.infos.push({
-        x: cx, y: cardY - 30,
-        text: opt.name, color: '#ffffff', size: 16, align: 'center',
-      });
-
-      this.infos.push({
-        x: cx, y: cardY + 10,
-        text: opt.description,
-        color: '#90a4ae', size: 12, align: 'center',
-      });
-
+      // Card type icon/glyph
       if (config) {
+        const glyph = cardTypeGlyph(config.type as CardType);
         this.infos.push({
-          x: cx, y: cardY + cardH / 2 + 20,
-          text: `◇ ${config.energyCost}`,
-          color: canAfford ? '#bbdefb' : '#ef5350', size: 16, align: 'center',
+          x: cx, y: cardY - 60,
+          text: glyph, color: borderColor, size: 32, align: 'center',
         });
       }
 
+      // Card name
+      this.infos.push({
+        x: cx, y: cardY - 25,
+        text: opt.name, color: '#ffffff', size: 18, align: 'center',
+      });
+
+      // Card description
+      this.infos.push({
+        x: cx, y: cardY + 15,
+        text: opt.description,
+        color: '#b0bec5', size: 13, align: 'center',
+      });
+
+      // Energy cost
+      if (config) {
+        this.infos.push({
+          x: cx, y: cardY + cardH / 2 + 25,
+          text: `◇ ${config.energyCost}`,
+          color: canAfford ? '#64ffda' : '#ef5350', size: 18, align: 'center',
+        });
+      }
+
+      // Rarity label
+      if (config) {
+        const rarityColors: Record<string, string> = {
+          common: '#9e9e9e',
+          uncommon: '#4caf50',
+          rare: '#2196f3',
+          epic: '#9c27b0',
+          legendary: '#ff9800',
+        };
+        const rarityColor = rarityColors[config.rarity] ?? '#9e9e9e';
+        this.infos.push({
+          x: cx, y: cardY + cardH / 2 + 45,
+          text: config.rarity.toUpperCase(),
+          color: rarityColor, size: 11, align: 'center',
+        });
+      }
+
+      // Selection button
       this.buttons.push({
         x: cx - cardW / 2, y: cardY - cardH / 2,
         w: cardW, h: cardH,

@@ -241,6 +241,45 @@ export class Renderer {
     return w;
   }
 
+  /**
+   * Apply gaussian blur effect to the current canvas content.
+   * This captures the current frame, applies blur, and redraws it.
+   * Use for modal overlays (draft, pause, etc.) to blur the background.
+   *
+   * @param blurRadius Blur strength in pixels (default: 8)
+   */
+  applyBlur(blurRadius: number = 8): void {
+    const ctx = this.ctx;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    // Save current transform
+    ctx.save();
+
+    // Reset to viewport space for capture
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Create temporary canvas to capture current frame
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext('2d')!;
+
+    // Copy current canvas to temp
+    tempCtx.drawImage(this.canvas, 0, 0);
+
+    // Clear and redraw with blur
+    ctx.clearRect(0, 0, w, h);
+    ctx.filter = `blur(${blurRadius}px)`;
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Reset filter
+    ctx.filter = 'none';
+
+    // Restore transform
+    ctx.restore();
+  }
+
   get context(): CanvasRenderingContext2D {
     return this.ctx;
   }
