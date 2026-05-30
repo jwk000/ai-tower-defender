@@ -719,6 +719,7 @@ class TowerDefenderGame extends Game {
               ? card.cardId.substring(5)
               : card.cardId;
             const resolved = resolveCardToEntityType(unitConfigId);
+            console.log('[CardDrag] onPointerDown - cardId:', card.cardId, 'unitConfigId:', unitConfigId, 'resolved:', resolved, 'cardIdx:', cardIdx);
             if (resolved) {
               this.buildSystem.startDrag(resolved.entityType as 'tower' | 'unit' | 'trap', {
                 towerType: 'towerType' in resolved ? resolved.towerType : undefined,
@@ -768,26 +769,33 @@ class TowerDefenderGame extends Game {
     };
 
     this.input.onPointerUp = (e: InputEvent) => {
+      console.log('[CardDrag] onPointerUp called - unitDragId:', this.unitDragId, 'dragState:', this.buildSystem.dragState);
       if (this.unitDragId !== null) {
         this.unitDragId = null;
         return;
       }
 
       const ds = this.buildSystem.dragState;
+      console.log('[CardDrag] ds:', ds, 'ds?.active:', ds?.active);
       if (ds?.active) {
         const sceneBottom = RenderSystem.sceneOffsetY + RenderSystem.sceneH;
         if (e.y >= sceneBottom + 8) {
           this.buildSystem.cancelDrag();
           return;
         }
+        console.log('[CardDrag] entityType:', ds.entityType, 'cardIndex:', ds.cardIndex);
         if (ds.entityType === 'unit') {
           const spawnResult = this.spawnUnitAt(e.x, e.y);
+          console.log('[CardDrag] spawnUnitAt result:', spawnResult);
           if (spawnResult && ds.cardIndex !== undefined) {
+            console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
             this.handSystem.playCard(ds.cardIndex);
           }
           this.buildSystem.cancelDrag();
         } else {
+          console.log('[CardDrag] Calling tryDrop...');
           const result = this.buildSystem.tryDrop(e.x, e.y);
+          console.log('[CardDrag] tryDrop result:', result, 'cardIndex:', ds.cardIndex);
           if (result !== false && result !== null) {
             Sound.play('build_place');
             this.uiSystem.selectedEntityId = result;
@@ -796,12 +804,15 @@ class TowerDefenderGame extends Game {
               ds.entityType === 'production' ? 'production' : null;
             // 从手牌中移除已使用的卡牌
             if (ds.cardIndex !== undefined) {
+              console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
               this.handSystem.playCard(ds.cardIndex);
             }
           } else if (result === false) {
             Sound.play('build_deny');
           }
         }
+      } else {
+        console.log('[CardDrag] ds?.active is false or ds is null');
       }
     };
 
@@ -954,6 +965,8 @@ class TowerDefenderGame extends Game {
       if (!hasComponent(w, UnitTag, eid)) continue;
       if (UnitTag.isEnemy[eid] !== 0) continue;
       if (!hasComponent(w, PlayerOwned, eid)) continue;
+      // Exclude towers — they have their own click handling in handleMapClick
+      if (hasComponent(w, Tower, eid)) continue;
       const size = Visual.size[eid];
       if (size === undefined) continue;
       const r = size * 0.65;

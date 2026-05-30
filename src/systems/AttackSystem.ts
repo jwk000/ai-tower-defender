@@ -130,31 +130,64 @@ export class AttackSystem implements System {
     // Clean up orphaned targeting marks (tower destroyed during charging)
     this.cleanupOrphanedTargetingMarks(world);
 
-    // P4 R5+R6 (design/23 §0.7): 6 塔（basic/cannon/ice/lightning/laser/bat）+ missile 攻击逻辑
-    // 已全部迁移至 BT 节点（SpawnProjectileTowerNode / LightningChainNode / LaserBeamNode
-    // / SelectMissileTargetNode + ChargeAttackNode + LaunchMissileProjectileNode）。
-    // AttackSystem.update 本体退化为：仅 orphan cleanup + missile 蓄力遗留入口。
-    // cooldown tick 由 AISystem 负责，发射 cooldown 由各 BT 节点自行设置。
-
     const towers = towerQuery(world.world);
 
-    const validEnemies: number[] = [];
-    const allMatches = potentialTargetQuery(world.world);
-    for (const eid of allMatches) {
-      if (Health.current[eid]! > 0) {
-        validEnemies.push(eid);
-      }
-    }
-
     for (const eid of towers) {
-      // 建造中的塔不参与任何攻击逻辑（AISystem 已跳过 BT，AttackSystem 守卫一致性）
+      // 建造中的塔不参与攻击逻辑
       if (hasComponent(world.world, BuildingTower, eid)) continue;
       const towerTypeVal = Tower.towerType[eid]!;
-      if (towerTypeVal === 6) {
-        // Missile: BT v1.0 已接管 (P3 R5)，handleMissileTower 已薄化为 no-op，保留入口兼容
-        this.handleMissileTower(world, eid, validEnemies, dt);
+
+      // 蝙蝠塔由 BatSwarmSystem 处理
+      if (towerTypeVal === 5) continue;
+
+      // Tick cooldown
+      if (Attack.cooldownTimer[eid]! > 0) {
+        Attack.cooldownTimer[eid]! -= dt;
+        continue;
       }
-      // 其余 6 塔: BT v2.0 全权接管，update 不干预（P4 R5+R6）
+
+      // Find enemies in range
+      const range = Attack.range[eid]!;
+      const enemies = findEnemiesInRange(world, eid, range);
+      if (enemies.length === 0) continue;
+
+      // Fire based on tower type
+      const level = Tower.level[eid] ?? 1;
+      const primaryTarget = enemies[0]!.id;
+      switch (towerTypeVal) {
+        case 0: case 1: case 2: case 7: case 8: case 9:
+          // Arrow/Cannon/Ice/Fire/Poison/Ballista → projectile
+          spawnProjectile(world, eid, primaryTarget, towerTypeVal);
+          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
+          break;
+        case 3:
+          // Lightning → chain attack (damage + LightningBolt visual)
+          doLightningAttack(world, eid, primaryTarget, level);
+          break;
+        case 4:
+          // Laser → beam attack
+          doLaserAttack(world, eid, enemies, level);
+          Sound.play('tower_laser');
+          break;
+        case 6: {
+          // Missile → create targeting mark + parabolic projectile
+          const tx = Position.x[primaryTarget]!;
+          const ty = Position.y[primaryTarget]!;
+          const markId = world.createEntity();
+          world.addComponent(markId, Position, { x: tx, y: ty });
+          world.addComponent(markId, TargetingMark, {
+            blastRadius: 120,
+            pulsePhase: 0,
+            ringRotation: 0,
+          });
+          spawnMissileProjectile(world, eid, markId, tx, ty);
+          Sound.play('tower_missile');
+          break;
+        }
+      }
+
+      // Reset cooldown
+      Attack.cooldownTimer[eid]! = 1.0 / Attack.attackSpeed[eid]!;
     }
   }
 

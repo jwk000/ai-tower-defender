@@ -225,7 +225,7 @@ lightning_tower:
     attackMode: chain
     movementMode: hold_position
     special:
-      chainCount: 3
+      chainCount: 2
       chainRange: 120
       chainDecay: 0.2
 

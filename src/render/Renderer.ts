@@ -246,9 +246,9 @@ export class Renderer {
    * This captures the current frame, applies blur, and redraws it.
    * Use for modal overlays (draft, pause, etc.) to blur the background.
    *
-   * @param blurRadius Blur strength in pixels (default: 8)
+   * @param blurRadius Blur strength in pixels (default: 12)
    */
-  applyBlur(blurRadius: number = 8): void {
+  applyBlur(blurRadius: number = 12): void {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -268,10 +268,13 @@ export class Renderer {
     // Copy current canvas to temp
     tempCtx.drawImage(this.canvas, 0, 0);
 
-    // Clear and redraw with blur
+    // Apply blur multiple times for stronger effect
     ctx.clearRect(0, 0, w, h);
     ctx.filter = `blur(${blurRadius}px)`;
     ctx.drawImage(tempCanvas, 0, 0);
+
+    // Second pass for even stronger blur
+    ctx.drawImage(this.canvas, 0, 0);
 
     // Reset filter
     ctx.filter = 'none';

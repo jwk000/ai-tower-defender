@@ -126,11 +126,7 @@ export class MovementSystem implements System {
 
       const rawSpeed = Movement.speed[eid]!;
       const buff = getEffectiveValue(eid, 'speed');
-      const buffedSpeed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
-      const slowFactor = hasComponent(world.world, Slowed, eid)
-        ? Math.max(0.05, 1 - Slowed.percent[eid]! / 100)
-        : 1;
-      const speed = buffedSpeed * slowFactor;
+      const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
       const dist = speed * dt;
 
       let progress = Movement.progress[eid]!;
@@ -420,11 +416,7 @@ export class MovementSystem implements System {
 
     const rawSpeed = Movement.speed[eid]!;
     const buff = getEffectiveValue(eid, 'speed');
-    const buffedSpeed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
-    const slowFactor = hasComponent(world.world, Slowed, eid)
-      ? Math.max(0.05, 1 - Slowed.percent[eid]! / 100)
-      : 1;
-    const speed = buffedSpeed * slowFactor;
+    const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
     const moveDist = Math.min(speed * dt, distToTarget);
 
     const dirX = dx / distToTarget;

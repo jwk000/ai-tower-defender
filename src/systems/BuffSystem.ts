@@ -274,6 +274,11 @@ export class BuffSystem implements System {
       }
     }
 
+    // 速度减速上限：所有减速效果合计最多 -50%（最低 50% 原速）
+    if (attribute === 'speed' && percent < -50) {
+      percent = -50;
+    }
+
     return { absolute, percent };
   }
 }
@@ -367,6 +372,10 @@ export function getEffectiveValue(eid: number, attribute: string): { absolute: n
       if (buff.isPercent) percent += stackValue;
       else absolute += stackValue;
     }
+  }
+  // 速度减速上限：所有减速效果合计最多 -50%（最低 50% 原速）
+  if (attribute === 'speed' && percent < -50) {
+    percent = -50;
   }
   return { absolute, percent };
 }

@@ -353,6 +353,7 @@ export class UISystem implements System {
 
     if (this.selectedEntityId !== null && this.selectedEntityType === 'tower') {
       this.drawRangePreview();
+      this.buildTowerInfoPanel();
     }
 
     this.buildTopHUD(phase);
@@ -408,7 +409,7 @@ export class UISystem implements System {
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.25,
+      alpha: 0.1,
       z: 20,
     });
     this.renderer.push({
@@ -416,10 +417,144 @@ export class UISystem implements System {
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.6,
+      alpha: 0.35,
       stroke: color,
-      strokeWidth: 3,
+      strokeWidth: 2,
       z: 20,
+    });
+  }
+
+  // ============================================================
+  // Tower Info Panel (upgrade / recycle)
+  // ============================================================
+
+  private buildTowerInfoPanel(): void {
+    const id = this.selectedEntityId;
+    if (id === null || !this._world) return;
+
+    const towerTypeVal = Tower.towerType[id];
+    if (towerTypeVal === undefined) return;
+    const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal];
+    if (towerTypeEnum === undefined) return;
+    const config = TOWER_CONFIGS[towerTypeEnum];
+    if (!config) return;
+
+    const level = Tower.level[id] ?? 1;
+    const isBat = towerTypeVal === 5;
+
+    // Stats
+    const atk = isBat ? (BatTower.batDamage[id] ?? 0) : (Attack.damage[id] ?? 0);
+    const range = isBat ? (BatTower.batAttackRange[id] ?? 0) : (Attack.range[id] ?? 0);
+    const atkSpeed = isBat ? (BatTower.batAttackSpeed[id] ?? 0) : (Attack.attackSpeed[id] ?? 0);
+
+    // Upgrade info
+    const maxLevel = config.upgradeCosts.length + 1;
+    const canUpgrade = level < maxLevel;
+    const upgradeCost = canUpgrade ? (config.upgradeCosts[level - 1] ?? 0) : 0;
+    const gold = this.getGold();
+    const canAfford = gold >= upgradeCost;
+
+    // Refund info
+    const refund = this.getRefundQuote?.(id);
+
+    // Panel layout — right side of screen
+    const panelW = 200;
+    const panelH = 180;
+    const panelX = LayoutManager.DESIGN_W - panelW - 20;
+    const panelY = 100;
+
+    // Panel background
+    this.renderer.push({
+      shape: 'rect',
+      x: panelX + panelW / 2,
+      y: panelY + panelH / 2,
+      size: panelW,
+      h: panelH,
+      color: '#1a1a2e',
+      alpha: 0.9,
+      z: 25,
+    });
+    this.renderer.push({
+      shape: 'rect',
+      x: panelX + panelW / 2,
+      y: panelY + panelH / 2,
+      size: panelW,
+      h: panelH,
+      color: config.color ?? '#ffffff',
+      alpha: 0.8,
+      stroke: config.color ?? '#ffffff',
+      strokeWidth: 2,
+      z: 25,
+    });
+
+    // Tower name + level
+    this.infos.push({
+      x: panelX + panelW / 2,
+      y: panelY + 20,
+      text: `${config.name} Lv.${level}`,
+      color: '#ffffff',
+      size: 16,
+      align: 'center',
+    });
+
+    // Stats
+    this.infos.push({
+      x: panelX + 15,
+      y: panelY + 48,
+      text: `攻击: ${Math.round(atk)}`,
+      color: '#e0e0e0',
+      size: 13,
+    });
+    this.infos.push({
+      x: panelX + 15,
+      y: panelY + 68,
+      text: `范围: ${Math.round(range)}`,
+      color: '#e0e0e0',
+      size: 13,
+    });
+    this.infos.push({
+      x: panelX + 15,
+      y: panelY + 88,
+      text: `攻速: ${atkSpeed.toFixed(1)}/s`,
+      color: '#e0e0e0',
+      size: 13,
+    });
+
+    // Upgrade button
+    const btnW = 85;
+    const btnH = 32;
+    const btnY = panelY + panelH - 50;
+
+    this.buttons.push({
+      x: panelX + 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: canUpgrade ? `升级 ${upgradeCost}G` : '满级',
+      color: canUpgrade && canAfford ? '#4caf50' : '#555555',
+      textColor: '#ffffff',
+      enabled: canUpgrade && canAfford,
+      onClick: () => {
+        this.onUpgradeTower?.(id);
+      },
+    });
+
+    // Recycle button
+    const refundText = refund ? `+${refund.amount}G` : '';
+    this.buttons.push({
+      x: panelX + panelW - btnW - 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: `回收 ${refundText}`,
+      color: '#e53935',
+      textColor: '#ffffff',
+      enabled: true,
+      onClick: () => {
+        this.onRecycleEntity?.(id);
+        this.selectedEntityId = null;
+        this.selectedEntityType = null;
+      },
     });
   }
 
@@ -1327,60 +1462,53 @@ export class UISystem implements System {
     if (options.length === 0) return;
 
     // Apply gaussian blur to background for modal effect
-    this.renderer.applyBlur(8);
+    this.renderer.applyBlur(12);
 
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    // Full-screen dim overlay (lighter to show blur effect)
+    // Full-screen black semi-transparent overlay
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
       size: RenderSystem.sceneW,
       h: RenderSystem.sceneH,
-      color: '#000000', alpha: 0.4,
+      color: '#000000', alpha: 0.7,
     });
 
     const panelW = 700;
-    const panelH = 320;
+    const panelH = 380;
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
-    // Panel background with glow effect
+    // Panel glow effect only (no solid background)
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
-      size: panelW + 8, h: panelH + 8,
-      color: '#7c4dff', alpha: 0.3,
-    });
-    this.renderer.push({
-      shape: 'rect',
-      x: mapCenterX, y: mapCenterY,
-      size: panelW, h: panelH,
-      color: '#1a1a2e', alpha: 0.98,
-      stroke: '#7c4dff', strokeWidth: 3,
+      size: panelW + 12, h: panelH + 12,
+      color: '#7c4dff', alpha: 0.2,
     });
 
-    // Title
+    // Title at top
     this.infos.push({
-      x: mapCenterX, y: panelY + 35,
+      x: mapCenterX, y: panelY + 40,
       text: '✨ 选择一张卡牌加入手牌 ✨',
-      color: '#ffffff', size: 26, align: 'center',
+      color: '#ffffff', size: 28, align: 'center',
     });
 
     // Subtitle
     this.infos.push({
-      x: mapCenterX, y: panelY + 65,
+      x: mapCenterX, y: panelY + 75,
       text: '精英敌人已被击败！选择一张卡牌强化你的牌组',
-      color: '#90a4ae', size: 14, align: 'center',
+      color: '#b0bec5', size: 14, align: 'center',
     });
 
-    const cardW = 190;
-    const cardH = 220;
-    const gap = 25;
+    const cardW = 180;
+    const cardH = 240;
+    const gap = 30;
     const totalW = options.length * cardW + (options.length - 1) * gap;
     const startX = mapCenterX - totalW / 2 + cardW / 2;
-    const cardY = panelY + 160;
+    const cardCenterY = panelY + 120 + cardH / 2; // Card center Y
 
     for (let i = 0; i < options.length; i++) {
       const opt = options[i]!;
@@ -1393,52 +1521,59 @@ export class UISystem implements System {
       // Card glow effect
       this.renderer.push({
         shape: 'rect',
-        x: cx, y: cardY,
-        size: cardW + 6, h: cardH + 6,
-        color: borderColor, alpha: 0.2,
+        x: cx, y: cardCenterY,
+        size: cardW + 8, h: cardH + 8,
+        color: borderColor, alpha: 0.25,
       });
 
       // Card background
       this.renderer.push({
         shape: 'rect',
-        x: cx, y: cardY,
+        x: cx, y: cardCenterY,
         size: cardW, h: cardH,
-        color: '#1a2332', alpha: canAfford ? 0.98 : 0.6,
+        color: '#1a2332', alpha: canAfford ? 0.95 : 0.5,
         stroke: borderColor, strokeWidth: 3,
       });
 
-      // Card type icon/glyph
+      // Card type icon/glyph (inside card, near top)
       if (config) {
         const glyph = cardTypeGlyph(config.type as CardType);
         this.infos.push({
-          x: cx, y: cardY - 60,
-          text: glyph, color: borderColor, size: 32, align: 'center',
+          x: cx, y: cardCenterY - cardH / 2 + 35,
+          text: glyph, color: borderColor, size: 36, align: 'center',
         });
       }
 
-      // Card name
+      // Card name (inside card, below icon)
       this.infos.push({
-        x: cx, y: cardY - 25,
+        x: cx, y: cardCenterY - cardH / 2 + 75,
         text: opt.name, color: '#ffffff', size: 18, align: 'center',
       });
 
-      // Card description
+      // Separator line
       this.infos.push({
-        x: cx, y: cardY + 15,
-        text: opt.description,
-        color: '#b0bec5', size: 13, align: 'center',
+        x: cx, y: cardCenterY - cardH / 2 + 95,
+        text: '━━━━━━━━━━━━',
+        color: '#3a4a5a', size: 10, align: 'center',
       });
 
-      // Energy cost
+      // Card description (inside card, center area)
+      this.infos.push({
+        x: cx, y: cardCenterY + 10,
+        text: opt.description,
+        color: '#b0bec5', size: 12, align: 'center',
+      });
+
+      // Energy cost (inside card, bottom area)
       if (config) {
         this.infos.push({
-          x: cx, y: cardY + cardH / 2 + 25,
+          x: cx, y: cardCenterY + cardH / 2 - 45,
           text: `◇ ${config.energyCost}`,
-          color: canAfford ? '#64ffda' : '#ef5350', size: 18, align: 'center',
+          color: canAfford ? '#64ffda' : '#ef5350', size: 20, align: 'center',
         });
       }
 
-      // Rarity label
+      // Rarity label (inside card, near bottom)
       if (config) {
         const rarityColors: Record<string, string> = {
           common: '#9e9e9e',
@@ -1449,17 +1584,17 @@ export class UISystem implements System {
         };
         const rarityColor = rarityColors[config.rarity] ?? '#9e9e9e';
         this.infos.push({
-          x: cx, y: cardY + cardH / 2 + 45,
+          x: cx, y: cardCenterY + cardH / 2 - 20,
           text: config.rarity.toUpperCase(),
           color: rarityColor, size: 11, align: 'center',
         });
       }
 
-      // Selection button
+      // Selection button (covers entire card)
       this.buttons.push({
-        x: cx - cardW / 2, y: cardY - cardH / 2,
+        x: cx - cardW / 2, y: cardCenterY - cardH / 2,
         w: cardW, h: cardH,
-        label: '选择',
+        label: '',
         color: '#7c4dff', textColor: '#ffffff',
         enabled: canAfford,
         onClick: () => {
