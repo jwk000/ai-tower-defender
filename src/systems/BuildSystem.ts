@@ -84,6 +84,8 @@ export interface DragState {
   unitType?: UnitType;
   /** v4.0: 机关类型ID（如 'spike_trap', 'bear_trap' 等） */
   trapTypeId?: string;
+  /** 手牌中的卡牌索引（用于放置后移除卡牌） */
+  cardIndex?: number;
 }
 
 // ============================================================
@@ -168,6 +170,7 @@ export class BuildSystem implements System {
       towerType?: TowerType;
       unitType?: UnitType;
       trapTypeId?: string;
+      cardIndex?: number;
     },
   ): void {
     this.dragState = {
@@ -176,6 +179,7 @@ export class BuildSystem implements System {
       towerType: opts?.towerType,
       unitType: opts?.unitType,
       trapTypeId: opts?.trapTypeId ?? 'spike_trap',
+      cardIndex: opts?.cardIndex,
     };
   }
 

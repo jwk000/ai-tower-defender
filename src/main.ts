@@ -719,6 +719,7 @@ class TowerDefenderGame extends Game {
                 towerType: 'towerType' in resolved ? resolved.towerType : undefined,
                 unitType: 'unitType' in resolved ? resolved.unitType : undefined,
                 trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
+                cardIndex: cardIdx,
               });
               return;
             }
@@ -775,7 +776,10 @@ class TowerDefenderGame extends Game {
           return;
         }
         if (ds.entityType === 'unit') {
-          this.spawnUnitAt(e.x, e.y);
+          const spawnResult = this.spawnUnitAt(e.x, e.y);
+          if (spawnResult && ds.cardIndex !== undefined) {
+            this.handSystem.playCard(ds.cardIndex);
+          }
           this.buildSystem.cancelDrag();
         } else {
           const result = this.buildSystem.tryDrop(e.x, e.y);
@@ -785,6 +789,10 @@ class TowerDefenderGame extends Game {
             this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
               ds.entityType === 'trap' ? 'trap' :
               ds.entityType === 'production' ? 'production' : null;
+            // 从手牌中移除已使用的卡牌
+            if (ds.cardIndex !== undefined) {
+              this.handSystem.playCard(ds.cardIndex);
+            }
           } else if (result === false) {
             Sound.play('build_deny');
           }
@@ -1061,15 +1069,15 @@ class TowerDefenderGame extends Game {
   // spawnUnitAt — bitecs version
   // ================================================================
 
-  private spawnUnitAt(px: number, py: number): void {
+  private spawnUnitAt(px: number, py: number): boolean {
     const dragUnitType = this.buildSystem.dragState?.unitType;
-    if (!dragUnitType) return;
+    if (!dragUnitType) return false;
 
     const config = UNIT_CONFIGS[dragUnitType];
-    if (!config) return;
+    if (!config) return false;
 
     const map = this.currentMap;
-    if (!map) return;
+    if (!map) return false;
 
     const ts = map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
@@ -1077,19 +1085,19 @@ class TowerDefenderGame extends Game {
     const col = Math.floor((px - ox) / ts);
     const row = Math.floor((py - oy) / ts);
 
-    if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return;
+    if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
 
     const tile = map.tiles[row]![col]!;
-    if (tile !== TileType.Empty && tile !== TileType.Path) return;
+    if (tile !== TileType.Empty && tile !== TileType.Path) return false;
 
     // Check grid occupancy via GridOccupant SoA
     for (let eid = 1; eid < GridOccupant.row.length; eid++) {
       if (GridOccupant.row[eid] === undefined) continue;
-      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) return;
+      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) return false;
     }
 
     // v4.0: population system removed — no canDeployUnit/deployUnit
-    if (!this.economy.spendGold(config.cost)) return;
+    if (!this.economy.spendGold(config.cost)) return false;
 
     Sound.play('build_place');
 
@@ -1231,6 +1239,8 @@ class TowerDefenderGame extends Game {
 
     // P1-#11: register for refund tracking
     this.economy.registerBuild(id, config.cost);
+
+    return true;
   }
 
   // ================================================================
