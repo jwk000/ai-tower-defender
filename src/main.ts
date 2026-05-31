@@ -577,6 +577,19 @@ class TowerDefenderGame extends Game {
       },
     });
 
+    // 同步 runContext.registry：当 HandSystem 卡牌库新增卡牌时，更新 runContext 的 registry
+    this.handSystem.onCardAddedToLibrary = (cards) => {
+      for (const card of cards) {
+        cardRegistry.set(card.id, {
+          type: card.type,
+          rarity: 'common',
+          energyCost: 0,
+          name: card.name,
+          description: card.description,
+        });
+      }
+    };
+
     // ---- Card Draft System ----
     this.cardDraftSystem = new CardDraftSystem();
     this.cardDraftSystem.onDraftStart = () => {

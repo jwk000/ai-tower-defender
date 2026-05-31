@@ -48,6 +48,9 @@ export class HandSystem implements System {
   /** 出牌回调 */
   onCardPlayed?: (cardId: string) => void;
 
+  /** 卡牌添加到库回调（用于同步更新 runContext.registry） */
+  onCardAddedToLibrary?: (cards: CardInstance[]) => void;
+
   // ============================================================
   // System interface
   // ============================================================
@@ -194,10 +197,15 @@ export class HandSystem implements System {
    * 向卡牌库中注册一批卡牌（用于 draft 池扩库）。
    */
   addCardsToLibrary(cards: CardInstance[]): void {
+    const added: CardInstance[] = [];
     for (const card of cards) {
       if (!this.cardLibrary.has(card.id)) {
         this.cardLibrary.set(card.id, card);
+        added.push(card);
       }
+    }
+    if (added.length > 0) {
+      this.onCardAddedToLibrary?.(added);
     }
   }
 
