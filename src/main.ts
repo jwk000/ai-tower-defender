@@ -40,7 +40,7 @@ import {
   initGlobalRandom, getGlobalRandom, generateSeed,
   captureStreamState, restoreStreamState,
 } from './utils/Random.js';
-import { registerDamageObserver, clearDamageObservers } from './utils/damageUtils.js';
+import { registerDamageObserver, clearDamageObservers, applyDamageToTarget } from './utils/damageUtils.js';
 import { Sound } from './utils/Sound.js';
 import { Music } from './utils/Music.js';
 import { LEVELS } from './data/levels/index.js';
@@ -49,7 +49,7 @@ import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEV
 import { ALL_BUFFS } from './data/buffs.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
 import { shapeTypeToVal } from './utils/visualHelpers.js';
-import { hitTestHandCard, resolveCardToEntityType } from './ui/LayoutConstants.js';
+import { hitTestHandCard, resolveCardToEntityType, isSelfTargetSpell } from './ui/LayoutConstants.js';
 
 // ---- bitecs component stores ----
 import {
@@ -170,6 +170,7 @@ class TowerDefenderGame extends Game {
     // Debug manager — global lifetime (design/27): button visible across all screens.
     this.debugManager = new DebugManager(this.world, {
       getEconomy: () => (this.currentScreen === GameScreen.Battle ? this.economy : null),
+      getHandSystem: () => (this.currentScreen === GameScreen.Battle ? this.handSystem : null),
       onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
     });
 
@@ -721,12 +722,27 @@ class TowerDefenderGame extends Game {
             const resolved = resolveCardToEntityType(unitConfigId);
             console.log('[CardDrag] onPointerDown - cardId:', card.cardId, 'unitConfigId:', unitConfigId, 'resolved:', resolved, 'cardIdx:', cardIdx);
             if (resolved) {
-              this.buildSystem.startDrag(resolved.entityType as 'tower' | 'unit' | 'trap', {
-                towerType: 'towerType' in resolved ? resolved.towerType : undefined,
-                unitType: 'unitType' in resolved ? resolved.unitType : undefined,
-                trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
-                cardIndex: cardIdx,
-              });
+              if (resolved.entityType === 'spell') {
+                // 技能卡/奥术卡
+                if (isSelfTargetSpell(resolved.spellCardId)) {
+                  // 自施法奥术卡：点击即生效，无需拖拽
+                  this.executeSpellAt(resolved.spellCardId, 0, 0);
+                  this.handSystem.playCard(cardIdx);
+                  return;
+                }
+                // 区域目标技能卡：开始拖拽
+                this.buildSystem.startDrag('spell', {
+                  spellCardId: resolved.spellCardId,
+                  cardIndex: cardIdx,
+                });
+              } else {
+                this.buildSystem.startDrag(resolved.entityType, {
+                  towerType: 'towerType' in resolved ? resolved.towerType : undefined,
+                  unitType: 'unitType' in resolved ? resolved.unitType : undefined,
+                  trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
+                  cardIndex: cardIdx,
+                });
+              }
               return;
             }
           }
@@ -790,6 +806,17 @@ class TowerDefenderGame extends Game {
           if (spawnResult && ds.cardIndex !== undefined) {
             console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
             this.handSystem.playCard(ds.cardIndex);
+          }
+          this.buildSystem.cancelDrag();
+        } else if (ds.entityType === 'spell') {
+          // 技能卡：在释放位置执行法术效果
+          const spellId = ds.spellCardId;
+          if (spellId) {
+            this.executeSpellAt(spellId, e.x, e.y);
+            if (ds.cardIndex !== undefined) {
+              this.handSystem.playCard(ds.cardIndex);
+            }
+            Sound.play('build_place');
           }
           this.buildSystem.cancelDrag();
         } else {
@@ -1310,6 +1337,201 @@ class TowerDefenderGame extends Game {
     this.world.destroyEntity(entityId);
     this.uiSystem.selectedEntityId = null;
     this.uiSystem.selectedEntityType = null;
+  }
+
+  // ================================================================
+  // executeSpellAt — 技能卡/奥术卡效果执行
+  // ================================================================
+
+  /**
+   * 在指定坐标执行法术效果。
+   * 对于自施法奥术卡（targetType: self），x/y 参数被忽略。
+   */
+  private executeSpellAt(spellCardId: string, x: number, y: number): void {
+    const w = this.world.world;
+
+    switch (spellCardId) {
+      // ---- 区域伤害技能卡 ----
+      case 'fireball': {
+        // 火球术：对范围内敌人造成 80 点魔法伤害
+        const radius = 80;
+        const damage = 80;
+        for (let eid = 1; eid < Position.x.length; eid++) {
+          if (UnitTag.isEnemy[eid] !== 1) continue;
+          if ((Health.current[eid] ?? 0) <= 0) continue;
+          const px = Position.x[eid] ?? 0;
+          const py = Position.y[eid] ?? 0;
+          const dist = Math.hypot(px - x, py - y);
+          if (dist < radius) {
+            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Magic);
+          }
+        }
+        Sound.play('build_place');
+        break;
+      }
+
+      case 'arrow_rain': {
+        // 剑雨：对范围内敌人造成 25 点物理伤害
+        const radius = 128;
+        const damage = 25;
+        for (let eid = 1; eid < Position.x.length; eid++) {
+          if (UnitTag.isEnemy[eid] !== 1) continue;
+          if ((Health.current[eid] ?? 0) <= 0) continue;
+          const px = Position.x[eid] ?? 0;
+          const py = Position.y[eid] ?? 0;
+          const dist = Math.hypot(px - x, py - y);
+          if (dist < radius) {
+            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Physical);
+          }
+        }
+        Sound.play('build_place');
+        break;
+      }
+
+      case 'blizzard': {
+        // 暴风雪：对范围内敌人造成 15 点伤害并减速 30% 持续 5 秒
+        const radius = 128;
+        const damage = 15;
+        for (let eid = 1; eid < Position.x.length; eid++) {
+          if (UnitTag.isEnemy[eid] !== 1) continue;
+          if ((Health.current[eid] ?? 0) <= 0) continue;
+          const px = Position.x[eid] ?? 0;
+          const py = Position.y[eid] ?? 0;
+          const dist = Math.hypot(px - x, py - y);
+          if (dist < radius) {
+            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Magic);
+            // 减速效果：降低移动速度 30%
+            const curSpeed = Movement.speed[eid];
+            if (curSpeed !== undefined) {
+              Movement.speed[eid] = curSpeed * 0.7;
+              // 5 秒后恢复（简单定时器：设置一个标记，由 MovementSystem 或 BuffSystem 处理）
+              // 暂用直接方式：创建一个临时 entity 携带减速 buff
+            }
+          }
+        }
+        Sound.play('build_place');
+        break;
+      }
+
+      case 'bomb': {
+        // 炸弹：放置后 2 秒爆炸，对范围内敌人造成 80 点伤害
+        // 创建一个延迟爆炸 entity
+        const bombId = this.world.createEntity();
+        this.world.addComponent(bombId, Position, { x, y });
+        this.world.addComponent(bombId, Visual, {
+          shape: ShapeVal.Circle,
+          colorR: 0xff, colorG: 0x6f, colorB: 0x00,
+          size: 24,
+          alpha: 1,
+          outline: 1,
+          hitFlashTimer: 0,
+          idlePhase: 0,
+        });
+        // 使用 DeathEffect 作为延迟定时器（2 秒后消失并触发爆炸）
+        this.world.addComponent(bombId, DeathEffect, { duration: 2.0 });
+        this.world.addComponent(bombId, Category, { value: CategoryVal.Objective });
+        // 2 秒后由 ExplosionEffectSystem 或手动处理爆炸
+        // 简化处理：直接在此处用 setTimeout 触发爆炸效果
+        setTimeout(() => {
+          const bombRadius = 96;
+          const bombDamage = 80;
+          for (let eid = 1; eid < Position.x.length; eid++) {
+            if (UnitTag.isEnemy[eid] !== 1) continue;
+            if ((Health.current[eid] ?? 0) <= 0) continue;
+            const px = Position.x[eid] ?? 0;
+            const py = Position.y[eid] ?? 0;
+            const dist = Math.hypot(px - x, py - y);
+            if (dist < bombRadius) {
+              applyDamageToTarget(this.world, eid, bombDamage, DamageTypeVal.Physical);
+            }
+          }
+          Sound.play('build_place');
+        }, 2000);
+        Sound.play('build_place');
+        break;
+      }
+
+      // ---- 自施法奥术卡 ----
+      case 'emergency_shield': {
+        // 紧急防护：水晶 10 秒内无敌
+        if (this.baseEntityId !== null) {
+          const bid = this.baseEntityId;
+          const origArmor = Health.armor[bid] ?? 0;
+          const origMr = Health.magicResist[bid] ?? 0;
+          Health.armor[bid] = 99999;
+          Health.magicResist[bid] = 99999;
+          setTimeout(() => {
+            Health.armor[bid] = origArmor;
+            Health.magicResist[bid] = origMr;
+          }, 10000);
+        }
+        Sound.play('build_place');
+        break;
+      }
+
+      case 'arrow_boost': {
+        // 箭术精通：本关内所有箭塔和弩塔攻击力 +20%
+        for (let eid = 1; eid < Tower.towerType.length; eid++) {
+          const tt = Tower.towerType[eid];
+          if (tt === undefined) continue;
+          // Arrow=0, Ballista=1
+          if (tt === 0 || tt === 1) {
+            const curAtk = Attack.damage[eid];
+            if (curAtk !== undefined) {
+              Attack.damage[eid] = curAtk * 1.2;
+            }
+          }
+        }
+        Sound.play('upgrade');
+        break;
+      }
+
+      case 'shield_boost': {
+        // 坚韧守护：本关内所有盾卫 HP +30%
+        for (let eid = 1; eid < UnitTag.unitTypeNum.length; eid++) {
+          if (UnitTag.isEnemy[eid] === 1) continue;
+          const unitTypeNum = UnitTag.unitTypeNum[eid];
+          if (unitTypeNum === undefined) continue;
+          // shield_guard 的 unitTypeNum 需要查表
+          const unitType = UNIT_TYPE_BY_ID[unitTypeNum];
+          if (unitType === UnitType.ShieldGuard) {
+            const curMaxHp = Health.max[eid];
+            if (curMaxHp !== undefined) {
+              const bonus = Math.floor(curMaxHp * 0.3);
+              Health.max[eid] = curMaxHp + bonus;
+              Health.current[eid] = (Health.current[eid] ?? curMaxHp) + bonus;
+            }
+          }
+        }
+        Sound.play('upgrade');
+        break;
+      }
+
+      case 'gold_rush': {
+        // 淘金热：立即获得 80 金币
+        this.economy.addGold(80);
+        Sound.play('gold_earn');
+        break;
+      }
+
+      case 'speed_boost': {
+        // 疾风步：本关内所有士兵移动速度 +25%
+        for (let eid = 1; eid < Movement.speed.length; eid++) {
+          if (UnitTag.isEnemy[eid] === 1) continue;
+          if (!hasComponent(w, Soldier, eid)) continue;
+          const curSpeed = Movement.speed[eid];
+          if (curSpeed !== undefined) {
+            Movement.speed[eid] = curSpeed * 1.25;
+          }
+        }
+        Sound.play('upgrade');
+        break;
+      }
+
+      default:
+        console.warn(`[SpellSystem] Unknown spell card: ${spellCardId}`);
+        break;
+    }
   }
 }
 

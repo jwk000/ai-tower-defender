@@ -79,11 +79,13 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 export interface DragState {
   active: boolean;
-  entityType: 'tower' | 'unit' | 'trap';
+  entityType: 'tower' | 'unit' | 'trap' | 'spell';
   towerType?: TowerType;
   unitType?: UnitType;
   /** v4.0: 机关类型ID（如 'spike_trap', 'bear_trap' 等） */
   trapTypeId?: string;
+  /** 技能卡ID（如 'fireball', 'blizzard' 等） */
+  spellCardId?: string;
   /** 手牌中的卡牌索引（用于放置后移除卡牌） */
   cardIndex?: number;
 }
@@ -165,11 +167,12 @@ export class BuildSystem implements System {
   // ==========================================================
 
   startDrag(
-    entityType: 'tower' | 'unit' | 'trap',
+    entityType: 'tower' | 'unit' | 'trap' | 'spell',
     opts?: {
       towerType?: TowerType;
       unitType?: UnitType;
       trapTypeId?: string;
+      spellCardId?: string;
       cardIndex?: number;
     },
   ): void {
@@ -179,6 +182,7 @@ export class BuildSystem implements System {
       towerType: opts?.towerType,
       unitType: opts?.unitType,
       trapTypeId: opts?.trapTypeId ?? 'spike_trap',
+      spellCardId: opts?.spellCardId,
       cardIndex: opts?.cardIndex,
     };
   }

@@ -1,5 +1,6 @@
 import { DebugPanel, type DebugAction } from './DebugPanel.js';
 import { BehaviorTreeWindow } from './BehaviorTreeWindow.js';
+import { CardListWindow } from './CardListWindow.js';
 import type { BehaviorTreeDebugState, BTNodeDebugInfo } from './types.js';
 import type { TowerWorld } from '../core/World.js';
 import type { EntityId } from '../types/index.js';
@@ -9,11 +10,14 @@ import type { Unit } from '../components/Unit.js';
 import type { Tower } from '../components/Tower.js';
 import type { Enemy } from '../components/Enemy.js';
 import type { EconomySystem } from '../systems/EconomySystem.js';
+import type { HandSystem } from '../systems/HandSystem.js';
+import { ALL_CARDS } from '../data/cards.js';
 import { SaveManager } from '../utils/SaveManager.js';
 import { LEVELS } from '../data/levels/index.js';
 
 export interface DebugManagerHooks {
   getEconomy?: () => EconomySystem | null;
+  getHandSystem?: () => HandSystem | null;
   onLevelProgressChanged?: () => void;
   onOpenLevelEditor?: () => void;
 }
@@ -25,20 +29,25 @@ export class DebugManager {
   private world: TowerWorld;
   private debugPanel: DebugPanel;
   private behaviorTreeWindow: BehaviorTreeWindow;
+  private cardListWindow: CardListWindow;
 
   private selectedEntityId: EntityId | null = null;
 
   private getEconomyFn: (() => EconomySystem | null) | null = null;
+  private getHandSystemFn: (() => HandSystem | null) | null = null;
   private onLevelProgressChangedFn: (() => void) | null = null;
   private onOpenLevelEditorFn: (() => void) | null = null;
 
   constructor(world: TowerWorld, hooks: DebugManagerHooks = {}) {
     this.world = world;
     this.getEconomyFn = hooks.getEconomy ?? null;
+    this.getHandSystemFn = hooks.getHandSystem ?? null;
     this.onLevelProgressChangedFn = hooks.onLevelProgressChanged ?? null;
     this.onOpenLevelEditorFn = hooks.onOpenLevelEditor ?? null;
 
     this.behaviorTreeWindow = new BehaviorTreeWindow();
+    this.cardListWindow = new CardListWindow();
+    this.setupCardListWindow();
     this.debugPanel = new DebugPanel(this.buildActions());
     this.setupKeyboardShortcuts();
   }
@@ -82,6 +91,14 @@ export class DebugManager {
         onClick: () => this.addDebugGold(),
       },
       {
+        id: 'show_card_list',
+        label: '查看全部卡牌',
+        icon: '🃏',
+        isEnabled: () => this.getHandSystem() !== null,
+        disabledHint: '仅战斗中可用',
+        onClick: () => this.showCardList(),
+      },
+      {
         id: 'view_behavior_tree',
         label: '查看行为树',
         icon: '🌳',
@@ -104,6 +121,30 @@ export class DebugManager {
 
   private getEconomy(): EconomySystem | null {
     return this.getEconomyFn ? this.getEconomyFn() : null;
+  }
+
+  private getHandSystem(): HandSystem | null {
+    return this.getHandSystemFn ? this.getHandSystemFn() : null;
+  }
+
+  private setupCardListWindow(): void {
+    this.cardListWindow.setOnCardSelected((card) => {
+      const handSystem = this.getHandSystem();
+      if (!handSystem) return;
+
+      // 确保卡牌在卡牌库中
+      handSystem.addCardsToLibrary([card]);
+
+      // 尝试添加到手牌
+      const success = handSystem.drawCard(card.id);
+      if (!success) {
+        console.log(`[DebugManager] 手牌已满，无法添加卡牌: ${card.name}`);
+      }
+    });
+  }
+
+  private showCardList(): void {
+    this.cardListWindow.show(ALL_CARDS);
   }
 
   completeAllLevels(): { stars: number; unlocked: number } {
@@ -135,7 +176,9 @@ export class DebugManager {
         e.preventDefault();
         this.debugPanel.toggle();
       } else if (e.key === 'Escape') {
-        if (this.behaviorTreeWindow.getIsOpen()) {
+        if (this.cardListWindow.getIsOpen()) {
+          this.cardListWindow.hide();
+        } else if (this.behaviorTreeWindow.getIsOpen()) {
           this.behaviorTreeWindow.hide();
         } else if (this.debugPanel.getIsExpanded()) {
           this.debugPanel.collapse();
@@ -178,5 +221,6 @@ export class DebugManager {
   destroy(): void {
     this.debugPanel.destroy();
     this.behaviorTreeWindow.destroy();
+    this.cardListWindow.destroy();
   }
 }

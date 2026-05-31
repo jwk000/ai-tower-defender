@@ -149,10 +149,11 @@ interface UIOverlay {
 
 interface DragState {
   active: boolean;
-  entityType: 'tower' | 'unit' | 'production' | 'trap';
+  entityType: 'tower' | 'unit' | 'production' | 'trap' | 'spell';
   towerType?: TowerType;
   unitType?: UnitType;
   productionType?: ProductionType;
+  spellCardId?: string;
 }
 
 // ============================================================
@@ -1287,6 +1288,13 @@ export class UISystem implements System {
         shape = 'triangle';
         size = 24;
         label = '陷阱';
+        break;
+      }
+      case 'spell': {
+        color = '#7c4dff';
+        shape = 'circle';
+        size = 28;
+        label = '法术';
         break;
       }
     }
