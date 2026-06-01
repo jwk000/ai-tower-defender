@@ -50,7 +50,8 @@ import { TOWER_CONFIGS, UNIT_CONFIGS, SKILL_CONFIGS, UNIT_TYPE_BY_ID, UNIT_ID_BY
 import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL, FULL_DRAFT_POOL } from './data/cards.js';
 import { ALL_BUFFS } from './data/buffs.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
-import { shapeTypeToVal } from './utils/visualHelpers.js';
+import { shapeTypeToVal, hexToRgb } from './utils/visualHelpers.js';
+import { UnitFactory, TOWER_TYPE_ID } from './systems/UnitFactory.js';
 import { hitTestHandCard, resolveCardToEntityType, isSelfTargetSpell } from './ui/LayoutConstants.js';
 import { isAdjacentToPath } from './utils/grid.js';
 
@@ -85,29 +86,7 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Lightning, // 9
 ];
 
-/** TowerType enum → bitecs ui8 */
-const TOWER_TYPE_ID: Record<TowerType, number> = {
-  [TowerType.Arrow]: 0,
-  [TowerType.Ballista]: 1,
-  [TowerType.Cannon]: 2,
-  [TowerType.Laser]: 3,
-  [TowerType.Bat]: 4,
-  [TowerType.Missile]: 5,
-  [TowerType.Ice]: 6,
-  [TowerType.Fire]: 7,
-  [TowerType.Poison]: 8,
-  [TowerType.Lightning]: 9,
-};
-
-// ---- Utility: hex color → RGB ----
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '');
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-  };
-}
+// TOWER_TYPE_ID: 从 UnitFactory 导入共享映射
 
 class TowerDefenderGame extends Game {
   private currentScreen: GameScreen = GameScreen.LevelSelect;
@@ -119,6 +98,7 @@ class TowerDefenderGame extends Game {
 
   private economy!: EconomySystem;
   private waveSystem!: WaveSystem;
+  private unitFactory!: UnitFactory;
   private buildSystem!: BuildSystem;
   private uiSystem!: UISystem;
   private skillSystem!: SkillSystem;
@@ -408,6 +388,9 @@ class TowerDefenderGame extends Game {
       this.weatherSystem.init([WeatherType.Sunny]);
     }
 
+    // ---- UnitFactory (统一实体创建) ----
+    this.unitFactory = new UnitFactory(this.world);
+
     // ---- Build system ----
     // v3.0 卡牌流：BuildSystem 不再扣金币（关内部署由 RunContext.energy 在 tryPlayHandCard 扣）。
     // registerBuild 仍以 cost meta 触发，供回收退款机制溯源。
@@ -415,6 +398,7 @@ class TowerDefenderGame extends Game {
       map,
       () => this.phase,
       (eid, cost) => this.economy.registerBuild(eid, cost),
+      this.unitFactory,
     );
 
     if (config.availableTowers.length > 0 && config.availableTowers[0]) {
@@ -1177,134 +1161,20 @@ class TowerDefenderGame extends Game {
     const x = col * ts + ts / 2 + ox;
     const y = row * ts + ts / 2 + oy;
 
-    const id = this.world.createEntity();
-
-    // Position
-    this.world.addComponent(id, Position, { x, y });
-
-    // GridOccupant
-    this.world.addComponent(id, GridOccupant, { row, col });
-
-    // Health
-    this.world.addComponent(id, Health, {
-      current: config.hp,
-      max: config.hp,
-    });
-
-    const splashRadius = config.splashRadius ?? 0;
-    const attackMode = splashRadius > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget;
-    this.world.addComponent(id, Attack, {
-      damageType: DamageTypeVal.Physical,
-      damage: config.atk,
-      attackSpeed: config.attackSpeed,
-      range: config.attackRange,
-      cooldownTimer: 0,
-      targetId: 0,
-      targetSelection: TargetSelectionVal.Nearest,
-      attackMode,
-      isRanged: 0,
-      splashRadius,
-      chainCount: 0,
-      chainRange: 0,
-      chainDecay: 0,
-      drainPercent: 0,
-      alertRange: config.alertRange ?? (config.attackRange * 2),
-      tauntCapacity: config.tauntCapacity ?? 0,
-      attackerCount: 0,
-    });
-
-    // UnitTag (player unit)
-    this.world.addComponent(id, UnitTag, {
-      isEnemy: 0,
-      popCost: config.popCost,
-      cost: config.cost,
-      level: 1,
-      maxLevel: config.maxLevel ?? 3,
-      totalInvested: config.cost,
-      unitTypeNum: UNIT_ID_BY_TYPE[dragUnitType],
-    });
-
-    // Movement
-    this.world.addComponent(id, Movement, {
-      speed: config.speed,
-      currentSpeed: config.speed,
-      targetX: x,
-      targetY: y,
-      pathIndex: 0,
-      progress: 0,
-      moveMode: 5, // MoveModeVal.PlayerDirected
-      homeX: x,
-      homeY: y,
-      moveRange: config.moveRange,
-    });
-
-    // AlertMark (警戒标记，初始隐藏)
-    this.world.addComponent(id, AlertMark, {
-      visible: 0, // AlertMarkVal.Hidden
-      blink: 0,
-      timer: 0,
-    });
-
-    // PlayerControllable
-    this.world.addComponent(id, PlayerControllable);
-
-    // Skill
+    // UnitType 枚举值与 YAML configId 一致，直接使用
+    const configId = dragUnitType;
     const skillId = config.skillId === 'taunt' ? 0 : config.skillId === 'whirlwind' ? 1 : 0;
-    this.world.addComponent(id, Skill, {
+
+    const id = this.unitFactory.createSoldier(configId, x, y, { row, col }, {
+      unitTypeNum: UNIT_ID_BY_TYPE[dragUnitType],
       skillId,
-      cooldown,
-      currentCooldown: 0,
-      energyCost,
+      skillCooldown: cooldown,
+      skillEnergyCost: energyCost,
+      registerVisualParts: (parts) => this.world.registerUnitVisualParts(parts),
+      visualParts: config.visualParts,
     });
 
-    // PlayerOwned (tag)
-    this.world.addComponent(id, PlayerOwned);
-
-    // Visual
-    const rgb = hexToRgb(config.color);
-    const shapeVal = shapeTypeToVal(config.shape ?? 'rect');
-    const partsId = config.visualParts
-      ? this.world.registerUnitVisualParts(config.visualParts)
-      : 0;
-    this.world.addComponent(id, Visual, {
-      shape: shapeVal,
-      colorR: rgb.r,
-      colorG: rgb.g,
-      colorB: rgb.b,
-      size: config.size,
-      alpha: 1,
-      outline: 1,
-      hitFlashTimer: 0,
-      idlePhase: 0,
-      facing: 1,
-      bobPhase: 0,
-      breathPhase: Math.random() * Math.PI * 2,
-      attackAnimTimer: 0,
-      attackAnimDuration: config.attackAnimDuration ?? 0.3,
-      partsId,
-    });
-
-    // Soldier AI component — state machine for autonomous behavior
-    this.world.addComponent(id, Soldier, {
-      state: 0,  // SoldierState.Idle
-      homeX: x,
-      homeY: y,
-      moveRange: config.moveRange,
-      attackTarget: 0,
-      stateTimer: 0,
-    });
-
-    // Category: Soldier
-    this.world.addComponent(id, Category, { value: CategoryVal.Soldier });
-
-    // Layer: Ground
-    this.world.addComponent(id, Layer, { value: LayerVal.Ground });
-
-    // Faction: Justice
-    this.world.addComponent(id, Faction, { value: FactionVal.Justice });
-
-    // Display name for overhead HUD
-    this.world.setDisplayName(id, config.name);
+    if (id == null) return false;
 
     // P1-#11: register for refund tracking
     this.economy.registerBuild(id, config.cost);
@@ -1583,6 +1453,10 @@ class TowerDefenderGame extends Game {
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas element not found');
+
+  // 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
+  const { loadAllUnitConfigs } = await import('./config/loader.js');
+  await loadAllUnitConfigs();
 
   const game = new TowerDefenderGame(canvas);
   game.start();

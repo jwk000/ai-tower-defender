@@ -167,6 +167,20 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
     expect(Health.current[enemy]).toBe(hp0);
   });
 
+  it('陷阱有 Health 组件时不应自伤，应正确伤害敌人', () => {
+    // 真实游戏中 BuildSystem 会给陷阱添加 Health(hp:99999)
+    const trap = makeTrap(world, 5, 5, { layer: LayerVal.AboveGrid, trapType: TrapTypeVal.SpikeTrap, hp: 99999 });
+    const enemy = makeEnemy(world, 5, 5, { layer: LayerVal.Ground });
+    const trapHp0 = Health.current[trap];
+    const enemyHp0 = Health.current[enemy];
+    system.update(world, 1.0);
+    // 陷阱不应扣自己的血
+    expect(Health.current[trap]).toBe(trapHp0);
+    // 敌人应该受到伤害
+    expect(Health.current[enemy]).toBeLessThan(enemyHp0!);
+    expect(Trap.animTimer[trap]).toBeGreaterThan(0);
+  });
+
   it('陷阱无 Layer 组件按 AboveGrid 默认行为', () => {
     const eid = world.createEntity();
     const ox = RenderSystem.sceneOffsetX;

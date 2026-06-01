@@ -244,7 +244,6 @@ export function componentRemoved(eid: number, componentName: string): void {
  */
 export function systemStart(systemName: string): void {
   if (!isLevel(LogLevel.DEBUG)) return;
-  log(LogLevel.DEBUG, 'System', `${systemName} start`);
 }
 
 /**
@@ -252,7 +251,6 @@ export function systemStart(systemName: string): void {
  */
 export function systemEnd(systemName: string, elapsedMs: number): void {
   if (!isLevel(LogLevel.DEBUG)) return;
-  log(LogLevel.DEBUG, 'System', `${systemName} end (${elapsedMs.toFixed(2)}ms)`);
 }
 
 /**

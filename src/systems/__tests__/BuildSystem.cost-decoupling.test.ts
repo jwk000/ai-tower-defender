@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import { BuildSystem } from '../BuildSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, TowerType, TileType, type MapConfig } from '../../types/index.js';
 import { RenderSystem } from '../RenderSystem.js';
+import { loadAllUnitConfigs } from '../../config/loader.js';
+import { unitConfigRegistry } from '../../config/registry.js';
+import { UnitFactory } from '../UnitFactory.js';
 
-// v4.0 — BuildSystem 清理 Production 引用 + Faction 标记
+// v4.1 — BuildSystem 实体创建委托 UnitFactory
 //
+// v4.0: 移除 Production, 添加 Faction 标记
 // v3.0 卡牌流：tryPlayHandCard → runPlayCard 已扣能量 → buildSystem.startDrag → tryDrop → placeXxx
-// BuildSystem.onBuilt 回调按 cost meta 触发，供 EconomySystem.registerBuild 回收溯源。
-// v4.0 移除 production 实体类型（金币矿/能量塔），所有玩家放置实体添加 FactionVal.Justice。
 
 function buildSimpleMap(): MapConfig {
   // 3×3 map: row 0 = path (有 spawn 起点)，row 1/2 = empty
@@ -34,17 +36,23 @@ function buildSimpleMap(): MapConfig {
   };
 }
 
-describe('BuildSystem v4.0 — 卡牌流部署 + Faction 标记', () => {
+describe('BuildSystem v4.1 — UnitFactory 委托 + Faction 标记', () => {
   let world: TowerWorld;
   let map: MapConfig;
   let buildSystem: BuildSystem;
+  let unitFactory: UnitFactory;
+
+  beforeAll(async () => {
+    await loadAllUnitConfigs();
+  });
 
   beforeEach(() => {
     RenderSystem.sceneOffsetX = 0;
     RenderSystem.sceneOffsetY = 0;
     world = new TowerWorld();
     map = buildSimpleMap();
-    buildSystem = new BuildSystem(map, () => GamePhase.Battle);
+    unitFactory = new UnitFactory(world);
+    buildSystem = new BuildSystem(map, () => GamePhase.Battle, undefined, unitFactory);
     buildSystem.update(world, 0);
   });
 
@@ -66,7 +74,7 @@ describe('BuildSystem v4.0 — 卡牌流部署 + Faction 标记', () => {
 
   it('onBuilt 回调以 cost meta 触发（registerBuild 退款追溯需要）— placeTower', () => {
     const onBuilt = vi.fn();
-    const bs = new BuildSystem(map, () => GamePhase.Battle, onBuilt);
+    const bs = new BuildSystem(map, () => GamePhase.Battle, onBuilt, unitFactory);
     bs.update(world, 0);
     bs.startDrag('tower', { towerType: TowerType.Arrow });
     bs.tryDrop(0 * 64 + 32, 1 * 64 + 32);
@@ -77,13 +85,14 @@ describe('BuildSystem v4.0 — 卡牌流部署 + Faction 标记', () => {
     expect(callArgs[1]).toBeGreaterThan(0);
   });
 
-  it('onBuilt 回调以 TRAP_REFUND_META=40 触发 — placeTrap', () => {
+  it('onBuilt 回调以 YAML cost 触发 — placeTrap', () => {
     const onBuilt = vi.fn();
-    const bs = new BuildSystem(map, () => GamePhase.Battle, onBuilt);
+    const bs = new BuildSystem(map, () => GamePhase.Battle, onBuilt, unitFactory);
     bs.update(world, 0);
     bs.startDrag('trap');
     bs.tryDrop(1 * 64 + 32, 0 * 64 + 32);
     expect(onBuilt).toHaveBeenCalledTimes(1);
+    // spike_trap YAML cost.build = 40
     expect(onBuilt.mock.calls[0]![1]).toBe(40);
   });
 });

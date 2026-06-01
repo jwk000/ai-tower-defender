@@ -128,6 +128,9 @@ export class TrapSystem implements System {
     let damaging = false;
 
     for (const enemyId of enemies) {
+      // Skip traps (including self) — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
 
@@ -172,6 +175,9 @@ export class TrapSystem implements System {
     }
 
     for (const enemyId of enemies) {
+      // Skip traps (including self) — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
 
@@ -208,6 +214,9 @@ export class TrapSystem implements System {
     let anyTriggered = false;
 
     for (const enemyId of enemies) {
+      // Skip traps (including self) — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
 
@@ -257,6 +266,9 @@ export class TrapSystem implements System {
     let anyTriggered = false;
 
     for (const enemyId of enemies) {
+      // Skip traps — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
 
       // Check if enemy is in front 1-3 tiles in the facing direction
@@ -295,6 +307,9 @@ export class TrapSystem implements System {
     if (!this.map) return;
 
     for (const enemyId of enemies) {
+      // Skip traps — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
 
       // Check if enemy is on an adjacent tile (4-directional)
@@ -335,6 +350,9 @@ export class TrapSystem implements System {
     const frontTile = { row: trapRow + dr, col: trapCol + dc };
 
     for (const enemyId of enemies) {
+      // Skip traps — damageableQuery includes all Position+Health entities
+      if (hasComponent(world.world, Trap, enemyId)) continue;
+
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== frontTile.row || pos.col !== frontTile.col) continue;
 
@@ -376,6 +394,9 @@ export class TrapSystem implements System {
       const checkTile = { row: trapRow + dr * dist, col: trapCol + dc * dist };
 
       for (const enemyId of enemies) {
+        // Skip traps — damageableQuery includes all Position+Health entities
+        if (hasComponent(world.world, Trap, enemyId)) continue;
+
         const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
         if (pos.row !== checkTile.row || pos.col !== checkTile.col) continue;
 
