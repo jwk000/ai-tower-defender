@@ -374,6 +374,42 @@ export const FadingMark = defineComponent({
   maxAlpha: Types.f32,
 });
 
+/** 近战扇形刀光特效 */
+export const SlashEffect = defineComponent({
+  duration: Types.f32,
+  elapsed: Types.f32,
+  radius: Types.f32,
+  startAngle: Types.f32,
+  endAngle: Types.f32,
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+});
+
+/** 技能卡投射物（火球术、剑雨、暴风雪等动画） */
+export const SpellProjectile = defineComponent({
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  targetX: Types.f32,         // 目标位置X
+  targetY: Types.f32,         // 目标位置Y
+  startX: Types.f32,          // 起始位置X
+  startY: Types.f32,          // 起始位置Y
+  duration: Types.f32,        // 飞行/动画总时长
+  elapsed: Types.f32,         // 已用时间
+  damage: Types.f32,          // 伤害值
+  radius: Types.f32,          // 效果半径
+  phase: Types.ui8,           // 0=飞行中, 1=爆炸/效果中, 2=完成
+});
+
+/** 技能卡爆炸/效果动画 */
+export const SpellEffect = defineComponent({
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  duration: Types.f32,        // 效果持续时长
+  elapsed: Types.f32,         // 已用时间
+  radius: Types.f32,          // 效果半径
+  damage: Types.f32,          // 伤害值
+  hasDealtDamage: Types.ui8,  // 是否已造成伤害
+});
+
 // ============================================================
 // 导弹塔专属组件
 // ============================================================

@@ -2,12 +2,14 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, DeathEffect, Trap, Category, CategoryVal, Soldier,
+  Faction, DamageTypeVal, Tower, PlayerOwned,
 } from '../core/components.js';
 import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import { linearizeSpawnPaths } from '../level/graph/PathGraph.js';
+import { applyDamageToTarget } from '../utils/damageUtils.js';
 
 interface CollisionResult {
   blocked: boolean;
@@ -38,6 +40,8 @@ export class MovementSystem implements System {
   private collisionQuery = defineQuery([Position, Visual]);
   /** Query: base objective entities (Category.Objective) for damage on enemy reach-end */
   private baseQuery = defineQuery([Position, Health, Category]);
+  /** Query: player tower entities */
+  private towerQuery = defineQuery([Position, Tower, Health]);
 
   /** Per-spawn paths: paths[spawnIdx] = ordered GridPos[] from spawn to crystal_anchor */
   private readonly paths: readonly (readonly GridPos[])[];
@@ -187,6 +191,11 @@ export class MovementSystem implements System {
       if (Math.abs(stepDx) > 0.05) {
         Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
       }
+
+      // 敌人攻击逻辑：如果有Attack组件，检查附近玩家单位并攻击
+      if (hasComponent(world.world, Attack, eid)) {
+        this.processEnemyAttack(world, eid, dt);
+      }
     }
   }
 
@@ -283,6 +292,87 @@ export class MovementSystem implements System {
       }
     }
     return nearestIdx;
+  }
+
+  // ================================================================
+  // Enemy attack: attack nearby player units
+  // ================================================================
+
+  private processEnemyAttack(world: TowerWorld, eid: number, dt: number): void {
+    const attackRange = Attack.range[eid] ?? 30;
+    const damage = Attack.damage[eid] ?? 0;
+    const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
+
+    if (damage <= 0 || attackSpeed <= 0) return;
+
+    // Tick cooldown
+    const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
+    if (cooldownTimer > 0) {
+      Attack.cooldownTimer[eid] = cooldownTimer - dt;
+      return;
+    }
+
+    const posX = Position.x[eid]!;
+    const posY = Position.y[eid]!;
+
+    // Find nearest player unit (soldier or tower) within range
+    let nearestTarget = 0;
+    let nearestDist = attackRange;
+
+    // Check soldiers
+    const soldiers = this.soldierQuery(world.world);
+    for (const sid of soldiers) {
+      const sx = Position.x[sid];
+      const sy = Position.y[sid];
+      if (sx === undefined || sy === undefined) continue;
+
+      const dx = sx - posX;
+      const dy = sy - posY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestTarget = sid;
+      }
+    }
+
+    // Check towers (if no soldier found)
+    if (nearestTarget === 0) {
+      const towers = this.towerQuery(world.world);
+      for (const tid of towers) {
+        const tx = Position.x[tid];
+        const ty = Position.y[tid];
+        if (tx === undefined || ty === undefined) continue;
+
+        const dx = tx - posX;
+        const dy = ty - posY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestTarget = tid;
+        }
+      }
+    }
+
+    // Attack the target
+    if (nearestTarget !== 0) {
+      applyDamageToTarget(world, nearestTarget, damage, DamageTypeVal.Physical);
+      Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
+
+      // Hit flash on target
+      if (Visual.hitFlashTimer[nearestTarget] !== undefined) {
+        Visual.hitFlashTimer[nearestTarget] = 0.12;
+      }
+
+      // Face toward target
+      const targetX = Position.x[nearestTarget];
+      if (targetX !== undefined && targetX > posX) {
+        Visual.facing[eid] = 1;
+      } else if (targetX !== undefined && targetX < posX) {
+        Visual.facing[eid] = -1;
+      }
+    }
   }
 
   // ================================================================

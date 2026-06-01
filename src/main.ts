@@ -34,6 +34,8 @@ import { CardDraftSystem } from './systems/CardDraftSystem.js';
 import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
 import { SoldierAISystem } from './systems/SoldierAISystem.js';
 import { BossSystem } from './systems/BossSystem.js';
+import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
+import { SlashEffectSystem } from './systems/SlashEffectSystem.js';
 import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
 import { SaveManager } from './utils/SaveManager.js';
 import {
@@ -50,6 +52,7 @@ import { ALL_BUFFS } from './data/buffs.js';
 import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
 import { shapeTypeToVal } from './utils/visualHelpers.js';
 import { hitTestHandCard, resolveCardToEntityType, isSelfTargetSpell } from './ui/LayoutConstants.js';
+import { isAdjacentToPath } from './utils/grid.js';
 
 // ---- bitecs component stores ----
 import {
@@ -59,7 +62,7 @@ import {
   Movement, ShapeVal, Layer, LayerVal, Faction, FactionVal,
   DamageTypeVal, TargetSelectionVal, AttackModeVal,
   BatSwarmMember, AlertMark, AlertMarkVal,
-  BuildingTower,
+  BuildingTower, SpellProjectile,
   defineQuery,
 } from './core/components.js';
 
@@ -560,10 +563,10 @@ class TowerDefenderGame extends Game {
       hand: {
         get state() {
           return {
-            hand: handSystemRef.getHand().filter(c => c !== null).map(c => ({
-              cardId: c!.id,
-              instanceId: c!.id,
-            })),
+            hand: handSystemRef.getHand().map(c => c ? {
+              cardId: c.id,
+              instanceId: c.id,
+            } : null),
           };
         },
       },
@@ -689,6 +692,8 @@ class TowerDefenderGame extends Game {
     const fadingMarkSystem = new FadingMarkSystem();
     const lightningBoltSystem = new LightningBoltSystem(this.renderer);
     this.laserBeamSystem = new LaserBeamSystem(this.renderer);
+    const spellProjectileSystem = new SpellProjectileSystem(this.renderer);
+    const slashEffectSystem = new SlashEffectSystem(this.renderer);
 
     // ---- UI overlay (onPostRender) ----
     this.onPostRender = () => {
@@ -923,6 +928,8 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
     this.world.registerSystem(this.soldierAISystem);
+    this.world.registerSystem(spellProjectileSystem);
+    this.world.registerSystem(slashEffectSystem);
     this.world.registerSystem(this.decorationSystem);
     this.world.registerSystem(this.screenShakeSystem);
     this.world.registerSystem(unitAnimationSystem);
@@ -1146,7 +1153,11 @@ class TowerDefenderGame extends Game {
     if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
 
     const tile = map.tiles[row]![col]!;
-    if (tile !== TileType.Empty && tile !== TileType.Path) return false;
+    // 士兵只能放在空地上
+    if (tile !== TileType.Empty) return false;
+
+    // 检查是否毗邻路径（士兵需要在路径附近）
+    if (!isAdjacentToPath(row, col, map)) return false;
 
     // Check grid occupancy via GridOccupant SoA
     for (let eid = 1; eid < GridOccupant.row.length; eid++) {
@@ -1359,108 +1370,126 @@ class TowerDefenderGame extends Game {
   /**
    * 在指定坐标执行法术效果。
    * 对于自施法奥术卡（targetType: self），x/y 参数被忽略。
+   * 对于区域技能卡，创建投射物动画，由 SpellProjectileSystem 处理。
    */
   private executeSpellAt(spellCardId: string, x: number, y: number): void {
     const w = this.world.world;
 
+    // 手牌位置（屏幕底部中间）作为投射物起点
+    const startX = 960;
+    const startY = 900;
+
     switch (spellCardId) {
-      // ---- 区域伤害技能卡 ----
+      // ---- 区域伤害技能卡（带投射物动画）----
       case 'fireball': {
-        // 火球术：对范围内敌人造成 80 点魔法伤害
-        const radius = 80;
-        const damage = 80;
-        for (let eid = 1; eid < Position.x.length; eid++) {
-          if (UnitTag.isEnemy[eid] !== 1) continue;
-          if ((Health.current[eid] ?? 0) <= 0) continue;
-          const px = Position.x[eid] ?? 0;
-          const py = Position.y[eid] ?? 0;
-          const dist = Math.hypot(px - x, py - y);
-          if (dist < radius) {
-            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Magic);
-          }
-        }
-        Sound.play('build_place');
+        // 火球术：创建火球投射物飞向目标位置
+        const pid = this.world.createEntity();
+        this.world.addComponent(pid, Position, { x: startX, y: startY });
+        this.world.addComponent(pid, SpellProjectile, {
+          spellType: 0, // SPELL_FIREBALL
+          targetX: x,
+          targetY: y,
+          startX,
+          startY,
+          duration: 0.6,
+          elapsed: 0,
+          damage: 80,
+          radius: 80,
+          phase: 0,
+        });
+        this.world.addComponent(pid, Visual, {
+          shape: ShapeVal.Circle,
+          colorR: 255, colorG: 87, colorB: 34,
+          size: 20,
+          alpha: 1,
+          outline: 0,
+          hitFlashTimer: 0,
+          idlePhase: 0,
+        });
         break;
       }
 
       case 'arrow_rain': {
-        // 剑雨：对范围内敌人造成 25 点物理伤害
-        const radius = 128;
-        const damage = 25;
-        for (let eid = 1; eid < Position.x.length; eid++) {
-          if (UnitTag.isEnemy[eid] !== 1) continue;
-          if ((Health.current[eid] ?? 0) <= 0) continue;
-          const px = Position.x[eid] ?? 0;
-          const py = Position.y[eid] ?? 0;
-          const dist = Math.hypot(px - x, py - y);
-          if (dist < radius) {
-            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Physical);
-          }
-        }
-        Sound.play('build_place');
+        // 剑雨：创建箭矢投射物从天而降
+        const pid = this.world.createEntity();
+        this.world.addComponent(pid, Position, { x: x, y: y - 300 });
+        this.world.addComponent(pid, SpellProjectile, {
+          spellType: 1, // SPELL_ARROW_RAIN
+          targetX: x,
+          targetY: y,
+          startX: x,
+          startY: y - 300,
+          duration: 0.5,
+          elapsed: 0,
+          damage: 25,
+          radius: 128,
+          phase: 0,
+        });
+        this.world.addComponent(pid, Visual, {
+          shape: ShapeVal.Triangle,
+          colorR: 141, colorG: 110, colorB: 99,
+          size: 8,
+          alpha: 1,
+          outline: 0,
+          hitFlashTimer: 0,
+          idlePhase: 0,
+        });
         break;
       }
 
       case 'blizzard': {
-        // 暴风雪：对范围内敌人造成 15 点伤害并减速 30% 持续 5 秒
-        const radius = 128;
-        const damage = 15;
-        for (let eid = 1; eid < Position.x.length; eid++) {
-          if (UnitTag.isEnemy[eid] !== 1) continue;
-          if ((Health.current[eid] ?? 0) <= 0) continue;
-          const px = Position.x[eid] ?? 0;
-          const py = Position.y[eid] ?? 0;
-          const dist = Math.hypot(px - x, py - y);
-          if (dist < radius) {
-            applyDamageToTarget(this.world, eid, damage, DamageTypeVal.Magic);
-            // 减速效果：降低移动速度 30%
-            const curSpeed = Movement.speed[eid];
-            if (curSpeed !== undefined) {
-              Movement.speed[eid] = curSpeed * 0.7;
-              // 5 秒后恢复（简单定时器：设置一个标记，由 MovementSystem 或 BuffSystem 处理）
-              // 暂用直接方式：创建一个临时 entity 携带减速 buff
-            }
-          }
-        }
-        Sound.play('build_place');
+        // 暴风雪：创建冰雪投射物螺旋飞向目标
+        const pid = this.world.createEntity();
+        this.world.addComponent(pid, Position, { x: x, y: y - 200 });
+        this.world.addComponent(pid, SpellProjectile, {
+          spellType: 2, // SPELL_BLIZZARD
+          targetX: x,
+          targetY: y,
+          startX: x,
+          startY: y - 200,
+          duration: 0.8,
+          elapsed: 0,
+          damage: 15,
+          radius: 128,
+          phase: 0,
+        });
+        this.world.addComponent(pid, Visual, {
+          shape: ShapeVal.Diamond,
+          colorR: 227, colorG: 242, colorB: 253,
+          size: 10,
+          alpha: 1,
+          outline: 0,
+          hitFlashTimer: 0,
+          idlePhase: 0,
+        });
         break;
       }
 
       case 'bomb': {
-        // 炸弹：放置后 2 秒爆炸，对范围内敌人造成 80 点伤害
-        // 创建一个延迟爆炸 entity
-        const bombId = this.world.createEntity();
-        this.world.addComponent(bombId, Position, { x, y });
-        this.world.addComponent(bombId, Visual, {
+        // 炸弹：创建炸弹投射物抛向目标位置
+        const pid = this.world.createEntity();
+        this.world.addComponent(pid, Position, { x: startX, y: startY });
+        this.world.addComponent(pid, SpellProjectile, {
+          spellType: 3, // SPELL_BOMB
+          targetX: x,
+          targetY: y,
+          startX,
+          startY,
+          duration: 0.7,
+          elapsed: 0,
+          damage: 80,
+          radius: 96,
+          phase: 0,
+        });
+        this.world.addComponent(pid, Visual, {
           shape: ShapeVal.Circle,
-          colorR: 0xff, colorG: 0x6f, colorB: 0x00,
-          size: 24,
+          colorR: 66, colorG: 66, colorB: 66,
+          size: 16,
           alpha: 1,
-          outline: 1,
+          outline: 0,
           hitFlashTimer: 0,
           idlePhase: 0,
         });
-        // 使用 DeathEffect 作为延迟定时器（2 秒后消失并触发爆炸）
-        this.world.addComponent(bombId, DeathEffect, { duration: 2.0 });
-        this.world.addComponent(bombId, Category, { value: CategoryVal.Objective });
-        // 2 秒后由 ExplosionEffectSystem 或手动处理爆炸
-        // 简化处理：直接在此处用 setTimeout 触发爆炸效果
-        setTimeout(() => {
-          const bombRadius = 96;
-          const bombDamage = 80;
-          for (let eid = 1; eid < Position.x.length; eid++) {
-            if (UnitTag.isEnemy[eid] !== 1) continue;
-            if ((Health.current[eid] ?? 0) <= 0) continue;
-            const px = Position.x[eid] ?? 0;
-            const py = Position.y[eid] ?? 0;
-            const dist = Math.hypot(px - x, py - y);
-            if (dist < bombRadius) {
-              applyDamageToTarget(this.world, eid, bombDamage, DamageTypeVal.Physical);
-            }
-          }
-          Sound.play('build_place');
-        }, 2000);
-        Sound.play('build_place');
         break;
       }
 

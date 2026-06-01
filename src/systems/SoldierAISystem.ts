@@ -30,6 +30,10 @@ import {
   Stunned,
   Frozen,
   DamageTypeVal,
+  SlashEffect,
+  Projectile,
+  Layer,
+  LayerVal,
 } from '../core/components.js';
 import { areHostile } from '../utils/factionUtils.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
@@ -163,8 +167,10 @@ export class SoldierAISystem implements System {
     this.setChaseTarget(world, eid, attackTarget);
 
     // Check if within attack range → transition to COMBAT
+    // 使用90%的攻击范围作为进入阈值，添加滞后缓冲防止抖动
     const distToTarget = this.getDistance(eid, attackTarget);
-    if (distToTarget <= this.getAttackRange(eid)) {
+    const attackRange = this.getAttackRange(eid);
+    if (distToTarget <= attackRange * 0.9) {
       this.transitionTo(world, eid, STATE_COMBAT);
       return;
     }
@@ -208,8 +214,10 @@ export class SoldierAISystem implements System {
     }
 
     // Check if target moved out of attack range but still in alert range
+    // 使用110%的攻击范围作为离开阈值，添加滞后缓冲防止抖动
     const distToTarget = this.getDistance(eid, attackTarget);
-    if (distToTarget > this.getAttackRange(eid)) {
+    const attackRange = this.getAttackRange(eid);
+    if (distToTarget > attackRange * 1.1) {
       // Back to chase mode
       this.setChaseTarget(world, eid, attackTarget);
       this.transitionTo(world, eid, STATE_ALERT);
@@ -228,7 +236,16 @@ export class SoldierAISystem implements System {
       const damage = Attack.damage[eid] ?? 0;
       const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
       if (damage > 0 && attackSpeed > 0) {
-        applyDamageToTarget(world, attackTarget, damage, DamageTypeVal.Physical);
+        const attackRange = Attack.range[eid] ?? 50;
+
+        // 远程单位（射程>80）发射投射物，近战单位显示扇形刀光
+        if (attackRange > 80) {
+          this.spawnSoldierProjectile(world, eid, attackTarget, damage);
+        } else {
+          this.spawnSlashEffect(world, eid, attackTarget);
+          applyDamageToTarget(world, attackTarget, damage, DamageTypeVal.Physical);
+        }
+
         Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
 
         // Hit flash on target
@@ -306,6 +323,83 @@ export class SoldierAISystem implements System {
     Movement.moveMode[eid] = MoveModeVal.ChaseTarget;
     Movement.targetX[eid] = x;
     Movement.targetY[eid] = y;
+  }
+
+  // ============================================================
+  // Attack Visual Effects
+  // ============================================================
+
+  /** 生成近战扇形刀光特效 */
+  private spawnSlashEffect(world: TowerWorld, attackerId: number, targetId: number): void {
+    const fromX = Position.x[attackerId]!;
+    const fromY = Position.y[attackerId]!;
+    const toX = Position.x[targetId];
+    const toY = Position.y[targetId];
+
+    if (toX === undefined || toY === undefined) return;
+
+    // 计算攻击方向角度
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const baseAngle = Math.atan2(dy, dx);
+
+    // 扇形刀光：以攻击方向为中心，左右各45度
+    const slashId = world.createEntity();
+    world.addComponent(slashId, Position, { x: fromX, y: fromY });
+    world.addComponent(slashId, SlashEffect, {
+      duration: 0.3,
+      elapsed: 0,
+      radius: 40,
+      startAngle: baseAngle - Math.PI / 4,
+      endAngle: baseAngle + Math.PI / 4,
+      colorR: 255,
+      colorG: 255,
+      colorB: 255,
+    });
+  }
+
+  /** 生成远程投射物 */
+  private spawnSoldierProjectile(world: TowerWorld, attackerId: number, targetId: number, damage: number): void {
+    const fromX = Position.x[attackerId]!;
+    const fromY = Position.y[attackerId]!;
+
+    const pid = world.createEntity();
+    world.addComponent(pid, Position, { x: fromX, y: fromY });
+    world.addComponent(pid, Projectile, {
+      speed: 300,
+      damage,
+      damageType: DamageTypeVal.Physical,
+      targetId,
+      sourceId: attackerId,
+      fromX,
+      fromY,
+      shape: 1, // triangle
+      colorR: 102,
+      colorG: 187,
+      colorB: 106,
+      size: 8,
+      splashRadius: 0,
+      stunDuration: 0,
+      slowPercent: 0,
+      slowMaxStacks: 0,
+      freezeDuration: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+      sourceTowerType: -1, // soldier projectile
+    });
+    world.addComponent(pid, Visual, {
+      shape: 1, // triangle
+      colorR: 102,
+      colorG: 187,
+      colorB: 106,
+      size: 8,
+      alpha: 1,
+      outline: 0,
+      hitFlashTimer: 0,
+      idlePhase: 0,
+    });
+    world.addComponent(pid, Layer, { value: LayerVal.Ground });
   }
 
   // ============================================================

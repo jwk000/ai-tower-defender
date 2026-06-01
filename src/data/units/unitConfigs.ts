@@ -512,7 +512,7 @@ export const SHIELD_GUARD_CONFIG: UnitTypeConfig = {
   name: '盾卫',
   category: 'soldier' as UnitCategory,
   description: '坦克型士兵，可嘲讽敌人',
-  
+
   hp: 300,
   atk: 8,
   defense: 20,
@@ -522,13 +522,24 @@ export const SHIELD_GUARD_CONFIG: UnitTypeConfig = {
   attackRange: 40,
   alertRange: 150,
   magicResist: 0,
-  
+
   color: '#64b5f6',
   size: 28,
   shape: 'circle',
-  
+
   aiConfig: 'soldier_tank',
-  
+
+  visualParts: {
+    eyes: {
+      offsetX: 5,
+      offsetY: -4,
+      scleraRadius: 4,
+      scleraColor: '#ffffff',
+      pupilRadius: 2,
+      pupilColor: '#1a237e',
+    },
+  },
+
   lifecycle: createLifecycle({
     onDeath: [
       { type: 'release_population', params: { cost: 2 } },
@@ -536,10 +547,10 @@ export const SHIELD_GUARD_CONFIG: UnitTypeConfig = {
       { type: 'destroy_entity' },
     ],
   }),
-  
+
   cost: 60,
   sellValue: 30,
-  
+
   special: {
     popCost: 2,
     skillId: 'taunt',
@@ -551,7 +562,7 @@ export const SWORDSMAN_CONFIG: UnitTypeConfig = {
   name: '剑士',
   category: 'soldier' as UnitCategory,
   description: '输出型士兵，可旋风斩',
-  
+
   hp: 150,
   atk: 15,
   defense: 5,
@@ -561,13 +572,24 @@ export const SWORDSMAN_CONFIG: UnitTypeConfig = {
   attackRange: 35,
   alertRange: 200,
   magicResist: 0,
-  
+
   color: '#ef5350',
   size: 24,
   shape: 'circle',
-  
+
   aiConfig: 'soldier_dps',
-  
+
+  visualParts: {
+    eyes: {
+      offsetX: 4,
+      offsetY: -3,
+      scleraRadius: 3,
+      scleraColor: '#ffffff',
+      pupilRadius: 1.5,
+      pupilColor: '#b71c1c',
+    },
+  },
+
   lifecycle: createLifecycle({
     onDeath: [
       { type: 'release_population', params: { cost: 2 } },
@@ -575,10 +597,10 @@ export const SWORDSMAN_CONFIG: UnitTypeConfig = {
       { type: 'destroy_entity' },
     ],
   }),
-  
+
   cost: 50,
   sellValue: 25,
-  
+
   special: {
     popCost: 2,
     skillId: 'whirlwind',

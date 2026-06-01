@@ -249,6 +249,8 @@ export interface TowerConfig {
   cantTargetFlying?: boolean;        // 不能命中飞行敌（地面爆炸不伤飞行）
   centerBonusRadiusRatio?: number;   // L5+ 热压：中心加成半径占爆炸半径的比例
   centerBonusMultiplier?: number;    // L5+ 热压：中心加成伤害倍数
+  // Multi-shot: 同时发射的弹丸数量（按等级递增）
+  projectileCount?: number[];        // index 0=L1, 1=L2, ... 不设置则默认 [1]
 }
 
 // ---- Enemy ----
@@ -348,9 +350,12 @@ export interface EnemyConfig {
 
 export enum UnitType {
   ShieldGuard = 'shield_guard',
+  Swordsman = 'swordsman',
   Archer = 'archer',
-  Mage = 'mage',
   Priest = 'priest',
+  Engineer = 'engineer',
+  Assassin = 'assassin',
+  Mage = 'mage',
 }
 
 export interface UnitConfig {
@@ -827,6 +832,7 @@ export interface UnitTypeConfig {
   color: string;
   size: number;
   shape: ShapeType;
+  visualParts?: UnitVisualParts; // 视觉部件配置（眼睛/武器/身体细节）
 
   // AI behavior
   aiConfig: string; // AI preset ID

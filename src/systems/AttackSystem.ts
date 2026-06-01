@@ -155,8 +155,21 @@ export class AttackSystem implements System {
       const level = Tower.level[eid] ?? 1;
       const primaryTarget = enemies[0]!.id;
       switch (towerTypeVal) {
-        case 0: case 1: case 2: case 7: case 8: case 9:
-          // Arrow/Cannon/Ice/Fire/Poison/Ballista → projectile
+        case 0: {
+          // Arrow → multi-shot: L1: 1箭, L2: 2箭, L3: 3箭（可锁不同目标）
+          const arrowCfg = TOWER_CONFIGS[TowerType.Arrow];
+          const arrowCount = arrowCfg.projectileCount?.[level - 1]
+            ?? arrowCfg.projectileCount?.[arrowCfg.projectileCount.length - 1]
+            ?? 1;
+          for (let i = 0; i < arrowCount; i++) {
+            const target = enemies[i]?.id ?? primaryTarget;
+            spawnProjectile(world, eid, target, towerTypeVal);
+          }
+          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
+          break;
+        }
+        case 1: case 2: case 7: case 8: case 9:
+          // Cannon/Ice/Fire/Poison/Ballista → single projectile
           spawnProjectile(world, eid, primaryTarget, towerTypeVal);
           Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
           break;
@@ -170,17 +183,24 @@ export class AttackSystem implements System {
           Sound.play('tower_laser');
           break;
         case 6: {
-          // Missile → create targeting mark + parabolic projectile
-          const tx = Position.x[primaryTarget]!;
-          const ty = Position.y[primaryTarget]!;
-          const markId = world.createEntity();
-          world.addComponent(markId, Position, { x: tx, y: ty });
-          world.addComponent(markId, TargetingMark, {
-            blastRadius: 120,
-            pulsePhase: 0,
-            ringRotation: 0,
-          });
-          spawnMissileProjectile(world, eid, markId, tx, ty);
+          // Missile → multi-shot: L1: 1枚, L2: 2枚, L3: 3枚
+          const missileCfg = TOWER_CONFIGS[TowerType.Missile];
+          const missileCount = missileCfg.projectileCount?.[level - 1]
+            ?? missileCfg.projectileCount?.[missileCfg.projectileCount.length - 1]
+            ?? 1;
+          for (let i = 0; i < missileCount; i++) {
+            const target = enemies[i]?.id ?? primaryTarget;
+            const tx = Position.x[target]!;
+            const ty = Position.y[target]!;
+            const markId = world.createEntity();
+            world.addComponent(markId, Position, { x: tx, y: ty });
+            world.addComponent(markId, TargetingMark, {
+              blastRadius: 120,
+              pulsePhase: 0,
+              ringRotation: 0,
+            });
+            spawnMissileProjectile(world, eid, markId, tx, ty);
+          }
           Sound.play('tower_missile');
           break;
         }

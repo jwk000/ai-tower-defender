@@ -39,6 +39,7 @@ import {
   TileDamageMark,
   MissileCharge,
   BuildingTower,
+  SlashEffect,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
@@ -584,43 +585,284 @@ export class RenderSystem implements System {
       const hasStunnedComponent = hasComponent(world.world, Stunned, eid);
 
       // ========================================
-      // TRAP rendering
+      // TRAP rendering — 根据机关类型绘制不同外观
       // ========================================
       if (isTrap) {
         const animTimer = Trap.animTimer[eid]!;
         const animDuration = Trap.animDuration[eid]!;
-        let spikeOffset = 0;
-        let spikeSizeBonus = 0;
-        if (animTimer > 0) {
-          const progress = 1 - animTimer / animDuration;
-          const factor = Math.sin(progress * Math.PI);
-          spikeOffset = -factor * 12;
-          spikeSizeBonus = factor * 6;
+        const trapType = Trap.trapType[eid] ?? 0;
+        const trapDirection = Trap.direction[eid] ?? 0;
+
+        // 动画进度（0→1）
+        const animProgress = animTimer > 0 ? (1 - animTimer / animDuration) : 0;
+        const animFactor = Math.sin(animProgress * Math.PI);
+
+        switch (trapType) {
+          case 0: // SpikeTrap - 地刺：灰色三角形尖刺从地面冒出
+          {
+            const spikeOffset = -animFactor * 12;
+            const spikeSizeBonus = animFactor * 6;
+            for (let o = -1; o <= 1; o++) {
+              this.renderer.push({
+                shape: 'triangle',
+                x: posX + o * 8,
+                y: posY + spikeOffset,
+                size: 14 + spikeSizeBonus,
+                color: '#757575',
+                alpha: 1,
+              });
+            }
+            break;
+          }
+
+          case 1: // BearTrap - 捕兽夹：金属锯齿夹子
+          {
+            // 两个菱形组合表示夹子
+            this.renderer.push({
+              shape: 'diamond',
+              x: posX - 6,
+              y: posY,
+              size: 16,
+              color: '#8d6e63',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'diamond',
+              x: posX + 6,
+              y: posY,
+              size: 16,
+              color: '#8d6e63',
+              alpha: 1,
+            });
+            // 中心锯齿
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY,
+              size: 8,
+              h: 4,
+              color: '#d7ccc8',
+              alpha: 1,
+            });
+            break;
+          }
+
+          case 2: // TarPit - 焦油坑：黑色半透明圆形
+          {
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 28,
+              color: '#424242',
+              alpha: 0.7,
+            });
+            // 内部深色
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 18,
+              color: '#212121',
+              alpha: 0.8,
+            });
+            break;
+          }
+
+          case 3: // Boulder - 巨石：灰色大型岩石
+          {
+            // 主体圆形
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 36,
+              color: '#78909c',
+              alpha: 1,
+            });
+            // 裂纹装饰
+            this.renderer.push({
+              shape: 'rect',
+              x: posX - 8,
+              y: posY - 4,
+              size: 12,
+              h: 2,
+              color: '#546e7a',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'rect',
+              x: posX + 6,
+              y: posY + 6,
+              size: 10,
+              h: 2,
+              color: '#546e7a',
+              alpha: 1,
+            });
+            break;
+          }
+
+          case 4: // Fan - 风扇：带旋转扇叶的机械风扇
+          {
+            // 底座
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY,
+              size: 24,
+              h: 24,
+              color: '#42a5f5',
+              alpha: 1,
+            });
+            // 扇叶（根据方向旋转）
+            const fanRotation = animTimer > 0 ? animFactor * 90 : 0;
+            const bladeSize = 10;
+            // 4片扇叶
+            for (let i = 0; i < 4; i++) {
+              const angle = (i * 90 + fanRotation) * Math.PI / 180;
+              const bx = posX + Math.cos(angle) * 8;
+              const by = posY + Math.sin(angle) * 8;
+              this.renderer.push({
+                shape: 'rect',
+                x: bx,
+                y: by,
+                size: bladeSize,
+                h: 4,
+                color: '#90caf9',
+                alpha: 1,
+              });
+            }
+            break;
+          }
+
+          case 5: // WaterPit - 水坑：蓝色水坑+波纹动画
+          {
+            // 外圈波纹
+            const waveSize = 28 + animFactor * 4;
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: waveSize,
+              color: '#29b6f6',
+              alpha: 0.5,
+            });
+            // 内圈水面
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 20,
+              color: '#0288d1',
+              alpha: 0.8,
+            });
+            // 高光
+            this.renderer.push({
+              shape: 'circle',
+              x: posX - 4,
+              y: posY - 4,
+              size: 6,
+              color: '#b3e5fc',
+              alpha: 0.6,
+            });
+            break;
+          }
+
+          case 6: // BoxingGlove - 拳击套：红色拳击手套+弹簧装置
+          {
+            // 弹簧底座
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY + 8,
+              size: 16,
+              h: 8,
+              color: '#795548',
+              alpha: 1,
+            });
+            // 拳套主体
+            const gloveOffset = trapDirection === 0 ? 8 : trapDirection === 2 ? -8 : 0;
+            const gloveOffsetY = trapDirection === 1 ? 8 : trapDirection === 3 ? -8 : 0;
+            this.renderer.push({
+              shape: 'circle',
+              x: posX + gloveOffset,
+              y: posY + gloveOffsetY - 4,
+              size: 20,
+              color: '#f44336',
+              alpha: 1,
+            });
+            // 拳套高光
+            this.renderer.push({
+              shape: 'circle',
+              x: posX + gloveOffset - 3,
+              y: posY + gloveOffsetY - 7,
+              size: 6,
+              color: '#ef9a9a',
+              alpha: 0.8,
+            });
+            break;
+          }
+
+          case 7: // MechanicalArm - 机械臂：灰色金属臂+夹爪
+          {
+            // 臂主体
+            const armLength = 20 + animFactor * 8;
+            const armDirX = trapDirection === 0 ? 1 : trapDirection === 2 ? -1 : 0;
+            const armDirY = trapDirection === 1 ? 1 : trapDirection === 3 ? -1 : 0;
+            this.renderer.push({
+              shape: 'rect',
+              x: posX + armDirX * armLength / 2,
+              y: posY + armDirY * armLength / 2,
+              size: armLength,
+              h: 8,
+              color: '#607d8b',
+              alpha: 1,
+            });
+            // 夹爪
+            this.renderer.push({
+              shape: 'triangle',
+              x: posX + armDirX * armLength,
+              y: posY + armDirY * armLength - 6,
+              size: 10,
+              color: '#455a64',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'triangle',
+              x: posX + armDirX * armLength,
+              y: posY + armDirY * armLength + 6,
+              size: 10,
+              color: '#455a64',
+              alpha: 1,
+            });
+            // 底座
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 14,
+              color: '#78909c',
+              alpha: 1,
+            });
+            break;
+          }
+
+          default: {
+            // 默认地刺样式
+            const spikeOffset = -animFactor * 12;
+            const spikeSizeBonus = animFactor * 6;
+            for (let o = -1; o <= 1; o++) {
+              this.renderer.push({
+                shape: 'triangle',
+                x: posX + o * 8,
+                y: posY + spikeOffset,
+                size: 14 + spikeSizeBonus,
+                color: '#757575',
+                alpha: 1,
+              });
+            }
+          }
         }
-        const tColor = '#f44336';
-        const tAlpha = 1;
-        for (let o = -1; o <= 1; o++) {
-          this.renderer.push({
-            shape: 'triangle',
-            x: posX + o * 8,
-            y: posY + spikeOffset,
-            size: 14 + spikeSizeBonus,
-            color: tColor,
-            alpha: tAlpha,
-          });
-        }
-        this.renderer.push({
-          shape: 'rect',
-          x: posX,
-          y: posY + 16,
-          size: 0.1,
-          h: 0.1,
-          color: '#f44336',
-          alpha: 1,
-          label: '地刺',
-          labelColor: '#ffffff',
-          labelSize: 12,
-        });
         continue;
       }
 

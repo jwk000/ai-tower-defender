@@ -233,7 +233,6 @@ export function buildCardTooltipLines(config: CardConfig): CardTooltipLine[] {
   const rarityLabel = config.rarity.charAt(0).toUpperCase() + config.rarity.slice(1);
   const typeLabel = cardTypeLabel(config.type);
   lines.push({ kind: 'meta', text: `${rarityLabel} · ${typeLabel}` });
-  lines.push({ kind: 'energy', text: `◇ ${config.energyCost}` });
   if (config.persistAcrossWaves) {
     lines.push({ kind: 'persist', text: '✦ 跨波保留' });
   }

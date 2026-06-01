@@ -30,6 +30,15 @@ grunt:
     size: 24
     outline: true
 
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#b71c1c"
+
   behavior:
     targetSelection: nearest
     attackMode: single_target
@@ -76,6 +85,15 @@ runner:
     color: "#ffab91"
     size: 20
     outline: true
+
+  visualParts:
+    eyes:
+      offsetX: 3
+      offsetY: -2
+      scleraRadius: 2.5
+      scleraColor: "#ffffff"
+      pupilRadius: 1.2
+      pupilColor: "#bf360c"
 
   behavior:
     targetSelection: nearest
@@ -127,6 +145,15 @@ heavy:
     size: 44
     outline: true
 
+  visualParts:
+    eyes:
+      offsetX: 7
+      offsetY: -5
+      scleraRadius: 5
+      scleraColor: "#ffffff"
+      pupilRadius: 2.5
+      pupilColor: "#3e2723"
+
   behavior:
     targetSelection: nearest
     attackMode: single_target
@@ -173,6 +200,15 @@ mage:
     size: 28
     outline: true
 
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#4a148c"
+
   behavior:
     targetSelection: weakest
     attackMode: single_target
@@ -216,6 +252,15 @@ exploder:
     color: "#ff8a65"
     size: 24
     outline: true
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffccbc"
+      pupilRadius: 1.5
+      pupilColor: "#bf360c"
 
   behavior:
     targetSelection: nearest
@@ -272,6 +317,15 @@ boss_commander:
     size: 72
     outline: true
     crown: true
+
+  visualParts:
+    eyes:
+      offsetX: 10
+      offsetY: -8
+      scleraRadius: 7
+      scleraColor: "#ffffff"
+      pupilRadius: 3.5
+      pupilColor: "#f57f17"
 
   behavior:
     targetSelection: nearest
@@ -357,6 +411,15 @@ boss_beast:
     size: 80
     outline: true
     crown: true
+
+  visualParts:
+    eyes:
+      offsetX: 12
+      offsetY: -10
+      scleraRadius: 8
+      scleraColor: "#ffffff"
+      pupilRadius: 4
+      pupilColor: "#d84315"
 
   behavior:
     targetSelection: nearest

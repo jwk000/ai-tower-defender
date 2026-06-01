@@ -35,7 +35,6 @@ import type { CardDraftSystem } from './CardDraftSystem.js';
 import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
 import { Sound } from '../utils/Sound.js';
 import {
-  computeEnergyBarRatio,
   computeCardSlotsLayout,
   RARITY_BORDER_COLORS,
   rarityBorderColor,
@@ -70,7 +69,6 @@ import type {
 
 // Re-export for backward compatibility
 export {
-  computeEnergyBarRatio,
   computeCardSlotsLayout,
   RARITY_BORDER_COLORS,
   rarityBorderColor,
@@ -664,10 +662,10 @@ export class UISystem implements System {
     const regionTop = regionCenterY - REGION_H / 2;
 
     const slots = computeCardSlotsLayout(cards.length, REGION_W, CARD_W, GAP);
-    const currentEnergy = runContext.energy.current;
 
     for (let i = 0; i < cards.length; i++) {
-      const card = cards[i]!;
+      const card = cards[i];
+      if (!card) continue;
       const slot = slots[i]!;
       const config = runContext.registry.get(card.cardId);
       if (!config) continue;
@@ -677,8 +675,7 @@ export class UISystem implements System {
       const cardCenterX = cardLeft + CARD_W / 2;
       const cardCenterY = cardTop + CARD_H / 2;
 
-      const affordable = currentEnergy >= config.energyCost;
-      const cardAlpha = affordable ? 1 : 0.4;
+      const cardAlpha = 1;
       const borderColor = rarityBorderColor(config.rarity);
 
       this.renderer.push({
@@ -712,30 +709,16 @@ export class UISystem implements System {
       this.infos.push({
         x: cardCenterX, y: cardTop + 12 + artH + 14,
         text: config.name,
-        color: affordable ? '#ffffff' : '#888888',
+        color: '#ffffff',
         size: 12, align: 'center',
       });
-
-      this.infos.push({
-        x: cardLeft + 10, y: cardTop + CARD_H - 14,
-        text: `◇ ${config.energyCost}`,
-        color: affordable ? '#bbdefb' : '#5e6a78', size: 14,
-      });
-
-      if (!affordable) {
-        this.infos.push({
-          x: cardCenterX, y: cardTop + CARD_H - 14,
-          text: '能量不足',
-          color: '#ef5350', size: 12, align: 'center',
-        });
-      }
 
       // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
       if (config.persistAcrossWaves) {
         this.infos.push({
           x: cardLeft + CARD_W - 12, y: cardTop + 14,
           text: '✦',
-          color: affordable ? '#ffc107' : '#5a4a14',
+          color: '#ffc107',
           size: 18, align: 'center',
         });
       }
@@ -822,7 +805,9 @@ export class UISystem implements System {
     const idx = hitTestHandCard(pos.x, pos.y, cards.length);
     if (idx < 0) return;
 
-    const card = cards[idx]!;
+    const card = cards[idx];
+    if (!card) return;
+
     const config = runContext.registry.get(card.cardId);
     if (!config) return;
 
@@ -891,45 +876,7 @@ export class UISystem implements System {
     }
   }
 
-  private renderEnergyBar(): void {
-    const runContext = this._world?.runContext;
-    if (!runContext) return;
-    const energy = runContext.energy;
-    const current = energy.current;
-    const max = energy.max;
-    const ratio = computeEnergyBarRatio(current, max);
-
-    const barX = 20;
-    const barY = 50;
-    const barW = 200;
-    const barH = 24;
-
-    this.renderer.push({
-      shape: 'rect',
-      x: barX + barW / 2, y: barY + barH / 2,
-      size: barW, h: barH,
-      color: '#0d1b2a',
-      alpha: 0.85,
-      stroke: '#1e88e5', strokeWidth: 1,
-    });
-
-    const fillW = barW * ratio;
-    if (fillW > 0) {
-      this.renderer.push({
-        shape: 'rect',
-        x: barX + fillW / 2, y: barY + barH / 2,
-        size: fillW, h: barH,
-        color: '#1e88e5',
-        alpha: 0.9,
-      });
-    }
-
-    this.infos.push({
-      x: barX + barW + 10, y: barY + barH / 2,
-      text: `◇ ${current}/${max}`,
-      color: '#bbdefb', size: 16,
-    });
-  }
+  // renderEnergyBar 已移除 — 能量机制已移除
 
   private buildTopHUD(phase: GamePhase): void {
     const world = this._world;
@@ -1007,10 +954,7 @@ export class UISystem implements System {
       }
     }
 
-    // v3.0 roguelike: 顶部能量条（手牌系统能量资源）
-    // 锚点 top-left offset(20,50), size 200×24（design/20 §4.5.1）
-    // 数据源 world.runContext.energy.{current,cap}；runContext 未装配时静默跳过
-    this.renderEnergyBar();
+    // v3.0 roguelike: 能量机制已移除
 
     const currentlyPaused = this.isPaused?.() ?? false;
 
@@ -1206,14 +1150,7 @@ export class UISystem implements System {
           size: 11,
           align: 'center',
         });
-        this.infos.push({
-          x: cell.x + cell.w / 2,
-          y: cell.y + cell.h - 12,
-          text: `◇${config.energyCost}`,
-          color: '#42a5f5',
-          size: 12,
-          align: 'center',
-        });
+        // 能量机制已移除
       }
     }
 
@@ -1524,7 +1461,6 @@ export class UISystem implements System {
       const runContext = this._world?.runContext;
       const config = runContext?.registry.get(opt.id);
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
-      const canAfford = runContext ? runContext.energy.current >= (config?.energyCost ?? 0) : true;
 
       // Card glow effect
       this.renderer.push({
@@ -1539,7 +1475,7 @@ export class UISystem implements System {
         shape: 'rect',
         x: cx, y: cardCenterY,
         size: cardW, h: cardH,
-        color: '#1a2332', alpha: canAfford ? 0.95 : 0.5,
+        color: '#1a2332', alpha: 0.95,
         stroke: borderColor, strokeWidth: 3,
       });
 
@@ -1572,15 +1508,6 @@ export class UISystem implements System {
         color: '#b0bec5', size: 12, align: 'center',
       });
 
-      // Energy cost (inside card, bottom area)
-      if (config) {
-        this.infos.push({
-          x: cx, y: cardCenterY + cardH / 2 - 45,
-          text: `◇ ${config.energyCost}`,
-          color: canAfford ? '#64ffda' : '#ef5350', size: 20, align: 'center',
-        });
-      }
-
       // Rarity label (inside card, near bottom)
       if (config) {
         const rarityColors: Record<string, string> = {
@@ -1604,7 +1531,7 @@ export class UISystem implements System {
         w: cardW, h: cardH,
         label: '',
         color: '#7c4dff', textColor: '#ffffff',
-        enabled: canAfford,
+        enabled: true,
         onClick: () => {
           Sound.play('draft_select');
           sys.selectOption(i);
