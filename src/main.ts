@@ -1469,6 +1469,17 @@ if (!canvas) throw new Error('Canvas element not found');
 const { loadAllUnitConfigs } = await import('./config/loader.js');
 await loadAllUnitConfigs();
 
+// 从 YAML 配置注入到硬编码配置对象
+const { injectEnemyConfigsFromRegistry } = await import('./data/levels/enemyBridge.js');
+const { injectTowerConfigsFromRegistry } = await import('./data/levels/towerBridge.js');
+const { injectSoldierConfigsFromRegistry } = await import('./data/levels/soldierBridge.js');
+const { injectSkillConfigsFromRegistry } = await import('./data/levels/skillBridge.js');
+const enemyCount = injectEnemyConfigsFromRegistry();
+const towerCount = injectTowerConfigsFromRegistry();
+const soldierCount = injectSoldierConfigsFromRegistry();
+const skillCount = injectSkillConfigsFromRegistry();
+console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills`);
+
 const game = new TowerDefenderGame(canvas);
 game.start();
 

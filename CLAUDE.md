@@ -61,7 +61,7 @@ npm run test:e2e     # Playwright E2E 测试
 - YAML文件通过 `import.meta.glob` 在构建时打包，无运行时fetch
 - 单位：`src/config/units/` — towers, soldiers, enemies, buildings, neutrals, objectives
 - 卡牌：`src/config/cards/` — towers, soldiers, spells, traps, production
-- 关卡：`src/config/levels/` — level-01 到 level-08
+- 关卡：`src/config/levels/` — level-01 到 level-05
 - 注册表：`UnitConfigRegistry`（`src/config/registry.ts`）、`CardConfigRegistry`（`src/config/cardRegistry.ts`）
 
 ### 渲染
