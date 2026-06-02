@@ -20,7 +20,7 @@ shield_guard:
     armor: 40
     mr: 5
     damageType: physical
-    moveRange: 200
+    moveRange: 128
 
   cost:
     build: 50
@@ -83,7 +83,7 @@ swordsman:
     armor: 10
     mr: 0
     damageType: physical
-    moveRange: 250
+    moveRange: 128
 
   cost:
     build: 50
@@ -151,7 +151,7 @@ archer:
     armor: 5
     mr: 0
     damageType: physical
-    moveRange: 200
+    moveRange: 128
 
   cost:
     build: 55
@@ -215,7 +215,7 @@ priest:
     mr: 20
     healAmount: 8
     healRange: 150
-    moveRange: 180
+    moveRange: 128
 
   cost:
     build: 55
@@ -276,7 +276,7 @@ engineer:
     speed: 50
     armor: 10
     mr: 5
-    moveRange: 180
+    moveRange: 128
 
   cost:
     build: 60
@@ -338,7 +338,7 @@ assassin:
     armor: 0
     mr: 0
     damageType: physical
-    moveRange: 300
+    moveRange: 128
 
   cost:
     build: 60
@@ -405,7 +405,7 @@ mage:
     armor: 5
     mr: 20
     damageType: magic
-    moveRange: 80
+    moveRange: 128
 
   cost:
     build: 55

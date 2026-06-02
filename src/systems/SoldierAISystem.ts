@@ -431,7 +431,7 @@ export class SoldierAISystem implements System {
     return 40; // fallback default
   }
 
-  /** Check if soldier is too far from home position */
+  /** Check if soldier is too far from home position (with hysteresis buffer) */
   private isTooFarFromHome(eid: number): boolean {
     const homeX = Soldier.homeX[eid]!;
     const homeY = Soldier.homeY[eid]!;
@@ -443,7 +443,8 @@ export class SoldierAISystem implements System {
     const dy = selfY - homeY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    return dist > moveRange;
+    // 添加10%滞后缓冲，防止在边界上来回抖动
+    return dist > moveRange * 1.1;
   }
 
   // ============================================================
@@ -507,7 +508,7 @@ export class SoldierAISystem implements System {
    * Check if a target entity is still valid for the soldier:
    * - alive
    * - hostile
-   * - within specified range
+   * - within specified range (with 10% hysteresis buffer to prevent jitter)
    */
   private isValidTarget(world: TowerWorld, soldierId: number, targetId: number, maxRange: number): boolean {
     const soldierFaction = Faction.value[soldierId];
@@ -518,7 +519,8 @@ export class SoldierAISystem implements System {
     if ((Health.current[targetId] ?? 0) <= 0) return false;
 
     const dist = this.getDistance(soldierId, targetId);
-    if (dist > maxRange) return false;
+    // 添加10%滞后缓冲，防止在范围边界上来回切换状态
+    if (dist > maxRange * 1.1) return false;
 
     return true;
   }
