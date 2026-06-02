@@ -1172,11 +1172,9 @@ class TowerDefenderGame extends Game {
     const x = col * ts + ts / 2 + ox;
     const y = row * ts + ts / 2 + oy;
 
-    // UnitType 枚举值与 YAML configId 一致，直接使用
-    const configId = dragUnitType;
     const skillId = config.skillId === 'taunt' ? 0 : config.skillId === 'whirlwind' ? 1 : 0;
 
-    const id = this.unitFactory.createSoldier(configId, x, y, { row, col }, {
+    const id = this.unitFactory.createSoldier(dragUnitType, x, y, { row, col }, {
       unitTypeNum: UNIT_ID_BY_TYPE[dragUnitType],
       skillId,
       skillCooldown: cooldown,
@@ -1474,11 +1472,13 @@ const { injectEnemyConfigsFromRegistry } = await import('./data/levels/enemyBrid
 const { injectTowerConfigsFromRegistry } = await import('./data/levels/towerBridge.js');
 const { injectSoldierConfigsFromRegistry } = await import('./data/levels/soldierBridge.js');
 const { injectSkillConfigsFromRegistry } = await import('./data/levels/skillBridge.js');
+const { injectTrapConfigsFromRegistry } = await import('./data/levels/trapBridge.js');
 const enemyCount = injectEnemyConfigsFromRegistry();
 const towerCount = injectTowerConfigsFromRegistry();
 const soldierCount = injectSoldierConfigsFromRegistry();
 const skillCount = injectSkillConfigsFromRegistry();
-console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills`);
+const trapCount = injectTrapConfigsFromRegistry();
+console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills, ${trapCount} traps`);
 
 const game = new TowerDefenderGame(canvas);
 game.start();

@@ -1,12 +1,12 @@
 // ============================================================
 // UnitFactory — 统一的实体创建工厂（bitecs SoA 风格）
 //
-// 所有单位实体（塔/陷阱/士兵/敌人/建筑/基地/出生点）均通过此工厂创建。
-// BuildSystem / main.ts 通过调用工厂方法委托实体创建。
+// 所有单位实体（塔/陷阱/士兵）均通过此工厂创建。
+// 配置统一从 gameData.ts 的扁平配置对象读取。
 // ============================================================
 
 import type { TowerWorld } from '../core/World.js';
-import { TowerType, type UnitVisualParts } from '../types/index.js';
+import { TowerType, UnitType, type UnitVisualParts } from '../types/index.js';
 import {
   Position,
   Health,
@@ -35,28 +35,19 @@ import {
   TargetSelectionVal,
   TrapTypeVal,
 } from '../core/components.js';
-import { unitConfigRegistry } from '../config/registry.js';
+import {
+  TOWER_CONFIGS,
+  UNIT_CONFIGS,
+  TRAP_CONFIGS,
+  TRAP_TYPE_VAL,
+} from '../data/gameData.js';
 import { shapeTypeToVal, hexToRgb, layerStrToVal } from '../utils/visualHelpers.js';
 
 // ============================================================
 // 映射表
 // ============================================================
 
-/** TowerType 枚举 → YAML configId */
-const TOWER_TYPE_TO_CONFIG_ID: Record<TowerType, string> = {
-  [TowerType.Arrow]: 'arrow_tower',
-  [TowerType.Ballista]: 'ballista_tower',
-  [TowerType.Cannon]: 'cannon_tower',
-  [TowerType.Laser]: 'laser_tower',
-  [TowerType.Bat]: 'bat_tower',
-  [TowerType.Missile]: 'missile_tower',
-  [TowerType.Ice]: 'ice_tower',
-  [TowerType.Fire]: 'fire_tower',
-  [TowerType.Poison]: 'poison_tower',
-  [TowerType.Lightning]: 'lightning_tower',
-};
-
-/** TowerType 枚举 → bitecs Tower.towerType (ui8) 数值 ID */
+/** TowerType 枚举 → TOWER_CONFIGS key */
 export const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Arrow]: 0,
   [TowerType.Cannon]: 1,
@@ -70,32 +61,8 @@ export const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Ballista]: 9,
 };
 
-/** YAML trap.type 字符串 → TrapTypeVal 数字 */
-const TRAP_TYPE_MAP: Record<string, number> = {
-  'SpikeTrap': TrapTypeVal.SpikeTrap,
-  'BearTrap': TrapTypeVal.BearTrap,
-  'TarPit': TrapTypeVal.TarPit,
-  'Boulder': TrapTypeVal.Boulder,
-  'Fan': TrapTypeVal.Fan,
-  'WaterPit': TrapTypeVal.WaterPit,
-  'BoxingGlove': TrapTypeVal.BoxingGlove,
-  'MechanicalArm': TrapTypeVal.MechanicalArm,
-};
-
-/** YAML attackMode 字符串 → AttackModeVal 数字 */
-function attackModeStrToVal(mode: string): number {
-  switch (mode) {
-    case 'aoe_splash': return AttackModeVal.AoeSplash;
-    case 'chain': return AttackModeVal.Chain;
-    case 'piercing': return AttackModeVal.Piercing;
-    case 'dot_aoe': return AttackModeVal.DotAoe;
-    case 'heal': return AttackModeVal.Heal;
-    default: return AttackModeVal.SingleTarget;
-  }
-}
-
 /** YAML targetSelection 字符串 → TargetSelectionVal 数字 */
-function targetSelectionStrToVal(sel: string): number {
+function targetSelectionStrToVal(sel: string | undefined): number {
   switch (sel) {
     case 'farthest': return TargetSelectionVal.Farthest;
     case 'weakest': return TargetSelectionVal.Weakest;
@@ -108,7 +75,7 @@ function targetSelectionStrToVal(sel: string): number {
 }
 
 /** YAML damageType 字符串 → DamageTypeVal 数字 */
-function damageTypeStrToVal(dt: string): number {
+function damageTypeStrToVal(dt: string | undefined): number {
   switch (dt) {
     case 'magic': return DamageTypeVal.Magic;
     default: return DamageTypeVal.Physical;
@@ -126,32 +93,21 @@ export class UnitFactory {
     this.world = world;
   }
 
-  /** TowerType → YAML configId */
-  getTowerConfigId(tt: TowerType): string {
-    return TOWER_TYPE_TO_CONFIG_ID[tt] ?? 'arrow_tower';
-  }
-
   // ============================================================
-  // 内部基础创建
+  // 内部基础创建 — 接收扁平 config 对象
   // ============================================================
 
   /**
-   * 读取 YAML 配置，创建基础实体（Position + GridOccupant + Health + Visual + UnitTag + displayName）。
+   * 从扁平配置创建基础实体（Position + GridOccupant + Health + Visual + UnitTag + displayName）。
    * 各 create* 方法在此基础上追加类型特有组件。
    */
   private createBase(
-    configId: string,
+    cfg: Record<string, unknown>,
     x: number,
     y: number,
     gridPos?: { row: number; col: number },
     tileSize?: number,
-  ): { eid: number; config: Record<string, unknown> } | null {
-    const config = unitConfigRegistry.get(configId);
-    if (!config) {
-      console.error(`UnitFactory: config not found: ${configId}`);
-      return null;
-    }
-
+  ): { eid: number; cfg: Record<string, unknown> } | null {
     const eid = this.world.createEntity();
 
     // Position
@@ -163,25 +119,21 @@ export class UnitFactory {
     }
 
     // Health
-    const stats = (config as Record<string, unknown>).stats as Record<string, unknown> | undefined;
-    const hp = (stats?.hp as number) ?? 0;
+    const hp = (cfg.hp as number) ?? 0;
     if (hp > 0) {
       this.world.addComponent(eid, Health, {
         current: hp,
         max: hp,
-        armor: (stats?.armor as number) ?? 0,
-        magicResist: (stats?.mr as number) ?? 0,
+        armor: (cfg.defense as number) ?? 0,
+        magicResist: (cfg.magicResist as number) ?? 0,
       });
     }
 
     // Visual
-    const visual = (config as Record<string, unknown>).visual as Record<string, unknown> | undefined;
-    const color = (visual?.color as string) ?? '#888888';
+    const color = (cfg.color as string) ?? '#888888';
     const rgb = hexToRgb(color);
-    const shapeStr = (visual?.shape as string) ?? 'rect';
-    const outlineVal = (visual?.outline === true || visual?.outline === 1) ? 1 : 0;
-    // 塔类使用 tileSize * 0.65，其他使用配置中的 size
-    const baseSize = tileSize ? tileSize * 0.65 : ((visual?.size as number) ?? 32);
+    const shapeStr = (cfg.shape as string) ?? 'rect';
+    const baseSize = tileSize ? tileSize * 0.65 : ((cfg.size as number) ?? 32);
     this.world.addComponent(eid, Visual, {
       shape: shapeTypeToVal(shapeStr as never),
       colorR: rgb.r,
@@ -189,21 +141,21 @@ export class UnitFactory {
       colorB: rgb.b,
       size: baseSize,
       alpha: 1,
-      outline: outlineVal,
+      outline: 1,
       hitFlashTimer: 0,
       idlePhase: 0,
       facing: 1,
       bobPhase: 0,
       breathPhase: Math.random() * Math.PI * 2,
       attackAnimTimer: 0,
-      attackAnimDuration: 0.3,
+      attackAnimDuration: (cfg.attackAnimDuration as number) ?? 0.3,
       partsId: 0,
     });
 
     // UnitTag
-    const cost = (config as Record<string, unknown>).cost as Record<string, unknown> | undefined;
-    const upgradeArr = cost?.upgrade as unknown[] | undefined;
-    const maxLevel = upgradeArr?.length ? upgradeArr.length + 1 : 3;
+    const cost = (cfg.cost as number) ?? 0;
+    const popCost = (cfg.popCost as number) ?? 0;
+    const maxLevel = (cfg.maxLevel as number) ?? 3;
     this.world.addComponent(eid, UnitTag, {
       isEnemy: 0,
       isElite: 0,
@@ -212,19 +164,19 @@ export class UnitFactory {
       canAttackBuildings: 0,
       rewardGold: 0,
       rewardEnergy: 0,
-      popCost: (cost?.pop as number) ?? 0,
-      cost: (cost?.build as number) ?? 0,
-      atk: (stats?.atk as number) ?? 0,
+      popCost,
+      cost,
+      atk: (cfg.atk as number) ?? 0,
       level: 1,
       maxLevel,
-      totalInvested: (cost?.build as number) ?? 0,
+      totalInvested: cost,
       unitTypeNum: 0,
     });
 
     // Display name
-    this.world.setDisplayName(eid, config.name);
+    this.world.setDisplayName(eid, cfg.name as string ?? '');
 
-    return { eid, config: config as Record<string, unknown> };
+    return { eid, cfg };
   }
 
   // ============================================================
@@ -236,63 +188,62 @@ export class UnitFactory {
    * 包含：Attack/BatTower + Tower + PlayerOwned + BuildingTower + Category/Faction/Layer
    */
   createTower(
-    configId: string,
+    towerType: TowerType,
     x: number,
     y: number,
     gridPos: { row: number; col: number },
     opts: { tileSize: number; towerTypeNum: number },
   ): number | null {
-    const base = this.createBase(configId, x, y, gridPos, opts.tileSize);
-    if (!base) return null;
+    const cfg = TOWER_CONFIGS[towerType] as unknown as Record<string, unknown>;
+    if (!cfg) {
+      console.error(`UnitFactory: tower config not found: ${towerType}`);
+      return null;
+    }
 
-    const { eid, config } = base;
-    const stats = config.stats as Record<string, unknown>;
-    const behavior = config.behavior as Record<string, unknown> | undefined;
-    const special = behavior?.special as Record<string, unknown> | undefined;
-    const layer = (config.layer as string) ?? 'Ground';
+    const base = this.createBase(cfg, x, y, gridPos, opts.tileSize);
+    if (!base) return null;
+    const { eid } = base;
+
+    const isBatTower = towerType === TowerType.Bat;
 
     // Tower component
-    const towerTypeId = opts.towerTypeNum;
     this.world.addComponent(eid, Tower, {
-      towerType: towerTypeId,
+      towerType: opts.towerTypeNum,
       level: 1,
-      totalInvested: (config.cost as Record<string, unknown>)?.build as number ?? 0,
+      totalInvested: (cfg.cost as number) ?? 0,
     });
 
     // Attack or BatTower
-    const isBatTower = (config.id as string) === 'bat_tower';
     if (isBatTower) {
       this.world.addComponent(eid, BatTower, {
-        maxBats: (special?.batCount as number) ?? 4,
-        replenishCooldown: (special?.batReplenishCD as number) ?? 12,
+        maxBats: (cfg.batCount as number) ?? 4,
+        replenishCooldown: (cfg.batReplenishCD as number) ?? 12,
         replenishTimer: 0,
-        batDamage: (special?.batDamage as number) ?? (stats.atk as number),
-        batAttackRange: (special?.batAttackRange as number) ?? (stats.range as number),
-        batAttackSpeed: (special?.batAttackSpeed as number) ?? (stats.attackSpeed as number),
-        batHp: (special?.batHP as number) ?? 30,
-        batSpeed: (special?.batSpeed as number) ?? 120,
-        batSize: (special?.batSize as number) ?? 10,
+        batDamage: (cfg.batDamage as number) ?? (cfg.atk as number) ?? 0,
+        batAttackRange: (cfg.batAttackRange as number) ?? (cfg.range as number) ?? 0,
+        batAttackSpeed: (cfg.batAttackSpeed as number) ?? (cfg.attackSpeed as number) ?? 0,
+        batHp: (cfg.batHP as number) ?? 30,
+        batSpeed: (cfg.batSpeed as number) ?? 120,
+        batSize: (cfg.batSize as number) ?? 10,
       });
     } else {
-      const dmgType = damageTypeStrToVal((stats.damageType as string) ?? 'physical');
-      const atkMode = attackModeStrToVal((behavior?.attackMode as string) ?? 'single_target');
-      const isMissile = (config.id as string) === 'missile_tower';
+      const isMissile = towerType === TowerType.Missile;
       this.world.addComponent(eid, Attack, {
-        damage: stats.atk as number,
-        attackSpeed: stats.attackSpeed as number,
-        range: stats.range as number,
-        damageType: isMissile ? DamageTypeVal.Physical : dmgType,
+        damage: (cfg.atk as number) ?? 0,
+        attackSpeed: (cfg.attackSpeed as number) ?? 1,
+        range: (cfg.range as number) ?? 100,
+        damageType: isMissile ? DamageTypeVal.Physical : damageTypeStrToVal(cfg.damageType as string),
         cooldownTimer: 0,
         targetId: 0,
-        targetSelection: targetSelectionStrToVal((behavior?.targetSelection as string) ?? 'nearest'),
-        attackMode: isMissile ? AttackModeVal.AoeSplash : atkMode,
+        targetSelection: TargetSelectionVal.Nearest,
+        attackMode: isMissile ? AttackModeVal.AoeSplash : ((cfg.splashRadius as number) ?? 0) > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget,
         isRanged: 1,
-        splashRadius: (special?.splashRadius as number) ?? 0,
-        chainCount: (special?.chainCount as number) ?? 0,
-        chainRange: (special?.chainRange as number) ?? 0,
-        chainDecay: (special?.chainDecay as number) ?? 0,
-        drainPercent: (special?.drainPercent as number) ?? 0,
-        alertRange: (stats.range as number) * 2,
+        splashRadius: (cfg.splashRadius as number) ?? 0,
+        chainCount: (cfg.chainCount as number) ?? 0,
+        chainRange: (cfg.chainRange as number) ?? 0,
+        chainDecay: (cfg.chainDecay as number) ?? 0,
+        drainPercent: 0,
+        alertRange: ((cfg.range as number) ?? 100) * 2,
         tauntCapacity: 0,
         attackerCount: 0,
       });
@@ -304,10 +255,10 @@ export class UnitFactory {
     // Category / Faction / Layer
     this.world.addComponent(eid, Category, { value: CategoryVal.Tower });
     this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
-    this.world.addComponent(eid, Layer, { value: layerStrToVal(layer) });
+    this.world.addComponent(eid, Layer, { value: LayerVal.Ground });
 
     // BuildingTower — 建造中状态
-    const buildTime = (config.cost as Record<string, unknown>)?.buildTime as number ?? 2.0;
+    const buildTime = (cfg.buildTime as number) ?? 2.0;
     this.world.addComponent(eid, BuildingTower, {
       timer: buildTime,
       duration: buildTime,
@@ -321,40 +272,42 @@ export class UnitFactory {
    * 包含：Trap + Attack + PlayerOwned + Category/Faction/Layer
    */
   createTrap(
-    configId: string,
+    trapTypeId: string,
     x: number,
     y: number,
     gridPos: { row: number; col: number },
   ): number | null {
-    const base = this.createBase(configId, x, y, gridPos);
-    if (!base) return null;
+    const cfg = TRAP_CONFIGS[trapTypeId] as unknown as Record<string, unknown>;
+    if (!cfg) {
+      console.error(`UnitFactory: trap config not found: ${trapTypeId}`);
+      return null;
+    }
 
-    const { eid, config } = base;
-    const stats = config.stats as Record<string, unknown>;
-    const trapCfg = config.trap as Record<string, unknown> | undefined;
-    const layer = (config.layer as string) ?? 'AboveGrid';
+    const base = this.createBase(cfg, x, y, gridPos);
+    if (!base) return null;
+    const { eid } = base;
 
     // Trap component
-    const trapTypeStr = (trapCfg?.type as string) ?? 'SpikeTrap';
-    const trapTypeVal = TRAP_TYPE_MAP[trapTypeStr] ?? TrapTypeVal.SpikeTrap;
+    const trapTypeStr = (cfg.type as string) ?? 'SpikeTrap';
+    const trapTypeVal = TRAP_TYPE_VAL[trapTypeStr] ?? TrapTypeVal.SpikeTrap;
     this.world.addComponent(eid, Trap, {
       trapType: trapTypeVal,
-      damagePerSecond: (trapCfg?.damagePerSecond as number) ?? 8,
-      radius: (trapCfg?.radius as number) ?? 32,
-      cooldown: (trapCfg?.cooldown as number) ?? 0,
+      damagePerSecond: (cfg.damagePerSecond as number) ?? 0,
+      radius: (cfg.radius as number) ?? 0,
+      cooldown: (cfg.cooldown as number) ?? 0,
       cooldownTimer: 0,
       animTimer: 0,
       animDuration: 0.4,
       triggerCount: 0,
-      maxTriggers: (trapCfg?.maxTriggers as number) ?? 0,
+      maxTriggers: (cfg.maxTriggers as number) ?? 0,
       direction: 0,
     });
 
     // Attack — 陷阱也需要 Attack 组件让 TrapSystem 检测范围
     this.world.addComponent(eid, Attack, {
-      damage: (trapCfg?.damagePerSecond as number) ?? 0,
+      damage: (cfg.damagePerSecond as number) ?? 0,
       attackSpeed: 1,
-      range: (trapCfg?.radius as number) ?? 32,
+      range: (cfg.radius as number) ?? 32,
       damageType: DamageTypeVal.Physical,
       cooldownTimer: 0,
       targetId: 0,
@@ -375,6 +328,7 @@ export class UnitFactory {
     this.world.addComponent(eid, PlayerOwned);
 
     // Category / Faction / Layer
+    const layer = (cfg.layer as string) ?? 'AboveGrid';
     this.world.addComponent(eid, Category, { value: CategoryVal.Trap });
     this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
     this.world.addComponent(eid, Layer, { value: layerStrToVal(layer) });
@@ -387,7 +341,7 @@ export class UnitFactory {
    * 包含：Attack + Movement + Soldier + Skill + AlertMark + PlayerControllable + PlayerOwned + Category/Faction/Layer
    */
   createSoldier(
-    configId: string,
+    unitType: UnitType,
     x: number,
     y: number,
     gridPos: { row: number; col: number },
@@ -400,34 +354,37 @@ export class UnitFactory {
       visualParts?: UnitVisualParts;
     },
   ): number | null {
-    const base = this.createBase(configId, x, y, gridPos);
-    if (!base) return null;
+    const cfg = UNIT_CONFIGS[unitType] as unknown as Record<string, unknown>;
+    if (!cfg) {
+      console.error(`UnitFactory: soldier config not found: ${unitType}`);
+      return null;
+    }
 
-    const { eid, config } = base;
-    const stats = config.stats as Record<string, unknown>;
-    const behavior = config.behavior as Record<string, unknown> | undefined;
-    const special = behavior?.special as Record<string, unknown> | undefined;
+    const base = this.createBase(cfg, x, y, gridPos);
+    if (!base) return null;
+    const { eid } = base;
 
     // 更新 UnitTag 的 unitTypeNum
     UnitTag.unitTypeNum[eid] = opts.unitTypeNum;
 
-    // 更新 Visual 的 partsId、outline、attackAnimDuration
+    // 更新 Visual 的 partsId、outline
     if (opts.visualParts && opts.registerVisualParts) {
       Visual.partsId[eid] = opts.registerVisualParts(opts.visualParts);
     }
     Visual.outline[eid] = 1;
 
     // Attack
-    const splashRadius = (special?.splashRadius as number) ?? 0;
+    const splashRadius = (cfg.splashRadius as number) ?? 0;
     const attackMode = splashRadius > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget;
+    const attackRange = (cfg.attackRange as number) ?? 50;
     this.world.addComponent(eid, Attack, {
-      damageType: damageTypeStrToVal((stats.damageType as string) ?? 'physical'),
-      damage: stats.atk as number,
-      attackSpeed: stats.attackSpeed as number,
-      range: (stats.range as number) ?? 50,
+      damageType: damageTypeStrToVal(cfg.damageType as string),
+      damage: (cfg.atk as number) ?? 0,
+      attackSpeed: (cfg.attackSpeed as number) ?? 1,
+      range: attackRange,
       cooldownTimer: 0,
       targetId: 0,
-      targetSelection: targetSelectionStrToVal((behavior?.targetSelection as string) ?? 'nearest'),
+      targetSelection: targetSelectionStrToVal(cfg.targetSelection as string),
       attackMode,
       isRanged: 0,
       splashRadius,
@@ -435,14 +392,14 @@ export class UnitFactory {
       chainRange: 0,
       chainDecay: 0,
       drainPercent: 0,
-      alertRange: ((stats.range as number) ?? 50) * 2,
-      tauntCapacity: (special?.tauntCapacity as number) ?? 0,
+      alertRange: ((cfg.alertRange as number) ?? 0) > 0 ? (cfg.alertRange as number) : attackRange * 2,
+      tauntCapacity: (cfg.tauntCapacity as number) ?? 0,
       attackerCount: 0,
     });
 
     // Movement
-    const speed = (stats.speed as number) ?? 60;
-    const moveRange = (stats.moveRange as number) ?? 200;
+    const speed = (cfg.speed as number) ?? 60;
+    const moveRange = (cfg.moveRange as number) ?? 200;
     this.world.addComponent(eid, Movement, {
       speed,
       currentSpeed: speed,
@@ -493,75 +450,5 @@ export class UnitFactory {
     this.world.addComponent(eid, Layer, { value: LayerVal.Ground });
 
     return eid;
-  }
-
-  /**
-   * 创建敌人实体。
-   * 包含：Enemy tag + Movement
-   */
-  createEnemy(configId: string, x: number, y: number): number | null {
-    const base = this.createBase(configId, x, y);
-    if (!base) return null;
-
-    const { eid, config } = base;
-    const stats = config.stats as Record<string, unknown>;
-    const behavior = config.behavior as Record<string, unknown> | undefined;
-
-    // Movement
-    const speed = (stats.speed as number) ?? 0;
-    if (speed > 0) {
-      this.world.addComponent(eid, Movement, {
-        speed,
-        currentSpeed: speed,
-        targetX: x,
-        targetY: y,
-        pathIndex: 0,
-        progress: 0,
-        moveMode: 1, // MoveModeVal.FollowPath
-        homeX: x,
-        homeY: y,
-        moveRange: 0,
-      });
-    }
-
-    // Category / Faction / Layer
-    const layer = (config.layer as string) ?? 'Ground';
-    this.world.addComponent(eid, Category, { value: CategoryVal.Enemy });
-    this.world.addComponent(eid, Faction, { value: FactionVal.Evil });
-    this.world.addComponent(eid, Layer, { value: layerStrToVal(layer) });
-
-    return eid;
-  }
-
-  /**
-   * 创建基地实体。
-   */
-  createBaseEntity(x: number, y: number, tileSize: number): number | null {
-    const base = this.createBase('base', x, y, undefined, tileSize);
-    if (!base) return null;
-
-    const { eid } = base;
-    this.world.addComponent(eid, PlayerOwned);
-    this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
-    this.world.addComponent(eid, Category, { value: CategoryVal.Objective });
-
-    return eid;
-  }
-
-  /**
-   * 创建出生点标记。
-   */
-  createSpawnPoint(x: number, y: number): number | null {
-    const base = this.createBase('spawn_point', x, y);
-    if (!base) return null;
-    return base.eid;
-  }
-
-  /**
-   * 单纯创建一个基础实体（不加类型组件），供外部自行组装。
-   */
-  createRaw(configId: string, x: number, y: number, gridPos?: { row: number; col: number }): number | null {
-    const base = this.createBase(configId, x, y, gridPos);
-    return base?.eid ?? null;
   }
 }

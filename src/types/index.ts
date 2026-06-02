@@ -388,6 +388,33 @@ export interface UnitConfig {
   visualParts?: UnitVisualParts;
   /** 攻击动画时长（秒）— 用于挥砍/拉弓等武器动作。默认 0.3 秒；0 则不播放武器挥砍 */
   attackAnimDuration?: number;
+  /** 目标选择策略（默认 'nearest'） */
+  targetSelection?: string;
+}
+
+// ---- Trap ----
+
+export interface TrapConfig {
+  type: string;
+  name: string;
+  hp: number;
+  damagePerSecond: number;
+  radius: number;
+  cooldown: number;
+  maxTriggers: number;
+  color: string;
+  size: number;
+  cost: number;
+  shape?: ShapeType;
+  layer?: string;
+  // 机关特有可选属性
+  rootDuration?: number;
+  bossImmune?: boolean;
+  slowPercent?: number;
+  killChance?: number;
+  pushDistance?: number;
+  pullDistance?: number;
+  range?: number;
 }
 
 // ---- Production ----

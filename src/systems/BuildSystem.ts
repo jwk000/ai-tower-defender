@@ -21,7 +21,7 @@ import {
   TileType,
   GamePhase,
 } from '../types/index.js';
-import { unitConfigRegistry } from '../config/registry.js';
+import { TOWER_CONFIGS, TRAP_CONFIGS } from '../data/gameData.js';
 import { RenderSystem } from './RenderSystem.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { UnitFactory, TOWER_TYPE_ID } from './UnitFactory.js';
@@ -240,32 +240,29 @@ export class BuildSystem implements System {
     const tt = this.dragState?.towerType ?? this.selectedTowerType;
     if (!tt) { this.cancelDrag(); return false; }
 
-    const configId = this.unitFactory.getTowerConfigId(tt);
-    const config = unitConfigRegistry.get(configId);
+    const config = TOWER_CONFIGS[tt];
     if (!config) { this.cancelDrag(); return false; }
 
-    const eid = this.unitFactory.createTower(configId, x, y, { row, col }, {
+    const eid = this.unitFactory.createTower(tt, x, y, { row, col }, {
       tileSize: this.map.tileSize,
       towerTypeNum: TOWER_TYPE_ID[tt] ?? 0,
     });
     if (eid == null) { this.cancelDrag(); return false; }
 
-    const cost = (config as Record<string, unknown>).cost as Record<string, unknown> | undefined;
-    this.onBuilt?.(eid, (cost?.build as number) ?? 0);
+    this.onBuilt?.(eid, config.cost);
     this.cancelDrag();
     return eid;
   }
 
   private placeTrap(x: number, y: number, row: number, col: number): number | false {
     const trapTypeId = this.dragState?.trapTypeId ?? 'spike_trap';
-    const config = unitConfigRegistry.get(trapTypeId);
+    const config = TRAP_CONFIGS[trapTypeId];
     if (!config) { this.cancelDrag(); return false; }
 
     const eid = this.unitFactory.createTrap(trapTypeId, x, y, { row, col });
     if (eid == null) { this.cancelDrag(); return false; }
 
-    const cost = (config as Record<string, unknown>).cost as Record<string, unknown> | undefined;
-    this.onBuilt?.(eid, (cost?.build as number) ?? 40);
+    this.onBuilt?.(eid, config.cost);
     this.cancelDrag();
     return eid;
   }
