@@ -422,7 +422,7 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
 export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   // ===== §5.1 绿野仙踪（怪兽族）=====
   [EnemyType.Goblin]: {
-    type: EnemyType.Goblin, name: '哥布林', hp: 80, speed: 45, atk: 8,
+    type: EnemyType.Goblin, name: '哥布林', hp: 18, speed: 45, atk: 8,
     defense: 3, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 5, color: '#ef5350', radius: 16, attackAnimDuration: 0.45,
   },
@@ -724,6 +724,16 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [8, 12],
     shape: 'rect',
     attackAnimDuration: 0.35,
+    visualParts: {
+      eyes: {
+        offsetX: 4,
+        offsetY: -3,
+        scleraRadius: 3,
+        scleraColor: '#ffffff',
+        pupilRadius: 1.5,
+        pupilColor: '#1b5e20',
+      },
+    },
   },
   // ---- 3.3 法师 ----
   [UnitType.Mage]: {
@@ -749,6 +759,16 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [7, 11],
     shape: 'rect',
     attackAnimDuration: 0.4,
+    visualParts: {
+      eyes: {
+        offsetX: 3,
+        offsetY: -2,
+        scleraRadius: 2.5,
+        scleraColor: '#ffffff',
+        pupilRadius: 1.2,
+        pupilColor: '#4a148c',
+      },
+    },
   },
   // ---- 3.4 牧师（治疗者） ----
   [UnitType.Priest]: {
@@ -773,6 +793,16 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [0, 0],
     shape: 'rect',
     attackAnimDuration: 0,
+    visualParts: {
+      eyes: {
+        offsetX: 4,
+        offsetY: -3,
+        scleraRadius: 3,
+        scleraColor: '#ffffff',
+        pupilRadius: 1.5,
+        pupilColor: '#455a64',
+      },
+    },
   },
   // ---- 3.5 剑士 ----
   [UnitType.Swordsman]: {

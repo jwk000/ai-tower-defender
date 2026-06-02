@@ -1,70 +1,84 @@
 import { Game } from './core/Game.js';
-import { LayoutManager } from './ui/LayoutManager.js';
-import { LevelSelectUI } from './ui/LevelSelectUI.js';
-import { RenderSystem, computeSceneLayout } from './systems/RenderSystem.js';
-import { MovementSystem } from './systems/MovementSystem.js';
+import { ALL_BUFFS } from './data/buffs.js';
+import { LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL } from './data/cards.js';
+import { SKILL_CONFIGS, TOWER_CONFIGS, UNIT_CONFIGS, UNIT_ID_BY_TYPE, UNIT_TYPE_BY_ID } from './data/gameData.js';
+import { LEVELS } from './data/levels/index.js';
+import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
 import { AttackSystem } from './systems/AttackSystem.js';
 import { BatSwarmSystem } from './systems/BatSwarmSystem.js';
-import { LaserBeamSystem } from './systems/LaserBeamSystem.js';
-import { UnitSystem } from './systems/UnitSystem.js';
-import { UnitAnimationSystem } from './systems/UnitAnimationSystem.js';
-import { ProjectileSystem } from './systems/ProjectileSystem.js';
-import { SkillSystem } from './systems/SkillSystem.js';
-import { BuffSystem } from './systems/BuffSystem.js';
-import { WeatherSystem } from './systems/WeatherSystem.js';
-import { ProductionSystem } from './systems/ProductionSystem.js';
-import { HealthSystem } from './systems/HealthSystem.js';
-import { WaveSystem } from './systems/WaveSystem.js';
-import { EconomySystem } from './systems/EconomySystem.js';
-import { BuildSystem } from './systems/BuildSystem.js';
-import { UISystem } from './systems/UISystem.js';
-import { TrapSystem } from './systems/TrapSystem.js';
-import { LifecycleSystem } from './systems/LifecycleSystem.js';
-import { DeathEffectSystem } from './systems/DeathEffectSystem.js';
-import { ExplosionEffectSystem } from './systems/ExplosionEffectSystem.js';
 import { BloodParticleSystem } from './systems/BloodParticleSystem.js';
-import { FadingMarkSystem } from './systems/FadingMarkSystem.js';
-import { ScreenShakeSystem } from './systems/ScreenShakeSystem.js';
-import { TileDamageSystem } from './systems/TileDamageSystem.js';
-import { LightningBoltSystem } from './systems/LightningBoltSystem.js';
-import { DecorationSystem } from './systems/DecorationSystem.js';
-import { ScreenFXSystem } from './systems/ScreenFXSystem.js';
-import { HandSystem } from './systems/HandSystem.js';
-import { CardDraftSystem } from './systems/CardDraftSystem.js';
-import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
-import { SoldierAISystem } from './systems/SoldierAISystem.js';
 import { BossSystem } from './systems/BossSystem.js';
-import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
+import { BuffSystem } from './systems/BuffSystem.js';
+import { BuildSystem } from './systems/BuildSystem.js';
+import { CardDraftSystem } from './systems/CardDraftSystem.js';
+import { DeathEffectSystem } from './systems/DeathEffectSystem.js';
+import { DecorationSystem } from './systems/DecorationSystem.js';
+import { EconomySystem } from './systems/EconomySystem.js';
+import { ExplosionEffectSystem } from './systems/ExplosionEffectSystem.js';
+import { FadingMarkSystem } from './systems/FadingMarkSystem.js';
+import { HandSystem } from './systems/HandSystem.js';
+import { HealthSystem } from './systems/HealthSystem.js';
+import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
+import { LaserBeamSystem } from './systems/LaserBeamSystem.js';
+import { LifecycleSystem } from './systems/LifecycleSystem.js';
+import { LightningBoltSystem } from './systems/LightningBoltSystem.js';
+import { MovementSystem } from './systems/MovementSystem.js';
+import { ProductionSystem } from './systems/ProductionSystem.js';
+import { ProjectileSystem } from './systems/ProjectileSystem.js';
+import { RenderSystem, computeSceneLayout } from './systems/RenderSystem.js';
+import { ScreenFXSystem } from './systems/ScreenFXSystem.js';
+import { ScreenShakeSystem } from './systems/ScreenShakeSystem.js';
+import { SkillSystem } from './systems/SkillSystem.js';
 import { SlashEffectSystem } from './systems/SlashEffectSystem.js';
-import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
-import { SaveManager } from './utils/SaveManager.js';
-import {
-  initGlobalRandom, getGlobalRandom, generateSeed,
-  captureStreamState, restoreStreamState,
-} from './utils/Random.js';
-import { registerDamageObserver, clearDamageObservers, applyDamageToTarget } from './utils/damageUtils.js';
-import { Sound } from './utils/Sound.js';
+import { SoldierAISystem } from './systems/SoldierAISystem.js';
+import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
+import { TileDamageSystem } from './systems/TileDamageSystem.js';
+import { TrapSystem } from './systems/TrapSystem.js';
+import { UISystem } from './systems/UISystem.js';
+import { UnitAnimationSystem } from './systems/UnitAnimationSystem.js';
+import { UnitFactory } from './systems/UnitFactory.js';
+import { UnitSystem } from './systems/UnitSystem.js';
+import { WaveSystem } from './systems/WaveSystem.js';
+import { WeatherSystem } from './systems/WeatherSystem.js';
+import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig } from './types/index.js';
+import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './ui/LayoutConstants.js';
+import { LayoutManager } from './ui/LayoutManager.js';
+import { LevelSelectUI } from './ui/LevelSelectUI.js';
+import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
 import { Music } from './utils/Music.js';
-import { LEVELS } from './data/levels/index.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, SKILL_CONFIGS, UNIT_TYPE_BY_ID, UNIT_ID_BY_TYPE } from './data/gameData.js';
-import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL, FULL_DRAFT_POOL } from './data/cards.js';
-import { ALL_BUFFS } from './data/buffs.js';
-import { GamePhase, GameScreen, TileType, UnitType, TowerType, WeatherType, ProductionType, type InputEvent, type MapConfig, type LevelConfig } from './types/index.js';
-import { shapeTypeToVal, hexToRgb } from './utils/visualHelpers.js';
-import { UnitFactory, TOWER_TYPE_ID } from './systems/UnitFactory.js';
-import { hitTestHandCard, resolveCardToEntityType, isSelfTargetSpell } from './ui/LayoutConstants.js';
-import { isAdjacentToPath } from './utils/grid.js';
+import {
+  captureStreamState,
+  generateSeed,
+  getGlobalRandom,
+  initGlobalRandom,
+  restoreStreamState,
+} from './utils/Random.js';
+import { SaveManager } from './utils/SaveManager.js';
+import { Sound } from './utils/Sound.js';
+import { hexToRgb } from './utils/visualHelpers.js';
 
 // ---- bitecs component stores ----
 import {
-  Position, Health, Attack, Visual, Tower, PlayerControllable, PlayerOwned,
-  Skill, UnitTag, Soldier, BatTower, Production, Trap, GridOccupant,
-  DeathEffect, ExplosionEffect, Category, CategoryVal, Boss,
-  Movement, ShapeVal, Layer, LayerVal, Faction, FactionVal,
-  DamageTypeVal, TargetSelectionVal, AttackModeVal,
-  BatSwarmMember, AlertMark, AlertMarkVal,
-  BuildingTower, SpellProjectile,
-  defineQuery,
+  Attack,
+  BatSwarmMember,
+  BatTower,
+  BuildingTower,
+  Category, CategoryVal,
+  DeathEffect,
+  Faction, FactionVal,
+  GridOccupant,
+  Health,
+  Movement,
+  PlayerControllable, PlayerOwned,
+  Position,
+  Production,
+  ShapeVal,
+  Soldier,
+  SpellProjectile,
+  Tower,
+  Trap,
+  UnitTag,
+  Visual
 } from './core/components.js';
 
 import { hasComponent } from './core/World.js';
@@ -830,7 +844,7 @@ class TowerDefenderGame extends Game {
             this.uiSystem.selectedEntityId = result;
             this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
               ds.entityType === 'trap' ? 'trap' :
-              ds.entityType === 'production' ? 'production' : null;
+                ds.entityType === 'production' ? 'production' : null;
             // 从手牌中移除已使用的卡牌
             if (ds.cardIndex !== undefined) {
               console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
@@ -1137,11 +1151,8 @@ class TowerDefenderGame extends Game {
     if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
 
     const tile = map.tiles[row]![col]!;
-    // 士兵只能放在空地上
-    if (tile !== TileType.Empty) return false;
 
-    // 检查是否毗邻路径（士兵需要在路径附近）
-    if (!isAdjacentToPath(row, col, map)) return false;
+    if (tile !== TileType.Path) return false;
 
     // Check grid occupancy via GridOccupant SoA
     for (let eid = 1; eid < GridOccupant.row.length; eid++) {
@@ -1454,28 +1465,28 @@ class TowerDefenderGame extends Game {
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas element not found');
 
-  // 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
-  const { loadAllUnitConfigs } = await import('./config/loader.js');
-  await loadAllUnitConfigs();
+// 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
+const { loadAllUnitConfigs } = await import('./config/loader.js');
+await loadAllUnitConfigs();
 
-  const game = new TowerDefenderGame(canvas);
-  game.start();
+const game = new TowerDefenderGame(canvas);
+game.start();
 
-  if (import.meta.env.DEV) {
-    const { bootstrapEditor, attachF2Hotkey } = await import('./editor/index.js');
-    const { LevelEditor } = await import('./editor/LevelEditor.js');
-    const { mountEditorRoot } = await import('./editor/mount.js');
-    const host = document.createElement('div');
-    host.id = 'level-editor-host';
-    document.body.appendChild(host);
-    const levelEditor = new LevelEditor({ fetch: window.fetch.bind(window), baseUrl: '/__editor' });
-    const handle = bootstrapEditor({ game, hostElement: host, levelEditor, mountUi: mountEditorRoot });
-    attachF2Hotkey(handle, window);
-    game.debugManager.setOpenLevelEditorCallback(() => handle.open());
-    (window as unknown as Record<string, unknown>).levelEditor = levelEditor;
-    (window as unknown as Record<string, unknown>).editorHandle = handle;
-  }
+if (import.meta.env.DEV) {
+  const { bootstrapEditor, attachF2Hotkey } = await import('./editor/index.js');
+  const { LevelEditor } = await import('./editor/LevelEditor.js');
+  const { mountEditorRoot } = await import('./editor/mount.js');
+  const host = document.createElement('div');
+  host.id = 'level-editor-host';
+  document.body.appendChild(host);
+  const levelEditor = new LevelEditor({ fetch: window.fetch.bind(window), baseUrl: '/__editor' });
+  const handle = bootstrapEditor({ game, hostElement: host, levelEditor, mountUi: mountEditorRoot });
+  attachF2Hotkey(handle, window);
+  game.debugManager.setOpenLevelEditorCallback(() => handle.open());
+  (window as unknown as Record<string, unknown>).levelEditor = levelEditor;
+  (window as unknown as Record<string, unknown>).editorHandle = handle;
+}
 
-  window.addEventListener('resize', () => game.resize());
-  (window as unknown as Record<string, unknown>).game = game;
-  (window as unknown as Record<string, unknown>).Sound = Sound;
+window.addEventListener('resize', () => game.resize());
+(window as unknown as Record<string, unknown>).game = game;
+(window as unknown as Record<string, unknown>).Sound = Sound;

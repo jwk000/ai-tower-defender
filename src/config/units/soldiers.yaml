@@ -418,6 +418,15 @@ mage:
     outline: true
     symbol: cross
 
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#4a148c"
+
   behavior:
     targetSelection: closest_to_crystal
     attackMode: aoe_splash

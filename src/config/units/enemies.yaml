@@ -3000,7 +3000,7 @@ goblin:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 80, atk: 8, attackSpeed: 1.0, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
+  stats: { hp: 18, atk: 8, attackSpeed: 1.0, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
   reward: { gold: 5 }
   visual: { shape: circle, color: "#4caf50", size: 22, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }

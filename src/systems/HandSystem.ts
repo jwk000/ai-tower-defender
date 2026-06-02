@@ -66,6 +66,8 @@ export class HandSystem implements System {
   /**
    * 初始化手牌：注入卡牌库并从池中随机抽 4 张。
    * 若池不足 4 张，有多少抽多少。
+   *
+   * 保证第一张手牌为箭塔卡（card_arrow_tower），降低第一波难度。
    */
   initialize(cardPool: CardInstance[]): void {
     this.cardLibrary.clear();
@@ -82,6 +84,13 @@ export class HandSystem implements System {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
+
+    // 保证箭塔卡在初始手牌中：若池中有箭塔卡，将其放到第一位
+    const arrowIdx = shuffled.findIndex((c) => c.id === 'card_arrow_tower');
+    if (arrowIdx > 0) {
+      [shuffled[0], shuffled[arrowIdx]] = [shuffled[arrowIdx]!, shuffled[0]!];
+    }
+
     const drawCount = Math.min(MAX_HAND_SIZE, shuffled.length);
     for (let i = 0; i < drawCount; i++) {
       this.hand[i] = shuffled[i]!;
