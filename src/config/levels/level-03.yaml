@@ -1,9 +1,11 @@
 # ============================================================
 # 第3关：黑暗古堡
-# 路径布局：S型蛇行折返（上下对称）
-# 出生口：右侧1个(行1,列20) | 水晶：左下(行7,列0)
-# 路径：右→左(行1) → 下(列6) → 右(行3) → 下(列14) → 左(行5) → 下(列6) → 左(行7)
-# 对称轴：行4（上半和下半镜像对称）
+# 路径布局：Y型双路汇聚（上下对称合流于中心）
+# 出生口：右上(行2,列20) + 右下(行6,列20) | 水晶：中左(行4,列0)
+# 上路径：行2左→列10下→行4左→水晶
+# 下路径：行6左→列10上→行4左→水晶
+# 对称轴：行4（上下完全对称Y形）
+# 每个出生口每波均有精英怪
 # ============================================================
 id: level_03
 name: 黑暗古堡
@@ -15,13 +17,13 @@ map:
   tileSize: 64
   tiles:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, path, spawn]
-    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [base, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
     empty: '#9e9e9e'
@@ -38,41 +40,37 @@ map:
     - { type: brazier, row: 1, col: 2 }
     - { type: brazier, row: 2, col: 1 }
     - { type: brazier, row: 5, col: 18 }
-    - { type: brazier, row: 6, col: 15 }
+    - { type: brazier, row: 6, col: 17 }
     - { type: brazier, row: 7, col: 17 }
-    - { type: rubble, row: 2, col: 18 }
+    - { type: rubble, row: 2, col: 17 }
     - { type: rubble, row: 3, col: 16 }
     - { type: rubble, row: 5, col: 1 }
     - { type: rubble, row: 8, col: 3 }
     - { type: dead_tree, row: 0, col: 15 }
-    - { type: dead_tree, row: 4, col: 2 }
+    - { type: dead_tree, row: 4, col: 12 }
     - { type: dead_tree, row: 8, col: 7 }
     - { type: dead_tree, row: 8, col: 18 }
-    - { type: wall, row: 2, col: 15 }
-    - { type: wall, row: 4, col: 17 }
-    - { type: wall, row: 7, col: 10 }
   spawns:
     - id: spawn_0
-      row: 1
+      row: 2
+      col: 20
+    - id: spawn_1
+      row: 6
       col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 1, col: 6, role: waypoint }
-      - { id: n2, row: 3, col: 6, role: waypoint }
-      - { id: n3, row: 3, col: 14, role: waypoint }
-      - { id: n4, row: 5, col: 14, role: waypoint }
-      - { id: n5, row: 5, col: 6, role: waypoint }
-      - { id: n6, row: 7, col: 6, role: waypoint }
-      - { id: n7, row: 7, col: 0, role: crystal_anchor }
+      - { id: n0, row: 2, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 2, col: 10, role: waypoint }
+      - { id: n2, row: 4, col: 10, role: waypoint }
+      - { id: n3, row: 6, col: 20, role: spawn, spawnId: spawn_1 }
+      - { id: n4, row: 6, col: 10, role: waypoint }
+      - { id: n5, row: 4, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
-      - { from: n2, to: n3 }
       - { from: n3, to: n4 }
-      - { from: n4, to: n5 }
-      - { from: n5, to: n6 }
-      - { from: n6, to: n7 }
+      - { from: n4, to: n2 }
+      - { from: n2, to: n5 }
 
 weather:
   pool:
@@ -98,62 +96,77 @@ available:
     - priest
 
 waves:
-  # 波次1: 狼人×6
+  # 波次1: 上口(狼人×3+蝙蝠精英×2) | 下口(狼人×3+蝙蝠精英×2)
   - waveNumber: 1
     spawnDelay: 2
     enemies:
-      - { enemyType: werewolf, count: 6, spawnInterval: 2.0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
     reward: 30
-  # 波次2: 狼人×5 + 蝙蝠×5
+  # 波次2: 上口(狼人×3+巫师精英×2) | 下口(狼人×3+蝙蝠精英×3)
   - waveNumber: 2
     spawnDelay: 30
     enemies:
-      - { enemyType: werewolf, count: 5, spawnInterval: 2.0 }
-      - { enemyType: vampire_bat, count: 5, spawnInterval: 2.0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
     reward: 40
-  # 波次3: 狼人×4 + 蝙蝠×4 + 巫师×2
+  # 波次3: 上口(狼人×3+蝙蝠精英×2+巫师精英×1) | 下口(狼人×3+蝙蝠精英×2+牧师精英×1)
   - waveNumber: 3
     spawnDelay: 30
     enemies:
-      - { enemyType: werewolf, count: 4, spawnInterval: 2.0 }
-      - { enemyType: vampire_bat, count: 4, spawnInterval: 2.0 }
-      - { enemyType: wizard, count: 2, spawnInterval: 2.0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
     reward: 50
-  # 波次4: 狼人×4 + 蝙蝠×3 + 巫师×2 + 牧师×1
+  # 波次4: 上口(狼人×3+巫师精英×2+牧师精英×1) | 下口(狼人×3+蝙蝠精英×2+巫师精英×2)
   - waveNumber: 4
     spawnDelay: 30
     enemies:
-      - { enemyType: werewolf, count: 4, spawnInterval: 2.0 }
-      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0 }
-      - { enemyType: wizard, count: 2, spawnInterval: 2.0 }
-      - { enemyType: priest, count: 1, spawnInterval: 2.0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
     reward: 60
-  # 波次5: 狼人×3 + 蝙蝠×3 + 巫师×2 + 牧师×1 + 弗兰肯斯坦×1
+  # 波次5: 上口(狼人×3+蝙蝠精英×2+弗兰肯精英×1) | 下口(狼人×3+巫师精英×2+牧师精英×2)
   - waveNumber: 5
     spawnDelay: 30
     enemies:
-      - { enemyType: werewolf, count: 3, spawnInterval: 2.5 }
-      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.5 }
-      - { enemyType: wizard, count: 2, spawnInterval: 2.5 }
-      - { enemyType: priest, count: 1, spawnInterval: 2.5 }
-      - { enemyType: frankenstein, count: 1, spawnInterval: 2.5 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
     reward: 70
-  # 波次6: 狼人×5 + 蝙蝠×4 + 巫师×3 + 牧师×2
+  # 波次6: 上口(狼人×3+巫师精英×3+牧师精英×1) | 下口(狼人×3+蝙蝠精英×3+弗兰肯精英×1)
   - waveNumber: 6
     spawnDelay: 30
     enemies:
-      - { enemyType: werewolf, count: 5, spawnInterval: 2.0 }
-      - { enemyType: vampire_bat, count: 4, spawnInterval: 2.0 }
-      - { enemyType: wizard, count: 3, spawnInterval: 2.0 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
     reward: 80
-  # 波次7: BOSS + 狼人×3 + 牧师×2
+  # 波次7: 上口(BOSS路西法+蝙蝠精英×3) | 下口(狼人×4+巫师精英×3+牧师精英×2)
   - waveNumber: 7
     spawnDelay: 30
     enemies:
-      - { enemyType: lucifer, count: 1, spawnInterval: 0 }
-      - { enemyType: werewolf, count: 3, spawnInterval: 2.0 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.0 }
+      - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 4, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
     isBossWave: true
     reward: 120
 

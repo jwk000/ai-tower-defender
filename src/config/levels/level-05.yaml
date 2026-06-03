@@ -1,9 +1,10 @@
 # ============================================================
 # 第5关：深渊裂隙
-# 路径布局：W型长蛇阵（反复折返，路径最长）
-# 出生口：右侧1个(行0,列20) | 水晶：左下(行8,列0)
-# 路径：行0左 → 列4下 → 行2右 → 列16下 → 行4左 → 列4下 → 行6右 → 列16下 → 行8左
-# 特点：极长路径、上下对称折返、大量塔位
+# 路径布局：波浪交叉（4出生口路径在中心多次交汇交叉）
+# 出生口：上(行0,列20) / 中上(行3,列20) / 中下(行5,列20) / 下(行8,列20)
+# 水晶：中左(行4,列0)
+# 路径交汇点：(4,10)→(4,6)→(4,2) 四路共用走廊
+# 交叉特征：上路在(2,6)与下路交叉，中上路在(6,6)与中下路交叉
 # ============================================================
 id: level_05
 name: 深渊裂隙
@@ -14,15 +15,15 @@ map:
   rows: 9
   tileSize: 64
   tiles:
-    - [empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, spawn]
-    - [empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty]
-    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, path, path, path, path, path, spawn]
+    - [base, path, path, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, path, path, path, path, path, spawn]
+    - [empty, empty, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
   tileColors:
     empty: '#1a0033'
     path: '#311b92'
@@ -31,44 +32,88 @@ map:
     base: '#ffd54f'
   obstacles:
     - { type: floating_rock, row: 0, col: 2 }
-    - { type: floating_rock, row: 1, col: 10 }
-    - { type: floating_rock, row: 1, col: 18 }
-    - { type: floating_rock, row: 3, col: 2 }
-    - { type: floating_rock, row: 5, col: 19 }
-    - { type: floating_rock, row: 7, col: 2 }
-    - { type: floating_rock, row: 8, col: 18 }
-    - { type: purple_flame, row: 0, col: 1 }
-    - { type: purple_flame, row: 3, col: 19 }
+    - { type: floating_rock, row: 0, col: 8 }
+    - { type: floating_rock, row: 1, col: 16 }
+    - { type: floating_rock, row: 3, col: 3 }
+    - { type: floating_rock, row: 4, col: 5 }
+    - { type: floating_rock, row: 4, col: 16 }
+    - { type: floating_rock, row: 7, col: 8 }
+    - { type: floating_rock, row: 8, col: 3 }
+    - { type: purple_flame, row: 1, col: 3 }
+    - { type: purple_flame, row: 2, col: 19 }
+    - { type: purple_flame, row: 3, col: 12 }
+    - { type: purple_flame, row: 5, col: 7 }
+    - { type: purple_flame, row: 6, col: 1 }
     - { type: purple_flame, row: 7, col: 5 }
-    - { type: purple_flame, row: 7, col: 18 }
-    - { type: crystal_obstacle, row: 2, col: 2 }
-    - { type: crystal_obstacle, row: 2, col: 18 }
-    - { type: crystal_obstacle, row: 4, col: 19 }
-    - { type: crystal_obstacle, row: 6, col: 2 }
-    - { type: crystal_obstacle, row: 6, col: 19 }
-    - { type: corrupted_obelisk, row: 3, col: 8 }
-    - { type: corrupted_obelisk, row: 5, col: 8 }
-    - { type: void_rift, row: 1, col: 2 }
-    - { type: void_rift, row: 5, col: 17 }
-    - { type: alien_pillar, row: 0, col: 3 }
-    - { type: alien_pillar, row: 7, col: 19 }
+    - { type: purple_flame, row: 8, col: 10 }
+    - { type: crystal, row: 0, col: 12 }
+    - { type: crystal, row: 2, col: 8 }
+    - { type: crystal, row: 4, col: 3 }
+    - { type: crystal, row: 6, col: 15 }
+    - { type: crystal, row: 8, col: 8 }
+    - { type: rift, row: 2, col: 16 }
+    - { type: rift, row: 4, col: 12 }
+    - { type: rift, row: 6, col: 17 }
+    - { type: rift, row: 7, col: 2 }
   spawns:
     - id: spawn_0
       row: 0
       col: 20
+    - id: spawn_1
+      row: 3
+      col: 20
+    - id: spawn_2
+      row: 5
+      col: 20
+    - id: spawn_3
+      row: 8
+      col: 20
   pathGraph:
     nodes:
+      # ── 上路(spawn_0) ──
       - { id: n0, row: 0, col: 20, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 0, col: 4, role: waypoint }
-      - { id: n2, row: 2, col: 4, role: waypoint }
-      - { id: n3, row: 2, col: 16, role: waypoint }
-      - { id: n4, row: 4, col: 16, role: waypoint }
-      - { id: n5, row: 4, col: 4, role: waypoint }
-      - { id: n6, row: 6, col: 4, role: waypoint }
-      - { id: n7, row: 6, col: 16, role: waypoint }
-      - { id: n8, row: 8, col: 16, role: waypoint }
-      - { id: n9, row: 8, col: 0, role: crystal_anchor }
+      - { id: n1, row: 0, col: 14, role: waypoint }
+      - { id: n2, row: 2, col: 14, role: waypoint }
+      - { id: n3, row: 2, col: 10, role: waypoint }
+      - { id: n4, row: 4, col: 10, role: waypoint }
+      - { id: n5, row: 4, col: 6, role: waypoint }
+      - { id: n6, row: 2, col: 6, role: waypoint }
+      - { id: n7, row: 2, col: 2, role: waypoint }
+      - { id: n8, row: 4, col: 2, role: waypoint }
+      # ── 中上路(spawn_1) ──
+      - { id: n9, row: 3, col: 20, role: spawn, spawnId: spawn_1 }
+      - { id: n10, row: 3, col: 14, role: waypoint }
+      - { id: n11, row: 1, col: 14, role: waypoint }
+      - { id: n12, row: 1, col: 10, role: waypoint }
+      - { id: n13, row: 4, col: 10, role: waypoint }
+      - { id: n14, row: 4, col: 6, role: waypoint }
+      - { id: n15, row: 6, col: 6, role: waypoint }
+      - { id: n16, row: 6, col: 2, role: waypoint }
+      - { id: n17, row: 4, col: 2, role: waypoint }
+      # ── 中下路(spawn_2) ──
+      - { id: n18, row: 5, col: 20, role: spawn, spawnId: spawn_2 }
+      - { id: n19, row: 5, col: 14, role: waypoint }
+      - { id: n20, row: 7, col: 14, role: waypoint }
+      - { id: n21, row: 7, col: 10, role: waypoint }
+      - { id: n22, row: 4, col: 10, role: waypoint }
+      - { id: n23, row: 4, col: 6, role: waypoint }
+      - { id: n24, row: 6, col: 6, role: waypoint }
+      - { id: n25, row: 6, col: 2, role: waypoint }
+      - { id: n26, row: 4, col: 2, role: waypoint }
+      # ── 下路(spawn_3) ──
+      - { id: n27, row: 8, col: 20, role: spawn, spawnId: spawn_3 }
+      - { id: n28, row: 8, col: 14, role: waypoint }
+      - { id: n29, row: 6, col: 14, role: waypoint }
+      - { id: n30, row: 6, col: 10, role: waypoint }
+      - { id: n31, row: 4, col: 10, role: waypoint }
+      - { id: n32, row: 4, col: 6, role: waypoint }
+      - { id: n33, row: 2, col: 6, role: waypoint }
+      - { id: n34, row: 2, col: 2, role: waypoint }
+      - { id: n35, row: 4, col: 2, role: waypoint }
+      # ── 水晶（四路共用） ──
+      - { id: n36, row: 4, col: 0, role: crystal_anchor }
     edges:
+      # 上路
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
       - { from: n2, to: n3 }
@@ -77,7 +122,37 @@ map:
       - { from: n5, to: n6 }
       - { from: n6, to: n7 }
       - { from: n7, to: n8 }
-      - { from: n8, to: n9 }
+      - { from: n8, to: n36 }
+      # 中上路
+      - { from: n9, to: n10 }
+      - { from: n10, to: n11 }
+      - { from: n11, to: n12 }
+      - { from: n12, to: n13 }
+      - { from: n13, to: n14 }
+      - { from: n14, to: n15 }
+      - { from: n15, to: n16 }
+      - { from: n16, to: n17 }
+      - { from: n17, to: n36 }
+      # 中下路
+      - { from: n18, to: n19 }
+      - { from: n19, to: n20 }
+      - { from: n20, to: n21 }
+      - { from: n21, to: n22 }
+      - { from: n22, to: n23 }
+      - { from: n23, to: n24 }
+      - { from: n24, to: n25 }
+      - { from: n25, to: n26 }
+      - { from: n26, to: n36 }
+      # 下路
+      - { from: n27, to: n28 }
+      - { from: n28, to: n29 }
+      - { from: n29, to: n30 }
+      - { from: n30, to: n31 }
+      - { from: n31, to: n32 }
+      - { from: n32, to: n33 }
+      - { from: n33, to: n34 }
+      - { from: n34, to: n35 }
+      - { from: n35, to: n36 }
 
 weather:
   pool:
@@ -111,109 +186,179 @@ available:
     - priest
 
 waves:
-  # 波次1: 哥布林×6 + 黑虫×8
+  # 波次1: 四口各出基础兵+精英
   - waveNumber: 1
     spawnDelay: 2
     enemies:
-      - { enemyType: goblin, count: 6, spawnInterval: 1.5 }
-      - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
+      - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 2, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: boar, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: goblin, count: 2, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: boar, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
+      - { enemyType: desert_beetle, count: 2, spawnInterval: 1.5, spawnId: spawn_3 }
     reward: 40
-  # 波次2: 野猪×4 + 钻地甲虫×3 + 狼人×3
+  # 波次2: 四口精英加强
   - waveNumber: 2
     spawnDelay: 30
     enemies:
-      - { enemyType: boar, count: 4, spawnInterval: 1.5 }
-      - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
-      - { enemyType: werewolf, count: 3, spawnInterval: 1.5 }
+      - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: boar, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: locust, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
+      - { enemyType: werewolf, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
     reward: 50
-  # 波次3: 大象×2 + 蝗虫×5 + 蝙蝠×5
+  # 波次3: 精英种类增加
   - waveNumber: 3
     spawnDelay: 30
     enemies:
-      - { enemyType: elephant, count: 2, spawnInterval: 2 }
-      - { enemyType: locust, count: 5, spawnInterval: 2 }
-      - { enemyType: vampire_bat, count: 5, spawnInterval: 2 }
+      - { enemyType: goblin, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: locust, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: boar, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: priest, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: drone, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
+      - { enemyType: werewolf, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
     reward: 60
-  # 波次4: 巨人×2 + 巫师×3 + 机器狗×6
+  # 波次4: 精英混合
   - waveNumber: 4
     spawnDelay: 30
     enemies:
-      - { enemyType: giant, count: 2, spawnInterval: 2 }
-      - { enemyType: wizard, count: 3, spawnInterval: 2 }
-      - { enemyType: robot_dog, count: 6, spawnInterval: 2 }
+      - { enemyType: elephant, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+      - { enemyType: locust, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
     reward: 70
-  # 波次5: BOSS + 黑虫×6
+  # 波次5: BOSS巨史莱姆 + 精英
   - waveNumber: 5
     spawnDelay: 30
     isBossWave: true
     enemies:
-      - { enemyType: giant_slime, count: 1, spawnInterval: 0 }
-      - { enemyType: desert_beetle, count: 6, spawnInterval: 2 }
+      - { enemyType: giant_slime, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: goblin, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: boar, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
     reward: 100
-  # 波次6: 自爆甲虫×4 + 牧师×2 + 无人机×5 + 弗兰肯斯坦×1
+  # 波次6: 混合精英加强
   - waveNumber: 6
     spawnDelay: 30
     enemies:
-      - { enemyType: bomb_beetle, count: 4, spawnInterval: 2 }
-      - { enemyType: priest, count: 2, spawnInterval: 2 }
-      - { enemyType: drone, count: 5, spawnInterval: 2 }
-      - { enemyType: frankenstein, count: 1, spawnInterval: 2 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
+      - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 4.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 1, spawnInterval: 4.0, spawnId: spawn_2 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
     reward: 80
-  # 波次7: BOSS + 蝗虫×8
+  # 波次7: BOSS蜂后 + 精英
   - waveNumber: 7
     spawnDelay: 30
     isBossWave: true
     enemies:
-      - { enemyType: queen_beetle, count: 1, spawnInterval: 0 }
-      - { enemyType: locust, count: 8, spawnInterval: 2 }
+      - { enemyType: queen_beetle, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: locust, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: goblin, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
     reward: 120
-  # 波次8: 坦克×2 + 飞机×3 + 油罐车×3 + 巨型机器人×1
+  # 波次8: 坦克飞机油罐
   - waveNumber: 8
     spawnDelay: 30
     enemies:
-      - { enemyType: tank, count: 2, spawnInterval: 2 }
-      - { enemyType: plane, count: 3, spawnInterval: 2 }
-      - { enemyType: oil_truck, count: 3, spawnInterval: 2 }
-      - { enemyType: giant_robot, count: 1, spawnInterval: 2 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: tank, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 2, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: goblin, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_3 }
     reward: 90
-  # 波次9: BOSS + 狼人×4 + 巫师×2
+  # 波次9: BOSS路西法 + 精英
   - waveNumber: 9
     spawnDelay: 30
     isBossWave: true
     enemies:
-      - { enemyType: lucifer, count: 1, spawnInterval: 0 }
-      - { enemyType: werewolf, count: 4, spawnInterval: 2 }
-      - { enemyType: wizard, count: 2, spawnInterval: 2 }
+      - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: goblin, count: 4, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+      - { enemyType: desert_beetle, count: 4, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 4.0, spawnId: spawn_3 }
     reward: 140
   # 波次10: 混合军团
   - waveNumber: 10
     spawnDelay: 30
     enemies:
-      - { enemyType: goblin, count: 3, spawnInterval: 1 }
-      - { enemyType: werewolf, count: 3, spawnInterval: 1 }
-      - { enemyType: robot_dog, count: 3, spawnInterval: 1 }
-      - { enemyType: desert_beetle, count: 3, spawnInterval: 1 }
-      - { enemyType: tank, count: 3, spawnInterval: 1 }
+      - { enemyType: goblin, count: 2, spawnInterval: 1.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 2, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 2, spawnInterval: 1.0, spawnId: spawn_1 }
+      - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: boar, count: 2, spawnInterval: 1.0, spawnId: spawn_2 }
+      - { enemyType: locust, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
     reward: 100
-  # 波次11: BOSS + 坦克×2 + 无人机×6
+  # 波次11: BOSS超级机器人 + 精英
   - waveNumber: 11
     spawnDelay: 30
     isBossWave: true
     enemies:
-      - { enemyType: super_robot, count: 1, spawnInterval: 0 }
-      - { enemyType: tank, count: 2, spawnInterval: 2 }
-      - { enemyType: drone, count: 6, spawnInterval: 2 }
+      - { enemyType: super_robot, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_0 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: plane, count: 2, spawnInterval: 3.0, spawnId: spawn_3 }
     reward: 160
-  # 波次12: 最终BOSS + 混合军团
+  # 波次12: 最终BOSS深渊领主 + 四路精英
   - waveNumber: 12
     spawnDelay: 30
     isBossWave: true
     enemies:
-      - { enemyType: abyss_lord, count: 1, spawnInterval: 0 }
-      - { enemyType: giant, count: 2, spawnInterval: 2 }
-      - { enemyType: frankenstein, count: 2, spawnInterval: 2 }
-      - { enemyType: giant_robot, count: 2, spawnInterval: 2 }
-      - { enemyType: tank, count: 2, spawnInterval: 2 }
+      - { enemyType: abyss_lord, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: giant, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_1 }
+      - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
     reward: 250
 
 cardPool:

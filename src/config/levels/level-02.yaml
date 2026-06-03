@@ -1,9 +1,9 @@
 # ============================================================
 # 第2关：沙漠虫潮
-# 路径布局：沙漏型点对称（以地图中心(4,10)为对称点）
-# 出生口：右上(行2,列20) | 水晶：左下(行6,列0)
-# 路径：行2→左(列20→10) → 列10→下(行2→6) → 行6→左(列10→0)
-# 对称性：(2,20) 与 (6,0) 关于中心(4,10)完美点对称
+# 路径布局：水平S形蛇行
+# 出生口：右侧(行1,列20) | 水晶：左下(行7,列0)
+# 路径：右→左(行1) → 下(列14) → 右(行3) → 下(列6) → 左(行5) → 下(列14) → 左(行7)
+# 每波含精英怪(burrow_beetle/locust/bomb_beetle)
 # ============================================================
 id: level_02
 name: 沙漠虫潮
@@ -15,14 +15,14 @@ map:
   tileSize: 64
   tiles:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [base, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
     empty: '#e6c44d'
     path: '#bfa045'
@@ -32,9 +32,9 @@ map:
   obstacles:
     - { type: rock, row: 0, col: 3 }
     - { type: rock, row: 0, col: 5 }
-    - { type: rock, row: 1, col: 14 }
+    - { type: rock, row: 1, col: 12 }
     - { type: rock, row: 3, col: 16 }
-    - { type: rock, row: 7, col: 3 }
+    - { type: rock, row: 7, col: 18 }
     - { type: rock, row: 8, col: 18 }
     - { type: cactus, row: 0, col: 19 }
     - { type: cactus, row: 1, col: 3 }
@@ -44,7 +44,7 @@ map:
     - { type: cactus, row: 8, col: 8 }
     - { type: bones, row: 1, col: 8 }
     - { type: bones, row: 3, col: 5 }
-    - { type: bones, row: 7, col: 12 }
+    - { type: bones, row: 7, col: 15 }
     - { type: bones, row: 8, col: 2 }
     - { type: sand_dune, row: 0, col: 12 }
     - { type: sand_dune, row: 5, col: 4 }
@@ -53,18 +53,26 @@ map:
     - { type: tunnel_exit, row: 7, col: 19 }
   spawns:
     - id: spawn_0
-      row: 2
+      row: 1
       col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 2, col: 20, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 2, col: 10, role: waypoint }
-      - { id: n2, row: 6, col: 10, role: waypoint }
-      - { id: n3, row: 6, col: 0, role: crystal_anchor }
+      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 1, col: 14, role: waypoint }
+      - { id: n2, row: 3, col: 14, role: waypoint }
+      - { id: n3, row: 3, col: 6, role: waypoint }
+      - { id: n4, row: 5, col: 6, role: waypoint }
+      - { id: n5, row: 5, col: 14, role: waypoint }
+      - { id: n6, row: 7, col: 14, role: waypoint }
+      - { id: n7, row: 7, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
       - { from: n2, to: n3 }
+      - { from: n3, to: n4 }
+      - { from: n4, to: n5 }
+      - { from: n5, to: n6 }
+      - { from: n6, to: n7 }
 
 weather:
   pool:
@@ -90,20 +98,21 @@ available:
     - mage
 
 waves:
-  # 波次1: 黑虫×12
+  # 波次1: 黑虫×6 + 钻地甲虫(精英)×3
   - waveNumber: 1
     spawnDelay: 2
     enemies:
-      - { enemyType: desert_beetle, count: 12, spawnInterval: 1.0 }
+      - { enemyType: desert_beetle, count: 6, spawnInterval: 1.5 }
+      - { enemyType: burrow_beetle, count: 3, spawnInterval: 2.0 }
     reward: 25
-  # 波次2: 黑虫×8 + 钻地甲虫×3
+  # 波次2: 黑虫×8 + 钻地甲虫(精英)×3
   - waveNumber: 2
     spawnDelay: 30
     enemies:
       - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
       - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
     reward: 35
-  # 波次3: 黑虫×8 + 钻地甲虫×3 + 蝗虫×5
+  # 波次3: 黑虫×8 + 钻地甲虫(精英)×3 + 蝗虫(精英)×5
   - waveNumber: 3
     spawnDelay: 30
     enemies:
@@ -111,25 +120,23 @@ waves:
       - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
       - { enemyType: locust, count: 5, spawnInterval: 1.5 }
     reward: 45
-  # 波次4: 黑虫×10 + 钻地甲虫×4 + 蝗虫×4 + 自爆甲虫×3
+  # 波次4: 黑虫×10 + 蝗虫(精英)×4 + 自爆甲虫(精英)×3
   - waveNumber: 4
     spawnDelay: 30
     enemies:
       - { enemyType: desert_beetle, count: 10, spawnInterval: 1.5 }
-      - { enemyType: burrow_beetle, count: 4, spawnInterval: 1.5 }
       - { enemyType: locust, count: 4, spawnInterval: 1.5 }
       - { enemyType: bomb_beetle, count: 3, spawnInterval: 1.5 }
     reward: 55
-  # 波次5: 黑虫×12 + 钻地甲虫×5 + 蝗虫×6 + 自爆甲虫×4
+  # 波次5: 黑虫×12 + 蝗虫(精英)×6 + 自爆甲虫(精英)×4
   - waveNumber: 5
     spawnDelay: 30
     enemies:
       - { enemyType: desert_beetle, count: 12, spawnInterval: 1.5 }
-      - { enemyType: burrow_beetle, count: 5, spawnInterval: 1.5 }
       - { enemyType: locust, count: 6, spawnInterval: 1.5 }
       - { enemyType: bomb_beetle, count: 4, spawnInterval: 1.5 }
     reward: 65
-  # 波次6: BOSS + 黑虫×8 + 自爆甲虫×3
+  # 波次6: BOSS蜂后(精英)×1 + 黑虫×8 + 自爆甲虫(精英)×3
   - waveNumber: 6
     spawnDelay: 30
     enemies:

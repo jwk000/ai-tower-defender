@@ -236,12 +236,16 @@ describe('L1-L5 真实 YAML 内嵌 pathGraph 合规验证（B.15）', () => {
 
     const idx = buildPathGraphIndex(schema.data.pathGraph);
     const rng = new GameRandom(0);
-    const reachableFromSpawn = new Set<string>();
-    let cur: string | null = 'n0';
-    while (cur !== null) {
-      reachableFromSpawn.add(cur);
-      cur = chooseNext(idx, cur, rng);
+    // 从所有 spawn 出发，收集所有可达节点（多 spawn 关卡每个 spawn 独立成链）
+    const allReachable = new Set<string>();
+    const spawnNodes = schema.data.pathGraph.nodes.filter((n) => n.role === 'spawn');
+    for (const spawn of spawnNodes) {
+      let cur: string | null = spawn.id;
+      while (cur !== null) {
+        allReachable.add(cur);
+        cur = chooseNext(idx, cur, rng);
+      }
     }
-    expect(reachableFromSpawn.size).toBe(schema.data.pathGraph.nodes.length);
+    expect(allReachable.size).toBe(schema.data.pathGraph.nodes.length);
   });
 });
