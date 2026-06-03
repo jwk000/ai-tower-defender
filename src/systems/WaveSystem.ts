@@ -18,7 +18,8 @@ import {
   DamageTypeVal,
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
-import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../types/index.js';
+import { GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
+import { registerBossEntity } from './EnemySkillSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { Sound } from '../utils/Sound.js';
 import { shapeTypeToVal } from '../utils/visualHelpers.js';
@@ -62,7 +63,7 @@ export class WaveSystem implements System {
   private world: TowerWorld;
   private waves: WaveConfig[];
   private currentWaveIndex: number = 0;
-  private spawnQueue: { enemyType: EnemyType; count: number; interval: number; spawnId?: string }[] = [];
+  private spawnQueue: { enemyType: string; count: number; interval: number; spawnId?: string }[] = [];
   private spawnTimer: number = 0;
   private spawnIntervalTimer: number = 0;
   private spawnedInWave: number = 0;
@@ -74,7 +75,7 @@ export class WaveSystem implements System {
   // v4.0: elite spawning
   private eliteSpawned: boolean = false;
   private eliteEid: number = 0;
-  private eliteEnemyType: EnemyType | null = null;
+  private eliteEnemyType: string | null = null;
 
   // v4.0: difficulty scaling multiplier for current wave
   private currentDifficulty: { hpMult: number; atkMult: number } = { hpMult: 1.0, atkMult: 1.0 };
@@ -174,7 +175,7 @@ export class WaveSystem implements System {
     return {
       waveNumber: waveNum,
       spawnDelay: 2,
-      enemies: [{ enemyType: EnemyType.Goblin, count: 5 + waveNum * 2, spawnInterval: 1.0 }],
+      enemies: [{ enemyType: 'goblin', count: 5 + waveNum * 2, spawnInterval: 1.0 }],
     };
   }
 
@@ -239,7 +240,7 @@ export class WaveSystem implements System {
   }
 
   /** v4.0: reset elite tracking state for a new wave */
-  private resetEliteTracking(enemyTypes: EnemyType[]): void {
+  private resetEliteTracking(enemyTypes: string[]): void {
     this.eliteSpawned = false;
     this.eliteEid = 0;
     if (enemyTypes.length > 0) {
@@ -358,7 +359,7 @@ export class WaveSystem implements System {
     return false;
   }
 
-  private spawnEnemy(type: EnemyType, options?: SpawnEnemyOptions): number {
+  private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {
     const config = ENEMY_CONFIGS[type];
     if (!config) return 0;
 
@@ -451,9 +452,12 @@ export class WaveSystem implements System {
     // Boss component
     if (config.isBoss) {
       this.world.addComponent(eid, Boss, {
+        bossType: 0xFF, // data-driven boss
         phase: 1,
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
+        selfDestructTimer: -1, // inactive
       });
+      registerBossEntity(eid, config.type);
     }
 
     // v4.0: Elite component

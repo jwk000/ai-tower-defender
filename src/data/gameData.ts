@@ -420,7 +420,7 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
 // ============================================================
 // 字段映射: defense=armor, attackRange=射程, rewardGold=击杀奖励
 
-export const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
+export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   // ===== §5.1 绿野仙踪（怪兽族）=====
   [EnemyType.Goblin]: {
     type: EnemyType.Goblin, name: '哥布林', hp: 18, speed: 45, atk: 8,

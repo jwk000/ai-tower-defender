@@ -215,6 +215,7 @@ export class CardListWindow {
 
     // 点击添加卡牌
     el.addEventListener('click', () => {
+      console.log('[CardListWindow] card clicked:', card.id, card.name, 'hasCallback:', !!this.onCardSelected);
       this.onCardSelected?.(card);
       // 添加成功反馈
       el.style.background = '#2e7d32';

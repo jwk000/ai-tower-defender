@@ -209,6 +209,10 @@ export class BossSystem implements System {
       phase2HpRatio: 0.5,
       transitionTimer: 0,
       immuneToTowers: 0,
+      skillTimer0: 0,
+      skillTimer1: 0,
+      skillTimer2: 0,
+      selfDestructTimer: -1,
     });
     world.addComponent(eid, Faction, { value: faction });
     world.addComponent(eid, Category, { value: CategoryVal.Enemy });

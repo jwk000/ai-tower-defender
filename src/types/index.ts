@@ -288,7 +288,7 @@ export enum EnemyType {
 }
 
 export interface EnemyConfig {
-  type: EnemyType;
+  type: string;
   name: string;
   hp: number;
   speed: number;
@@ -525,7 +525,7 @@ export interface PlayerResources {
 // ---- Wave ----
 
 export interface WaveEnemyGroup {
-  enemyType: EnemyType;
+  enemyType: string;
   count: number;
   spawnInterval: number;
   spawnId?: string;

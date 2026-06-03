@@ -1,8 +1,6 @@
-import { EnemyType, type EnemyConfig, type ShapeType } from '../../types/index.js';
+import type { EnemyConfig, ShapeType } from '../../types/index.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { ENEMY_CONFIGS } from '../gameData.js';
-
-const VALID_ENEMY_TYPES = new Set<string>(Object.values(EnemyType));
 
 function mapShape(yamlShape: string | undefined): ShapeType {
   switch (yamlShape) {
@@ -26,11 +24,6 @@ export function injectEnemyConfigsFromRegistry(): number {
   let injected = 0;
 
   for (const u of enemies) {
-    if (!VALID_ENEMY_TYPES.has(u.id)) {
-      continue;
-    }
-    const type = u.id as EnemyType;
-
     const stats = u.stats;
     const reward = u.reward;
     const visual = u.visual;
@@ -40,7 +33,7 @@ export function injectEnemyConfigsFromRegistry(): number {
     const canAttackBuildings = special['ignoreBuildings'] !== true;
 
     const cfg: EnemyConfig = {
-      type,
+      type: u.id,
       name: u.name,
       description: typeof u['description'] === 'string' ? (u['description'] as string) : '',
       hp: stats?.hp ?? 50,
@@ -56,9 +49,11 @@ export function injectEnemyConfigsFromRegistry(): number {
       radius: visual?.size != null ? Math.max(8, Math.floor(visual.size / 2)) : 14,
       shape: mapShape(visual?.shape),
       attackAnimDuration: 0.3,
+      isBoss: u['isBoss'] === true,
+      bossPhase2HpRatio: typeof u['bossPhase2HpRatio'] === 'number' ? u['bossPhase2HpRatio'] as number : undefined,
     };
 
-    ENEMY_CONFIGS[type] = cfg;
+    ENEMY_CONFIGS[u.id] = cfg;
     injected += 1;
   }
 

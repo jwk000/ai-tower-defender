@@ -23,6 +23,7 @@ import {
   Attack,
   Movement,
   MoveModeVal,
+  DamageTypeVal,
   LightningBolt,
   ExplosionEffect,
   DeathEffect,
@@ -31,6 +32,7 @@ import {
 } from '../core/components.js';
 import { getGlobalRandom } from '../utils/Random.js';
 import type { BuffData } from '../systems/BuffSystem.js';
+import { hexToRgb } from '../utils/visualHelpers.js';
 
 // ============================================================
 // 回调注册（用于系统间解耦）
@@ -352,10 +354,16 @@ export const flashColor: RuleHandlerFn = (world, entityId, params, _context) => 
  * 颜色渐变过渡
  * YAML: { type: change_color, color: "#d32f2f", blend: 0.35 }
  */
-export const changeColor: RuleHandlerFn = (_world, _entityId, _params, _context) => {
-  // 颜色变化由渲染系统处理
-  // 此处设置标记供 RenderSystem 读取
-  // 通过 params.color 和 params.blend 插值
+export const changeColor: RuleHandlerFn = (_world, entityId, params, _context) => {
+  const color = params['color'] as string ?? '#ffffff';
+  const blend = (params['blend'] as number) ?? 1.0;
+  const rgb = hexToRgb(color);
+  const currentR = Visual.colorR[entityId] ?? 128;
+  const currentG = Visual.colorG[entityId] ?? 128;
+  const currentB = Visual.colorB[entityId] ?? 128;
+  Visual.colorR[entityId] = Math.round(currentR * (1 - blend) + rgb.r * blend);
+  Visual.colorG[entityId] = Math.round(currentG * (1 - blend) + rgb.g * blend);
+  Visual.colorB[entityId] = Math.round(currentB * (1 - blend) + rgb.b * blend);
 };
 
 /**
@@ -387,6 +395,9 @@ export const playEffect: RuleHandlerFn = (world, entityId, params, _context) => 
     effectType === 'boss_rage' ||
     effectType === 'boss_death' ||
     effectType === 'boss_split' ||
+    effectType === 'boss_void_enter' ||
+    effectType === 'boss_phase_shift' ||
+    effectType === 'boss_death_void' ||
     effectType === 'gold_burst' ||
     effectType === 'upgrade_gold' ||
     effectType === 'upgrade_energy';
@@ -395,6 +406,9 @@ export const playEffect: RuleHandlerFn = (world, entityId, params, _context) => 
     effectType === 'death_heavy' ||
     effectType === 'death_magic' ||
     effectType === 'death_soldier' ||
+    effectType === 'death_boss_small' ||
+    effectType === 'death_spore' ||
+    effectType === 'death_split' ||
     effectType === 'ice_shatter' ||
     effectType === 'crystal_shatter' ||
     effectType === 'bat_dissolve' ||
@@ -425,23 +439,60 @@ export const playEffect: RuleHandlerFn = (world, entityId, params, _context) => 
 
   if (isExplosion) {
     addComponent(world, ExplosionEffect, effectId);
-    ExplosionEffect.duration[effectId] = 0.5;
+    // Per-effect-type customization
+    let eR = 255, eG = 150, eB = 30;
+    let eDur = 0.5, eMaxR = 60, eSize = 120;
+    switch (effectType) {
+      case 'boss_void_enter':
+        eR = 26; eG = 0; eB = 51; eDur = 1.5; eMaxR = 200; eSize = 400;
+        break;
+      case 'boss_phase_shift':
+        eR = 79; eG = 195; eB = 247; eDur = 1.0; eMaxR = 150; eSize = 300;
+        break;
+      case 'boss_death_void':
+        eR = 74; eG = 20; eB = 140; eDur = 2.0; eMaxR = 300; eSize = 600;
+        break;
+      case 'boss_rage':
+        eR = 200; eG = 50; eB = 50; eDur = 0.8; eMaxR = 120; eSize = 240;
+        break;
+      case 'boss_death':
+        eR = 255; eG = 200; eB = 50; eDur = 1.0; eMaxR = 100; eSize = 200;
+        break;
+      case 'boss_split':
+        eR = 100; eG = 220; eB = 80; eDur = 0.5; eMaxR = 60; eSize = 120;
+        break;
+    }
+    ExplosionEffect.duration[effectId] = eDur;
     ExplosionEffect.elapsed[effectId] = 0;
     ExplosionEffect.radius[effectId] = 10;
-    ExplosionEffect.maxRadius[effectId] = 60;
-    ExplosionEffect.colorR[effectId] = 255;
-    ExplosionEffect.colorG[effectId] = 150;
-    ExplosionEffect.colorB[effectId] = 30;
-    Visual.colorR[effectId] = 255;
-    Visual.colorG[effectId] = 150;
-    Visual.colorB[effectId] = 30;
+    ExplosionEffect.maxRadius[effectId] = eMaxR;
+    ExplosionEffect.colorR[effectId] = eR;
+    ExplosionEffect.colorG[effectId] = eG;
+    ExplosionEffect.colorB[effectId] = eB;
+    Visual.colorR[effectId] = eR;
+    Visual.colorG[effectId] = eG;
+    Visual.colorB[effectId] = eB;
+    Visual.size[effectId] = eSize;
   } else if (isDeathEffect) {
     addComponent(world, DeathEffect, effectId);
-    DeathEffect.duration[effectId] = 0.5;
+    // Per-effect-type customization
+    let dR = 180, dG = 180, dB = 180, dDur = 0.5;
+    switch (effectType) {
+      case 'death_boss_small':
+        dR = 141; dG = 110; dB = 99; dDur = 0.6;
+        break;
+      case 'death_spore':
+        dR = 165; dG = 214; dB = 167; dDur = 1.0;
+        break;
+      case 'death_split':
+        dR = 255; dG = 112; dB = 67; dDur = 0.5;
+        break;
+    }
+    DeathEffect.duration[effectId] = dDur;
     DeathEffect.elapsed[effectId] = 0;
-    Visual.colorR[effectId] = 180;
-    Visual.colorG[effectId] = 180;
-    Visual.colorB[effectId] = 180;
+    Visual.colorR[effectId] = dR;
+    Visual.colorG[effectId] = dG;
+    Visual.colorB[effectId] = dB;
   } else {
     // 默认使用 ExplosionEffect（光效）
     addComponent(world, ExplosionEffect, effectId);
@@ -840,6 +891,235 @@ export const leaveRuins: RuleHandlerFn = (_world, _entityId, _params, _context) 
 };
 
 // ============================================================
+// Boss 阶段转换 & 数据驱动处理器
+// ============================================================
+
+/**
+ * 属性修改 — Boss阶段转换时修改属性
+ * YAML: { type: stat_change, speedBonus: 0.3, attackSpeedBonus: 0.5, atkOverride: 80 }
+ */
+export const statChange: RuleHandlerFn = (_world, entityId, params, _context) => {
+  // 百分比加成
+  if (params['speedBonus'] !== undefined) {
+    const current = Movement.speed[entityId] ?? 0;
+    Movement.speed[entityId] = current * (1 + (params['speedBonus'] as number));
+  }
+  if (params['attackSpeedBonus'] !== undefined) {
+    const current = Attack.attackSpeed[entityId] ?? 0;
+    Attack.attackSpeed[entityId] = current * (1 + (params['attackSpeedBonus'] as number));
+  }
+  // 绝对值覆盖
+  if (params['hpSet'] !== undefined) {
+    Health.max[entityId] = params['hpSet'] as number;
+    Health.current[entityId] = params['hpSet'] as number;
+  }
+  if (params['atkOverride'] !== undefined) {
+    Attack.damage[entityId] = params['atkOverride'] as number;
+  }
+  if (params['armorOverride'] !== undefined) {
+    Health.armor[entityId] = params['armorOverride'] as number;
+  }
+  if (params['mrOverride'] !== undefined) {
+    Health.magicResist[entityId] = params['mrOverride'] as number;
+  }
+  if (params['speedOverride'] !== undefined) {
+    Movement.speed[entityId] = params['speedOverride'] as number;
+  }
+  if (params['attackSpeedOverride'] !== undefined) {
+    Attack.attackSpeed[entityId] = params['attackSpeedOverride'] as number;
+  }
+  if (params['rangeOverride'] !== undefined) {
+    Attack.range[entityId] = params['rangeOverride'] as number;
+  }
+  if (params['damageTypeOverride'] !== undefined) {
+    Attack.damageType[entityId] = params['damageTypeOverride'] === 'magic'
+      ? DamageTypeVal.Magic : DamageTypeVal.Physical;
+  }
+};
+
+/**
+ * Boss 进入三阶段
+ * YAML: { type: enter_phase3 }
+ */
+export const enterPhase3: RuleHandlerFn = (world, entityId, _params, _context) => {
+  if (Boss.phase[entityId] !== undefined) {
+    Boss.phase[entityId] = 3;
+  }
+  // 紫色爆炸特效
+  const ex = Position.x[entityId];
+  const ey = Position.y[entityId];
+  if (ex === undefined || ey === undefined) return;
+
+  const effectId = addEntity(world);
+  addComponent(world, Position, effectId);
+  Position.x[effectId] = ex;
+  Position.y[effectId] = ey;
+
+  addComponent(world, ExplosionEffect, effectId);
+  ExplosionEffect.duration[effectId] = 1.2;
+  ExplosionEffect.elapsed[effectId] = 0;
+  ExplosionEffect.radius[effectId] = 20;
+  ExplosionEffect.maxRadius[effectId] = 150;
+  ExplosionEffect.colorR[effectId] = 150;
+  ExplosionEffect.colorG[effectId] = 50;
+  ExplosionEffect.colorB[effectId] = 200;
+
+  addComponent(world, Category, effectId);
+  Category.value[effectId] = CategoryVal.Effect;
+
+  addComponent(world, Visual, effectId);
+  Visual.shape[effectId] = ShapeVal.Circle;
+  Visual.colorR[effectId] = 150;
+  Visual.colorG[effectId] = 50;
+  Visual.colorB[effectId] = 200;
+  Visual.size[effectId] = 300;
+  Visual.alpha[effectId] = 0.6;
+  Visual.outline[effectId] = 0;
+  Visual.hitFlashTimer[effectId] = 0;
+  Visual.idlePhase[effectId] = 0;
+  Visual.facing[effectId] = 1;
+  Visual.bobPhase[effectId] = 0;
+  Visual.breathPhase[effectId] = 0;
+  Visual.attackAnimTimer[effectId] = 0;
+  Visual.attackAnimDuration[effectId] = 0;
+  Visual.partsId[effectId] = 0;
+};
+
+/**
+ * 启动自爆倒计时
+ * YAML: { type: start_timer, timerId: self_destruct, duration: 20 }
+ */
+export const startTimer: RuleHandlerFn = (_world, entityId, params, _context) => {
+  const duration = (params['duration'] as number) ?? 20;
+  Boss.selfDestructTimer[entityId] = duration;
+};
+
+/** 胜利回调 — 由 Game 注册 */
+let victoryCallback: (() => void) | null = null;
+export function setVictoryCallback(fn: () => void): void {
+  victoryCallback = fn;
+}
+
+/**
+ * 最终胜利 — 击杀最终Boss触发
+ * YAML: { type: final_victory }
+ */
+export const finalVictory: RuleHandlerFn = (_world, _entityId, _params, _context) => {
+  victoryCallback?.();
+};
+
+/**
+ * 释放孢子云 — e_sporeling死亡时释放增益云
+ * YAML: { type: release_spore_cloud, radius: 80, duration: 4, buffHpPct: 30, buffSpdPct: 20, buffAtkPct: 20 }
+ */
+export const releaseSporeCloud: RuleHandlerFn = (world, entityId, params, _context) => {
+  const radius = (params['radius'] as number) ?? 80;
+  const duration = (params['duration'] as number) ?? 4;
+  const buffSpdPct = (params['buffSpdPct'] as number) ?? 0;
+  const buffAtkPct = (params['buffAtkPct'] as number) ?? 0;
+
+  const posX = Position.x[entityId];
+  const posY = Position.y[entityId];
+  if (posX === undefined || posY === undefined) return;
+
+  // 给范围内友军施加增益
+  for (let eid = 0; eid < Movement.speed.length; eid++) {
+    const hp = Health.current[eid];
+    if (hp === undefined || hp <= 0) continue;
+    if (Faction.value[eid] !== FactionVal.Evil) continue;
+
+    const ex = Position.x[eid];
+    const ey = Position.y[eid];
+    if (ex === undefined || ey === undefined) continue;
+
+    const dx = ex - posX;
+    const dy = ey - posY;
+    if (dx * dx + dy * dy <= radius * radius) {
+      if (buffSpdPct > 0 && Movement.speed[eid] !== undefined) {
+        Movement.speed[eid] = Movement.speed[eid]! * (1 + buffSpdPct / 100);
+      }
+      if (buffAtkPct > 0 && Attack.damage[eid] !== undefined) {
+        Attack.damage[eid] = Math.round(Attack.damage[eid]! * (1 + buffAtkPct / 100));
+      }
+    }
+  }
+
+  // 绿色云雾特效
+  const effectId = addEntity(world);
+  addComponent(world, Position, effectId);
+  Position.x[effectId] = posX;
+  Position.y[effectId] = posY;
+  addComponent(world, Category, effectId);
+  Category.value[effectId] = CategoryVal.Effect;
+  addComponent(world, ExplosionEffect, effectId);
+  ExplosionEffect.duration[effectId] = duration;
+  ExplosionEffect.elapsed[effectId] = 0;
+  ExplosionEffect.radius[effectId] = 10;
+  ExplosionEffect.maxRadius[effectId] = radius;
+  ExplosionEffect.colorR[effectId] = 165;
+  ExplosionEffect.colorG[effectId] = 214;
+  ExplosionEffect.colorB[effectId] = 167;
+  addComponent(world, Visual, effectId);
+  Visual.shape[effectId] = ShapeVal.Circle;
+  Visual.colorR[effectId] = 165;
+  Visual.colorG[effectId] = 214;
+  Visual.colorB[effectId] = 167;
+  Visual.size[effectId] = radius * 2;
+  Visual.alpha[effectId] = 0.5;
+  Visual.outline[effectId] = 0;
+  Visual.hitFlashTimer[effectId] = 0;
+  Visual.idlePhase[effectId] = 0;
+  Visual.facing[effectId] = 1;
+  Visual.bobPhase[effectId] = 0;
+  Visual.breathPhase[effectId] = 0;
+  Visual.attackAnimTimer[effectId] = 0;
+  Visual.attackAnimDuration[effectId] = 0;
+  Visual.partsId[effectId] = 0;
+};
+
+/**
+ * 生成传送门 — e_void_blinker死亡时生成传送门
+ * YAML: { type: spawn_portal, duration: 8, spawnUnit: e_void_thrall, spawnInterval: 2 }
+ */
+export const spawnPortal: RuleHandlerFn = (world, entityId, params, _context) => {
+  const posX = Position.x[entityId];
+  const posY = Position.y[entityId];
+  if (posX === undefined || posY === undefined) return;
+
+  // 创建传送门视觉效果（持续存在的紫色光环）
+  const portalId = addEntity(world);
+  addComponent(world, Position, portalId);
+  Position.x[portalId] = posX;
+  Position.y[portalId] = posY;
+  addComponent(world, Category, portalId);
+  Category.value[portalId] = CategoryVal.Effect;
+  addComponent(world, ExplosionEffect, portalId);
+  ExplosionEffect.duration[portalId] = (params['duration'] as number) ?? 8;
+  ExplosionEffect.elapsed[portalId] = 0;
+  ExplosionEffect.radius[portalId] = 20;
+  ExplosionEffect.maxRadius[portalId] = 40;
+  ExplosionEffect.colorR[portalId] = 100;
+  ExplosionEffect.colorG[portalId] = 20;
+  ExplosionEffect.colorB[portalId] = 160;
+  addComponent(world, Visual, portalId);
+  Visual.shape[portalId] = ShapeVal.Circle;
+  Visual.colorR[portalId] = 100;
+  Visual.colorG[portalId] = 20;
+  Visual.colorB[portalId] = 160;
+  Visual.size[portalId] = 80;
+  Visual.alpha[portalId] = 0.6;
+  Visual.outline[portalId] = 1;
+  Visual.hitFlashTimer[portalId] = 0;
+  Visual.idlePhase[portalId] = 0;
+  Visual.facing[portalId] = 1;
+  Visual.bobPhase[portalId] = 0;
+  Visual.breathPhase[portalId] = 0;
+  Visual.attackAnimTimer[portalId] = 0;
+  Visual.attackAnimDuration[portalId] = 0;
+  Visual.partsId[portalId] = 0;
+};
+
+// ============================================================
 // 所有预定义处理器的注册表
 // ============================================================
 
@@ -872,9 +1152,15 @@ export const BUILTIN_HANDLERS: Record<string, RuleHandlerFn> = {
   // 状态
   'pause_world': pauseWorld,
   'enter_phase2': enterPhase2,
+  'enter_phase3': enterPhase3,
   'split_into': splitInto,
   'spawn_unit': spawnUnit,
   'apply_buff': applyBuff,
+  'stat_change': statChange,
+  'start_timer': startTimer,
+  'final_victory': finalVictory,
+  'release_spore_cloud': releaseSporeCloud,
+  'spawn_portal': spawnPortal,
   // 建筑
   'leave_ruins': leaveRuins,
   // Boss血条

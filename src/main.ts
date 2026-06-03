@@ -8,6 +8,7 @@ import { AttackSystem } from './systems/AttackSystem.js';
 import { BatSwarmSystem } from './systems/BatSwarmSystem.js';
 import { BloodParticleSystem } from './systems/BloodParticleSystem.js';
 import { BossSystem } from './systems/BossSystem.js';
+import { EnemySkillSystem } from './systems/EnemySkillSystem.js';
 import { BuffSystem } from './systems/BuffSystem.js';
 import { BuildSystem } from './systems/BuildSystem.js';
 import { CardDraftSystem } from './systems/CardDraftSystem.js';
@@ -908,6 +909,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(movementSystem);
     this.world.registerSystem(attackSystem);
     this.world.registerSystem(this.bossSystem);
+    this.world.registerSystem(new EnemySkillSystem());
     this.world.registerSystem(this.batSwarmSystem);
     this.world.registerSystem(unitSystem);
     this.world.registerSystem(projectileSystem);

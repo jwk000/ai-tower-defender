@@ -130,15 +130,22 @@ export class DebugManager {
   private setupCardListWindow(): void {
     this.cardListWindow.setOnCardSelected((card) => {
       const handSystem = this.getHandSystem();
-      if (!handSystem) return;
+      if (!handSystem) {
+        console.warn('[DebugManager] getHandSystem() returned null — not in battle?');
+        return;
+      }
 
       // 确保卡牌在卡牌库中
       handSystem.addCardsToLibrary([card]);
 
       // 尝试添加到手牌
+      const handBefore = handSystem.getHand().map(c => c?.id ?? null);
+      console.log('[DebugManager] drawCard attempt:', card.id, 'handBefore:', handBefore, 'isFull:', handSystem.isFull());
       const success = handSystem.drawCard(card.id);
+      const handAfter = handSystem.getHand().map(c => c?.id ?? null);
+      console.log('[DebugManager] drawCard result:', success, 'handAfter:', handAfter);
       if (!success) {
-        console.log(`[DebugManager] 手牌已满，无法添加卡牌: ${card.name}`);
+        console.warn(`[DebugManager] 手牌已满或卡牌无效，无法添加卡牌: ${card.name} (${card.id})`);
       }
     });
   }
