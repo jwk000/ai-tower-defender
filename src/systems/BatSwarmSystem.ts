@@ -205,6 +205,11 @@ export class BatSwarmSystem implements System {
         // Try to start a new attack
         if (Attack.cooldownTimer[batId]! <= 0 && this.canBatAttack()) {
           this.tryStartAttack(world, batId, anim);
+        } else if (Attack.cooldownTimer[batId]! <= 0 && !this.canBatAttack()) {
+          // DEBUG: weather is blocking bat attacks
+          if (this.frameCounter % 300 === 0) {
+            console.warn(`[BatSwarm] bat ${batId} ready to attack but weather blocks (weather=${this.weatherSystem?.currentWeather})`);
+          }
         }
       }
     }
@@ -426,7 +431,19 @@ export class BatSwarmSystem implements System {
       }
     }
 
-    if (nearestId === 0) return;
+    if (nearestId === 0) {
+      // DEBUG: no enemies in range
+      if (this.frameCounter % 300 === 0) {
+        const enemyCount = enemies.length;
+        let aliveEnemies = 0;
+        for (let i = 0; i < enemies.length; i++) {
+          const eid = enemies[i]!;
+          if (UnitTag.isEnemy[eid]! === 1 && Health.current[eid]! > 0) aliveEnemies++;
+        }
+        console.warn(`[BatSwarm] bat ${batId} range=${range} — enemies in query: ${enemyCount}, alive enemies: ${aliveEnemies}`);
+      }
+      return;
+    }
 
     // Compute total attack duration from attackSpeed (attacks/sec).
     const attackSpeed = Attack.attackSpeed[batId];

@@ -942,7 +942,8 @@ export const TRAP_CONFIGS: Record<string, TrapConfig> = {
     cost: 50,
     shape: 'rect',
     layer: 'AboveGrid',
-    rootDuration: 1.0,
+    stunDuration: 2.0,
+    damage: 20,
     bossImmune: true,
   },
   tar_pit: {

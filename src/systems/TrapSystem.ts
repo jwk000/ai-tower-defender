@@ -32,7 +32,7 @@ function getEnemyGridPos(
  *
  * Each trap type has unique mechanics:
  *   0 SpikeTrap   — persistent damage/sec on same tile (layer gated)
- *   1 BearTrap    — single-use root for 1s, boss immune, then self-destruct
+ *   1 BearTrap    — single-use stun + damage, boss immune, then self-destruct
  *   2 TarPit      — persistent 20% slow on same tile
  *   3 Boulder     — has HP, blocks path, destroyed when HP≤0
  *   4 Fan         — 20% slow on front 3 tiles (directional)
@@ -153,7 +153,7 @@ export class TrapSystem implements System {
   }
 
   // ============================================================
-  // BearTrap (1) — single-use root 1s, boss immune, self-destruct
+  // BearTrap (1) — single-use stun + damage, boss immune, self-destruct
   // ============================================================
   private tickBearTrap(
     world: TowerWorld,
@@ -167,6 +167,8 @@ export class TrapSystem implements System {
     const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
     const triggerCount = Trap.triggerCount[trapId] ?? 0;
     const maxTriggers = Trap.maxTriggers[trapId] ?? 0;
+    const stunDuration = Trap.stunDuration[trapId] ?? 2.0;
+    const damage = Trap.damage[trapId] ?? 20;
 
     // Already used up (maxTriggers > 0 && triggerCount >= maxTriggers)?
     if (maxTriggers > 0 && triggerCount >= maxTriggers) {
@@ -187,8 +189,13 @@ export class TrapSystem implements System {
       // Boss immune
       if (hasComponent(world.world, Boss, enemyId)) continue;
 
-      // Apply 1.0s immobilization (Stunned)
-      world.addComponent(enemyId, Stunned, { timer: 1.0 });
+      // Apply stun
+      world.addComponent(enemyId, Stunned, { timer: stunDuration });
+
+      // Apply damage
+      if (damage > 0) {
+        applyDamageToTarget(world, enemyId, damage, DamageTypeVal.Physical);
+      }
 
       // Mark trap as triggered and schedule destruction
       Trap.triggerCount[trapId] = triggerCount + 1;

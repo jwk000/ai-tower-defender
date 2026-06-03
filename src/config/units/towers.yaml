@@ -262,7 +262,7 @@ laser_tower:
 
   stats:
     hp: 80
-    atk: 22
+    atk: 7
     attackSpeed: 0.4
     range: 250
     armor: 0
@@ -272,7 +272,7 @@ laser_tower:
   cost:
     build: 90
     upgrade: [55, 85, 130, 190]
-    atkGrowth: [6, 9, 13, 18]
+    atkGrowth: [2, 3, 4, 5]
     rangeGrowth: [15, 15, 20, 20]
 
   visual:

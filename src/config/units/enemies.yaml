@@ -15,7 +15,8 @@ grunt:
   stats:
     hp: 50
     atk: 5
-    attackSpeed: 1.0
+    attackSpeed: 0.4
+    range: 32
     speed: 80
     armor: 0
     mr: 0
@@ -129,7 +130,7 @@ heavy:
   stats:
     hp: 200
     atk: 15
-    attackSpeed: 0.8
+    attackSpeed: 0.35
     range: 32
     speed: 35
     armor: 80
@@ -184,7 +185,7 @@ mage:
   stats:
     hp: 80
     atk: 25
-    attackSpeed: 0.6
+    attackSpeed: 0.3
     range: 250
     speed: 55
     armor: 10
@@ -476,7 +477,8 @@ e_burrow_worm:
   stats:
     hp: 70
     atk: 8
-    attackSpeed: 1.0
+    attackSpeed: 0.4
+    range: 32
     speed: 90
     armor: 0
     mr: 0
@@ -526,7 +528,8 @@ e_locust_swarm:
   stats:
     hp: 25
     atk: 3
-    attackSpeed: 1.2
+    attackSpeed: 0.5
+    range: 32
     speed: 110
     armor: 0
     mr: 0
@@ -576,7 +579,8 @@ e_ground_skitter:
   stats:
     hp: 40
     atk: 6
-    attackSpeed: 1.0
+    attackSpeed: 0.4
+    range: 32
     speed: 160
     armor: 0
     mr: 0
@@ -624,7 +628,7 @@ e_acid_artillery:
   stats:
     hp: 100
     atk: 22
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 260
     speed: 50
     armor: 5
@@ -683,7 +687,7 @@ e_giant_beetle:
   stats:
     hp: 320
     atk: 14
-    attackSpeed: 0.6
+    attackSpeed: 0.3
     range: 32
     speed: 35
     armor: 90
@@ -808,7 +812,7 @@ e_frost_marauder:
   stats:
     hp: 400
     atk: 18
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 32
     speed: 50
     armor: 80
@@ -859,7 +863,7 @@ e_ice_witch:
   stats:
     hp: 180
     atk: 24
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 240
     speed: 55
     armor: 10
@@ -918,7 +922,7 @@ e_yeti_charger:
   stats:
     hp: 280
     atk: 30
-    attackSpeed: 0.4
+    attackSpeed: 0.25
     range: 32
     speed: 80
     armor: 60
@@ -970,7 +974,7 @@ e_blizzard_sprite:
   stats:
     hp: 90
     atk: 12
-    attackSpeed: 0.8
+    attackSpeed: 0.4
     range: 220
     speed: 70
     armor: 5
@@ -1022,7 +1026,7 @@ e_glacier_titan:
   stats:
     hp: 1200
     atk: 35
-    attackSpeed: 0.4
+    attackSpeed: 0.25
     range: 48
     speed: 25
     armor: 100
@@ -1094,7 +1098,7 @@ e_temple_guard:
   stats:
     hp: 110
     atk: 12
-    attackSpeed: 1.0
+    attackSpeed: 0.4
     range: 40
     speed: 60
     armor: 30
@@ -1144,7 +1148,7 @@ e_jungle_zealot:
   stats:
     hp: 70
     atk: 9
-    attackSpeed: 1.2
+    attackSpeed: 0.5
     range: 36
     speed: 100
     armor: 0
@@ -1192,7 +1196,7 @@ e_temple_priest:
   stats:
     hp: 100
     atk: 8
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 220
     speed: 50
     armor: 10
@@ -1304,7 +1308,7 @@ e_petrify_oracle:
   stats:
     hp: 130
     atk: 20
-    attackSpeed: 0.4
+    attackSpeed: 0.25
     range: 200
     speed: 45
     armor: 15
@@ -1442,7 +1446,7 @@ e_corsair_pikeman:
   stats:
     hp: 80
     atk: 11
-    attackSpeed: 1.0
+    attackSpeed: 0.4
     range: 48
     speed: 70
     armor: 10
@@ -1490,7 +1494,7 @@ e_dock_brawler:
   stats:
     hp: 95
     atk: 10
-    attackSpeed: 1.1
+    attackSpeed: 0.45
     range: 36
     speed: 85
     armor: 5
@@ -1538,7 +1542,7 @@ e_brine_charger:
   stats:
     hp: 200
     atk: 26
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 32
     speed: 80
     armor: 35
@@ -1589,7 +1593,7 @@ e_kraken_tendril:
   stats:
     hp: 280
     atk: 30
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 250
     speed: 30
     armor: 20
@@ -1730,7 +1734,7 @@ e_clockwork_grunt:
   stats:
     hp: 260
     atk: 18
-    attackSpeed: 0.8
+    attackSpeed: 0.35
     range: 32
     speed: 65
     armor: 50
@@ -1778,7 +1782,7 @@ e_steam_lancer:
   stats:
     hp: 200
     atk: 26
-    attackSpeed: 0.6
+    attackSpeed: 0.35
     range: 240
     speed: 55
     armor: 30
@@ -1829,7 +1833,7 @@ e_hammergrub_drone:
   stats:
     hp: 130
     atk: 35
-    attackSpeed: 1.0
+    attackSpeed: 0.4
     range: 32
     speed: 80
     armor: 25
@@ -1880,7 +1884,7 @@ e_minecart_juggernaut:
   stats:
     hp: 800
     atk: 60
-    attackSpeed: 0.4
+    attackSpeed: 0.25
     range: 32
     speed: 110
     armor: 100
@@ -1932,7 +1936,7 @@ e_repair_bot:
   stats:
     hp: 180
     atk: 12
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 96
     speed: 50
     armor: 35
@@ -2072,8 +2076,8 @@ e_sporeling:
   stats:
     hp: 60
     atk: 6
-    attackSpeed: 1.0
-    range: 0
+    attackSpeed: 0.4
+    range: 32
     speed: 80
     armor: 0
     mr: 10
@@ -2126,7 +2130,7 @@ e_myco_charger:
   stats:
     hp: 180
     atk: 14
-    attackSpeed: 0.9
+    attackSpeed: 0.35
     range: 32
     speed: 65
     armor: 20
@@ -2177,7 +2181,7 @@ e_warped_witch:
   stats:
     hp: 160
     atk: 18
-    attackSpeed: 0.5
+    attackSpeed: 0.3
     range: 220
     speed: 55
     armor: 10
@@ -2293,7 +2297,7 @@ e_blight_spitter:
   stats:
     hp: 140
     atk: 16
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 180
     speed: 60
     armor: 15
@@ -2441,7 +2445,7 @@ e_void_blinker:
   stats:
     hp: 280
     atk: 32
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 32
     speed: 60
     armor: 30
@@ -2503,8 +2507,8 @@ e_void_thrall:
   stats:
     hp: 80
     atk: 10
-    attackSpeed: 1.0
-    range: 0
+    attackSpeed: 0.4
+    range: 32
     speed: 75
     armor: 5
     mr: 15
@@ -2616,7 +2620,7 @@ e_cursed_avenger:
   stats:
     hp: 240
     atk: 22
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 32
     speed: 60
     armor: 30
@@ -2804,7 +2808,8 @@ e_kraal_grunt:
   stats:
     hp: 60
     atk: 6
-    attackSpeed: 1.0
+    attackSpeed: 0.4
+    range: 32
     speed: 80
     armor: 5
     mr: 0
@@ -2852,7 +2857,8 @@ e_yeti_runt:
   stats:
     hp: 70
     atk: 6
-    attackSpeed: 1.0
+    attackSpeed: 0.4
+    range: 32
     speed: 70
     armor: 10
     mr: 0
@@ -2900,7 +2906,7 @@ e_frost_lancer:
   stats:
     hp: 130
     atk: 18
-    attackSpeed: 0.7
+    attackSpeed: 0.35
     range: 60
     speed: 75
     armor: 15
@@ -2949,7 +2955,7 @@ e_blood_trickster:
   stats:
     hp: 150
     atk: 12
-    attackSpeed: 0.8
+    attackSpeed: 0.35
     range: 32
     speed: 70
     armor: 30
@@ -3000,7 +3006,7 @@ goblin:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 18, atk: 8, attackSpeed: 1.0, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
+  stats: { hp: 18, atk: 8, attackSpeed: 0.4, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
   reward: { gold: 5 }
   visual: { shape: circle, color: "#4caf50", size: 22, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3015,7 +3021,7 @@ boar:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 60, atk: 12, attackSpeed: 1.5, range: 30, speed: 80, armor: 0, mr: 0, damageType: physical }
+  stats: { hp: 60, atk: 12, attackSpeed: 0.6, range: 30, speed: 80, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 8 }
   visual: { shape: circle, color: "#8d6e63", size: 26, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3030,7 +3036,7 @@ elephant:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 300, atk: 15, attackSpeed: 0.6, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
+  stats: { hp: 300, atk: 15, attackSpeed: 0.3, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
   reward: { gold: 20 }
   visual: { shape: circle, color: "#78909c", size: 44, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3045,7 +3051,7 @@ giant:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 400, atk: 30, attackSpeed: 0.5, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
+  stats: { hp: 400, atk: 30, attackSpeed: 0.25, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
   reward: { gold: 30 }
   visual: { shape: circle, color: "#558b2f", size: 50, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3083,7 +3089,7 @@ desert_beetle:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 40, atk: 6, attackSpeed: 1.5, range: 20, speed: 35, armor: 2, mr: 0, damageType: physical }
+  stats: { hp: 40, atk: 6, attackSpeed: 0.6, range: 20, speed: 35, armor: 2, mr: 0, damageType: physical }
   reward: { gold: 3 }
   visual: { shape: circle, color: "#5d4037", size: 18, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3098,7 +3104,7 @@ burrow_beetle:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 120, atk: 15, attackSpeed: 1.0, range: 30, speed: 40, armor: 10, mr: 0, damageType: physical }
+  stats: { hp: 120, atk: 15, attackSpeed: 0.4, range: 30, speed: 40, armor: 10, mr: 0, damageType: physical }
   reward: { gold: 12 }
   visual: { shape: circle, color: "#795548", size: 30, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canTunnel: true, tunnelInterval: 3.0, tunnelDuration: 2.0, tunnelSpeedBonus: 0.5 } }
@@ -3113,7 +3119,7 @@ locust:
   category: Enemy
   faction: Evil
   layer: LowAir
-  stats: { hp: 30, atk: 10, attackSpeed: 1.0, range: 30, speed: 25, armor: 0, mr: 0, damageType: physical }
+  stats: { hp: 30, atk: 10, attackSpeed: 0.4, range: 30, speed: 25, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 4 }
   visual: { shape: triangle, color: "#afb42b", size: 16, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3166,7 +3172,7 @@ werewolf:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 150, atk: 20, attackSpeed: 1.5, range: 40, speed: 55, armor: 8, mr: 5, damageType: physical }
+  stats: { hp: 150, atk: 20, attackSpeed: 0.6, range: 40, speed: 55, armor: 8, mr: 5, damageType: physical }
   reward: { gold: 12 }
   visual: { shape: circle, color: "#5d4037", size: 32, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3181,7 +3187,7 @@ vampire_bat:
   category: Enemy
   faction: Evil
   layer: LowAir
-  stats: { hp: 40, atk: 8, attackSpeed: 1.2, range: 40, speed: 60, armor: 0, mr: 5, damageType: physical }
+  stats: { hp: 40, atk: 8, attackSpeed: 0.5, range: 40, speed: 60, armor: 0, mr: 5, damageType: physical }
   reward: { gold: 5 }
   visual: { shape: triangle, color: "#4a148c", size: 18, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3196,7 +3202,7 @@ wizard:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 100, atk: 25, attackSpeed: 0.8, range: 180, speed: 30, armor: 5, mr: 20, damageType: magic }
+  stats: { hp: 100, atk: 25, attackSpeed: 0.4, range: 180, speed: 30, armor: 5, mr: 20, damageType: magic }
   reward: { gold: 15 }
   visual: { shape: hexagon, color: "#7b1fa2", size: 28, outline: true }
   behavior: { targetSelection: weakest, attackMode: single_target, movementMode: follow_path }
@@ -3227,7 +3233,7 @@ frankenstein:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 500, atk: 35, attackSpeed: 0.6, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
+  stats: { hp: 500, atk: 35, attackSpeed: 0.3, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
   reward: { gold: 30 }
   visual: { shape: circle, color: "#455a64", size: 48, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3280,7 +3286,7 @@ plane:
   category: Enemy
   faction: Evil
   layer: LowAir
-  stats: { hp: 80, atk: 15, attackSpeed: 1.0, range: 60, speed: 70, armor: 5, mr: 5, damageType: physical }
+  stats: { hp: 80, atk: 15, attackSpeed: 0.4, range: 60, speed: 70, armor: 5, mr: 5, damageType: physical }
   reward: { gold: 10 }
   visual: { shape: triangle, color: "#78909c", size: 28, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3295,7 +3301,7 @@ tank:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 350, atk: 40, attackSpeed: 0.5, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
+  stats: { hp: 350, atk: 40, attackSpeed: 0.25, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
   reward: { gold: 25 }
   visual: { shape: rect, color: "#546e7a", size: 48, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3325,7 +3331,7 @@ robot_dog:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 50, atk: 10, attackSpeed: 2.0, range: 25, speed: 80, armor: 5, mr: 0, damageType: physical }
+  stats: { hp: 50, atk: 10, attackSpeed: 0.8, range: 25, speed: 80, armor: 5, mr: 0, damageType: physical }
   reward: { gold: 6 }
   visual: { shape: circle, color: "#90a4ae", size: 22, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
@@ -3340,7 +3346,7 @@ giant_robot:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 600, atk: 50, attackSpeed: 0.4, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
+  stats: { hp: 600, atk: 50, attackSpeed: 0.2, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
   reward: { gold: 40 }
   visual: { shape: rect, color: "#37474f", size: 56, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3355,7 +3361,7 @@ drone:
   category: Enemy
   faction: Evil
   layer: LowAir
-  stats: { hp: 30, atk: 8, attackSpeed: 1.5, range: 50, speed: 65, armor: 0, mr: 5, damageType: physical }
+  stats: { hp: 30, atk: 8, attackSpeed: 0.6, range: 50, speed: 65, armor: 0, mr: 5, damageType: physical }
   reward: { gold: 4 }
   visual: { shape: triangle, color: "#b0bec5", size: 16, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }

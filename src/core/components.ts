@@ -320,6 +320,8 @@ export const Trap = defineComponent({
   maxTriggers: Types.ui8,
   trapType: Types.ui8,     // TrapTypeVal — which trap type this is
   direction: Types.ui8,    // 0=right, 1=down, 2=left, 3=up (for directional traps)
+  stunDuration: Types.f32, // 眩晕持续时间（BearTrap专用）
+  damage: Types.f32,       // 一次性伤害（BearTrap专用）
 });
 
 /** Boss属性 */

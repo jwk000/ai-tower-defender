@@ -301,6 +301,8 @@ export class UnitFactory {
       triggerCount: 0,
       maxTriggers: (cfg.maxTriggers as number) ?? 0,
       direction: 0,
+      stunDuration: (cfg.stunDuration as number) ?? 0,
+      damage: (cfg.damage as number) ?? 0,
     });
 
     // Attack — 陷阱也需要 Attack 组件让 TrapSystem 检测范围

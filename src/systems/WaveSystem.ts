@@ -437,14 +437,14 @@ export class WaveSystem implements System {
       value: FactionVal.Evil,
     });
 
-    // Ranged attackers get an Attack component
+    // Attackers get an Attack component (range > 0 means can attack)
     if (config.attackRange > 0) {
       this.world.addComponent(eid, Attack, {
         damage: effectiveAtk,
         attackSpeed: config.attackSpeed,
         range: config.attackRange,
         damageType: DamageTypeVal.Physical,
-        isRanged: 0,
+        isRanged: config.attackRange > 60 ? 1 : 0, // 远程阈值 60px
       });
     }
 

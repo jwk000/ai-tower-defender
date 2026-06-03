@@ -26,7 +26,7 @@ function makeTrap(
   world: TowerWorld,
   row: number,
   col: number,
-  overrides: { layer?: number; trapType?: number; direction?: number; hp?: number; cooldown?: number; damagePerSecond?: number; maxTriggers?: number } = {},
+  overrides: { layer?: number; trapType?: number; direction?: number; hp?: number; cooldown?: number; damagePerSecond?: number; maxTriggers?: number; stunDuration?: number; damage?: number } = {},
 ): number {
   const eid = world.createEntity();
   const ox = RenderSystem.sceneOffsetX;
@@ -44,6 +44,8 @@ function makeTrap(
     maxTriggers: overrides.maxTriggers ?? 0,
     trapType: overrides.trapType ?? TrapTypeVal.SpikeTrap,
     direction: overrides.direction ?? 0,
+    stunDuration: overrides.stunDuration ?? 0,
+    damage: overrides.damage ?? 0,
   });
   world.addComponent(eid, Layer, { value: overrides.layer ?? LayerVal.AboveGrid });
 
@@ -228,7 +230,7 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
 });
 
 // ============================================================
-// BearTrap (1) — 捕兽夹: 一次性定身1秒，BOSS免疫，触发后消失
+// BearTrap (1) — 捕兽夹: 一次性眩晕2秒+20伤害，BOSS免疫，触发后消失
 // ============================================================
 
 describe('TrapSystem — BearTrap (捕兽夹)', () => {
@@ -240,16 +242,18 @@ describe('TrapSystem — BearTrap (捕兽夹)', () => {
     system = new TrapSystem(TILE);
   });
 
-  it('敌人触发后添加 Stunned (1.0s)', () => {
-    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1 });
+  it('敌人触发后添加 Stunned (2.0s) 并造成20点伤害', () => {
+    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1, stunDuration: 2.0, damage: 20 });
     const enemy = makeEnemy(world, 5, 5);
+    const hpBefore = Health.current[enemy];
     system.update(world, 0.016);
     expect(hasComponent(world.world, Stunned, enemy)).toBe(true);
-    expect(Stunned.timer[enemy]).toBeCloseTo(1.0);
+    expect(Stunned.timer[enemy]).toBeCloseTo(2.0);
+    expect(Health.current[enemy]).toBeCloseTo(hpBefore - 20);
   });
 
-  it('BOSS 免疫：不添加 Stunned', () => {
-    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1 });
+  it('BOSS 免疫：不添加 Stunned，不造成伤害', () => {
+    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1, stunDuration: 2.0, damage: 20 });
     const boss = makeEnemy(world, 5, 5, { isBoss: true });
     const hp0 = Health.current[boss];
     system.update(world, 0.016);

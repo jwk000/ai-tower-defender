@@ -409,6 +409,8 @@ export interface TrapConfig {
   layer?: string;
   // 机关特有可选属性
   rootDuration?: number;
+  stunDuration?: number;
+  damage?: number;
   bossImmune?: boolean;
   slowPercent?: number;
   killChance?: number;

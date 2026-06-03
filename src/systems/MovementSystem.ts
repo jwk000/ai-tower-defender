@@ -2,7 +2,7 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, DeathEffect, Trap, Category, CategoryVal, Soldier,
-  Faction, DamageTypeVal, Tower, PlayerOwned,
+  Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
 } from '../core/components.js';
 import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -90,6 +90,12 @@ export class MovementSystem implements System {
       // Skip frozen entities — completely immobilized
       if (hasComponent(world.world, Frozen, eid)) continue;
 
+      // Attack animation pause — stop moving during attack wind-down
+      if (Visual.attackAnimTimer[eid]! > 0) {
+        Visual.attackAnimTimer[eid] = Visual.attackAnimTimer[eid]! - dt;
+        continue; // skip movement, but attack logic below won't re-fire due to cooldown
+      }
+
       // Skip if not in follow-path mode
       if (Movement.moveMode[eid] !== MoveModeVal.FollowPath) continue;
 
@@ -130,7 +136,7 @@ export class MovementSystem implements System {
 
       const rawSpeed = Movement.speed[eid]!;
       const buff = getEffectiveValue(eid, 'speed');
-      const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
+      const speed = Math.max(rawSpeed * 0.5, (rawSpeed + buff.absolute) * (1 + buff.percent / 100));
       const dist = speed * dt;
 
       let progress = Movement.progress[eid]!;
@@ -298,6 +304,9 @@ export class MovementSystem implements System {
   // Enemy attack: attack nearby player units
   // ================================================================
 
+  /** 近战 vs 远程判定阈值（像素） */
+  private static readonly MELEE_RANGE_THRESHOLD = 60;
+
   private processEnemyAttack(world: TowerWorld, eid: number, dt: number): void {
     const attackRange = Attack.range[eid] ?? 30;
     const damage = Attack.damage[eid] ?? 0;
@@ -357,22 +366,137 @@ export class MovementSystem implements System {
 
     // Attack the target
     if (nearestTarget !== 0) {
-      applyDamageToTarget(world, nearestTarget, damage, DamageTypeVal.Physical);
-      Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
-
-      // Hit flash on target
-      if (Visual.hitFlashTimer[nearestTarget] !== undefined) {
-        Visual.hitFlashTimer[nearestTarget] = 0.12;
-      }
+      const isRanged = attackRange > MovementSystem.MELEE_RANGE_THRESHOLD;
 
       // Face toward target
-      const targetX = Position.x[nearestTarget];
-      if (targetX !== undefined && targetX > posX) {
+      const targetX = Position.x[nearestTarget]!;
+      const targetY = Position.y[nearestTarget]!;
+      if (targetX > posX) {
         Visual.facing[eid] = 1;
-      } else if (targetX !== undefined && targetX < posX) {
+      } else if (targetX < posX) {
         Visual.facing[eid] = -1;
       }
+
+      if (isRanged) {
+        // 远程：投射子弹，命中时造成伤害
+        this.spawnEnemyProjectile(world, eid, nearestTarget, posX, posY, damage);
+      } else {
+        // 近战：立即伤害 + 刀光特效
+        applyDamageToTarget(world, nearestTarget, damage, DamageTypeVal.Physical);
+
+        // Hit flash on target
+        if (Visual.hitFlashTimer[nearestTarget] !== undefined) {
+          Visual.hitFlashTimer[nearestTarget] = 0.12;
+        }
+
+        // Spawn slash blade effect
+        this.spawnEnemySlashEffect(world, eid, nearestTarget, posX, posY);
+      }
+
+      // Reset cooldown and set attack animation pause
+      Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
+      Visual.attackAnimTimer[eid] = 0.4;
     }
+  }
+
+  /**
+   * 近战敌人刀光特效：复用 SlashEffect 组件，红/橙色调
+   */
+  private spawnEnemySlashEffect(
+    world: TowerWorld,
+    eid: number,
+    targetId: number,
+    posX: number,
+    posY: number,
+  ): void {
+    const targetX = Position.x[targetId] ?? posX;
+    const targetY = Position.y[targetId] ?? posY;
+
+    const dx = targetX - posX;
+    const dy = targetY - posY;
+    const baseAngle = Math.atan2(dy, dx);
+
+    const slashId = world.createEntity();
+    world.addComponent(slashId, Position, { x: posX, y: posY });
+    world.addComponent(slashId, SlashEffect, {
+      duration: 0.3,
+      elapsed: 0,
+      radius: 35,
+      startAngle: baseAngle - Math.PI / 4,
+      endAngle: baseAngle + Math.PI / 4,
+      colorR: 255,
+      colorG: 180,
+      colorB: 60,  // 橙色刀光，区别于士兵的白色
+    });
+  }
+
+  /**
+   * 远程敌人投射弹：创建 Projectile 实体飞向目标
+   */
+  private spawnEnemyProjectile(
+    world: TowerWorld,
+    eid: number,
+    targetId: number,
+    fromX: number,
+    fromY: number,
+    damage: number,
+  ): void {
+    const projId = world.createEntity();
+
+    const visR = Visual.colorR[eid] ?? 0xff;
+    const visG = Visual.colorG[eid] ?? 0x44;
+    const visB = Visual.colorB[eid] ?? 0x44;
+
+    world.addComponent(projId, Position, { x: fromX, y: fromY });
+    world.addComponent(projId, Projectile, {
+      speed: 300,
+      damage,
+      damageType: Attack.damageType[eid] ?? DamageTypeVal.Physical,
+      targetId,
+      sourceId: eid,
+      fromX,
+      fromY,
+      shape: ShapeVal.Circle,
+      colorR: visR,
+      colorG: visG,
+      colorB: visB,
+      size: 10,
+      splashRadius: 0,
+      stunDuration: 0,
+      slowPercent: 0,
+      slowMaxStacks: 0,
+      freezeDuration: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+      isChain: 0,
+      chainIndex: 0,
+      drainAmount: 0,
+      sourceTowerType: 255, // sentinel: enemy projectile (not a tower)
+      targetX: 0,
+      targetY: 0,
+      flightTime: 0,
+      totalTime: 0,
+      vyInitial: 0,
+    });
+    world.addComponent(projId, Visual, {
+      shape: ShapeVal.Circle,
+      colorR: visR,
+      colorG: visG,
+      colorB: visB,
+      size: 10,
+      alpha: 1,
+      outline: 0,
+      hitFlashTimer: 0,
+      idlePhase: 0,
+      facing: 1,
+      bobPhase: 0,
+      breathPhase: 0,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+      partsId: 0,
+    });
+    world.addComponent(projId, Layer, { value: LayerVal.Ground });
   }
 
   // ================================================================
@@ -506,7 +630,7 @@ export class MovementSystem implements System {
 
     const rawSpeed = Movement.speed[eid]!;
     const buff = getEffectiveValue(eid, 'speed');
-    const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
+    const speed = Math.max(rawSpeed * 0.5, (rawSpeed + buff.absolute) * (1 + buff.percent / 100));
     const moveDist = Math.min(speed * dt, distToTarget);
 
     const dirX = dx / distToTarget;

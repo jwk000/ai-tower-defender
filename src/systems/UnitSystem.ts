@@ -121,7 +121,7 @@ export class UnitSystem implements System {
 
     const rawSpeed = Movement.speed[eid]!;
     const buff = getEffectiveValue(eid, 'speed');
-    const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
+    const speed = Math.max(rawSpeed * 0.5, (rawSpeed + buff.absolute) * (1 + buff.percent / 100));
     const moveDist = speed * dt;
     const stepX = (dx / dist) * Math.min(moveDist, dist);
     const stepY = (dy / dist) * Math.min(moveDist, dist);

@@ -31,6 +31,8 @@ export function injectTrapConfigsFromRegistry(): number {
 
     // 可选属性
     if (trap?.rootDuration) cfg.rootDuration = trap.rootDuration as number;
+    if (trap?.stunDuration) cfg.stunDuration = trap.stunDuration as number;
+    if (trap?.damage) cfg.damage = trap.damage as number;
     if (trap?.bossImmune) cfg.bossImmune = trap.bossImmune as boolean;
     if (trap?.slowPercent) cfg.slowPercent = trap.slowPercent as number;
     if (trap?.killChance) cfg.killChance = trap.killChance as number;
