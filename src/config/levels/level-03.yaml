@@ -1,6 +1,9 @@
 # ============================================================
 # 第3关：黑暗古堡
-# design/04-levels.md §4
+# 路径布局：S型蛇行折返（上下对称）
+# 出生口：右侧1个(行1,列20) | 水晶：左下(行7,列0)
+# 路径：右→左(行1) → 下(列6) → 右(行3) → 下(列14) → 左(行5) → 下(列6) → 左(行7)
+# 对称轴：行4（上半和下半镜像对称）
 # ============================================================
 id: level_03
 name: 黑暗古堡
@@ -12,13 +15,13 @@ map:
   tileSize: 64
   tiles:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [spawn, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, base]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
     empty: '#9e9e9e'
@@ -30,25 +33,29 @@ map:
     - { type: pillar, row: 0, col: 10 }
     - { type: pillar, row: 6, col: 5 }
     - { type: wall, row: 2, col: 15 }
-    - { type: dead_tree, row: 7, col: 18 }
+    - { type: dead_tree, row: 8, col: 18 }
   spawns:
     - id: spawn_0
       row: 1
-      col: 0
+      col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 1, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 1, col: 7, role: waypoint }
-      - { id: n2, row: 3, col: 7, role: waypoint }
-      - { id: n3, row: 3, col: 13, role: waypoint }
-      - { id: n4, row: 5, col: 13, role: waypoint }
-      - { id: n5, row: 5, col: 20, role: crystal_anchor }
+      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 1, col: 6, role: waypoint }
+      - { id: n2, row: 3, col: 6, role: waypoint }
+      - { id: n3, row: 3, col: 14, role: waypoint }
+      - { id: n4, row: 5, col: 14, role: waypoint }
+      - { id: n5, row: 5, col: 6, role: waypoint }
+      - { id: n6, row: 7, col: 6, role: waypoint }
+      - { id: n7, row: 7, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
       - { from: n2, to: n3 }
       - { from: n3, to: n4 }
       - { from: n4, to: n5 }
+      - { from: n5, to: n6 }
+      - { from: n6, to: n7 }
 
 weather:
   pool:

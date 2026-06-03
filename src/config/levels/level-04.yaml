@@ -1,6 +1,11 @@
 # ============================================================
 # 第4关：末日废土
-# design/04-levels.md §5
+# 路径布局：Y型双路汇聚（上下对称，中路合流）
+# 出生口：右侧2个(行2,列20 / 行6,列20) | 水晶：左侧(行4,列0)
+# 上路径：水平(行2) → 垂直(列10,行2→4)
+# 下路径：水平(行6) → 垂直(列10,行6→4)
+# 合流后：水平(行4,列10→0) → 水晶
+# 对称轴：行4（上下完全对称）
 # ============================================================
 id: level_04
 name: 末日废土
@@ -13,11 +18,11 @@ map:
   tiles:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [spawn, path, path, path, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, path, path, path, base]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
@@ -28,30 +33,29 @@ map:
     base: '#546e7a'
   obstacles:
     - { type: rubble, row: 0, col: 8 }
-    - { type: car, row: 5, col: 10 }
-    - { type: pillar, row: 6, col: 15 }
+    - { type: car, row: 2, col: 3 }
+    - { type: pillar, row: 6, col: 5 }
   spawns:
     - id: spawn_0
       row: 2
-      col: 0
+      col: 20
     - id: spawn_1
-      row: 4
-      col: 0
+      row: 6
+      col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 2, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 2, col: 8, role: waypoint }
-      - { id: n2, row: 2, col: 12, role: waypoint }
-      - { id: n3, row: 2, col: 20, role: crystal_anchor }
-      - { id: n4, row: 4, col: 0, role: spawn, spawnId: spawn_1 }
-      - { id: n5, row: 4, col: 12, role: waypoint }
-      - { id: n6, row: 4, col: 20, role: crystal_anchor }
+      - { id: n0, row: 2, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 2, col: 10, role: waypoint }
+      - { id: n2, row: 4, col: 10, role: waypoint }
+      - { id: n3, row: 6, col: 20, role: spawn, spawnId: spawn_1 }
+      - { id: n4, row: 6, col: 10, role: waypoint }
+      - { id: n5, row: 4, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
-      - { from: n2, to: n3 }
-      - { from: n4, to: n5 }
-      - { from: n5, to: n6 }
+      - { from: n3, to: n4 }
+      - { from: n4, to: n2 }
+      - { from: n2, to: n5 }
 
 weather:
   pool:

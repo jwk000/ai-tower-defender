@@ -1,6 +1,7 @@
 # ============================================================
 # 第1关：绿野仙踪
-# design/04-levels.md §2
+# 路径布局：单条直线（入门简单）
+# 出生口：右侧1个(行4,列20) | 水晶：左侧(行4,列0)
 # ============================================================
 id: level_01
 name: 绿野仙踪
@@ -11,14 +12,11 @@ map:
   rows: 9
   tileSize: 64
   tiles:
-    # row 0-3: empty
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 4: main path spawn(0) -> base(20)
-    - [spawn, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
-    # row 5-8: empty
+    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, spawn]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
@@ -43,11 +41,11 @@ map:
   spawns:
     - id: spawn_0
       row: 4
-      col: 0
+      col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 4, col: 0, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 4, col: 20, role: crystal_anchor }
+      - { id: n0, row: 4, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 4, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
 
