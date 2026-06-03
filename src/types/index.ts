@@ -101,6 +101,16 @@ export enum ObstacleType {
   CorruptedObelisk = 'corrupted_obelisk',
   VoidRift = 'void_rift',
   RealityWarp = 'reality_warp',
+  // ---- v4.0 通用装饰物（跨主题） ----
+  // 城堡/古堡
+  DeadTree = 'dead_tree',
+  Wall = 'wall',
+  // 废土
+  Car = 'car',
+  // 深渊
+  FloatingRock = 'floating_rock',
+  PurpleFlame = 'purple_flame',
+  CrystalObstacle = 'crystal_obstacle',
 }
 
 export interface ObstaclePlacement {

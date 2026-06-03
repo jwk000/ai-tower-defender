@@ -1,7 +1,8 @@
 import type { LevelFormModel, MapModel } from './levelModel.js';
 import {
-  LevelTheme, TowerType, UnitType, WeatherType, EnemyType,
+  ObstacleType, LevelTheme, TowerType, UnitType, WeatherType, EnemyType,
   type LevelConfig, type MapConfig, type WaveConfig, type WaveEnemyGroup,
+  type ObstaclePlacement,
 } from '../../types/index.js';
 
 const ALL_TOWER_TYPES = Object.values(TowerType);
@@ -28,7 +29,16 @@ const WEATHER_MAP: Record<string, WeatherType> = {
   void: WeatherType.Void,
 };
 
+const VALID_OBSTACLE_TYPES = new Set<string>(Object.values(ObstacleType));
+
 function adaptMap(m: MapModel): MapConfig {
+  const obstaclePlacements: ObstaclePlacement[] | undefined = m.obstacles
+    ?.filter((o): o is { type: string; row: number; col: number } =>
+      typeof o.type === 'string' && VALID_OBSTACLE_TYPES.has(o.type) &&
+      typeof o.row === 'number' && typeof o.col === 'number'
+    )
+    .map((o) => ({ type: o.type as ObstacleType, row: o.row, col: o.col }));
+
   return {
     name: m.__extras?.['name'] as string | undefined ?? '',
     cols: m.cols,
@@ -38,6 +48,7 @@ function adaptMap(m: MapModel): MapConfig {
     spawns: m.spawns,
     pathGraph: m.pathGraph,
     tileColors: m.tileColors as MapConfig['tileColors'] | undefined,
+    obstaclePlacements: obstaclePlacements?.length ? obstaclePlacements : undefined,
   };
 }
 

@@ -30,10 +30,27 @@ map:
     spawn: '#ffc107'
     base: '#42a5f5'
   obstacles:
+    - { type: pillar, row: 0, col: 2 }
     - { type: pillar, row: 0, col: 10 }
+    - { type: pillar, row: 0, col: 18 }
     - { type: pillar, row: 6, col: 5 }
-    - { type: wall, row: 2, col: 15 }
+    - { type: pillar, row: 8, col: 10 }
+    - { type: brazier, row: 1, col: 2 }
+    - { type: brazier, row: 2, col: 1 }
+    - { type: brazier, row: 5, col: 18 }
+    - { type: brazier, row: 6, col: 15 }
+    - { type: brazier, row: 7, col: 17 }
+    - { type: rubble, row: 2, col: 18 }
+    - { type: rubble, row: 3, col: 16 }
+    - { type: rubble, row: 5, col: 1 }
+    - { type: rubble, row: 8, col: 3 }
+    - { type: dead_tree, row: 0, col: 15 }
+    - { type: dead_tree, row: 4, col: 2 }
+    - { type: dead_tree, row: 8, col: 7 }
     - { type: dead_tree, row: 8, col: 18 }
+    - { type: wall, row: 2, col: 15 }
+    - { type: wall, row: 4, col: 17 }
+    - { type: wall, row: 7, col: 10 }
   spawns:
     - id: spawn_0
       row: 1

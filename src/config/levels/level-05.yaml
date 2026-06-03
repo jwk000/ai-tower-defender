@@ -30,10 +30,28 @@ map:
     spawn: '#aa00ff'
     base: '#ffd54f'
   obstacles:
+    - { type: floating_rock, row: 0, col: 2 }
     - { type: floating_rock, row: 1, col: 10 }
+    - { type: floating_rock, row: 1, col: 18 }
+    - { type: floating_rock, row: 3, col: 2 }
+    - { type: floating_rock, row: 5, col: 19 }
+    - { type: floating_rock, row: 7, col: 2 }
+    - { type: floating_rock, row: 8, col: 18 }
+    - { type: purple_flame, row: 0, col: 1 }
+    - { type: purple_flame, row: 3, col: 19 }
     - { type: purple_flame, row: 7, col: 5 }
-    - { type: crystal, row: 2, col: 2 }
-    - { type: crystal, row: 6, col: 19 }
+    - { type: purple_flame, row: 7, col: 18 }
+    - { type: crystal_obstacle, row: 2, col: 2 }
+    - { type: crystal_obstacle, row: 2, col: 18 }
+    - { type: crystal_obstacle, row: 4, col: 19 }
+    - { type: crystal_obstacle, row: 6, col: 2 }
+    - { type: crystal_obstacle, row: 6, col: 19 }
+    - { type: corrupted_obelisk, row: 3, col: 8 }
+    - { type: corrupted_obelisk, row: 5, col: 8 }
+    - { type: void_rift, row: 1, col: 2 }
+    - { type: void_rift, row: 5, col: 17 }
+    - { type: alien_pillar, row: 0, col: 3 }
+    - { type: alien_pillar, row: 7, col: 19 }
   spawns:
     - id: spawn_0
       row: 0

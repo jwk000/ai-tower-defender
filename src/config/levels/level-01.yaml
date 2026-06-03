@@ -28,16 +28,34 @@ map:
     spawn: '#ff8f00'
     base: '#1e88e5'
   obstacles:
+    - { type: tree, row: 0, col: 2 }
+    - { type: tree, row: 0, col: 17 }
     - { type: tree, row: 1, col: 6 }
     - { type: tree, row: 2, col: 13 }
+    - { type: tree, row: 3, col: 3 }
+    - { type: tree, row: 3, col: 18 }
+    - { type: tree, row: 5, col: 6 }
     - { type: tree, row: 6, col: 8 }
     - { type: tree, row: 7, col: 17 }
+    - { type: tree, row: 8, col: 5 }
+    - { type: tree, row: 8, col: 16 }
+    - { type: bush, row: 0, col: 9 }
     - { type: bush, row: 1, col: 11 }
+    - { type: bush, row: 2, col: 1 }
+    - { type: bush, row: 3, col: 14 }
+    - { type: bush, row: 5, col: 14 }
     - { type: bush, row: 6, col: 14 }
+    - { type: bush, row: 7, col: 1 }
     - { type: bush, row: 7, col: 4 }
+    - { type: bush, row: 8, col: 12 }
+    - { type: flower, row: 1, col: 9 }
     - { type: flower, row: 2, col: 6 }
-    - { type: flower, row: 7, col: 11 }
+    - { type: flower, row: 2, col: 17 }
+    - { type: flower, row: 5, col: 2 }
+    - { type: flower, row: 6, col: 4 }
     - { type: flower, row: 6, col: 18 }
+    - { type: flower, row: 7, col: 11 }
+    - { type: flower, row: 8, col: 18 }
   spawns:
     - id: spawn_0
       row: 4

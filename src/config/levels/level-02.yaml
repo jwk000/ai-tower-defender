@@ -30,10 +30,27 @@ map:
     spawn: '#ef6c00'
     base: '#5c6bc0'
   obstacles:
+    - { type: rock, row: 0, col: 3 }
     - { type: rock, row: 0, col: 5 }
     - { type: rock, row: 1, col: 14 }
+    - { type: rock, row: 3, col: 16 }
+    - { type: rock, row: 7, col: 3 }
+    - { type: rock, row: 8, col: 18 }
+    - { type: cactus, row: 0, col: 19 }
+    - { type: cactus, row: 1, col: 3 }
+    - { type: cactus, row: 5, col: 17 }
     - { type: cactus, row: 6, col: 15 }
     - { type: cactus, row: 7, col: 16 }
+    - { type: cactus, row: 8, col: 8 }
+    - { type: bones, row: 1, col: 8 }
+    - { type: bones, row: 3, col: 5 }
+    - { type: bones, row: 7, col: 12 }
+    - { type: bones, row: 8, col: 2 }
+    - { type: sand_dune, row: 0, col: 12 }
+    - { type: sand_dune, row: 5, col: 4 }
+    - { type: sand_dune, row: 8, col: 13 }
+    - { type: tunnel_entrance, row: 3, col: 1 }
+    - { type: tunnel_exit, row: 7, col: 19 }
   spawns:
     - id: spawn_0
       row: 2

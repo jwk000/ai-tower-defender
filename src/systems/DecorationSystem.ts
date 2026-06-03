@@ -341,6 +341,47 @@ export class DecorationSystem implements System {
       { shape: 'circle', offsetX: 0, offsetY: 0, size: 8, color: '#7c4dff', alpha: 0.5 },
       { shape: 'circle', offsetX: 0, offsetY: 0, size: 3, color: '#ffffff', alpha: 0.9 },
     ],
+
+    // ---- v4.0 通用装饰物（跨主题） ----
+    // 古堡 – 枯树
+    [ObstacleType.DeadTree]: [
+      { shape: 'rect', offsetX: 0, offsetY: 3, size: 4, h: 10, color: '#37474f' },   // 枯干
+      { shape: 'triangle', offsetX: -3, offsetY: -2, size: 6, color: '#455a64' },     // 左枯枝
+      { shape: 'triangle', offsetX: 3, offsetY: -3, size: 5, color: '#37474f' },      // 右枯枝
+      { shape: 'triangle', offsetX: 0, offsetY: -5, size: 4, color: '#546e7a', alpha: 0.6 },
+    ],
+    // 古堡 – 断壁
+    [ObstacleType.Wall]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 14, color: '#616161' },
+      { shape: 'rect', offsetX: 0, offsetY: -4, size: 14, h: 2, color: '#757575' },
+      { shape: 'rect', offsetX: 0, offsetY: 4, size: 12, h: 4, color: '#424242' },
+    ],
+    // 废土 – 报废汽车
+    [ObstacleType.Car]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 8, color: '#5d4037' },
+      { shape: 'rect', offsetX: 0, offsetY: -3, size: 10, h: 4, color: '#4e342e' },
+      { shape: 'circle', offsetX: -4, offsetY: 5, size: 3, color: '#212121' },
+      { shape: 'circle', offsetX: 4, offsetY: 5, size: 3, color: '#212121' },
+    ],
+    // 深渊 – 漂浮石
+    [ObstacleType.FloatingRock]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 10, color: '#37474f' },
+      { shape: 'circle', offsetX: -2, offsetY: -3, size: 5, color: '#455a64', alpha: 0.7 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 3, color: '#78909c', alpha: 0.5 },
+    ],
+    // 深渊 – 紫色火焰
+    [ObstacleType.PurpleFlame]: [
+      { shape: 'rect', offsetX: 0, offsetY: 5, size: 3, h: 14, color: '#4a148c' },     // 柱子
+      { shape: 'diamond', offsetX: 0, offsetY: -5, size: 8, color: '#aa00ff' },          // 外焰
+      { shape: 'diamond', offsetX: 0, offsetY: -4, size: 4, color: '#e1bee7', alpha: 0.8 }, // 焰心
+    ],
+    // 深渊 – 晶簇
+    [ObstacleType.CrystalObstacle]: [
+      { shape: 'diamond', offsetX: 0, offsetY: 0, size: 10, color: '#7c4dff' },
+      { shape: 'diamond', offsetX: -3, offsetY: 2, size: 5, color: '#b388ff', alpha: 0.7 },
+      { shape: 'diamond', offsetX: 3, offsetY: 1, size: 4, color: '#b388ff', alpha: 0.7 },
+      { shape: 'diamond', offsetX: 0, offsetY: -3, size: 4, color: '#d1c4e9', alpha: 0.6 },
+    ],
   };
 
   /**
@@ -353,6 +394,7 @@ export class DecorationSystem implements System {
     [ObstacleType.Cactus]: { amplitudeX: 0.8, amplitudeY: 0.3, frequency: 0.5, windMultiplier: 2.0 },
     [ObstacleType.SnowTree]: { amplitudeX: 1.2, amplitudeY: 0.4, frequency: 0.5, windMultiplier: 2.0 },
     [ObstacleType.ScorchedTree]: { amplitudeX: 1.0, amplitudeY: 0.3, frequency: 0.4, windMultiplier: 2.0 },
+    [ObstacleType.DeadTree]: { amplitudeX: 1.2, amplitudeY: 0.4, frequency: 0.45, windMultiplier: 2.2 },
   };
 
   /** 与风相关的天气类型 */
