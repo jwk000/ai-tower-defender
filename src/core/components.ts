@@ -497,6 +497,12 @@ export const Slowed = defineComponent({
   maxStacks: Types.ui8,
 });
 
+/** 中毒状态 — 毒塔DOT伤害时挂载，驱动绿色中毒shader特效 */
+export const Poisoned = defineComponent({
+  timer: Types.f32,     // 动画计时器（脉冲效果驱动）
+  intensity: Types.f32, // 中毒强度 0~1（颜色叠加浓度）
+});
+
 /** 嘲讽状态 — 指向施法者 */
 export const Taunted = defineComponent({
   sourceId: Types.eid,

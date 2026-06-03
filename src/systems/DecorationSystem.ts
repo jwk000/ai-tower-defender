@@ -448,17 +448,18 @@ export class DecorationSystem implements System {
     const mapH = this.map.rows * this.ts;
     const theme = this.detectTheme();
 
-    // Full-screen sky gradient — covers entire design area
+    // Full-screen sky gradient — covers entire viewport
     const sky = DecorationSystem.SKY_COLORS[theme] ?? DecorationSystem.SKY_COLORS['plains']!;
-    const grad = ctx.createLinearGradient(0, 0, 0, LayoutManager.DESIGN_H);
+    const grad = ctx.createLinearGradient(0, 0, 0, LayoutManager.viewportH);
     grad.addColorStop(0, sky.top);          // pure sky at top
     grad.addColorStop(0.25, sky.top);        // sky persists through upper quarter
     grad.addColorStop(0.55, sky.bottom);     // transition to ground around map level
     grad.addColorStop(1, '#1a1a2e');        // fade to dark at screen bottom
 
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset to viewport space
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
+    ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
     ctx.restore();
 
     // Distant scenery — rendered via command buffer (drawn behind map tiles)

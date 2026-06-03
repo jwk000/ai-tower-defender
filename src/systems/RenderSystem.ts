@@ -32,6 +32,7 @@ import {
   AlertMarkVal,
   Frozen,
   Stunned,
+  Poisoned,
   Production,
   Layer,
   LayerVal,
@@ -906,6 +907,22 @@ export class RenderSystem implements System {
       }
 
       // ========================================
+      // Poison visual — green tint (shader effect via lerp)
+      // ========================================
+      const hasPoisoned = hasComponent(world.world, Poisoned, eid);
+      if (hasPoisoned && !flashActive && !hasFrozen) {
+        const poisonIntensity = Poisoned.intensity[eid]! || 1.0;
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        // Pulse the tint intensity
+        const pulse = 0.7 + 0.3 * Math.sin(poisonTimer * 4);
+        const t = poisonIntensity * pulse * 0.6;
+        displayColor = this.lerpColorRGB(
+          Visual.colorR[eid]!, Visual.colorG[eid]!, Visual.colorB[eid]!,
+          '#4caf50', t,
+        );
+      }
+
+      // ========================================
       // Boss rendering
       // ========================================
       const isBossEntity = hasComponent(world.world, Boss, eid);
@@ -1077,6 +1094,14 @@ export class RenderSystem implements System {
           z: renderZ,
         });
         displayAlpha *= (0.85 + 0.15 * Math.sin(chargeElapsed * 10));
+      }
+
+      // ========================================
+      // Poison glow aura (below entity body)
+      // ========================================
+      if (hasPoisoned && !isProjectile) {
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        this.renderer.drawPoisonGlow(posX, posY, drawSize, poisonTimer);
       }
 
       // ========================================
@@ -1346,6 +1371,14 @@ export class RenderSystem implements System {
             });
           }
         }
+      }
+
+      // ========================================
+      // Poison bubbles (green rising particles for poisoned enemies)
+      // ========================================
+      if (hasPoisoned && !flashActive && !isProjectile) {
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        this.renderer.drawPoisonBubbles(posX, posY, drawSize, poisonTimer);
       }
     }
   }

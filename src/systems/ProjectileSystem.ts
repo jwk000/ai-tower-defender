@@ -14,7 +14,7 @@ import {
   Stunned, ExplosionEffect, BloodParticle, FadingMark,
   UnitTag, Boss, ShapeVal, DamageTypeVal,
   TargetingMark, Layer, LayerVal,
-  Tower,
+  Tower, Poisoned,
 } from '../core/components.js';
 import { calcPhysicalDamage } from '../utils/combatFormulas.js';
 import { addBuff, BuffPriority } from './BuffSystem.js';
@@ -172,7 +172,15 @@ export class ProjectileSystem implements System {
     for (const [targetId, dot] of this.dotEntries) {
       if (!isAlive(targetId)) {
         this.dotEntries.delete(targetId);
+        // 移除中毒视觉组件
+        if (hasComponent(world.world, Poisoned, targetId)) {
+          world.removeComponent(targetId, Poisoned);
+        }
         continue;
+      }
+      // 更新中毒动画计时器
+      if (hasComponent(world.world, Poisoned, targetId)) {
+        Poisoned.timer[targetId]! += dt;
       }
       dot.timer -= dt;
       while (dot.timer <= 0) {
@@ -183,6 +191,10 @@ export class ProjectileSystem implements System {
         dot.ticksRemaining--;
         if (dot.ticksRemaining <= 0) {
           this.dotEntries.delete(targetId);
+          // DOT结束，移除中毒视觉组件
+          if (hasComponent(world.world, Poisoned, targetId)) {
+            world.removeComponent(targetId, Poisoned);
+          }
           break;
         }
       }
@@ -320,6 +332,10 @@ export class ProjectileSystem implements System {
             stackCount: 1,
             timer: 1.0,
           });
+          // 添加中毒视觉组件
+          if (!hasComponent(world.world, Poisoned, targetId)) {
+            world.addComponent(targetId, Poisoned, { timer: 0, intensity: 1.0 });
+          }
         }
       }
     }

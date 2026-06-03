@@ -47,24 +47,10 @@ import {
   CARD_TOOLTIP_HEIGHT,
   buildCardTooltipLines,
   computeTooltipAnchor,
-  DECK_ICON_HIT,
-  DISCARD_ICON_HIT,
-  hitTestDeckIcon,
-  hitTestDiscardIcon,
-  OVERLAY_MODAL_W,
-  OVERLAY_MODAL_H,
-  OVERLAY_CARD_W,
-  OVERLAY_CARD_H,
-  buildDeckOverlayLayout,
-  classifyOverlayClick,
-  inHitBox,
 } from '../ui/LayoutConstants.js';
 import type {
   ResolvedCardEntity,
   CardTooltipLine,
-  OverlayCardCell,
-  OverlayLayout,
-  OverlayClickRegion,
 } from '../ui/LayoutConstants.js';
 
 // Re-export for backward compatibility
@@ -81,24 +67,10 @@ export {
   CARD_TOOLTIP_HEIGHT,
   buildCardTooltipLines,
   computeTooltipAnchor,
-  DECK_ICON_HIT,
-  DISCARD_ICON_HIT,
-  hitTestDeckIcon,
-  hitTestDiscardIcon,
-  OVERLAY_MODAL_W,
-  OVERLAY_MODAL_H,
-  OVERLAY_CARD_W,
-  OVERLAY_CARD_H,
-  buildDeckOverlayLayout,
-  classifyOverlayClick,
-  inHitBox,
 };
 export type {
   ResolvedCardEntity,
   CardTooltipLine,
-  OverlayCardCell,
-  OverlayLayout,
-  OverlayClickRegion,
 };
 
 // ============================================================
@@ -183,6 +155,9 @@ export class UISystem implements System {
   private infos: UIInfo[] = [];
   private overlay: UIOverlay | null = null;
 
+  /** Tower info panel background — drawn in renderUI() to stay above weather tint */
+  private towerPanelBg: { x: number; y: number; w: number; h: number; strokeColor: string } | null = null;
+
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
 
@@ -191,32 +166,6 @@ export class UISystem implements System {
 
   /** Cached world reference — set at beginning of each update() call */
   private _world: TowerWorld | null = null;
-
-  /**
-   * v3.0 roguelike — A4-UI A3 牌组/弃牌堆全览模态状态。
-   *   - 'closed': 无 overlay，正常输入路由
-   *   - 'deck': 展示牌堆 (runContext.deck.state.drawPile)
-   *   - 'discard': 展示弃牌堆 (runContext.deck.state.discardPile)
-   * design/14 §3.2 line 78；design/09 §3.4 line 165-166。
-   * 切换由 handleClick 内部驱动；战斗中可打开但不暂停（仅查看）。
-   */
-  private overlayMode: 'closed' | 'deck' | 'discard' = 'closed';
-
-  isOverlayOpen(): boolean {
-    return this.overlayMode !== 'closed';
-  }
-
-  openDeckOverlay(): void {
-    this.overlayMode = 'deck';
-  }
-
-  openDiscardOverlay(): void {
-    this.overlayMode = 'discard';
-  }
-
-  closeOverlay(): void {
-    this.overlayMode = 'closed';
-  }
 
   // ---- v3.0 roguelike: CardDraft & BuffSelection system references ----
 
@@ -353,6 +302,8 @@ export class UISystem implements System {
     if (this.selectedEntityId !== null && this.selectedEntityType === 'tower') {
       this.drawRangePreview();
       this.buildTowerInfoPanel();
+    } else {
+      this.towerPanelBg = null;
     }
 
     this.buildTopHUD(phase);
@@ -456,39 +407,29 @@ export class UISystem implements System {
     // Refund info
     const refund = this.getRefundQuote?.(id);
 
-    // Panel layout — right side of screen
+    // Panel layout — above the tower
     const panelW = 200;
     const panelH = 180;
-    const panelX = LayoutManager.DESIGN_W - panelW - 20;
-    const panelY = 100;
+    const towerX = Position.x[id] ?? 0;
+    const towerY = Position.y[id] ?? 0;
 
-    // Panel background
-    this.renderer.push({
-      shape: 'rect',
-      x: panelX + panelW / 2,
-      y: panelY + panelH / 2,
-      size: panelW,
+    // Clamp panel position to stay within screen bounds
+    const panelX = Math.max(panelW / 2 + 10, Math.min(towerX, LayoutManager.DESIGN_W - panelW / 2 - 10));
+    const panelY = Math.max(10, towerY - 100 - panelH);
+
+    // Store panel background for drawing in renderUI() (after weather tint)
+    this.towerPanelBg = {
+      x: panelX,
+      y: panelY,
+      w: panelW,
       h: panelH,
-      color: '#1a1a2e',
-      alpha: 0.9,
-      z: 25,
-    });
-    this.renderer.push({
-      shape: 'rect',
-      x: panelX + panelW / 2,
-      y: panelY + panelH / 2,
-      size: panelW,
-      h: panelH,
-      color: config.color ?? '#ffffff',
-      alpha: 0.8,
-      stroke: config.color ?? '#ffffff',
-      strokeWidth: 2,
-      z: 25,
-    });
+      strokeColor: config.color ?? '#ffffff',
+    };
 
     // Tower name + level
+    const panelLeft = panelX - panelW / 2;
     this.infos.push({
-      x: panelX + panelW / 2,
+      x: panelX,
       y: panelY + 20,
       text: `${config.name} Lv.${level}`,
       color: '#ffffff',
@@ -498,34 +439,34 @@ export class UISystem implements System {
 
     // Stats
     this.infos.push({
-      x: panelX + 15,
+      x: panelLeft + 15,
       y: panelY + 48,
       text: `攻击: ${Math.round(atk)}`,
       color: '#e0e0e0',
       size: 13,
     });
     this.infos.push({
-      x: panelX + 15,
+      x: panelLeft + 15,
       y: panelY + 68,
       text: `范围: ${Math.round(range)}`,
       color: '#e0e0e0',
       size: 13,
     });
     this.infos.push({
-      x: panelX + 15,
+      x: panelLeft + 15,
       y: panelY + 88,
       text: `攻速: ${atkSpeed.toFixed(1)}/s`,
       color: '#e0e0e0',
       size: 13,
     });
 
-    // Upgrade button
+    // Upgrade button — green
     const btnW = 85;
     const btnH = 32;
     const btnY = panelY + panelH - 50;
 
     this.buttons.push({
-      x: panelX + 8,
+      x: panelLeft + 8,
       y: btnY,
       w: btnW,
       h: btnH,
@@ -538,10 +479,10 @@ export class UISystem implements System {
       },
     });
 
-    // Recycle button
+    // Recycle button — red
     const refundText = refund ? `+${refund.amount}G` : '';
     this.buttons.push({
-      x: panelX + panelW - btnW - 8,
+      x: panelLeft + panelW - btnW - 8,
       y: btnY,
       w: btnW,
       h: btnH,
@@ -563,6 +504,22 @@ export class UISystem implements System {
 
   renderUI(): void {
     const ctx = this.renderer.context;
+
+    // Draw tower info panel background (after weather tint, before buttons/text)
+    if (this.towerPanelBg) {
+      const p = this.towerPanelBg;
+      ctx.save();
+      // Black background
+      ctx.fillStyle = '#000000';
+      ctx.globalAlpha = 0.92;
+      ctx.fillRect(p.x - p.w / 2, p.y, p.w, p.h);
+      // Border
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = p.strokeColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x - p.w / 2, p.y, p.w, p.h);
+      ctx.restore();
+    }
 
     for (const btn of this.buttons) {
       this.drawButton(btn);
@@ -603,6 +560,17 @@ export class UISystem implements System {
     const startY = btn.y + btn.h / 2 - ((lines.length - 1) * lineH) / 2;
 
     ctx.save();
+
+    // Button background
+    ctx.fillStyle = enabled ? btn.color : '#555555';
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+    // Button border
+    ctx.strokeStyle = enabled ? '#ffffff44' : '#333333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+    // Button text
     ctx.fillStyle = enabled ? btn.textColor : '#888888';
     ctx.font = FONTS.body;
     ctx.textAlign = 'center';
@@ -610,6 +578,7 @@ export class UISystem implements System {
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i]!, btn.x + btn.w / 2, startY + i * lineH);
     }
+
     ctx.restore();
   }
 
@@ -725,64 +694,6 @@ export class UISystem implements System {
     }
   }
 
-  /**
-   * v3.0 roguelike — 牌堆 / 弃牌堆计数图标。
-   *   - 牌堆图标 bottom-right offset(-200,-160), size 50×70（design/20 §4.5.1）
-   *   - 弃牌堆图标 bottom-right offset(-140,-160), size 50×70
-   *   - 数据源 runContext.deck.state.{drawPile,discardPile}.length
-   *   - runContext 未装配时静默跳过
-   */
-  private renderDeckCounter(): void {
-    const runContext = this._world?.runContext;
-    if (!runContext) return;
-
-    const drawCount = runContext.deck.state.drawPile.length;
-    const discardCount = runContext.deck.state.discardPile.length;
-
-    const ICON_W = 50;
-    const ICON_H = 70;
-    const rightX = LayoutManager.DESIGN_W;
-    const bottomY = LayoutManager.DESIGN_H;
-
-    const drawIconCenterX = rightX - 200 + ICON_W / 2;
-    const drawIconCenterY = bottomY - 160 + ICON_H / 2;
-    const discardIconCenterX = rightX - 140 + ICON_W / 2;
-    const discardIconCenterY = bottomY - 160 + ICON_H / 2;
-
-    this.renderer.push({
-      shape: 'rect',
-      x: drawIconCenterX, y: drawIconCenterY,
-      size: ICON_W, h: ICON_H,
-      color: '#1a2332', alpha: 0.9,
-      stroke: '#1e88e5', strokeWidth: 2,
-    });
-    this.infos.push({
-      x: drawIconCenterX, y: drawIconCenterY - 6,
-      text: '📚', color: '#bbdefb', size: 22, align: 'center',
-    });
-    this.infos.push({
-      x: drawIconCenterX, y: drawIconCenterY + 18,
-      text: String(drawCount),
-      color: '#ffffff', size: 14, align: 'center',
-    });
-
-    this.renderer.push({
-      shape: 'rect',
-      x: discardIconCenterX, y: discardIconCenterY,
-      size: ICON_W, h: ICON_H,
-      color: '#1a2332', alpha: 0.9,
-      stroke: '#6d4c41', strokeWidth: 2,
-    });
-    this.infos.push({
-      x: discardIconCenterX, y: discardIconCenterY - 6,
-      text: '🗑', color: '#ffccbc', size: 22, align: 'center',
-    });
-    this.infos.push({
-      x: discardIconCenterX, y: discardIconCenterY + 18,
-      text: String(discardCount),
-      color: '#ffffff', size: 14, align: 'center',
-    });
-  }
 
   /**
    * v3.0 roguelike — A4-UI A2 悬停详情卡片（design/14 §3.2 line 77）。
@@ -1060,110 +971,10 @@ export class UISystem implements System {
   private buildBottomPanel(phase: GamePhase): void {
     const available = phase !== GamePhase.Victory && phase !== GamePhase.Defeat;
     if (!available) return;
+
     this.renderHandZone();
-    this.renderDeckCounter();
     this.renderHandTooltip();
-    this.renderDeckOverlay();
   }
-
-  /**
-   * v3.0 roguelike — A4-UI A3 牌组/弃牌堆全览模态渲染。
-   *   - 全屏半透明遮罩（design/09 §3.4 line 165 半透明面板）
-   *   - 中央 1100×700 模态，标题 + 网格平铺所有卡（小卡 64×88）
-   *   - 数据源 runContext.deck.state.{drawPile, discardPile}
-   *   - 渲染顺序：在 renderHandTooltip 之后，确保 z-order 最顶
-   *   - 容错：runContext 未装配 / overlayMode='closed' 静默跳过
-   */
-  private renderDeckOverlay(): void {
-    if (this.overlayMode === 'closed') return;
-    const runContext = this._world?.runContext;
-    if (!runContext) return;
-
-    const cards = this.overlayMode === 'deck'
-      ? runContext.deck.state.drawPile
-      : runContext.deck.state.discardPile;
-    const layout = buildDeckOverlayLayout(cards.length);
-
-    this.renderer.push({
-      shape: 'rect',
-      x: LayoutManager.DESIGN_W / 2,
-      y: LayoutManager.DESIGN_H / 2,
-      size: LayoutManager.DESIGN_W,
-      h: LayoutManager.DESIGN_H,
-      color: '#000000',
-      alpha: 0.6,
-    });
-
-    this.renderer.push({
-      shape: 'rect',
-      x: layout.modal.x + layout.modal.w / 2,
-      y: layout.modal.y + layout.modal.h / 2,
-      size: layout.modal.w,
-      h: layout.modal.h,
-      color: '#1a2332',
-      alpha: 0.95,
-      stroke: this.overlayMode === 'deck' ? '#1e88e5' : '#6d4c41',
-      strokeWidth: 3,
-    });
-
-    const titleText = this.overlayMode === 'deck'
-      ? `📚 牌堆 (${cards.length})`
-      : `🗑 弃牌堆 (${cards.length})`;
-    this.infos.push({
-      x: layout.title.x,
-      y: layout.title.y + 20,
-      text: titleText,
-      color: '#ffffff',
-      size: 24,
-      align: 'left',
-    });
-
-    for (const cell of layout.cells) {
-      const instance = cards[cell.index];
-      if (instance === undefined) continue;
-      const config = runContext.registry.get(instance.cardId);
-      const rarityColor = config !== undefined ? rarityBorderColor(config.rarity) : '#444';
-      this.renderer.push({
-        shape: 'rect',
-        x: cell.x + cell.w / 2,
-        y: cell.y + cell.h / 2,
-        size: cell.w,
-        h: cell.h,
-        color: '#2a3441',
-        stroke: rarityColor,
-        strokeWidth: 2,
-      });
-      if (config !== undefined) {
-        this.infos.push({
-          x: cell.x + cell.w / 2,
-          y: cell.y + 8,
-          text: cardTypeGlyph(config.type),
-          color: '#bbb',
-          size: 12,
-          align: 'center',
-        });
-        this.infos.push({
-          x: cell.x + cell.w / 2,
-          y: cell.y + cell.h / 2,
-          text: config.name,
-          color: '#ffffff',
-          size: 11,
-          align: 'center',
-        });
-        // 能量机制已移除
-      }
-    }
-
-    this.infos.push({
-      x: layout.closeHintAt.x,
-      y: layout.closeHintAt.y,
-      text: '点击空白处或图标关闭',
-      color: '#888',
-      size: 14,
-      align: 'center',
-    });
-  }
-
 
   // ============================================================
   // Drag Ghost (unchanged — no component access)
@@ -1669,35 +1480,6 @@ export class UISystem implements System {
           return true;
         }
       }
-      return true;
-    }
-
-    if (this.overlayMode !== 'closed') {
-      const layout = buildDeckOverlayLayout(0);
-      const region = classifyOverlayClick(x, y, layout.modal);
-      if (region === 'icon-deck') {
-        if (this.overlayMode === 'deck') this.closeOverlay();
-        else this.openDeckOverlay();
-        return true;
-      }
-      if (region === 'icon-discard') {
-        if (this.overlayMode === 'discard') this.closeOverlay();
-        else this.openDiscardOverlay();
-        return true;
-      }
-      if (region === 'outside-modal') {
-        this.closeOverlay();
-        return true;
-      }
-      return true;
-    }
-
-    if (hitTestDeckIcon(x, y)) {
-      this.openDeckOverlay();
-      return true;
-    }
-    if (hitTestDiscardIcon(x, y)) {
-      this.openDiscardOverlay();
       return true;
     }
 

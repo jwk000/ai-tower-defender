@@ -1,7 +1,5 @@
 import { DebugPanel, type DebugAction } from './DebugPanel.js';
-import { BehaviorTreeWindow } from './BehaviorTreeWindow.js';
 import { CardListWindow } from './CardListWindow.js';
-import type { BehaviorTreeDebugState, BTNodeDebugInfo } from './types.js';
 import type { TowerWorld } from '../core/World.js';
 import type { EntityId } from '../types/index.js';
 import { CType } from '../types/index.js';
@@ -28,7 +26,6 @@ const FULL_STARS = 3;
 export class DebugManager {
   private world: TowerWorld;
   private debugPanel: DebugPanel;
-  private behaviorTreeWindow: BehaviorTreeWindow;
   private cardListWindow: CardListWindow;
 
   private selectedEntityId: EntityId | null = null;
@@ -45,7 +42,6 @@ export class DebugManager {
     this.onLevelProgressChangedFn = hooks.onLevelProgressChanged ?? null;
     this.onOpenLevelEditorFn = hooks.onOpenLevelEditor ?? null;
 
-    this.behaviorTreeWindow = new BehaviorTreeWindow();
     this.cardListWindow = new CardListWindow();
     this.setupCardListWindow();
     this.debugPanel = new DebugPanel(this.buildActions());
@@ -69,9 +65,6 @@ export class DebugManager {
     this.onOpenLevelEditorFn = cb;
     this.debugPanel.setActions(this.buildActions());
   }
-
-  /** Phase 0: 行为树已移除，此方法保留为空兼容层 */
-  registerAIConfigs(_configs: unknown[]): void {}
 
   private buildActions(): DebugAction[] {
     const actions: DebugAction[] = [
@@ -97,13 +90,6 @@ export class DebugManager {
         isEnabled: () => this.getHandSystem() !== null,
         disabledHint: '仅战斗中可用',
         onClick: () => this.showCardList(),
-      },
-      {
-        id: 'view_behavior_tree',
-        label: '查看行为树',
-        icon: '🌳',
-        isEnabled: () => true,
-        onClick: () => this.openBehaviorTreeWindow(),
       },
     ];
     if (this.onOpenLevelEditorFn) {
@@ -172,11 +158,6 @@ export class DebugManager {
     return true;
   }
 
-  private openBehaviorTreeWindow(): void {
-    const state = this.buildCurrentBehaviorTreeState();
-    this.behaviorTreeWindow.show(state);
-  }
-
   private setupKeyboardShortcuts(): void {
     document.addEventListener('keydown', (e) => {
       if (e.key === '`') {
@@ -185,8 +166,6 @@ export class DebugManager {
       } else if (e.key === 'Escape') {
         if (this.cardListWindow.getIsOpen()) {
           this.cardListWindow.hide();
-        } else if (this.behaviorTreeWindow.getIsOpen()) {
-          this.behaviorTreeWindow.hide();
         } else if (this.debugPanel.getIsExpanded()) {
           this.debugPanel.collapse();
         }
@@ -194,23 +173,12 @@ export class DebugManager {
     });
   }
 
-  selectEntity(entityId: EntityId | null): void {
-    this.selectedEntityId = entityId;
-    if (this.behaviorTreeWindow.getIsOpen()) {
-      this.behaviorTreeWindow.updateState(this.buildCurrentBehaviorTreeState());
-    }
+  selectEntity(_entityId: EntityId | null): void {
+    this.selectedEntityId = _entityId;
   }
 
   update(): void {
     this.debugPanel.refresh();
-    if (this.selectedEntityId !== null && this.behaviorTreeWindow.getIsOpen()) {
-      this.behaviorTreeWindow.updateState(this.buildCurrentBehaviorTreeState());
-    }
-  }
-
-  private buildCurrentBehaviorTreeState(): BehaviorTreeDebugState | null {
-    // Phase 0: AI/行为树系统已移除，返回 null
-    return null;
   }
 
   private getEntityDisplayName(entityId: EntityId): string {
@@ -227,7 +195,6 @@ export class DebugManager {
 
   destroy(): void {
     this.debugPanel.destroy();
-    this.behaviorTreeWindow.destroy();
     this.cardListWindow.destroy();
   }
 }
