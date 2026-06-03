@@ -1,8 +1,9 @@
 # ============================================================
 # 第2关：沙漠虫潮
-# 路径布局：L型折线（右上→中下→左水晶）
-# 出生口：右侧1个(行2,列20) | 水晶：左侧(行4,列0)
-# 路径：水平(行2,列20→10) → 垂直(列10,行2→4) → 水平(行4,列10→0)
+# 路径布局：沙漏型点对称（以地图中心(4,10)为对称点）
+# 出生口：右上(行2,列20) | 水晶：左下(行6,列0)
+# 路径：行2→左(列20→10) → 列10→下(行2→6) → 行6→左(列10→0)
+# 对称性：(2,20) 与 (6,0) 关于中心(4,10)完美点对称
 # ============================================================
 id: level_02
 name: 沙漠虫潮
@@ -17,9 +18,9 @@ map:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [base, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
@@ -31,7 +32,7 @@ map:
   obstacles:
     - { type: rock, row: 0, col: 5 }
     - { type: rock, row: 1, col: 14 }
-    - { type: cactus, row: 6, col: 10 }
+    - { type: cactus, row: 6, col: 15 }
     - { type: cactus, row: 7, col: 16 }
   spawns:
     - id: spawn_0
@@ -41,8 +42,8 @@ map:
     nodes:
       - { id: n0, row: 2, col: 20, role: spawn, spawnId: spawn_0 }
       - { id: n1, row: 2, col: 10, role: waypoint }
-      - { id: n2, row: 4, col: 10, role: waypoint }
-      - { id: n3, row: 4, col: 0, role: crystal_anchor }
+      - { id: n2, row: 6, col: 10, role: waypoint }
+      - { id: n3, row: 6, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
