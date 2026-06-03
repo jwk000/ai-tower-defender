@@ -188,6 +188,9 @@ export class AttackSystem implements System {
           const missileCount = missileCfg.projectileCount?.[level - 1]
             ?? missileCfg.projectileCount?.[missileCfg.projectileCount.length - 1]
             ?? 1;
+          // 使用塔的实际溅射半径作为预览标记半径（与弹体爆炸范围一致）
+          const actualSplashRadius = Attack.splashRadius[eid]
+            ?? ((missileCfg?.splashRadius as number) ?? 120);
           for (let i = 0; i < missileCount; i++) {
             const target = enemies[i]?.id ?? primaryTarget;
             const tx = Position.x[target]!;
@@ -195,7 +198,7 @@ export class AttackSystem implements System {
             const markId = world.createEntity();
             world.addComponent(markId, Position, { x: tx, y: ty });
             world.addComponent(markId, TargetingMark, {
-              blastRadius: 120,
+              blastRadius: actualSplashRadius,
               pulsePhase: 0,
               ringRotation: 0,
             });
@@ -558,7 +561,7 @@ export function computeMissileParabola(
  * 与 AttackSystem.spawnMissileProjectile 私有方法等价：使用 PROJ_VISUAL[6] 视觉配置，
  * 读取 BuffSystem 加成后的有效攻击力，挂载 Projectile + Visual + Layer 组件。
  * targetMarkId 指向 ChargeAttackNode spawn 的 TargetingMark 实体，ProjectileSystem
- * 据此计算抛物线终点并触发 AOE 爆炸（splashRadius 默认 120px / Missile 塔 130px）。
+ * 据此计算抛物线终点并触发 AOE 爆炸（splashRadius 从 Attack 组件读取，fallback 120px）。
  */
 export function spawnMissileProjectile(
   world: TowerWorld,
@@ -594,7 +597,9 @@ export function spawnMissileProjectile(
     colorG: visual.colorG,
     colorB: visual.colorB,
     size: visual.size,
-    splashRadius: towerCfg?.splashRadius ?? 120,
+    splashRadius: (Attack.splashRadius[towerId] !== undefined && Attack.splashRadius[towerId]! > 0)
+      ? Attack.splashRadius[towerId]!
+      : (towerCfg?.splashRadius ?? 120),
     stunDuration: 0,
     slowPercent: 0,
     slowMaxStacks: 0,

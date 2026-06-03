@@ -445,14 +445,15 @@ export const ScreenShake = defineComponent({
   frequency: Types.f32,      // 震动频率Hz
 });
 
-/** 地格破损标记 — 导弹爆炸后在地格上留下的裂纹效果 */
+/** 地格破损标记 — 导弹爆炸后在地格/地面留下的弹坑效果 */
 export const TileDamageMark = defineComponent({
-  row: Types.ui8,            // 地格行
-  col: Types.ui8,            // 地格列
+  row: Types.ui8,            // 地格行（craterRadius==0 时使用，逐格模式）
+  col: Types.ui8,            // 地格列（craterRadius==0 时使用，逐格模式）
   duration: Types.f32,       // 总持续时间
   elapsed: Types.f32,        // 已过时间
   crackSeed: Types.ui8,      // 裂纹随机种子（0-255）
   maxAlpha: Types.f32,       // 最大透明度
+  craterRadius: Types.f32,   // 圆形弹坑半径（>0 时使用圆形模式，击中点 = Position）
 });
 
 // ============================================================

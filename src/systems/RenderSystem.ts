@@ -495,15 +495,14 @@ export class RenderSystem implements System {
   }
 
   // ============================================
-  // TileDamageMark rendering (dark overlay + crack pattern on damaged tiles)
+  // TileDamageMark rendering (circular crater or legacy tile-aligned damage)
   // ============================================
   private drawTileDamageMarks(world: TowerWorld): void {
     const entities = tileDamageMarkQuery(world.world);
     const ts = this.map.tileSize;
 
     for (const eid of entities) {
-      const row = TileDamageMark.row[eid]!;
-      const col = TileDamageMark.col[eid]!;
+      const craterRadius = TileDamageMark.craterRadius[eid]!;
       const duration = TileDamageMark.duration[eid]!;
       const elapsed = TileDamageMark.elapsed[eid]!;
       const crackSeed = TileDamageMark.crackSeed[eid]!;
@@ -518,32 +517,92 @@ export class RenderSystem implements System {
       }
       const alpha = maxAlpha * fadeFactor;
 
-      // Tile center position (matches drawMap tile positioning)
-      const tileX = RenderSystem.sceneOffsetX + col * ts + ts / 2;
-      const tileY = RenderSystem.sceneOffsetY + row * ts + ts / 2;
+      if (craterRadius > 0) {
+        // ── Circular crater mode (missile impact, center = entity Position) ──
+        const cx = Position.x[eid]!;
+        const cy = Position.y[eid]!;
+        const outerR = craterRadius * 0.85;
 
-      // ---- Dark overlay ----
-      this.renderer.push({
-        shape: 'rect', x: tileX, y: tileY, size: ts,
-        color: '#000000', alpha: alpha * 0.4, z: 1,
-      });
-
-      // ---- Crack dots (scattered dots from center, seeded PRNG) ----
-      const rand = simplePRNG(crackSeed);
-      const numDots = 10 + (crackSeed % 6); // 10–15 dots
-      for (let i = 0; i < numDots; i++) {
-        const angle = rand() * Math.PI * 2;
-        const dist = ts * 0.1 + rand() * ts * 0.4;
-        const dx = Math.cos(angle) * dist;
-        const dy = Math.sin(angle) * dist;
+        // Dark crater fill (large filled circle)
         this.renderer.push({
-          shape: 'circle',
-          x: tileX + dx, y: tileY + dy,
-          size: 1.5 + rand() * 3,
-          color: '#3e2723',
-          alpha: alpha * (0.5 + rand() * 0.5),
-          z: 2,
+          shape: 'circle', x: cx, y: cy, size: outerR * 2,
+          color: '#1a120e', alpha: alpha * 0.55, z: 1,
         });
+        // Rim ring
+        this.renderer.push({
+          shape: 'circle', x: cx, y: cy, size: outerR * 1.84,
+          color: 'transparent', alpha: alpha * 0.35,
+          stroke: '#281912', strokeWidth: 2, z: 2,
+        });
+
+        // ---- Crack lines (thin rects rotated, seeded PRNG) ----
+        const rand = simplePRNG(crackSeed);
+        const crackCount = 6 + (crackSeed % 5); // 6-10 cracks
+        for (let i = 0; i < crackCount; i++) {
+          const angle = rand() * Math.PI * 2;
+          const len = outerR * (0.5 + rand() * 0.5);
+          const startDist = craterRadius * 0.25 * (0.3 + rand() * 0.7);
+          const sx = cx + Math.cos(angle) * startDist;
+          const sy = cy + Math.sin(angle) * startDist;
+
+          this.renderer.push({
+            shape: 'rect',
+            x: sx, y: sy,
+            size: 1.2, h: len,
+            color: '#3e2723', alpha: alpha * 0.7,
+            rotation: angle - Math.PI / 2, // rect drawn from left→right, rotate to match angle
+            z: 2,
+          });
+        }
+
+        // ---- Debris dots around rim ----
+        const debrisCount = 8 + (crackSeed % 7);
+        for (let i = 0; i < debrisCount; i++) {
+          const angle = rand() * Math.PI * 2;
+          const dist = outerR * (0.6 + rand() * 0.35);
+          const dx = cx + Math.cos(angle) * dist;
+          const dy = cy + Math.sin(angle) * dist;
+          this.renderer.push({
+            shape: 'circle',
+            x: dx, y: dy,
+            size: 2 + rand() * 3,
+            color: '#2c211c',
+            alpha: alpha * (0.35 + rand() * 0.35),
+            z: 2,
+          });
+        }
+      } else {
+        // ── Legacy tile-aligned mode (fallback) ──
+        const row = TileDamageMark.row[eid]!;
+        const col = TileDamageMark.col[eid]!;
+
+        // Tile center position (matches drawMap tile positioning)
+        const tileX = RenderSystem.sceneOffsetX + col * ts + ts / 2;
+        const tileY = RenderSystem.sceneOffsetY + row * ts + ts / 2;
+
+        // ---- Dark overlay ----
+        this.renderer.push({
+          shape: 'rect', x: tileX, y: tileY, size: ts,
+          color: '#000000', alpha: alpha * 0.4, z: 1,
+        });
+
+        // ---- Crack dots (scattered dots from center, seeded PRNG) ----
+        const rand = simplePRNG(crackSeed);
+        const numDots = 10 + (crackSeed % 6);
+        for (let i = 0; i < numDots; i++) {
+          const angle = rand() * Math.PI * 2;
+          const dist = ts * 0.1 + rand() * ts * 0.4;
+          const dx = Math.cos(angle) * dist;
+          const dy = Math.sin(angle) * dist;
+          this.renderer.push({
+            shape: 'circle',
+            x: tileX + dx, y: tileY + dy,
+            size: 1.5 + rand() * 3,
+            color: '#3e2723',
+            alpha: alpha * (0.5 + rand() * 0.5),
+            z: 2,
+          });
+        }
       }
     }
   }
