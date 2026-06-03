@@ -15,7 +15,7 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
-  Tower, TargetingMark, ScreenShake,
+  Tower, TargetingMark, ScreenShake, ExplosionEffect,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { Sound } from '../utils/Sound.js';
@@ -359,6 +359,28 @@ export class BossSystem implements System {
         Boss.transitionTimer[eid] = 1;
         const currentDmg = Attack.damage[eid] ?? 40;
         Attack.damage[eid] = Math.round(currentDmg * 1.5);
+
+        // Visual: red explosion + screen shake
+        const ex = Position.x[eid] ?? 0;
+        const ey = Position.y[eid] ?? 0;
+        const effectId = world.createEntity();
+        world.addComponent(effectId, Position, { x: ex, y: ey });
+        world.addComponent(effectId, Category, { value: CategoryVal.Effect });
+        world.addComponent(effectId, ExplosionEffect, {
+          duration: 1.0, elapsed: 0,
+          radius: 20, maxRadius: 120,
+          colorR: 200, colorG: 30, colorB: 30,
+        });
+        world.addComponent(effectId, Visual, {
+          shape: ShapeVal.Circle,
+          colorR: 200, colorG: 30, colorB: 30,
+          size: 240, alpha: 0.8, outline: 0, facing: 1,
+          hitFlashTimer: 0, idlePhase: 0,
+          bobPhase: 0, breathPhase: 0,
+          attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
+        });
+        Sound.play('boss_phase2');
+        triggerScreenShake(world, 6, 0.5, 15);
       }
     }
 
@@ -552,17 +574,27 @@ export class BossSystem implements System {
     return eid;
   }
 
-  /** Detonate missile at the target location — AOE damage in 80px radius */
+  /** Detonate missile at the TargetingMark location — AOE damage in 80px radius */
   private detonateMissile(world: TowerWorld, bossEid: number): void {
-    // The missile targets the "tower-dense area" found during targeting.
-    // Since we don't store the target position on the boss, we need another approach.
-    // We'll re-find the tower-dense area and explode there.
-    // This is a simplification; ideally the target position would be stored.
-    const target = this.findTowerDenseArea(world);
-    if (!target) return;
-
-    const centerX = target.x;
-    const centerY = target.y;
+    // Read target position from the TargetingMark entity (set during warning phase)
+    let centerX: number | undefined;
+    let centerY: number | undefined;
+    const allMarks = allPositionedQuery(world.world);
+    for (let i = 0; i < allMarks.length; i++) {
+      const eid = allMarks[i]!;
+      if (hasComponent(world.world, TargetingMark, eid) && Category.value[eid] === CategoryVal.Effect) {
+        centerX = Position.x[eid] ?? 0;
+        centerY = Position.y[eid] ?? 0;
+        break;
+      }
+    }
+    // Fallback: re-find tower-dense area if no TargetingMark exists
+    if (centerX === undefined || centerY === undefined) {
+      const target = this.findTowerDenseArea(world);
+      if (!target) return;
+      centerX = target.x;
+      centerY = target.y;
+    }
     const blastRadius = 80;
     const centerDamage = 80;
 
@@ -614,6 +646,27 @@ export class BossSystem implements System {
       Boss.abilityTimer[eid] = 0;
       Sound.play('boss_devour');
       triggerScreenShake(world, 12, 0.8, 15);
+
+      // Dark implosion visual effect
+      const bx = Position.x[eid] ?? 0;
+      const by = Position.y[eid] ?? 0;
+      const effectId = world.createEntity();
+      world.addComponent(effectId, Position, { x: bx, y: by });
+      world.addComponent(effectId, Category, { value: CategoryVal.Effect });
+      world.addComponent(effectId, ExplosionEffect, {
+        duration: 0.8, elapsed: 0,
+        radius: 10, maxRadius: ABYSSLORD_ANNIHILATE_RADIUS,
+        colorR: 26, colorG: 0, colorB: 51,
+      });
+      world.addComponent(effectId, Visual, {
+        shape: ShapeVal.Circle,
+        colorR: 26, colorG: 0, colorB: 51,
+        size: ABYSSLORD_ANNIHILATE_RADIUS * 2, alpha: 0.7, outline: 0, facing: 1,
+        hitFlashTimer: 0, idlePhase: 0,
+        bobPhase: 0, breathPhase: 0,
+        attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
+      });
+
       this.performAbyssAnnihilation(world, eid);
     }
   }
