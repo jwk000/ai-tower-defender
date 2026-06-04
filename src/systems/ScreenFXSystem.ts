@@ -212,44 +212,67 @@ export class ScreenFXSystem {
   // ============================================================
 
   /**
-   * 随机位置大雾团 + 径向渐变软边缘 + 正弦振荡漂移
-   * 参考 weather-canvas FogPuff 实现，无网格、无几何感
+   * 密集随机雾团 + 径向渐变实心 → 软边缘 + 无镂空
+   * 双层：大团打底（18个）+ 小团叠加（30个）
    */
   private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Fog) return;
 
     ctx.save();
 
-    const puffCount = 16;
-    const baseColor = '#cdd5df';
-
-    for (let i = 0; i < puffCount; i++) {
-      // 确定性参数（splitmix32 链，彻底独立）
+    // ==== 底层：大而淡的雾团 ====
+    for (let i = 0; i < 18; i++) {
       let s = ((i * 2654435761 + 777) >>> 0);
       const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
       const py = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_H;
-      const radius = 120 + this.hashToFloat(s = this.nextHash(s)) * 250;  // 120-370px
-      const alpha = 0.03 + this.hashToFloat(s = this.nextHash(s)) * 0.06;
-      const driftSpeed = (0.3 + this.hashToFloat(s = this.nextHash(s)) * 0.7)
-        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1); // 随机方向
-      const oscAmp = 10 + this.hashToFloat(this.nextHash(s)) * 30;
-      const oscFreq = 0.2 + this.hashToFloat(this.nextHash(s)) * 0.4;
+      const radius = 150 + this.hashToFloat(s = this.nextHash(s)) * 250;
+      const alpha = 0.03 + this.hashToFloat(s = this.nextHash(s)) * 0.04;
+      const driftSpeed = (0.2 + this.hashToFloat(s = this.nextHash(s)) * 0.6)
+        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1);
+      const oscAmp = 15 + this.hashToFloat(this.nextHash(s)) * 35;
+      const oscFreq = 0.15 + this.hashToFloat(this.nextHash(s)) * 0.35;
       const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
 
-      // 漂移 + 正弦振荡
-      const dx = px + this.time * driftSpeed * 25;
+      const dx = px + this.time * driftSpeed * 20;
       const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
-
-      // 循环回绕
       const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
       const wrapY = ((dy % (LayoutManager.DESIGN_H + radius * 2)) + (LayoutManager.DESIGN_H + radius * 2)) % (LayoutManager.DESIGN_H + radius * 2) - radius;
 
-      // 径向渐变：中心实 → 边缘虚 → 软边
-      const grad = ctx.createRadialGradient(wrapX, wrapY, radius * 0.2, wrapX, wrapY, radius);
-      grad.addColorStop(0,    'rgba(205,213,223,0)');
-      grad.addColorStop(0.3,  `rgba(205,213,223,${alpha})`);
-      grad.addColorStop(0.7,  `rgba(205,213,223,${alpha * 0.6})`);
-      grad.addColorStop(1,    'rgba(205,213,223,0)');
+      const grad = ctx.createRadialGradient(wrapX, wrapY, 0, wrapX, wrapY, radius);
+      grad.addColorStop(0,    `rgba(205,213,223,${alpha})`);
+      grad.addColorStop(0.5,  `rgba(200,210,220,${alpha * 0.8})`);
+      grad.addColorStop(0.85, `rgba(195,205,218,${alpha * 0.25})`);
+      grad.addColorStop(1,    'rgba(195,205,218,0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ==== 表层：小而稍浓的雾团 ====
+    for (let i = 0; i < 30; i++) {
+      let s = (((i + 1000) * 2654435761 + 777) >>> 0);
+      const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const py = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_H;
+      const radius = 60 + this.hashToFloat(s = this.nextHash(s)) * 100;
+      const alpha = 0.04 + this.hashToFloat(s = this.nextHash(s)) * 0.05;
+      const driftSpeed = (0.3 + this.hashToFloat(s = this.nextHash(s)) * 0.8)
+        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1);
+      const oscAmp = 8 + this.hashToFloat(this.nextHash(s)) * 20;
+      const oscFreq = 0.2 + this.hashToFloat(this.nextHash(s)) * 0.5;
+      const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
+
+      const dx = px + this.time * driftSpeed * 30;
+      const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
+      const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
+      const wrapY = ((dy % (LayoutManager.DESIGN_H + radius * 2)) + (LayoutManager.DESIGN_H + radius * 2)) % (LayoutManager.DESIGN_H + radius * 2) - radius;
+
+      const grad = ctx.createRadialGradient(wrapX, wrapY, 0, wrapX, wrapY, radius);
+      grad.addColorStop(0,    `rgba(200,210,220,${alpha})`);
+      grad.addColorStop(0.4,  `rgba(195,207,218,${alpha * 0.85})`);
+      grad.addColorStop(0.8,  `rgba(190,202,215,${alpha * 0.2})`);
+      grad.addColorStop(1,    'rgba(190,202,215,0)');
 
       ctx.fillStyle = grad;
       ctx.beginPath();
