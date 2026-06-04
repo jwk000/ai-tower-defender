@@ -1076,12 +1076,12 @@ export class UISystem implements System {
     const panelW = 520;
     const panelH = 280;
 
-    // Semi-transparent dark backdrop for the entire screen (less opaque than Victory/Defeat)
+    // Full-screen dark backdrop (covers entire design space, not just a square)
     this.renderer.push({
       shape: 'rect', x: cx, y: cy,
-      size: Math.max(LayoutManager.DESIGN_W, LayoutManager.DESIGN_H),
-      h: Math.max(LayoutManager.DESIGN_W, LayoutManager.DESIGN_H),
-      color: '#000000', alpha: 0.35,
+      size: LayoutManager.DESIGN_W,
+      h: LayoutManager.DESIGN_H,
+      color: '#000000', alpha: 0.6,
       z: 999,
     });
 
