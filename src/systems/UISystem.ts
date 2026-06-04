@@ -102,6 +102,8 @@ interface UIButton {
   iconShape?: { shape: string; color: string };
   onClick: () => void;
   enabled: boolean | (() => boolean);
+  /** v5.0: ghost buttons are invisible click targets (no fill/stroke, only hit area) */
+  ghost?: boolean;
 }
 
 interface UIInfo {
@@ -571,6 +573,10 @@ export class UISystem implements System {
   private drawButton(btn: UIButton): void {
     const ctx = this.renderer.context;
     const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+
+    // v5.0: ghost buttons are invisible click targets — skip visual rendering
+    if (btn.ghost) return;
+
     const lines = btn.label.split('\n');
     const lineH = 16;
     const startY = btn.y + btn.h / 2 - ((lines.length - 1) * lineH) / 2;
@@ -615,6 +621,30 @@ export class UISystem implements System {
   /** Design-space X of viewport horizontal center */
   private viewportCenterDesignX(): number {
     return LayoutManager.toDesignX(LayoutManager.viewportW / 2);
+  }
+
+  // ---- v5.0: text wrapping ----
+
+  /** Split text into lines to fit within `maxWidth` pixels at given `fontSize`.
+   *  Rough estimate: CJK chars ~ fontSize px, ASCII ~ fontSize*0.55 px. */
+  private wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+    const lines: string[] = [];
+    let current = '';
+    let currentW = 0;
+
+    for (const ch of text) {
+      const charW = /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch) ? fontSize : fontSize * 0.55;
+      if (currentW + charW > maxWidth && current.length > 0) {
+        lines.push(current);
+        current = ch;
+        currentW = charW;
+      } else {
+        current += ch;
+        currentW += charW;
+      }
+    }
+    if (current.length > 0) lines.push(current);
+    return lines.length > 0 ? lines : [text];
   }
 
   /**
@@ -1372,20 +1402,24 @@ export class UISystem implements System {
         text: opt.name, color: '#ffffff', size: 12, align: 'center',
       });
 
-      // Description — compact, below name
-      this.infos.push({
-        x: cx, y: cardTop + 12 + artH + 34,
-        text: opt.description,
-        color: '#90a4ae', size: 9, align: 'center',
-      });
+      // Description — compact, below name, auto-wrapped within card
+      const descLines = this.wrapText(opt.description, cardW - 16, 9);
+      for (let li = 0; li < descLines.length && li < 3; li++) {
+        this.infos.push({
+          x: cx, y: cardTop + 12 + artH + 34 + li * 12,
+          text: descLines[li]!,
+          color: '#90a4ae', size: 9, align: 'center',
+        });
+      }
 
-      // Full card click button
+      // Invisible click target over entire card (ghost button)
       this.buttons.push({
         x: cardLeft, y: cardTop,
         w: cardW, h: cardH,
         label: '',
-        color: '#7c4dff', textColor: '#ffffff',
+        color: '#000000', textColor: '#ffffff',
         enabled: true,
+        ghost: true,
         onClick: () => {
           Sound.play('draft_select');
           sys.selectOption(i);
