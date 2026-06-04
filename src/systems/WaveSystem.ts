@@ -361,13 +361,13 @@ export class WaveSystem implements System {
     if (this.isEndless) {
       this.onWaveComplete?.();
       this.setPhase(GamePhase.WaveBreak);
-      this.startAutoCountdown(3); // 3s between endless waves
+      this.startAutoCountdown(5); // 5s between endless waves
     } else if (this.currentWaveIndex >= this.waves.length) {
       this.setPhase(GamePhase.Victory);
     } else {
       this.onWaveComplete?.();
       this.setPhase(GamePhase.WaveBreak);
-      this.startAutoCountdown(3); // 3s between waves
+      this.startAutoCountdown(5); // 5s between waves
     }
   }
 
