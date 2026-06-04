@@ -556,20 +556,20 @@ export class DecorationSystem implements System {
       if (cloud.x > W + 300) { cloud.x = -300; }
 
       for (const part of cloud.parts) {
-        // 形态变幻：椭圆半径随时间正弦波动
         const morph = Math.sin(this.currentTime * 0.3 + part.morphPhase) * 0.25 + 1;
         const rx = part.rx * morph;
-        const ry = part.ry * (2 - morph); // 互补：水平拉伸时垂直收缩
-        const alpha = cloud.baseAlpha * (0.7 + Math.sin(this.currentTime * 0.5 + part.morphPhase + 1) * 0.3);
+        const ry = part.ry * (2 - morph);
+        const alpha = cloud.baseAlpha * (0.85 + Math.sin(this.currentTime * 0.5 + part.morphPhase + 1) * 0.15);
 
         const cx = cloud.x + part.offsetX;
         const cy = cloud.y + part.offsetY;
 
+        // 灰白色云，实心渐变，软边极窄
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
-        grad.addColorStop(0,    `rgba(255,255,255,${alpha})`);
-        grad.addColorStop(0.35, `rgba(255,255,255,${alpha * 0.85})`);
-        grad.addColorStop(0.7,  `rgba(255,255,255,${alpha * 0.3})`);
-        grad.addColorStop(1,    'rgba(255,255,255,0)');
+        grad.addColorStop(0,    `rgba(220,225,232,${alpha})`);
+        grad.addColorStop(0.6,  `rgba(210,216,225,${alpha * 0.9})`);
+        grad.addColorStop(0.85, `rgba(195,202,215,${alpha * 0.5})`);
+        grad.addColorStop(1,    'rgba(190,198,210,0)');
 
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -583,37 +583,36 @@ export class DecorationSystem implements System {
 
   private initClouds(): void {
     const skyArea = this.oy;
-    const count = 5 + Math.floor(Math.random() * 3); // 5-7 朵云
+    const count = 4 + Math.floor(Math.random() * 3); // 4-6 朵云
 
     for (let i = 0; i < count; i++) {
       const cx = Math.random() * LayoutManager.viewportW;
-      const cy = Math.random() * skyArea * 0.6 + 10;
-      const partCount = 3 + Math.floor(Math.random() * 3); // 3-5 个碎片
+      const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55; // 偏下半部天空
+      const partCount = 3 + Math.floor(Math.random() * 4); // 3-6 个碎片
       const parts: CloudPart[] = [];
 
-      // 主方向：水平拉长
-      const totalSpan = 150 + Math.random() * 250; // 云总宽度 150-400px
+      const totalSpan = 200 + Math.random() * 350; // 云总宽度 200-550px
       let curX = 0;
 
       for (let j = 0; j < partCount; j++) {
-        const rx = 40 + Math.random() * 80;         // 水平半径 40-120px
-        const ry = rx * (0.25 + Math.random() * 0.35); // 垂直半径 = 水平×0.25-0.6 → 细长椭圆
+        const rx = 60 + Math.random() * 120;         // 水平半径 60-180px
+        const ry = rx * (0.2 + Math.random() * 0.35); // 垂直半径 = 水平×0.2-0.55
         parts.push({
           rx,
           ry,
           offsetX: curX,
-          offsetY: (Math.random() - 0.5) * 25,       // 轻微纵向偏移
+          offsetY: (Math.random() - 0.5) * 30,
           morphPhase: Math.random() * Math.PI * 2,
         });
-        curX += rx * 1.1; // 碎片间稍微重叠
+        curX += rx * 1.0; // 紧密排列
       }
 
       this.clouds.push({
         x: cx,
         y: cy,
         parts,
-        speed: 6 + Math.random() * 18,               // 6-24 px/s
-        baseAlpha: 0.18 + Math.random() * 0.15,       // 0.18-0.33 柔和白
+        speed: 5 + Math.random() * 15,               // 5-20 px/s
+        baseAlpha: 0.5 + Math.random() * 0.3,         // 0.5-0.8 几乎不透明
       });
     }
   }
