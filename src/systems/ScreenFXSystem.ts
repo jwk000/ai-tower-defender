@@ -208,41 +208,39 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 雾效 —— fBm 噪声场
+  // 雾效 —— 粒子雾 shader
   // ============================================================
 
   /**
-   * 基于 2D fBm 噪声的有机雾效，模拟真实雾气的自然密度分布
-   * 网格采样 → 半透明重叠圆，噪声坐标随时间缓慢漂移
+   * 密集粒子雾：fBm 噪声场驱动 alpha，数千微小粒子在全屏叠加出体积雾效果
+   * 无几何图形 —— 纯粒子重叠，模拟 volumetric fog shader
    */
   private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Fog) return;
 
     ctx.save();
 
-    const color = '#d0d8e0';
-    const cellW = 48;
-    const cellH = 48;
-    const cols = Math.ceil(LayoutManager.DESIGN_W / cellW) + 1;
-    const rows = Math.ceil(LayoutManager.DESIGN_H / cellH) + 1;
-
-    // 噪声坐标随时间缓慢漂移
-    const timeScale = this.time * 0.08;
+    const color = '#cdd5df';
+    const cellSize = 16;
+    const cols = Math.ceil(LayoutManager.DESIGN_W / cellSize) + 1;
+    const rows = Math.ceil(LayoutManager.DESIGN_H / cellSize) + 1;
+    const timeScale = this.time * 0.06;
 
     for (let cy = 0; cy < rows; cy++) {
       for (let cx = 0; cx < cols; cx++) {
-        const wx = cx * cellW;
-        const wy = cy * cellH;
-        // fBm 采样（3倍频），时间作为第三维偏移
-        const n = this.fbm2D(wx * 0.003 + timeScale, wy * 0.003 + timeScale * 0.7, 3);
-        // 将噪声 [0,1] 映射到 alpha，低于阈值的格子跳过
-        if (n < 0.35) continue;
-        const alpha = (n - 0.35) * 0.12; // 最大 ~0.078
+        const wx = cx * cellSize;
+        const wy = cy * cellSize;
+        const n = this.fbm2D(wx * 0.004 + timeScale, wy * 0.004 + timeScale * 0.6, 3);
+        if (n < 0.4) continue;
+
+        const t = (n - 0.4) / 0.6;
+        const r = 2 + t * 6;          // 2-8px 粒子
+        const alpha = t * t * 0.1;    // 平方曲线
 
         ctx.globalAlpha = alpha;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(wx, wy, cellW * 0.85, 0, Math.PI * 2);
+        ctx.arc(wx, wy, r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -325,38 +323,42 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 乌云 —— fBm 噪声场
+  // 乌云 —— 粒子雾 shader
   // ============================================================
 
   /**
-   * 基于 2D fBm 噪声的有机乌云层，在屏幕顶部自然分布
-   * 网格采样 → 半透明重叠椭圆，噪声坐标随时间缓慢漂移
+   * 密集粒子云层：fBm 噪声场驱动 alpha，数千微小粒子叠加出体积云效果
+   * 无几何图形 —— 纯粒子重叠，模拟 volumetric cloud shader
    */
   private drawDarkClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Rain) return;
 
     ctx.save();
 
-    const color = '#2a3040';
-    const cellW = 60;
-    const cellH = 40;
-    const cols = Math.ceil(LayoutManager.DESIGN_W / cellW) + 1;
-    const cloudBottom = 200;
+    const color = '#1e2430';
+    const cellSize = 14;
+    const cols = Math.ceil(LayoutManager.DESIGN_W / cellSize) + 1;
+    const cloudBottom = 180;
+    const rows = Math.ceil(cloudBottom / cellSize);
 
-    const timeScale = this.time * 0.06;
+    const timeScale = this.time * 0.05;
 
-    for (let cy = 0; cy * cellH < cloudBottom; cy++) {
+    for (let cy = 0; cy < rows; cy++) {
       for (let cx = 0; cx < cols; cx++) {
-        const wx = cx * cellW;
-        const wy = cy * cellH;
-        const n = this.fbm2D(wx * 0.004 + timeScale, wy * 0.005 + timeScale * 0.6, 4);
-        if (n < 0.3) continue;
-        const alpha = (n - 0.3) * 0.3; // 最大 ~0.21
+        const wx = cx * cellSize;
+        const wy = cy * cellSize;
+        const n = this.fbm2D(wx * 0.006 + timeScale, wy * 0.007 + timeScale * 0.5, 4);
+        if (n < 0.28) continue;
+
+        // 噪声映射到粒子半径和 alpha
+        const t = (n - 0.28) / 0.72; // 归一化 [0, 1]
+        const r = 3 + t * 8;          // 3-11px 粒子
+        const alpha = t * t * 0.3;    // 平方曲线让浓处更浓
 
         ctx.globalAlpha = alpha;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.ellipse(wx, wy, cellW * 0.9, cellH * 1.1, 0, 0, Math.PI * 2);
+        ctx.arc(wx, wy, r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
