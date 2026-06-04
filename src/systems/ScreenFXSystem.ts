@@ -345,109 +345,94 @@ export class ScreenFXSystem {
   /**
    * 满天星斗散布在天空区域 —— 多档大小 + 星芒十字 + 闪烁
    * 仅在夜晚显示
-   * 使用确定性种子，但通过多层 hash 产生斑点状分布
+   * 使用 splitmix32 哈希链确保每颗星的位置/参数完全独立
    */
   private drawStars(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Night) return;
 
     ctx.save();
 
+    // splitmix32 哈希链：从前一个 hash 推导下一个，确保完全独立
+    const next = (h: number): number => {
+      h = ((h ^ (h >>> 16)) * 0x85ebca6b) >>> 0;
+      h = ((h ^ (h >>> 13)) * 0xc2b2ae35) >>> 0;
+      h = (h ^ (h >>> 16)) >>> 0;
+      return h;
+    };
+    const toFloat = (h: number): number => h / 0xFFFFFFFF;
+
     const skyHeight = 350;
 
     // ---- 小星（70颗，半径0.5-1.2px）----
     for (let i = 0; i < 70; i++) {
-      const seed = ((i * 2654435761) >>> 0);
-      const s0 = ((seed * 1103515245 + 11111) >>> 0) / 0xFFFFFFFF;
-      const s1 = ((seed * 1103515245 + 22222) >>> 0) / 0xFFFFFFFF;
-      const s2 = ((seed * 1103515245 + 33333) >>> 0) / 0xFFFFFFFF;
-      const s3 = ((seed * 1103515245 + 44444) >>> 0) / 0xFFFFFFFF;
+      let s = ((i * 2654435761) >>> 0);
+      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
+      const y = toFloat(s = next(s)) * skyHeight;
+      const r = 0.5 + toFloat(s = next(s)) * 0.7;
+      const tf = 2 + toFloat(s = next(s)) * 3;
+      const tp = toFloat(s = next(s)) * Math.PI * 2;
+      const ba = 0.3 + toFloat(next(s)) * 0.5;
+      const tw = Math.sin(this.time * tf + tp) * 0.4 + 0.6;
 
-      const x = (s0 * 0.9 + s1 * 0.1) * LayoutManager.DESIGN_W;
-      const y = (s2 * 0.8 + s3 * 0.2) * skyHeight;
-      const radius = 0.5 + s0 * 0.7;
-      const twinkleFreq = 2 + s1 * 3;
-      const starPhase = s2 * Math.PI * 2;
-      const baseAlpha = 0.3 + s3 * 0.5;
-      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.4 + 0.6;
-      const alpha = baseAlpha * twinkle;
-
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = ba * tw;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // ---- 中星（35颗，半径1.2-2.5px）----
+    // ---- 中星（35颗，半径1.2-2.5px，含微十字星芒）----
     for (let i = 0; i < 35; i++) {
-      const seed = (((i + 500) * 2654435761) >>> 0);
-      const s0 = ((seed * 1103515245 + 55555) >>> 0) / 0xFFFFFFFF;
-      const s1 = ((seed * 1103515245 + 66666) >>> 0) / 0xFFFFFFFF;
-      const s2 = ((seed * 1103515245 + 77777) >>> 0) / 0xFFFFFFFF;
-      const s3 = ((seed * 1103515245 + 88888) >>> 0) / 0xFFFFFFFF;
-
-      const x = (s0 * 0.85 + s2 * 0.15) * LayoutManager.DESIGN_W;
-      const y = (s1 * 0.7 + s3 * 0.3) * skyHeight;
-      const radius = 1.2 + s0 * 1.3;
-      const twinkleFreq = 1.2 + s1 * 2.5;
-      const starPhase = s2 * Math.PI * 2;
-      const baseAlpha = 0.4 + s3 * 0.6;
-      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.35 + 0.65;
-      const alpha = baseAlpha * twinkle;
+      let s = (((i + 500) * 2654435761) >>> 0);
+      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
+      const y = toFloat(s = next(s)) * skyHeight;
+      const r = 1.2 + toFloat(s = next(s)) * 1.3;
+      const tf = 1.2 + toFloat(s = next(s)) * 2.5;
+      const tp = toFloat(s = next(s)) * Math.PI * 2;
+      const ba = 0.4 + toFloat(next(s)) * 0.6;
+      const tw = Math.sin(this.time * tf + tp) * 0.35 + 0.65;
+      const alpha = ba * tw;
 
       ctx.globalAlpha = alpha;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
 
-      // 稍亮的中星画微小的十字星芒
       if (alpha > 0.55) {
-        const glowR = radius * 3;
-        const glowAlpha = alpha * 0.3;
-        ctx.globalAlpha = glowAlpha;
-        ctx.fillStyle = '#ffffff';
-        // 水平星芒
+        const glowR = r * 3;
+        ctx.globalAlpha = alpha * 0.3;
         ctx.fillRect(x - glowR, y - 0.5, glowR * 2, 1);
-        // 垂直星芒
         ctx.fillRect(x - 0.5, y - glowR, 1, glowR * 2);
       }
     }
 
-    // ---- 亮星（8颗，十字星芒 + 强闪烁）----
+    // ---- 亮星（8颗，四角星芒 + 强闪烁）----
     for (let i = 0; i < 8; i++) {
-      const seed = (((i + 1000) * 2654435761) >>> 0);
-      const s0 = ((seed * 1103515245 + 11117) >>> 0) / 0xFFFFFFFF;
-      const s1 = ((seed * 1103515245 + 22227) >>> 0) / 0xFFFFFFFF;
-      const s2 = ((seed * 1103515245 + 33337) >>> 0) / 0xFFFFFFFF;
+      let s = (((i + 1000) * 2654435761) >>> 0);
+      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
+      const y = toFloat(s = next(s)) * skyHeight;
+      const r = 2 + toFloat(s = next(s)) * 2;
+      const tf = 0.8 + toFloat(s = next(s)) * 1.5;
+      const tp = toFloat(next(s)) * Math.PI * 2;
+      const tw = Math.sin(this.time * tf + tp) * 0.4 + 0.6;
+      const alpha = (0.6 + toFloat(next(s)) * 0.4) * tw;
 
-      const x = (s0 * 0.8 + s1 * 0.2) * LayoutManager.DESIGN_W;
-      const y = (s1 * 0.6 + s2 * 0.4) * skyHeight;
-      const radius = 2 + s0 * 2;
-      const twinkleFreq = 0.8 + s1 * 1.5;
-      const starPhase = s2 * Math.PI * 2;
-      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.4 + 0.6;
-      const alpha = (0.6 + s2 * 0.4) * twinkle;
-
-      // 四角星芒
-      const armLen = radius * 4;
-      const armW = radius * 0.6;
+      const armLen = r * 4;
+      const armW = r * 0.6;
       ctx.globalAlpha = alpha * 0.5;
       ctx.fillStyle = '#ffffff';
       ctx.save();
       ctx.translate(x, y);
-
       for (let j = 0; j < 4; j++) {
         ctx.rotate(Math.PI / 4);
         ctx.fillRect(-armW / 2, -armLen, armW, armLen * 2);
       }
       ctx.restore();
 
-      // 中心亮点
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     }
 
