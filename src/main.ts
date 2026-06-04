@@ -87,18 +87,18 @@ import { hasComponent } from './core/World.js';
 // ---- Debug system imports ----
 import { DebugManager } from './debug/DebugManager.js';
 
-// ---- TowerType numeric ID → enum mapping (matches AttackSystem/BuildSystem) ----
+// ---- TowerType numeric ID → enum mapping (matches UnitFactory.TOWER_TYPE_ID) ----
 const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Arrow,     // 0
-  TowerType.Ballista,  // 1
-  TowerType.Cannon,    // 2
-  TowerType.Laser,     // 3
-  TowerType.Bat,       // 4
-  TowerType.Missile,   // 5
-  TowerType.Ice,       // 6
+  TowerType.Cannon,    // 1
+  TowerType.Ice,       // 2
+  TowerType.Lightning, // 3
+  TowerType.Laser,     // 4
+  TowerType.Bat,       // 5
+  TowerType.Missile,   // 6
   TowerType.Fire,      // 7
   TowerType.Poison,    // 8
-  TowerType.Lightning, // 9
+  TowerType.Ballista,  // 9
 ];
 
 // TOWER_TYPE_ID: 从 UnitFactory 导入共享映射
