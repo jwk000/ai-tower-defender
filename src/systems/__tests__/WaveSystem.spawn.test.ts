@@ -160,70 +160,34 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(Visual.size[eliteEid]).toBeCloseTo(38.4, 0);
   });
 
-  it('elite kill triggers onEliteKilled callback', () => {
+  it('spawned elite has Elite component and UnitTag.isElite = 1', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
     });
     const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
 
-    let eliteKilledCalled = false;
     const waves: WaveConfig[] = [{
       waveNumber: 1,
       spawnDelay: 0,
       enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
     }];
 
-    const ws = new WaveSystem(world, map, waves, getPhase, setPhase, undefined, undefined, undefined, () => {
-      eliteKilledCalled = true;
-    });
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
     ws.startWave();
 
-    // Spawn all enemies
-    for (let i = 0; i < 20; i++) ws.update(world, 0.1);
-
-    // Find elite and kill it
-    const elites = eliteQuery(world.world);
-    expect(elites.length).toBe(1);
-    const eliteEid = elites[0]!;
-    Health.current[eliteEid] = 0;
-
-    // One more update to detect the kill
-    ws.update(world, 0.1);
-
-    expect(eliteKilledCalled).toBe(true);
-  });
-
-  it('onEliteKilled fires only once per elite', () => {
-    const world = new TowerWorld();
-    const { pathGraph, spawns } = migrateEnemyPathToGraph({
-      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
-    });
-    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
-
-    let callCount = 0;
-    const waves: WaveConfig[] = [{
-      waveNumber: 1,
-      spawnDelay: 0,
-      enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
-    }];
-
-    const ws = new WaveSystem(world, map, waves, getPhase, setPhase, undefined, undefined, undefined, () => {
-      callCount++;
-    });
-    ws.startWave();
-
+    // Spawn all enemies (including elite)
     for (let i = 0; i < 20; i++) ws.update(world, 0.1);
 
     const elites = eliteQuery(world.world);
     expect(elites.length).toBe(1);
     const eliteEid = elites[0]!;
-    Health.current[eliteEid] = 0;
 
-    // Multiple updates — should only fire once
-    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
-
-    expect(callCount).toBe(1);
+    // 验证精英标记正确设置
+    expect(UnitTag.isElite[eliteEid]).toBe(1);
+    expect(Elite.cardOptions[eliteEid]).toBe(3);
+    expect(Elite.hpMultiplier[eliteEid]).toBe(2.0);
+    expect(Elite.atkMultiplier[eliteEid]).toBe(1.5);
   });
 
   it('only one elite spawned per wave', () => {

@@ -385,11 +385,7 @@ class TowerDefenderGame extends Game {
         // wave start — restore level BGM
         Music.play(Music.getLevelBgm(this.currentLevelId));
       },
-      undefined, // onWaveReward
-      () => {
-        // 精英敌人被击杀 → 触发 3选1 抽卡
-        this.cardDraftSystem.startDraft(initialPool, this.handSystem);
-      },
+      undefined, // onWaveReward (unused)
     );
 
     // ---- Weather system — init with level config ----
@@ -633,6 +629,12 @@ class TowerDefenderGame extends Game {
         Sound.play('enemy_death');
         this.economy.rewardForEnemy(enemyId);
         Sound.play('gold_earn');
+        // v4.0: 精英敌人死亡 → 触发 3选1 抽卡
+        // 在 HealthSystem 回调中检测，覆盖所有死因（塔伤/陷阱/DOT等），
+        // 不受系统执行顺序影响（原先在 WaveSystem 轮询可能导致漏检）。
+        if (UnitTag.isElite[enemyId] === 1 && !this.cardDraftSystem.isActive()) {
+          this.cardDraftSystem.startDraft(initialPool, this.handSystem);
+        }
       },
       (unitId) => {
         // v4.0: population system removed — no releaseUnit
