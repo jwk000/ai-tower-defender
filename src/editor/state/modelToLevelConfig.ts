@@ -13,6 +13,8 @@ const THEME_MAP: Record<string, LevelTheme> = {
   tundra: LevelTheme.Tundra,
   volcano: LevelTheme.Volcano,
   castle: LevelTheme.Castle,
+  wasteland: LevelTheme.Wasteland,
+  abyss: LevelTheme.Abyss,
 };
 
 const WEATHER_MAP: Record<string, WeatherType> = {

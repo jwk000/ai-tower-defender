@@ -318,7 +318,7 @@ class TowerDefenderGame extends Game {
     this.currentMap = map;
     this.defeatSfxPlayed = false;
     this.previousPhase = GamePhase.Deployment;
-    Music.play('battle_default');
+    Music.play(Music.getLevelBgm(this.currentLevelId));
 
     // Select card pool based on level (defined early for use in callbacks)
     const cardPoolByLevel: Record<number, typeof LEVEL_1_CARD_POOL> = {
@@ -377,9 +377,11 @@ class TowerDefenderGame extends Game {
       () => {
         this.weatherSystem.onWaveEnd();
         this.saveCurrentBattle('wave-end');
+        Music.play('wave_break', 0.5);
       },
       () => {
-        // wave start — no-op after roguelike context removal
+        // wave start — restore level BGM
+        Music.play(Music.getLevelBgm(this.currentLevelId));
       },
       undefined, // onWaveReward
       () => {

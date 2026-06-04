@@ -774,6 +774,8 @@ export enum LevelTheme {
   Tundra = 'tundra',
   Volcano = 'volcano',
   Castle = 'castle',
+  Wasteland = 'wasteland',
+  Abyss = 'abyss',
 }
 
 export interface LevelConfig {
