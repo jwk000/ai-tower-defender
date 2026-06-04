@@ -9,7 +9,7 @@
 import { TowerWorld, type System } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
-import { ObstacleType, LevelTheme, type MapConfig, type WeatherType } from '../types/index.js';
+import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/index.js';
 import { computeSceneLayout } from './RenderSystem.js';
 
 /**
@@ -530,6 +530,9 @@ export class DecorationSystem implements System {
 
   /** 云朵系统 */
   private drawClouds(): void {
+    // Only show clouds in sunny weather
+    if (this.getWeather() !== WeatherType.Sunny) return;
+
     // 首次初始化云朵
     if (!this.cloudsInitialized) {
       this.initClouds();
@@ -707,8 +710,13 @@ export class DecorationSystem implements System {
 
     const mapW = this.map.cols * this.ts;
     const skyMid = this.oy * 0.8;  // birds fly in upper 80% of sky area
+    const weather = this.getWeather();
 
     for (const bird of this.birds) {
+      // Weather-dependent appearance (don't mutate bird state)
+      const birdColor = weather === WeatherType.Sunny ? '#ffffff' : (weather === WeatherType.Night ? '#111111' : bird.color);
+      const birdSize = weather === WeatherType.Sunny ? bird.size * 1.5 : bird.size;
+
       // 更新位置
       bird.x += bird.speed * (1 / 60);
       bird.phase += bird.flapSpeed * (1 / 60);
@@ -731,30 +739,42 @@ export class DecorationSystem implements System {
         shape: 'circle',
         x: bird.x,
         y: hoverY,
-        size: bird.size * 0.6,
-        color: bird.color,
+        size: birdSize * 0.6,
+        color: birdColor,
         alpha: 0.85,
       });
 
       // 左翅
       this.renderer.push({
         shape: 'triangle',
-        x: bird.x - Math.cos(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        size: bird.size * 0.7,
-        color: bird.color,
+        x: bird.x - Math.cos(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        size: birdSize * 0.7,
+        color: birdColor,
         alpha: 0.7,
       });
 
       // 右翅
       this.renderer.push({
         shape: 'triangle',
-        x: bird.x + Math.cos(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        size: bird.size * 0.7,
-        color: bird.color,
+        x: bird.x + Math.cos(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        size: birdSize * 0.7,
+        color: birdColor,
         alpha: 0.7,
       });
+
+      // Night: red eye
+      if (weather === WeatherType.Night) {
+        this.renderer.push({
+          shape: 'circle',
+          x: bird.x + birdSize * 0.15,
+          y: hoverY - birdSize * 0.05,
+          size: 2,
+          color: '#ff0000',
+          alpha: 1,
+        });
+      }
     }
   }
 

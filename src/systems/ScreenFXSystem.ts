@@ -24,6 +24,11 @@ export class ScreenFXSystem {
 
     this.drawSunRays(ctx, weather);
     this.drawWindLines(ctx, weather);
+    this.drawFogParticles(ctx, weather);
+    this.drawRainDrops(ctx, weather);
+    this.drawDarkClouds(ctx, weather);
+    this.drawStars(ctx, weather);
+    this.drawMoon(ctx, weather);
     this.drawVignette(ctx, weather);
   }
 
@@ -145,6 +150,252 @@ export class ScreenFXSystem {
       ctx.fillStyle = grad;
       ctx.fillRect(corner.x - radius, corner.y - radius, radius * 2, radius * 2);
     }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 雾效粒子
+  // ============================================================
+
+  /**
+   * 半透明雾粒子团块缓慢漂移横跨全屏
+   * 仅在雾天显示
+   * 使用确定性种子（Knuth's hash）避免每帧位置跳动
+   */
+  private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Fog) return;
+
+    ctx.save();
+
+    const fogCount = 10;
+    const color = '#d0d8e0';
+
+    for (let i = 0; i < fogCount; i++) {
+      // 确定性种子：基于索引计算
+      const seed = ((i * 2654435761) >>> 0);
+      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+
+      // 半径: 80-200px
+      const radius = 80 + hash1 * 120;
+      // alpha: 0.03-0.08
+      const alpha = 0.03 + hash2 * 0.05;
+      // 漂移速度: 20-50 px/s
+      const driftSpeed = 20 + hash3 * 30;
+
+      // 初始位置（确定性） + 时间漂移
+      const baseX = hash1 * LayoutManager.DESIGN_W;
+      const baseY = 100 + hash2 * (LayoutManager.DESIGN_H - 200);
+
+      // 水平漂移 + 边界循环
+      const driftX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + radius * 2) - radius;
+
+      // 轻微纵向摆动
+      const wobble = Math.sin(this.time * 0.3 + i * 1.7) * 25 + Math.cos(this.time * 0.5 + i * 0.8) * 15;
+      const fogY = baseY + wobble;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(driftX, fogY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 雨滴效果
+  // ============================================================
+
+  /**
+   * 细长雨滴竖线从屏幕顶部落下
+   * 仅在雨天显示
+   * 离开底部边界后从顶部重新生成
+   */
+  private drawRainDrops(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Rain) return;
+
+    ctx.save();
+
+    const dropCount = 40;
+    const color = '#a0c4e8';
+
+    for (let i = 0; i < dropCount; i++) {
+      const seed = ((i * 2654435761) >>> 0);
+      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      const hash4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+
+      // 水平位置（确定性）
+      const x = hash1 * LayoutManager.DESIGN_W;
+      // 坠落速度: 300-600 px/s
+      const fallSpeed = 300 + hash2 * 300;
+      // 长度: 15-30px
+      const len = 15 + hash3 * 15;
+      // 线宽: 1-2px
+      const lineWidth = 1 + Math.round(hash4);
+      // alpha: 0.3-0.6
+      const alpha = 0.3 + hash4 * 0.3;
+
+      // Y 位置：基于时间 + 确定性偏移 + 循环
+      const baseYOffset = hash2 * LayoutManager.DESIGN_H;
+      const rawY = (this.time * fallSpeed + baseYOffset) % (LayoutManager.DESIGN_H + len) - len;
+
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, rawY);
+      ctx.lineTo(x, rawY + len);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 乌云效果
+  // ============================================================
+
+  /**
+   * 深灰色云层团块在屏幕顶部缓慢漂移
+   * 仅在雨天显示
+   */
+  private drawDarkClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Rain) return;
+
+    ctx.save();
+
+    const cloudCount = 5;
+    const color = '#2a3040';
+
+    for (let i = 0; i < cloudCount; i++) {
+      const seed = ((i * 2654435761) >>> 0);
+      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+
+      // Y 范围: 0-200（屏幕顶部）
+      const y = hash1 * 200;
+      // 半径: 80-160px
+      const horizontalRadius = 80 + hash2 * 80;
+      const verticalRadius = 40 + hash3 * 30;
+      // alpha: 0.15-0.3
+      const alpha = 0.15 + hash2 * 0.15;
+      // 漂移速度: 15-35 px/s
+      const driftSpeed = 15 + hash3 * 20;
+
+      // 水平漂移 + 边界循环
+      const baseX = hash1 * LayoutManager.DESIGN_W;
+      const cloudX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + horizontalRadius * 2) - horizontalRadius;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(cloudX, y, horizontalRadius, verticalRadius, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 星空效果
+  // ============================================================
+
+  /**
+   * 闪烁的小星星散布在天空区域
+   * 仅在夜晚显示
+   * 使用确定性种子确定位置和闪烁相位
+   */
+  private drawStars(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Night) return;
+
+    ctx.save();
+
+    const starCount = 40;
+    const color = '#ffffff';
+    const skyHeight = 300; // 天空区域高度
+
+    for (let i = 0; i < starCount; i++) {
+      const seed = ((i * 2654435761) >>> 0);
+      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      const hash4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+
+      // 位置: 全宽, y 0 ~ skyHeight
+      const x = hash1 * LayoutManager.DESIGN_W;
+      const y = hash2 * skyHeight;
+      // 半径: 1-3px
+      const radius = 1 + hash3 * 2;
+      // 闪烁频率: 1.5-4 Hz
+      const twinkleFreq = 1.5 + hash4 * 2.5;
+      // 闪烁相位
+      const starPhase = hash3 * Math.PI * 2;
+
+      // 基础 alpha: 0.4-1.0，叠加闪烁
+      const baseAlpha = 0.4 + hash4 * 0.6;
+      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.3 + 0.7;
+      const alpha = baseAlpha * twinkle;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 月亮效果
+  // ============================================================
+
+  /**
+   * 大而明亮的月亮 + 光晕，位于屏幕右上角
+   * 仅在夜晚显示
+   * 具有微妙的呼吸脉冲效果
+   */
+  private drawMoon(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Night) return;
+
+    ctx.save();
+
+    // 月亮位置：右上角，使用设计分辨率定位
+    const moonX = LayoutManager.DESIGN_W * 0.85;
+    const moonY = 100;
+    const moonRadius = 55;
+
+    // 呼吸脉冲：alpha 轻微振荡
+    const pulse = Math.sin(this.time * 0.6) * 0.03 + 0.97;
+
+    // 光晕 — 3 层同心圆
+    const halos = [
+      { radius: 80,  color: '#fffde7', alpha: 0.15 },
+      { radius: 110, color: '#fff9c4', alpha: 0.08 },
+      { radius: 150, color: '#fff9c4', alpha: 0.04 },
+    ];
+
+    for (const halo of halos) {
+      ctx.globalAlpha = halo.alpha * pulse;
+      ctx.fillStyle = halo.color;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, halo.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 月亮本体
+    ctx.globalAlpha = 0.95 * pulse;
+    ctx.fillStyle = '#fffde7';
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
