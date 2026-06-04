@@ -35,22 +35,24 @@ interface SwayParams {
   windMultiplier: number;
 }
 
-/** 云朵碎片 */
-interface CloudPart {
-  rx: number;         // 水平半径
-  ry: number;         // 垂直半径
-  offsetX: number;    // 相对云中心偏移
-  offsetY: number;
-  morphPhase: number; // 形态变幻相位
+/** 云粒子 */
+interface CloudParticle {
+  ox: number;    // 相对云中心偏移
+  oy: number;
+  r: number;     // 半径 2-7px
+  alpha: number;
+  driftX: number;
+  driftY: number;
+  wobbleFreq: number;
+  wobblePhase: number;
 }
 
 /** 云朵状态 */
 interface CloudState {
   x: number;
   y: number;
-  parts: CloudPart[];
+  particles: CloudParticle[];
   speed: number;
-  baseAlpha: number;
 }
 
 /** 飞鸟状态 */
@@ -536,7 +538,7 @@ export class DecorationSystem implements System {
     return 'plains';
   }
 
-  /** 云朵系统 —— 细长椭圆组 + 形态变幻 + 慢速漂移 */
+  /** 纯粒子云：80-120微小圆点随机散布 + 独立微漂移，形状由密度定义 */
   private drawClouds(): void {
     if (this.getWeather() !== WeatherType.Sunny) return;
 
@@ -553,27 +555,18 @@ export class DecorationSystem implements System {
 
     for (const cloud of this.clouds) {
       cloud.x += cloud.speed * (1 / 60);
-      if (cloud.x > W + 300) { cloud.x = -300; }
+      if (cloud.x > W + 500) { cloud.x = -500; }
 
-      for (const part of cloud.parts) {
-        const morph = Math.sin(this.currentTime * 0.3 + part.morphPhase) * 0.25 + 1;
-        const rx = part.rx * morph;
-        const ry = part.ry * (2 - morph);
-        const alpha = cloud.baseAlpha * (0.85 + Math.sin(this.currentTime * 0.5 + part.morphPhase + 1) * 0.15);
+      for (const p of cloud.particles) {
+        // 微漂移 + 正弦摇摆
+        const wobble = Math.sin(this.currentTime * p.wobbleFreq + p.wobblePhase) * 4;
+        const px = cloud.x + p.ox + p.driftX * this.currentTime * 3 + wobble;
+        const py = cloud.y + p.oy + p.driftY * this.currentTime * 3;
 
-        const cx = cloud.x + part.offsetX;
-        const cy = cloud.y + part.offsetY;
-
-        // 灰白色云，实心渐变，软边极窄
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
-        grad.addColorStop(0,    `rgba(220,225,232,${alpha})`);
-        grad.addColorStop(0.6,  `rgba(210,216,225,${alpha * 0.9})`);
-        grad.addColorStop(0.85, `rgba(195,202,215,${alpha * 0.5})`);
-        grad.addColorStop(1,    'rgba(190,198,210,0)');
-
-        ctx.fillStyle = grad;
+        ctx.globalAlpha = p.alpha * (0.8 + Math.sin(this.currentTime * 1.2 + p.wobblePhase) * 0.2);
+        ctx.fillStyle = '#d8dde5';
         ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.arc(px, py, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -583,36 +576,47 @@ export class DecorationSystem implements System {
 
   private initClouds(): void {
     const skyArea = this.oy;
-    const count = 4 + Math.floor(Math.random() * 3); // 4-6 朵云
+    const count = 4 + Math.floor(Math.random() * 2); // 4-5 朵云
 
     for (let i = 0; i < count; i++) {
       const cx = Math.random() * LayoutManager.viewportW;
-      const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55; // 偏下半部天空
-      const partCount = 3 + Math.floor(Math.random() * 4); // 3-6 个碎片
-      const parts: CloudPart[] = [];
+      const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55;
+      const particleCount = 80 + Math.floor(Math.random() * 40); // 80-120 粒子
+      const particles: CloudParticle[] = [];
 
-      const totalSpan = 200 + Math.random() * 350; // 云总宽度 200-550px
-      let curX = 0;
+      // 云的散布范围（水平长，垂直短）
+      const spreadX = 100 + Math.random() * 150;
+      const spreadY = spreadX * (0.15 + Math.random() * 0.2);
 
-      for (let j = 0; j < partCount; j++) {
-        const rx = 60 + Math.random() * 120;         // 水平半径 60-180px
-        const ry = rx * (0.2 + Math.random() * 0.35); // 垂直半径 = 水平×0.2-0.55
-        parts.push({
-          rx,
-          ry,
-          offsetX: curX,
-          offsetY: (Math.random() - 0.5) * 30,
-          morphPhase: Math.random() * Math.PI * 2,
+      for (let j = 0; j < particleCount; j++) {
+        // 高斯分布采样 → 中心密、边缘疏
+        let ox: number, oy: number;
+        do {
+          ox = (Math.random() * 2 - 1) * spreadX;
+          oy = (Math.random() * 2 - 1) * spreadY;
+        } while (Math.abs(ox / spreadX) + Math.abs(oy / spreadY) > 1.3); // 菱形裁剪
+
+        // 距中心越近 alpha 越高
+        const dist = Math.sqrt((ox / spreadX) ** 2 + (oy / spreadY) ** 2);
+        const alpha = 0.3 + (1 - dist) * 0.5; // 0.3-0.8，中心更密
+
+        particles.push({
+          ox,
+          oy,
+          r: 2 + Math.random() * 5,                           // 2-7px 微小圆
+          alpha,
+          driftX: (Math.random() - 0.5) * 0.4,                // 极慢独立漂移
+          driftY: (Math.random() - 0.5) * 0.3,
+          wobbleFreq: 0.5 + Math.random() * 1.5,
+          wobblePhase: Math.random() * Math.PI * 2,
         });
-        curX += rx * 1.0; // 紧密排列
       }
 
       this.clouds.push({
         x: cx,
         y: cy,
-        parts,
-        speed: 5 + Math.random() * 15,               // 5-20 px/s
-        baseAlpha: 0.5 + Math.random() * 0.3,         // 0.5-0.8 几乎不透明
+        particles,
+        speed: 4 + Math.random() * 12,                        // 4-16 px/s
       });
     }
   }
