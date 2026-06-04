@@ -529,7 +529,6 @@ export class DecorationSystem implements System {
 
   /** 云朵系统 —— 随机雾团 + 径向渐变软边，模拟白色云团 */
   private drawClouds(): void {
-    // Only show clouds in sunny weather
     if (this.getWeather() !== WeatherType.Sunny) return;
 
     if (!this.cloudsInitialized) {
@@ -538,32 +537,33 @@ export class DecorationSystem implements System {
     }
 
     const ctx = this.renderer.context;
-    const skyArea = this.oy; // full sky height above map
+    const skyArea = this.oy;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置到视口空间
 
     for (const cloud of this.clouds) {
       cloud.x += cloud.speed * (1 / 60);
 
-      // 循环回绕
-      if (cloud.x > LayoutManager.DESIGN_W + cloud.radius + 50) {
+      if (cloud.x > LayoutManager.viewportW + cloud.radius + 50) {
         cloud.x = -cloud.radius - 50;
         cloud.y = Math.random() * skyArea * 0.7 + 10;
       }
 
-      // 径向渐变：白色实心 → 半透 → 透明边缘
       const grad = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, cloud.radius);
       grad.addColorStop(0,    `rgba(255,255,255,${cloud.alpha})`);
-      grad.addColorStop(0.4,  `rgba(255,255,255,${cloud.alpha * 0.85})`);
-      grad.addColorStop(0.7,  `rgba(255,255,255,${cloud.alpha * 0.45})`);
-      grad.addColorStop(0.9,  `rgba(255,255,255,${cloud.alpha * 0.1})`);
+      grad.addColorStop(0.35, `rgba(255,255,255,${cloud.alpha * 0.9})`);
+      grad.addColorStop(0.65, `rgba(255,255,255,${cloud.alpha * 0.4})`);
+      grad.addColorStop(0.85, `rgba(255,255,255,${cloud.alpha * 0.08})`);
       grad.addColorStop(1,    'rgba(255,255,255,0)');
 
-      ctx.save();
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
+
+    ctx.restore();
   }
 
   private initClouds(): void {
@@ -572,7 +572,7 @@ export class DecorationSystem implements System {
 
     for (let i = 0; i < count; i++) {
       this.clouds.push({
-        x: Math.random() * LayoutManager.DESIGN_W,
+        x: Math.random() * LayoutManager.viewportW,
         y: Math.random() * skyArea * 0.65 + 10,
         radius: 70 + Math.random() * 130,            // 70-200px 大云团
         speed: 8 + Math.random() * 20,                // 8-28 px/s 缓慢漂移
