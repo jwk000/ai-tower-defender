@@ -22,10 +22,13 @@ interface LevelButton {
 /** LevelSelectUI — renders level selection menu and handles clicks */
 export class LevelSelectUI {
   private buttons: LevelButton[] = [];
+  /** 图鉴按钮区域 */
+  private encyclopediaBtn: { x: number; y: number; w: number; h: number } | null = null;
 
   constructor(
     private renderer: Renderer,
     private onStartLevel: (levelId: number) => void,
+    private onOpenEncyclopedia?: () => void,
   ) {
     this.buildButtons();
   }
@@ -92,6 +95,30 @@ export class LevelSelectUI {
     ctx.fillText('Select Level', LayoutManager.DESIGN_W / 2, 220);
     ctx.restore();
 
+    // Encyclopedia button (top-right)
+    if (this.onOpenEncyclopedia) {
+      const encBtnW = 140;
+      const encBtnH = 42;
+      const encBtnX = LayoutManager.DESIGN_W - encBtnW - 30;
+      const encBtnY = 180;
+      this.encyclopediaBtn = { x: encBtnX, y: encBtnY, w: encBtnW, h: encBtnH };
+
+      ctx.save();
+      ctx.fillStyle = '#37474f';
+      ctx.strokeStyle = '#78909c';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(encBtnX, encBtnY, encBtnW, encBtnH, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = getFont(16, true);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📖 卡牌图鉴', encBtnX + encBtnW / 2, encBtnY + encBtnH / 2);
+      ctx.restore();
+    }
+
     // Level buttons
     for (const btn of this.buttons) {
       this.drawLevelButton(btn);
@@ -154,6 +181,16 @@ export class LevelSelectUI {
 
   /** Handle click at (x, y) in design space */
   handleClick(x: number, y: number): void {
+    // Encyclopedia button
+    if (this.encyclopediaBtn) {
+      const eb = this.encyclopediaBtn;
+      if (x >= eb.x && x <= eb.x + eb.w && y >= eb.y && y <= eb.y + eb.h) {
+        Sound.play('ui_click');
+        this.onOpenEncyclopedia?.();
+        return;
+      }
+    }
+
     for (const btn of this.buttons) {
       if (btn.locked) continue;
       if (

@@ -176,6 +176,7 @@ export class UISystem implements System {
 
   private cardDraftSystem: CardDraftSystem | null = null;
   private interLevelBuffSystem: InterLevelBuffSystem | null = null;
+  private onOpenEncyclopedia: (() => void) | null = null;
 
   setCardDraftSystem(sys: CardDraftSystem): void {
     this.cardDraftSystem = sys;
@@ -183,6 +184,10 @@ export class UISystem implements System {
 
   setInterLevelBuffSystem(sys: InterLevelBuffSystem): void {
     this.interLevelBuffSystem = sys;
+  }
+
+  setEncyclopediaCallback(cb: () => void): void {
+    this.onOpenEncyclopedia = cb;
   }
 
   selectEnemy(id: number): void {
@@ -1206,8 +1211,9 @@ export class UISystem implements System {
 
     this.modalBackdropAlpha = 0.6;
 
+    const hasEncyclopedia = this.onOpenEncyclopedia !== null;
     const menuW = 500;
-    const menuH = 380;
+    const menuH = hasEncyclopedia ? 450 : 380;
     const menuX = mapCenterX - menuW / 2;
     const menuY = mapCenterY - menuH / 2;
 
@@ -1257,7 +1263,31 @@ export class UISystem implements System {
       onClick: () => { this.onResume?.(); },
     });
 
-    const restartY = menuY + 180;
+    // Encyclopedia button (conditionally shown)
+    const encY = menuY + 180;
+    if (hasEncyclopedia) {
+      this.renderer.push({
+        shape: 'rect',
+        x: mapCenterX,
+        y: encY + btnH / 2,
+        size: btnW,
+        h: btnH,
+        color: '#37474f',
+        alpha: 0.9,
+        stroke: '#78909c',
+        strokeWidth: 1,
+      });
+      this.buttons.push({
+        x: btnX, y: encY, w: btnW, h: btnH,
+        label: '📖 卡牌图鉴',
+        color: '#37474f',
+        textColor: '#ffffff',
+        enabled: true,
+        onClick: () => { this.onOpenEncyclopedia?.(); },
+      });
+    }
+
+    const restartY = hasEncyclopedia ? menuY + 250 : menuY + 180;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1278,7 +1308,7 @@ export class UISystem implements System {
       onClick: () => { this.onRestart?.(); },
     });
 
-    const exitY = menuY + 250;
+    const exitY = hasEncyclopedia ? menuY + 320 : menuY + 250;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1303,7 +1333,7 @@ export class UISystem implements System {
     const total = this.getTotalWaves();
     this.infos.push({
       x: mapCenterX,
-      y: menuY + 320,
+      y: hasEncyclopedia ? menuY + 390 : menuY + 320,
       text: total === -1 ? `当前波次: ${wave}` : `当前波次: ${wave} / ${total}`,
       color: '#aaaaaa',
       size: 24,

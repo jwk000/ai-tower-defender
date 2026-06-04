@@ -46,6 +46,7 @@ import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type
 import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
+import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
 import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
 import { Music } from './utils/Music.js';
 import {
@@ -141,6 +142,9 @@ class TowerDefenderGame extends Game {
   // ---- Debug system ----
   public debugManager: DebugManager;
 
+  // ---- Encyclopedia ----
+  private encyclopedia!: CardEncyclopediaUI;
+
   private unitDragId: number | null = null;
   private defeatSfxPlayed = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
@@ -161,10 +165,16 @@ class TowerDefenderGame extends Game {
     Sound.preload();
     Sound.initUnlock(canvas);
 
+    // Card encyclopedia — shared across all screens
+    this.encyclopedia = new CardEncyclopediaUI(this.renderer);
+    this.encyclopedia.onOpen = () => { this.paused = true; };
+    this.encyclopedia.onClose = () => { this.paused = false; };
+
     // LevelSelectUI — renders level selection menu
     this.levelSelectUI = new LevelSelectUI(
       this.renderer,
       (levelId) => this.startLevel(levelId),
+      () => { this.encyclopedia.open(); },
     );
 
     // Debug manager — global lifetime (design/27): button visible across all screens.
@@ -195,13 +205,26 @@ class TowerDefenderGame extends Game {
     this.uninstallBeforeUnloadGuard();
     this.world.reset();
     Music.play('main_menu');
-    this.onUpdate = (dt) => this.levelSelectUI?.update?.(dt);
+    this.onUpdate = (dt) => {
+      this.levelSelectUI?.update?.(dt);
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.render();
+      }
+    };
     this.onPostRender = null;
     this.onAfterUpdate = null;
     this.input.onPointerDown = (e: InputEvent) => {
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleClick(e.x, e.y);
+        return;
+      }
       this.levelSelectUI?.handleClick?.(e.x, e.y);
     };
-    this.input.onPointerMove = null;
+    this.input.onPointerMove = (e: InputEvent) => {
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleMouseMove(e.x, e.y);
+      }
+    };
     this.input.onPointerUp = null;
   }
 
@@ -614,6 +637,9 @@ class TowerDefenderGame extends Game {
     // Inject systems into UISystem for overlay rendering
     this.uiSystem.setCardDraftSystem(this.cardDraftSystem);
     this.uiSystem.setInterLevelBuffSystem(this.interLevelBuffSystem);
+    this.uiSystem.setEncyclopediaCallback(() => {
+      this.encyclopedia.open();
+    });
 
     // ---- Soldier AI System ----
     this.soldierAISystem = new SoldierAISystem();
@@ -725,10 +751,18 @@ class TowerDefenderGame extends Game {
         this.screenFXSystem.render(ctx, 1 / 60, this.weatherSystem.currentWeather);
       }
       this.uiSystem.renderUI();
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.render();
+      }
     };
 
     // ---- Input dispatch for battle ----
     this.input.onPointerDown = (e: InputEvent) => {
+      // Encyclopedia overlay consumes all clicks when open
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleClick(e.x, e.y);
+        return;
+      }
       if (this.buildSystem.dragState?.active) return;
       if (this.unitDragId !== null) return;
       const handledByUI = this.uiSystem.handleClick(e.x, e.y);
@@ -803,6 +837,10 @@ class TowerDefenderGame extends Game {
     };
 
     this.input.onPointerMove = (e: InputEvent) => {
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleMouseMove(e.x, e.y);
+        return;
+      }
       if (this.unitDragId !== null) {
         const ctrlTargetX = PlayerControllable.targetX[this.unitDragId];
         if (ctrlTargetX !== undefined) {
