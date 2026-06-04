@@ -74,8 +74,12 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
   const availableUnits: UnitType[] = (model.available?.units ?? []) as UnitType[];
 
   const weatherPool = model.weather?.pool
-    ?.map((w) => WEATHER_MAP[w])
+    ?.map((w) => WEATHER_MAP[w.toLowerCase()])
     .filter((w): w is WeatherType => w !== undefined);
+
+  const weatherInitial = model.weather?.initial
+    ? WEATHER_MAP[model.weather.initial.toLowerCase()]
+    : undefined;
 
   const config: LevelConfig = {
     id: model.id,
@@ -93,6 +97,7 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
 
   if (model.sceneDescription) config.sceneDescription = model.sceneDescription;
   if (weatherPool?.length) config.weatherPool = weatherPool;
+  if (weatherInitial) config.weatherFixed = weatherInitial;
   if (model.weather?.changeInterval !== undefined) config.weatherChangeInterval = model.weather.changeInterval;
 
   return config;

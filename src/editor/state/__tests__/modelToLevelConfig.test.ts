@@ -93,6 +93,28 @@ describe('modelToLevelConfig', () => {
     expect(cfg.weatherPool).toContain(WeatherType.Rain);
   });
 
+  it('maps weather pool with PascalCase values (case-insensitive)', () => {
+    const cfg = modelToLevelConfig(makeModel({ weather: { pool: ['Night', 'Fog'], initial: 'Night' } }));
+    expect(cfg.weatherPool).toHaveLength(2);
+    expect(cfg.weatherPool).toContain(WeatherType.Night);
+    expect(cfg.weatherPool).toContain(WeatherType.Fog);
+  });
+
+  it('maps weather.initial to weatherFixed', () => {
+    const cfg = modelToLevelConfig(makeModel({ weather: { pool: ['night'], initial: 'night' } }));
+    expect(cfg.weatherFixed).toBe(WeatherType.Night);
+  });
+
+  it('maps weather.initial with PascalCase value', () => {
+    const cfg = modelToLevelConfig(makeModel({ weather: { pool: ['Night', 'rain'], initial: 'Night' } }));
+    expect(cfg.weatherFixed).toBe(WeatherType.Night);
+  });
+
+  it('does not set weatherFixed when initial maps to undefined', () => {
+    const cfg = modelToLevelConfig(makeModel({ weather: { pool: ['night'], initial: 'unknown_weather_type' } }));
+    expect(cfg.weatherFixed).toBeUndefined();
+  });
+
   it('unlockStarsRequired is always 0 (no gate in editor preview)', () => {
     const cfg = modelToLevelConfig(makeModel());
     expect(cfg.unlockStarsRequired).toBe(0);
