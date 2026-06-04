@@ -173,6 +173,8 @@ export class WaveSystem implements System {
   skipCountdown(): void {
     this.countdown = 0;
     this.startWave();
+    // v5.0: spawn immediately — countdown was skipped, no need for spawnDelay
+    this.spawnTimer = 0;
   }
 
   /** Stub endless wave generator — Phase 3 will rewrite */
@@ -277,7 +279,10 @@ export class WaveSystem implements System {
         this.lastCountdownInt = 0;
         Sound.play('countdown_go');
         this.startWave();
-        return;
+        // v5.0: zero out spawnDelay — the countdown already gave preparation time.
+        // Players expect enemies to appear immediately after countdown hits 0.
+        this.spawnTimer = 0;
+        // fall through to process spawning in this same frame
       }
     }
 
