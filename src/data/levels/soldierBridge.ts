@@ -81,7 +81,7 @@ export function injectSoldierConfigsFromRegistry(): number {
       size: visual?.size ?? 24,
       skillId,
       cost: cost?.build ?? 50,
-      moveRange: 200, // 默认值
+      moveRange: 100, // 默认值
       maxLevel,
       upgradeCosts,
       upgradeHpBonus,

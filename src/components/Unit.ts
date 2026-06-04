@@ -11,7 +11,7 @@ export class Unit {
   homeY: number;
   moveRange: number;
 
-  constructor(unitType: UnitType, popCost: number, skillId: string, baseSpeed: number, cost: number, homeX: number = 0, homeY: number = 0, moveRange: number = 200) {
+  constructor(unitType: UnitType, popCost: number, skillId: string, baseSpeed: number, cost: number, homeX: number = 0, homeY: number = 0, moveRange: number = 100) {
     this.unitType = unitType;
     this.popCost = popCost;
     this.skillId = skillId;
