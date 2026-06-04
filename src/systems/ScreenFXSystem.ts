@@ -211,45 +211,80 @@ export class ScreenFXSystem {
   // ============================================================
 
   /**
-   * 细长雨滴竖线从屏幕顶部落下
+   * 双层雨滴系统：远层（细小稀疏）+ 近层（粗密快速）
+   * 带风斜效果，离开底部边界后从顶部重新生成
    * 仅在雨天显示
-   * 离开底部边界后从顶部重新生成
    */
   private drawRainDrops(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Rain) return;
 
     ctx.save();
 
-    const dropCount = 40;
-    const color = '#a0c4e8';
+    // 风斜角度（轻微向左倾斜，模拟风雨）
+    const windAngle = Math.sin(this.time * 0.3) * 3 + 5; // 2°-8° 动态变化
 
-    for (let i = 0; i < dropCount; i++) {
+    // ============================================================
+    // 远层：细小稀疏雨滴（60滴）
+    // ============================================================
+    const farColor = '#7ba4c8';
+    const farCount = 60;
+
+    for (let i = 0; i < farCount; i++) {
       const seed = ((i * 2654435761) >>> 0);
-      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
-      const hash4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+      const h1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const h2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const h3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      const h4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
 
-      // 水平位置（确定性）
-      const x = hash1 * LayoutManager.DESIGN_W;
-      // 坠落速度: 300-600 px/s
-      const fallSpeed = 300 + hash2 * 300;
-      // 长度: 15-30px
-      const len = 15 + hash3 * 15;
-      // 线宽: 1-2px
-      const lineWidth = 1 + Math.round(hash4);
-      // alpha: 0.3-0.6
-      const alpha = 0.3 + hash4 * 0.3;
+      const fallSpeed = 350 + h1 * 250;           // 350-600 px/s
+      const len = 8 + h2 * 14;                     // 8-22px
+      const x = h3 * LayoutManager.DESIGN_W;
+      const alpha = 0.15 + h4 * 0.25;              // 0.15-0.40
 
-      // Y 位置：基于时间 + 确定性偏移 + 循环
-      const baseYOffset = hash2 * LayoutManager.DESIGN_H;
-      const rawY = (this.time * fallSpeed + baseYOffset) % (LayoutManager.DESIGN_H + len) - len;
+      // 时间偏移让不同滴的相位散布
+      const phaseOffset = h2 * 3;
+      const rawY = ((this.time + phaseOffset) * fallSpeed + h1 * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
+
+      // 风斜偏移
+      const slantX = (rawY / LayoutManager.DESIGN_H) * Math.tan(windAngle * Math.PI / 180) * 40;
 
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = farColor;
+      ctx.lineWidth = 0.8 + h4 * 0.4;              // 0.8-1.2px
       ctx.beginPath();
-      ctx.moveTo(x, rawY);
+      ctx.moveTo(x + slantX, rawY);
+      ctx.lineTo(x, rawY + len);
+      ctx.stroke();
+    }
+
+    // ============================================================
+    // 近层：粗密快速雨滴（70滴）
+    // ============================================================
+    const nearColor = '#b8d8f0';
+    const nearCount = 70;
+
+    for (let i = 0; i < nearCount; i++) {
+      const seed = (((i + 1000) * 2654435761) >>> 0);
+      const h1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
+      const h2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
+      const h3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      const h4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+
+      const fallSpeed = 450 + h1 * 350;             // 450-800 px/s
+      const len = 18 + h2 * 25;                     // 18-43px
+      const x = h3 * LayoutManager.DESIGN_W;
+      const alpha = 0.25 + h4 * 0.4;                // 0.25-0.65
+
+      const phaseOffset = h2 * 2;
+      const rawY = ((this.time + phaseOffset) * fallSpeed + h1 * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
+
+      const slantX = (rawY / LayoutManager.DESIGN_H) * Math.tan(windAngle * Math.PI / 180) * 60;
+
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = nearColor;
+      ctx.lineWidth = 1 + h4 * 1.5;                 // 1-2.5px
+      ctx.beginPath();
+      ctx.moveTo(x + slantX, rawY);
       ctx.lineTo(x, rawY + len);
       ctx.stroke();
     }
