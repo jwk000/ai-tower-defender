@@ -361,7 +361,7 @@ export class ScreenFXSystem {
     };
     const toFloat = (h: number): number => h / 0xFFFFFFFF;
 
-    const skyHeight = 350;
+    const skyHeight = 200; // 仅天空区域，不落入棋盘
 
     // ---- 小星（70颗，半径0.5-1.2px）----
     for (let i = 0; i < 70; i++) {
