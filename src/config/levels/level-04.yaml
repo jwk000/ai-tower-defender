@@ -30,7 +30,7 @@ map:
     empty: '#4e342e'
     path: '#5d4037'
     blocked: '#1a0000'
-    spawn: '#ff5722'
+    spawn: '#cc4518'
     base: '#546e7a'
   obstacles:
     - { type: rubble, row: 0, col: 8 }

@@ -30,8 +30,8 @@ map:
     empty: '#9e9e9e'
     path: '#616161'
     blocked: '#212121'
-    spawn: '#ffc107'
-    base: '#42a5f5'
+    spawn: '#b8940a'
+    base: '#3288cc'
   obstacles:
     - { type: pillar, row: 0, col: 2 }
     - { type: pillar, row: 0, col: 10 }

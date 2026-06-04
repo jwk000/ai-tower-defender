@@ -23,11 +23,11 @@ map:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#7cb342'
-    path: '#8d6e63'
+    empty: '#5e6b4e'
+    path: '#7a6058'
     blocked: '#546e7a'
-    spawn: '#ff8f00'
-    base: '#1e88e5'
+    spawn: '#b86b1e'
+    base: '#1866a8'
   obstacles:
     - { type: tree, row: 0, col: 2 }
     - { type: tree, row: 0, col: 17 }

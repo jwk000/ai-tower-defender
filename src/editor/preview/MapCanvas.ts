@@ -11,11 +11,11 @@ export type DrawOp =
   | { kind: 'stroke'; x: number; y: number; w: number; h: number; color: string; width: number };
 
 export const TILE_COLORS: Readonly<Record<string, string>> = Object.freeze({
-  empty: '#7d9b6e',
-  path: '#bfad94',
-  blocked: '#78909c',
-  spawn: '#ff8f00',
-  base: '#1e88e5',
+  empty: '#5e6b4e',
+  path: '#8a7d6b',
+  blocked: '#566570',
+  spawn: '#b86b1e',
+  base: '#1866a8',
 });
 
 const GRID_STROKE_COLOR = '#2a2a3a';

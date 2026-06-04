@@ -29,8 +29,8 @@ map:
     empty: '#1a0033'
     path: '#311b92'
     blocked: '#0d0019'
-    spawn: '#aa00ff'
-    base: '#ffd54f'
+    spawn: '#7720aa'
+    base: '#ccab40'
   obstacles:
     - { type: floating_rock, row: 0, col: 2 }
     - { type: floating_rock, row: 0, col: 8 }
