@@ -39,8 +39,7 @@ interface SwayParams {
 interface CloudState {
   x: number;
   y: number;
-  /** 组成云朵的椭圆列表 */
-  ellipses: { rx: number; ry: number; offsetX: number; offsetY: number }[];
+  radius: number;
   speed: number;
   alpha: number;
 }
@@ -528,71 +527,56 @@ export class DecorationSystem implements System {
     return 'plains';
   }
 
-  /** 云朵系统 */
+  /** 云朵系统 —— 随机雾团 + 径向渐变软边，模拟白色云团 */
   private drawClouds(): void {
     // Only show clouds in sunny weather
     if (this.getWeather() !== WeatherType.Sunny) return;
 
-    // 首次初始化云朵
     if (!this.cloudsInitialized) {
       this.initClouds();
       this.cloudsInitialized = true;
     }
 
-    const mapW = this.map.cols * this.ts;
-    const skyArea = this.oy; // full sky height above map (216px)
+    const ctx = this.renderer.context;
+    const skyArea = this.oy; // full sky height above map
 
     for (const cloud of this.clouds) {
-      // 更新位置
       cloud.x += cloud.speed * (1 / 60);
 
-      // 循环：超出右边界后从左边界重新进入
-      if (cloud.x > LayoutManager.DESIGN_W + 150) {
-        cloud.x = -150;
+      // 循环回绕
+      if (cloud.x > LayoutManager.DESIGN_W + cloud.radius + 50) {
+        cloud.x = -cloud.radius - 50;
         cloud.y = Math.random() * skyArea * 0.7 + 10;
       }
 
-      // 绘制云朵（多个白色椭圆叠加）
-      for (const ell of cloud.ellipses) {
-        this.renderer.push({
-          shape: 'circle',
-          x: cloud.x + ell.offsetX,
-          y: cloud.y + ell.offsetY,
-          size: Math.max(ell.rx, ell.ry) * 2,
-          color: '#ffffff',
-          alpha: cloud.alpha * (ell.rx < 30 ? 0.35 : 0.25),
-        });
-      }
+      // 径向渐变：白色实心 → 半透 → 透明边缘
+      const grad = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, cloud.radius);
+      grad.addColorStop(0,    `rgba(255,255,255,${cloud.alpha})`);
+      grad.addColorStop(0.4,  `rgba(255,255,255,${cloud.alpha * 0.85})`);
+      grad.addColorStop(0.7,  `rgba(255,255,255,${cloud.alpha * 0.45})`);
+      grad.addColorStop(0.9,  `rgba(255,255,255,${cloud.alpha * 0.1})`);
+      grad.addColorStop(1,    'rgba(255,255,255,0)');
+
+      ctx.save();
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
   private initClouds(): void {
     const skyArea = this.oy;
-    const count = 3 + Math.floor(Math.random() * 3); // 3-5 朵云
+    const count = 6 + Math.floor(Math.random() * 4); // 6-9 朵云
 
     for (let i = 0; i < count; i++) {
-      const ellipsesCount = 3 + Math.floor(Math.random() * 3); // 3-5 个椭圆
-      const ellipses: CloudState['ellipses'] = [];
-      let totalWidth = 0;
-
-      for (let j = 0; j < ellipsesCount; j++) {
-        const rx = 25 + Math.random() * 45;
-        const ry = 12 + Math.random() * 18;
-        ellipses.push({
-          rx,
-          ry,
-          offsetX: totalWidth + rx * 0.7,
-          offsetY: (Math.random() - 0.5) * 15,
-        });
-        totalWidth += rx * 1.2;
-      }
-
       this.clouds.push({
         x: Math.random() * LayoutManager.DESIGN_W,
-        y: Math.random() * skyArea * 0.7 + 10,
-        ellipses,
-        speed: 15 + Math.random() * 30, // 15-45 px/s
-        alpha: 0.25 + Math.random() * 0.2, // 0.25-0.45
+        y: Math.random() * skyArea * 0.65 + 10,
+        radius: 70 + Math.random() * 130,            // 70-200px 大云团
+        speed: 8 + Math.random() * 20,                // 8-28 px/s 缓慢漂移
+        alpha: 0.35 + Math.random() * 0.3,            // 0.35-0.65
       });
     }
   }
