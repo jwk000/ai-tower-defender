@@ -108,7 +108,7 @@ const priest: CardInstance = {
   description: '治疗单位，持续恢复友方HP',
 };
 
-// ---- 机关（8种）----
+// ---- 机关（4种）----
 
 const spikeTrap: CardInstance = {
   id: 'card_spike_trap',
@@ -138,33 +138,7 @@ const boulder: CardInstance = {
   description: '路障，阻挡敌人前进必须被破坏',
 };
 
-const fan: CardInstance = {
-  id: 'card_fan',
-  name: '风扇',
-  type: 'trap',
-  description: '前方3格路径敌人减速20%',
-};
 
-const waterPit: CardInstance = {
-  id: 'card_water_pit',
-  name: '水坑',
-  type: 'trap',
-  description: '50%概率直接秒杀经过的敌人',
-};
-
-const boxingGlove: CardInstance = {
-  id: 'card_boxing_glove',
-  name: '拳击套',
-  type: 'trap',
-  description: '击退前方1格路径上的敌人',
-};
-
-const mechanicalArm: CardInstance = {
-  id: 'card_mechanical_arm',
-  name: '机械臂',
-  type: 'trap',
-  description: '拉回前方2格路径上的敌人',
-};
 
 // ---- 技能卡（4种）----
 
@@ -237,7 +211,7 @@ const speedBoost: CardInstance = {
 // 已分类导出
 // ============================================================
 
-/** 所有 22 张单位卡（塔 + 士兵 + 机关） */
+/** 所有 18 张单位卡（塔 + 士兵 + 机关） */
 export const UNIT_CARDS: CardInstance[] = [
   arrowTower,
   ballistaTower,
@@ -257,10 +231,6 @@ export const UNIT_CARDS: CardInstance[] = [
   bearTrap,
   tarPit,
   boulder,
-  fan,
-  waterPit,
-  boxingGlove,
-  mechanicalArm,
 ];
 
 /** 所有 4 张技能卡 */
@@ -275,7 +245,7 @@ export const ARCANE_CARDS: CardInstance[] = [
   speedBoost,
 ];
 
-/** 全部 31 张卡牌 */
+/** 全部 27 张卡牌 */
 export const ALL_CARDS: CardInstance[] = [
   ...UNIT_CARDS,
   ...SPELL_CARDS,
@@ -327,7 +297,6 @@ export const LEVEL_4_CARD_POOL: CardInstance[] = [
   iceTower,
   archer,
   mage,
-  waterPit,
 ];
 
 /** 第5关卡池：深渊裂隙（全部卡牌可用） */
