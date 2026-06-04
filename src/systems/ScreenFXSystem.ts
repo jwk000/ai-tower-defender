@@ -13,6 +13,17 @@ export class ScreenFXSystem {
   /** 当前时间（秒），用于动画驱动 */
   private time = 0;
 
+  // splitmix32 哈希链 —— 每步完全独立，消除 s0~sN 线性相关
+  private nextHash(h: number): number {
+    h = ((h ^ (h >>> 16)) * 0x85ebca6b) >>> 0;
+    h = ((h ^ (h >>> 13)) * 0xc2b2ae35) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h;
+  }
+  private hashToFloat(h: number): number {
+    return h / 0xFFFFFFFF;
+  }
+
   /**
    * 更新内部时间并渲染所有全屏特效
    * @param ctx    Canvas 2D 渲染上下文
@@ -172,22 +183,13 @@ export class ScreenFXSystem {
     const color = '#d0d8e0';
 
     for (let i = 0; i < fogCount; i++) {
-      // 确定性种子：基于索引计算
-      const seed = ((i * 2654435761) >>> 0);
-      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      let s = ((i * 2654435761) >>> 0);
+      const radius = 80 + this.hashToFloat(s = this.nextHash(s)) * 120;
+      const alpha = 0.03 + this.hashToFloat(s = this.nextHash(s)) * 0.05;
+      const driftSpeed = 20 + this.hashToFloat(s = this.nextHash(s)) * 30;
 
-      // 半径: 80-200px
-      const radius = 80 + hash1 * 120;
-      // alpha: 0.03-0.08
-      const alpha = 0.03 + hash2 * 0.05;
-      // 漂移速度: 20-50 px/s
-      const driftSpeed = 20 + hash3 * 30;
-
-      // 初始位置（确定性） + 时间漂移
-      const baseX = hash1 * LayoutManager.DESIGN_W;
-      const baseY = 100 + hash2 * (LayoutManager.DESIGN_H - 200);
+      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const baseY = 100 + this.hashToFloat(s = this.nextHash(s)) * (LayoutManager.DESIGN_H - 200);
 
       // 水平漂移 + 边界循环
       const driftX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + radius * 2) - radius;
@@ -230,27 +232,20 @@ export class ScreenFXSystem {
     const farCount = 60;
 
     for (let i = 0; i < farCount; i++) {
-      const seed = ((i * 2654435761) >>> 0);
-      const h1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const h2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const h3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
-      const h4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+      let s = ((i * 2654435761) >>> 0);
+      const fallSpeed = 350 + this.hashToFloat(s = this.nextHash(s)) * 250;
+      const len = 8 + this.hashToFloat(s = this.nextHash(s)) * 14;
+      const x = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const alpha = 0.15 + this.hashToFloat(s = this.nextHash(s)) * 0.25;
+      const lw = 0.8 + this.hashToFloat(s = this.nextHash(s)) * 0.4;
+      const phaseOffset = this.hashToFloat(this.nextHash(s)) * 3;
 
-      const fallSpeed = 350 + h1 * 250;           // 350-600 px/s
-      const len = 8 + h2 * 14;                     // 8-22px
-      const x = h3 * LayoutManager.DESIGN_W;
-      const alpha = 0.15 + h4 * 0.25;              // 0.15-0.40
-
-      // 时间偏移让不同滴的相位散布
-      const phaseOffset = h2 * 3;
-      const rawY = ((this.time + phaseOffset) * fallSpeed + h1 * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
-
-      // 风斜偏移
+      const rawY = ((this.time + phaseOffset) * fallSpeed + this.hashToFloat(this.nextHash(s)) * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
       const slantX = (rawY / LayoutManager.DESIGN_H) * Math.tan(windAngle * Math.PI / 180) * 40;
 
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = farColor;
-      ctx.lineWidth = 0.8 + h4 * 0.4;              // 0.8-1.2px
+      ctx.lineWidth = lw;
       ctx.beginPath();
       ctx.moveTo(x + slantX, rawY);
       ctx.lineTo(x, rawY + len);
@@ -264,25 +259,20 @@ export class ScreenFXSystem {
     const nearCount = 70;
 
     for (let i = 0; i < nearCount; i++) {
-      const seed = (((i + 1000) * 2654435761) >>> 0);
-      const h1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const h2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const h3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
-      const h4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+      let s = (((i + 1000) * 2654435761) >>> 0);
+      const fallSpeed = 450 + this.hashToFloat(s = this.nextHash(s)) * 350;
+      const len = 18 + this.hashToFloat(s = this.nextHash(s)) * 25;
+      const x = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const alpha = 0.25 + this.hashToFloat(s = this.nextHash(s)) * 0.4;
+      const lw = 1 + this.hashToFloat(s = this.nextHash(s)) * 1.5;
+      const phaseOffset = this.hashToFloat(this.nextHash(s)) * 2;
 
-      const fallSpeed = 450 + h1 * 350;             // 450-800 px/s
-      const len = 18 + h2 * 25;                     // 18-43px
-      const x = h3 * LayoutManager.DESIGN_W;
-      const alpha = 0.25 + h4 * 0.4;                // 0.25-0.65
-
-      const phaseOffset = h2 * 2;
-      const rawY = ((this.time + phaseOffset) * fallSpeed + h1 * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
-
+      const rawY = ((this.time + phaseOffset) * fallSpeed + this.hashToFloat(this.nextHash(s)) * LayoutManager.DESIGN_H) % (LayoutManager.DESIGN_H + 80) - 40;
       const slantX = (rawY / LayoutManager.DESIGN_H) * Math.tan(windAngle * Math.PI / 180) * 60;
 
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = nearColor;
-      ctx.lineWidth = 1 + h4 * 1.5;                 // 1-2.5px
+      ctx.lineWidth = lw;
       ctx.beginPath();
       ctx.moveTo(x + slantX, rawY);
       ctx.lineTo(x, rawY + len);
@@ -309,29 +299,20 @@ export class ScreenFXSystem {
     const color = '#2a3040';
 
     for (let i = 0; i < cloudCount; i++) {
-      const seed = ((i * 2654435761) >>> 0);
-      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
+      let s = ((i * 2654435761) >>> 0);
+      const y = this.hashToFloat(s = this.nextHash(s)) * 200;
+      const hR = 80 + this.hashToFloat(s = this.nextHash(s)) * 80;
+      const vR = 40 + this.hashToFloat(s = this.nextHash(s)) * 30;
+      const alpha = 0.15 + this.hashToFloat(s = this.nextHash(s)) * 0.15;
+      const driftSpeed = 15 + this.hashToFloat(s = this.nextHash(s)) * 20;
 
-      // Y 范围: 0-200（屏幕顶部）
-      const y = hash1 * 200;
-      // 半径: 80-160px
-      const horizontalRadius = 80 + hash2 * 80;
-      const verticalRadius = 40 + hash3 * 30;
-      // alpha: 0.15-0.3
-      const alpha = 0.15 + hash2 * 0.15;
-      // 漂移速度: 15-35 px/s
-      const driftSpeed = 15 + hash3 * 20;
-
-      // 水平漂移 + 边界循环
-      const baseX = hash1 * LayoutManager.DESIGN_W;
-      const cloudX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + horizontalRadius * 2) - horizontalRadius;
+      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const cloudX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + hR * 2) - hR;
 
       ctx.globalAlpha = alpha;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(cloudX, y, horizontalRadius, verticalRadius, 0, 0, Math.PI * 2);
+      ctx.ellipse(cloudX, y, hR, vR, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -352,26 +333,17 @@ export class ScreenFXSystem {
 
     ctx.save();
 
-    // splitmix32 哈希链：从前一个 hash 推导下一个，确保完全独立
-    const next = (h: number): number => {
-      h = ((h ^ (h >>> 16)) * 0x85ebca6b) >>> 0;
-      h = ((h ^ (h >>> 13)) * 0xc2b2ae35) >>> 0;
-      h = (h ^ (h >>> 16)) >>> 0;
-      return h;
-    };
-    const toFloat = (h: number): number => h / 0xFFFFFFFF;
-
     const skyHeight = 200; // 仅天空区域，不落入棋盘
 
     // ---- 小星（70颗，半径0.5-1.2px）----
     for (let i = 0; i < 70; i++) {
       let s = ((i * 2654435761) >>> 0);
-      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
-      const y = toFloat(s = next(s)) * skyHeight;
-      const r = 0.5 + toFloat(s = next(s)) * 0.7;
-      const tf = 2 + toFloat(s = next(s)) * 3;
-      const tp = toFloat(s = next(s)) * Math.PI * 2;
-      const ba = 0.3 + toFloat(next(s)) * 0.5;
+      const x = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const y = this.hashToFloat(s = this.nextHash(s)) * skyHeight;
+      const r = 0.5 + this.hashToFloat(s = this.nextHash(s)) * 0.7;
+      const tf = 2 + this.hashToFloat(s = this.nextHash(s)) * 3;
+      const tp = this.hashToFloat(s = this.nextHash(s)) * Math.PI * 2;
+      const ba = 0.3 + this.hashToFloat(this.nextHash(s)) * 0.5;
       const tw = Math.sin(this.time * tf + tp) * 0.4 + 0.6;
 
       ctx.globalAlpha = ba * tw;
@@ -384,12 +356,12 @@ export class ScreenFXSystem {
     // ---- 中星（35颗，半径1.2-2.5px，含微十字星芒）----
     for (let i = 0; i < 35; i++) {
       let s = (((i + 500) * 2654435761) >>> 0);
-      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
-      const y = toFloat(s = next(s)) * skyHeight;
-      const r = 1.2 + toFloat(s = next(s)) * 1.3;
-      const tf = 1.2 + toFloat(s = next(s)) * 2.5;
-      const tp = toFloat(s = next(s)) * Math.PI * 2;
-      const ba = 0.4 + toFloat(next(s)) * 0.6;
+      const x = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const y = this.hashToFloat(s = this.nextHash(s)) * skyHeight;
+      const r = 1.2 + this.hashToFloat(s = this.nextHash(s)) * 1.3;
+      const tf = 1.2 + this.hashToFloat(s = this.nextHash(s)) * 2.5;
+      const tp = this.hashToFloat(s = this.nextHash(s)) * Math.PI * 2;
+      const ba = 0.4 + this.hashToFloat(this.nextHash(s)) * 0.6;
       const tw = Math.sin(this.time * tf + tp) * 0.35 + 0.65;
       const alpha = ba * tw;
 
@@ -410,13 +382,13 @@ export class ScreenFXSystem {
     // ---- 亮星（8颗，四角星芒 + 强闪烁）----
     for (let i = 0; i < 8; i++) {
       let s = (((i + 1000) * 2654435761) >>> 0);
-      const x = toFloat(s = next(s)) * LayoutManager.DESIGN_W;
-      const y = toFloat(s = next(s)) * skyHeight;
-      const r = 2 + toFloat(s = next(s)) * 2;
-      const tf = 0.8 + toFloat(s = next(s)) * 1.5;
-      const tp = toFloat(next(s)) * Math.PI * 2;
+      const x = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const y = this.hashToFloat(s = this.nextHash(s)) * skyHeight;
+      const r = 2 + this.hashToFloat(s = this.nextHash(s)) * 2;
+      const tf = 0.8 + this.hashToFloat(s = this.nextHash(s)) * 1.5;
+      const tp = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
       const tw = Math.sin(this.time * tf + tp) * 0.4 + 0.6;
-      const alpha = (0.6 + toFloat(next(s)) * 0.4) * tw;
+      const alpha = (0.6 + this.hashToFloat(this.nextHash(s)) * 0.4) * tw;
 
       const armLen = r * 4;
       const armW = r * 0.6;
