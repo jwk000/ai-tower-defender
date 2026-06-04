@@ -75,6 +75,7 @@ export class ScreenFXSystem {
   render(ctx: CanvasRenderingContext2D, dt: number, weather: WeatherType): void {
     this.time += dt;
 
+    this.drawSun(ctx, weather);
     this.drawSunRays(ctx, weather);
     this.drawWindLines(ctx, weather);
     this.drawFogParticles(ctx, weather);
@@ -86,8 +87,65 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 阳光射线
+  // 太阳
   // ============================================================
+
+  /**
+   * 左上角耀眼太阳：多层径向渐变光晕 + 本体 + 呼吸脉冲
+   * 仅在晴天显示
+   */
+  private drawSun(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Sunny) return;
+
+    const sx = 100;
+    const sy = 80;
+    const pulse = Math.sin(this.time * 0.5) * 0.06 + 0.94; // 呼吸脉冲
+
+    ctx.save();
+
+    // 最外层光晕（极淡，极大范围）
+    const g4 = ctx.createRadialGradient(sx, sy, 60, sx, sy, 250);
+    g4.addColorStop(0, `rgba(255,248,200,${0.06 * pulse})`);
+    g4.addColorStop(0.5, `rgba(255,240,180,${0.03 * pulse})`);
+    g4.addColorStop(1, 'rgba(255,230,150,0)');
+    ctx.fillStyle = g4;
+    ctx.beginPath(); ctx.arc(sx, sy, 250, 0, Math.PI * 2); ctx.fill();
+
+    // 第三层光晕
+    const g3 = ctx.createRadialGradient(sx, sy, 35, sx, sy, 150);
+    g3.addColorStop(0, `rgba(255,250,210,${0.12 * pulse})`);
+    g3.addColorStop(0.5, `rgba(255,240,180,${0.06 * pulse})`);
+    g3.addColorStop(1, 'rgba(255,220,130,0)');
+    ctx.fillStyle = g3;
+    ctx.beginPath(); ctx.arc(sx, sy, 150, 0, Math.PI * 2); ctx.fill();
+
+    // 第二层光晕（暖黄色）
+    const g2 = ctx.createRadialGradient(sx, sy, 15, sx, sy, 70);
+    g2.addColorStop(0, `rgba(255,255,230,${0.25 * pulse})`);
+    g2.addColorStop(0.5, `rgba(255,245,200,${0.12 * pulse})`);
+    g2.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(sx, sy, 70, 0, Math.PI * 2); ctx.fill();
+
+    // 内层光晕（亮白色）
+    const g1 = ctx.createRadialGradient(sx, sy, 0, sx, sy, 25);
+    g1.addColorStop(0, `rgba(255,255,255,${0.7 * pulse})`);
+    g1.addColorStop(0.4, `rgba(255,255,240,${0.4 * pulse})`);
+    g1.addColorStop(1, 'rgba(255,240,200,0)');
+    ctx.fillStyle = g1;
+    ctx.beginPath(); ctx.arc(sx, sy, 25, 0, Math.PI * 2); ctx.fill();
+
+    // 太阳本体（刺眼白心）
+    const g0 = ctx.createRadialGradient(sx, sy, 0, sx, sy, 10);
+    g0.addColorStop(0, '#ffffff');
+    g0.addColorStop(0.3, '#fffef0');
+    g0.addColorStop(0.7, '#fff8c0');
+    g0.addColorStop(1, 'rgba(255,240,150,0)');
+    ctx.fillStyle = g0;
+    ctx.beginPath(); ctx.arc(sx, sy, 10, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
 
   /**
    * 从画面左上角斜射下来的半透明金色光束
