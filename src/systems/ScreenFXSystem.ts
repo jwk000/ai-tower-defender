@@ -343,43 +343,109 @@ export class ScreenFXSystem {
   // ============================================================
 
   /**
-   * 闪烁的小星星散布在天空区域
+   * 满天星斗散布在天空区域 —— 多档大小 + 星芒十字 + 闪烁
    * 仅在夜晚显示
-   * 使用确定性种子确定位置和闪烁相位
+   * 使用确定性种子，但通过多层 hash 产生斑点状分布
    */
   private drawStars(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Night) return;
 
     ctx.save();
 
-    const starCount = 40;
-    const color = '#ffffff';
-    const skyHeight = 300; // 天空区域高度
+    const skyHeight = 350;
 
-    for (let i = 0; i < starCount; i++) {
+    // ---- 小星（70颗，半径0.5-1.2px）----
+    for (let i = 0; i < 70; i++) {
       const seed = ((i * 2654435761) >>> 0);
-      const hash1 = ((seed * 1103515245 + 12345) >>> 0) / 0xFFFFFFFF;
-      const hash2 = ((seed * 1103515245 + 54321) >>> 0) / 0xFFFFFFFF;
-      const hash3 = ((seed * 1103515245 + 67890) >>> 0) / 0xFFFFFFFF;
-      const hash4 = ((seed * 1103515245 + 98765) >>> 0) / 0xFFFFFFFF;
+      const s0 = ((seed * 1103515245 + 11111) >>> 0) / 0xFFFFFFFF;
+      const s1 = ((seed * 1103515245 + 22222) >>> 0) / 0xFFFFFFFF;
+      const s2 = ((seed * 1103515245 + 33333) >>> 0) / 0xFFFFFFFF;
+      const s3 = ((seed * 1103515245 + 44444) >>> 0) / 0xFFFFFFFF;
 
-      // 位置: 全宽, y 0 ~ skyHeight
-      const x = hash1 * LayoutManager.DESIGN_W;
-      const y = hash2 * skyHeight;
-      // 半径: 1-3px
-      const radius = 1 + hash3 * 2;
-      // 闪烁频率: 1.5-4 Hz
-      const twinkleFreq = 1.5 + hash4 * 2.5;
-      // 闪烁相位
-      const starPhase = hash3 * Math.PI * 2;
-
-      // 基础 alpha: 0.4-1.0，叠加闪烁
-      const baseAlpha = 0.4 + hash4 * 0.6;
-      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.3 + 0.7;
+      const x = (s0 * 0.9 + s1 * 0.1) * LayoutManager.DESIGN_W;
+      const y = (s2 * 0.8 + s3 * 0.2) * skyHeight;
+      const radius = 0.5 + s0 * 0.7;
+      const twinkleFreq = 2 + s1 * 3;
+      const starPhase = s2 * Math.PI * 2;
+      const baseAlpha = 0.3 + s3 * 0.5;
+      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.4 + 0.6;
       const alpha = baseAlpha * twinkle;
 
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = color;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ---- 中星（35颗，半径1.2-2.5px）----
+    for (let i = 0; i < 35; i++) {
+      const seed = (((i + 500) * 2654435761) >>> 0);
+      const s0 = ((seed * 1103515245 + 55555) >>> 0) / 0xFFFFFFFF;
+      const s1 = ((seed * 1103515245 + 66666) >>> 0) / 0xFFFFFFFF;
+      const s2 = ((seed * 1103515245 + 77777) >>> 0) / 0xFFFFFFFF;
+      const s3 = ((seed * 1103515245 + 88888) >>> 0) / 0xFFFFFFFF;
+
+      const x = (s0 * 0.85 + s2 * 0.15) * LayoutManager.DESIGN_W;
+      const y = (s1 * 0.7 + s3 * 0.3) * skyHeight;
+      const radius = 1.2 + s0 * 1.3;
+      const twinkleFreq = 1.2 + s1 * 2.5;
+      const starPhase = s2 * Math.PI * 2;
+      const baseAlpha = 0.4 + s3 * 0.6;
+      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.35 + 0.65;
+      const alpha = baseAlpha * twinkle;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 稍亮的中星画微小的十字星芒
+      if (alpha > 0.55) {
+        const glowR = radius * 3;
+        const glowAlpha = alpha * 0.3;
+        ctx.globalAlpha = glowAlpha;
+        ctx.fillStyle = '#ffffff';
+        // 水平星芒
+        ctx.fillRect(x - glowR, y - 0.5, glowR * 2, 1);
+        // 垂直星芒
+        ctx.fillRect(x - 0.5, y - glowR, 1, glowR * 2);
+      }
+    }
+
+    // ---- 亮星（8颗，十字星芒 + 强闪烁）----
+    for (let i = 0; i < 8; i++) {
+      const seed = (((i + 1000) * 2654435761) >>> 0);
+      const s0 = ((seed * 1103515245 + 11117) >>> 0) / 0xFFFFFFFF;
+      const s1 = ((seed * 1103515245 + 22227) >>> 0) / 0xFFFFFFFF;
+      const s2 = ((seed * 1103515245 + 33337) >>> 0) / 0xFFFFFFFF;
+
+      const x = (s0 * 0.8 + s1 * 0.2) * LayoutManager.DESIGN_W;
+      const y = (s1 * 0.6 + s2 * 0.4) * skyHeight;
+      const radius = 2 + s0 * 2;
+      const twinkleFreq = 0.8 + s1 * 1.5;
+      const starPhase = s2 * Math.PI * 2;
+      const twinkle = Math.sin(this.time * twinkleFreq + starPhase) * 0.4 + 0.6;
+      const alpha = (0.6 + s2 * 0.4) * twinkle;
+
+      // 四角星芒
+      const armLen = radius * 4;
+      const armW = radius * 0.6;
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.fillStyle = '#ffffff';
+      ctx.save();
+      ctx.translate(x, y);
+
+      for (let j = 0; j < 4; j++) {
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-armW / 2, -armLen, armW, armLen * 2);
+      }
+      ctx.restore();
+
+      // 中心亮点
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -410,11 +476,11 @@ export class ScreenFXSystem {
     // 呼吸脉冲：alpha 轻微振荡
     const pulse = Math.sin(this.time * 0.6) * 0.03 + 0.97;
 
-    // 光晕 — 3 层同心圆
+    // 光晕 — 3 层同心圆（暖白→浅黄渐变）
     const halos = [
-      { radius: 80,  color: '#fffde7', alpha: 0.15 },
-      { radius: 110, color: '#fff9c4', alpha: 0.08 },
-      { radius: 150, color: '#fff9c4', alpha: 0.04 },
+      { radius: 80,  color: '#fffef5', alpha: 0.18 },
+      { radius: 115, color: '#fff8d4', alpha: 0.09 },
+      { radius: 155, color: '#fff3b0', alpha: 0.04 },
     ];
 
     for (const halo of halos) {
@@ -425,9 +491,9 @@ export class ScreenFXSystem {
       ctx.fill();
     }
 
-    // 月亮本体
+    // 月亮本体 — 白色偏黄
     ctx.globalAlpha = 0.95 * pulse;
-    ctx.fillStyle = '#fffde7';
+    ctx.fillStyle = '#fffef0';
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
     ctx.fill();
