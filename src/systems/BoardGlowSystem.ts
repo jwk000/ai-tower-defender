@@ -2,7 +2,7 @@
 // Tower Defender — BoardGlowSystem
 //
 // 棋盘流光效果：在棋盘上以随机间隔扫过一道金色光带。
-// 光带水平横扫，带渐变软边，间隔 3-8s 随机触发。
+// 光带 45° 斜向横扫，带渐变软边，间隔 3-8s 随机触发。
 //
 // 实现为轻量 System，仅管理计时逻辑；实际绘制在 onPostRender 中
 // 直接操作 Canvas 2D context（命令缓冲不支持渐变）。
@@ -26,8 +26,10 @@ export class BoardGlowSystem implements System {
   private sweepProgress = 0;
   /** 本次扫过持续时长（秒） */
   private sweepDuration = 1.0;
-  /** 扫过方向 */
-  private sweepDirection: 'ltr' | 'rtl' = 'ltr';
+  /** 斜向角度（弧度，每次随机 ±45°） */
+  private sweepAngle = Math.PI / 4;
+  /** 扫过方向（true=正向，false=反向） */
+  private sweepForward = true;
 
   /** 光带宽度因子（0.7–1.3，每次随机） */
   private bandWidthFactor = 1.0;
@@ -47,18 +49,19 @@ export class BoardGlowSystem implements System {
         this.sweepProgress = 0;
         this.cooldown = 0;
         this.nextTriggerTime = this.randomCooldown();
-        this.sweepDirection = Math.random() > 0.5 ? 'ltr' : 'rtl';
       }
     } else if (this.cooldown >= this.nextTriggerTime) {
       this.sweepActive = true;
       this.sweepProgress = 0;
       this.sweepDuration = 0.7 + Math.random() * 0.9; // 0.7–1.6s
       this.bandWidthFactor = 0.7 + Math.random() * 0.6; // 0.7–1.3
+      this.sweepAngle = Math.random() > 0.5 ? Math.PI / 4 : -Math.PI / 4;
+      this.sweepForward = Math.random() > 0.5;
     }
   }
 
   /**
-   * 直接在 Canvas 2D 上下文上绘制流光光带。
+   * 直接在 Canvas 2D 上下文上绘制 45° 斜向流光光带。
    * 在 onPostRender 中调用，此时 ctx 处于设计空间变换下。
    */
   render(ctx: CanvasRenderingContext2D): void {
@@ -66,8 +69,8 @@ export class BoardGlowSystem implements System {
 
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
-    const mapW = RenderSystem.sceneW;  // mapPixelW
-    const mapH = RenderSystem.sceneH;  // mapPixelH
+    const mapW = RenderSystem.sceneW;
+    const mapH = RenderSystem.sceneH;
 
     if (mapW <= 0 || mapH <= 0) return;
 
@@ -75,10 +78,17 @@ export class BoardGlowSystem implements System {
     // ease-in-out
     const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-    // 光带水平位置
-    const bandX = this.sweepDirection === 'ltr'
-      ? ox + eased * mapW
-      : ox + (1 - eased) * mapW;
+    // Board center
+    const cx = ox + mapW / 2;
+    const cy = oy + mapH / 2;
+
+    // 对角线长度确保旋转后覆盖全棋盘
+    const diagLen = Math.sqrt(mapW * mapW + mapH * mapH);
+
+    // 扫过位置（沿旋转后 x 轴）
+    const sweepX = this.sweepForward
+      ? -diagLen / 2 + eased * diagLen
+      : diagLen / 2 - eased * diagLen;
 
     // 光带宽度（基础 120px × 随机因子）
     const bandWidth = 120 * this.bandWidthFactor;
@@ -89,8 +99,12 @@ export class BoardGlowSystem implements System {
 
     ctx.save();
 
-    // 水平渐变：中心亮 → 两侧透明
-    const grad = ctx.createLinearGradient(bandX - halfW, 0, bandX + halfW, 0);
+    // 绕棋盘中心旋转 45°，使竖直光带变为斜向
+    ctx.translate(cx, cy);
+    ctx.rotate(this.sweepAngle);
+
+    // 渐变沿旋转后 x 轴（垂直于光带方向）
+    const grad = ctx.createLinearGradient(sweepX - halfW, 0, sweepX + halfW, 0);
     grad.addColorStop(0.0, 'rgba(255, 215, 0, 0)');
     grad.addColorStop(0.15, `rgba(255, 240, 160, ${peakAlpha * 0.3})`);
     grad.addColorStop(0.35, `rgba(255, 250, 220, ${peakAlpha * 0.8})`);
@@ -100,7 +114,8 @@ export class BoardGlowSystem implements System {
     grad.addColorStop(1.0, 'rgba(255, 215, 0, 0)');
 
     ctx.fillStyle = grad;
-    ctx.fillRect(bandX - halfW, oy - 4, bandWidth, mapH + 8);
+    // 竖直光带（在旋转空间中看是竖直的，原始空间中看是 45° 斜向）
+    ctx.fillRect(sweepX - halfW, -diagLen / 2 - 4, bandWidth, diagLen + 8);
 
     ctx.restore();
   }
