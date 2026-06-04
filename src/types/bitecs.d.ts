@@ -39,6 +39,9 @@ declare module 'bitecs' {
       : T[K] extends typeof Types.eid ? Uint32Array
       : Array<number>;
   } & { _size: Uint32Array };
-
   export function defineQuery(components: object[]): (world: IWorld) => number[];
+
+  // --- Utility functions (available at runtime) ---
+  export function entityExists(world: IWorld, eid: number): boolean;
+  export function resetGlobals(): void;
 }

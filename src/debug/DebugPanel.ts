@@ -1,4 +1,4 @@
-export type DebugActionId = 'complete_all_levels' | 'add_gold' | 'view_behavior_tree';
+export type DebugActionId = 'complete_all_levels' | 'add_gold' | 'open_inspector' | 'open_level_editor' | 'show_card_list';
 
 export interface DebugAction {
   id: DebugActionId;
@@ -118,6 +118,11 @@ export class DebugPanel {
     return titleBar;
   }
 
+  setActions(actions: DebugAction[]): void {
+    this.actions = actions;
+    this.renderActionButtons();
+  }
+
   private renderActionButtons(): void {
     this.listContainer.innerHTML = '';
     this.buttons = [];
@@ -208,14 +213,14 @@ export class DebugPanel {
       top: 50%;
       right: 0;
       transform: translateY(-50%);
-      width: 36px;
-      height: 36px;
+      width: 72px;
+      height: 72px;
       background: rgba(30, 30, 46, 0.9);
       border: 2px solid #3a3a4a;
       border-right: none;
       border-radius: 8px 0 0 8px;
       color: #fff;
-      font-size: 18px;
+      font-size: 36px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -226,11 +231,11 @@ export class DebugPanel {
     `;
     button.addEventListener('mouseenter', () => {
       button.style.background = 'rgba(58, 58, 74, 0.95)';
-      button.style.width = '42px';
+      button.style.width = '84px';
     });
     button.addEventListener('mouseleave', () => {
       button.style.background = 'rgba(30, 30, 46, 0.9)';
-      button.style.width = '36px';
+      button.style.width = '72px';
     });
     button.addEventListener('click', () => this.expand());
     return button;

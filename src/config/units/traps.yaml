@@ -1,0 +1,280 @@
+# ============================================================
+# Tower Defender — 机关配置
+# ============================================================
+# 设计文档: design/03-units.md §4
+# 8种机关，放置在路径上或路径旁
+# ============================================================
+
+# 地刺 — 路径陷阱，对经过敌人造成持续伤害
+spike_trap:
+  id: spike_trap
+  name: 地刺
+  category: Trap
+  faction: Player
+  layer: AboveGrid
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 40
+
+  trap:
+    type: SpikeTrap
+    damagePerSecond: 8
+    radius: 32
+
+  visual:
+    shape: triangle
+    color: "#757575"
+    size: 28
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 捕兽夹 — 一次性陷阱，触发后眩晕敌人2秒并造成20点伤害，BOSS免疫
+bear_trap:
+  id: bear_trap
+  name: 捕兽夹
+  category: Trap
+  faction: Player
+  layer: AboveGrid
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 50
+
+  trap:
+    type: BearTrap
+    stunDuration: 2.0
+    damage: 20
+    maxTriggers: 1
+    bossImmune: true
+
+  visual:
+    shape: rect
+    color: "#8d6e63"
+    size: 24
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 焦油坑 — 路径减速，经过的地面敌人减速20%
+tar_pit:
+  id: tar_pit
+  name: 焦油坑
+  category: Trap
+  faction: Player
+  layer: AboveGrid
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 45
+
+  trap:
+    type: TarPit
+    slowPercent: 20
+    radius: 32
+
+  visual:
+    shape: circle
+    color: "#424242"
+    size: 30
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 巨石 — 路障，阻挡敌人前进必须被破坏
+boulder:
+  id: boulder
+  name: 巨石
+  category: Trap
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 200
+    armor: 20
+    mr: 0
+
+  cost:
+    build: 60
+
+  trap:
+    type: Boulder
+
+  visual:
+    shape: circle
+    color: "#78909c"
+    size: 40
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: rock_shatter
+
+---
+# 风扇 — 前方3格路径敌人减速20%
+fan:
+  id: fan
+  name: 风扇
+  category: Trap
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 100
+    armor: 0
+    mr: 0
+
+  cost:
+    build: 55
+
+  trap:
+    type: Fan
+    slowPercent: 20
+    range: 3
+
+  visual:
+    shape: rect
+    color: "#42a5f5"
+    size: 28
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 水坑 — 50%概率直接秒杀经过的敌人
+water_pit:
+  id: water_pit
+  name: 水坑
+  category: Trap
+  faction: Player
+  layer: AboveGrid
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 70
+
+  trap:
+    type: WaterPit
+    killChance: 0.5
+
+  visual:
+    shape: circle
+    color: "#29b6f6"
+    size: 28
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 拳击套 — 击退前方1格路径上的敌人，3秒冷却
+boxing_glove:
+  id: boxing_glove
+  name: 拳击套
+  category: Trap
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 60
+
+  trap:
+    type: BoxingGlove
+    pushDistance: 1
+    cooldown: 3.0
+
+  visual:
+    shape: rect
+    color: "#f44336"
+    size: 26
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+
+---
+# 机械臂 — 拉回前方2格路径上的敌人，4秒冷却
+mechanical_arm:
+  id: mechanical_arm
+  name: 机械臂
+  category: Trap
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 65
+
+  trap:
+    type: MechanicalArm
+    pullDistance: 1
+    range: 2
+    cooldown: 4.0
+
+  visual:
+    shape: rect
+    color: "#607d8b"
+    size: 28
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1

@@ -1,0 +1,572 @@
+/**
+ * BossSystem 测试 — 5种BOSS机制全量测试
+ *
+ * 对应设计文档:
+ * - design/03-units.md §6 (BOSS)
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
+import { TowerWorld, defineQuery, hasComponent } from '../core/World.js';
+import {
+  Position, Health, Boss, Faction, FactionVal,
+  Attack, UnitTag, Visual, Category, CategoryVal,
+  Tower, TargetingMark,
+  MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
+} from '../core/components.js';
+import { BossSystem, BossType } from './BossSystem.js';
+
+// ============================================================
+// Queries for tests
+// ============================================================
+
+const allHealthQuery = defineQuery([Health]);
+const allPositionedQuery = defineQuery([Position]);
+const bossQuery = defineQuery([Boss]);
+
+// ============================================================
+// Test helpers
+// ============================================================
+
+function makeBoss(
+  world: TowerWorld,
+  bossType: number,
+  overrides: {
+    hp?: number;
+    maxHp?: number;
+    atk?: number;
+    x?: number; y?: number;
+    faction?: number;
+    splitCount?: number;
+    spawnTimer?: number;
+    abilityTimer?: number;
+    phase?: number;
+  } = {},
+): number {
+  const eid = world.createEntity();
+  const maxHp = overrides.maxHp ?? overrides.hp ?? 1000;
+  world.addComponent(eid, Position, { x: overrides.x ?? 500, y: overrides.y ?? 300 });
+  world.addComponent(eid, Health, {
+    current: overrides.hp ?? maxHp,
+    max: maxHp,
+    armor: 10,
+    magicResist: 5,
+  });
+  world.addComponent(eid, Boss, {
+    bossType,
+    phase: overrides.phase ?? 1,
+    phase2HpRatio: 0.5,
+    transitionTimer: 0,
+    abilityTimer: overrides.abilityTimer ?? 0,
+    spawnTimer: overrides.spawnTimer ?? 0,
+    splitCount: overrides.splitCount ?? 0,
+    immuneToTowers: 0,
+  });
+  world.addComponent(eid, Faction, { value: overrides.faction ?? FactionVal.Evil });
+  world.addComponent(eid, Category, { value: CategoryVal.Enemy });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  world.addComponent(eid, UnitTag, { isEnemy: 1, isBoss: 1, atk: overrides.atk ?? 20 });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle, colorR: 200, colorG: 0, colorB: 0,
+    size: 40, alpha: 1, facing: 1,
+  });
+  world.addComponent(eid, Attack, {
+    damage: overrides.atk ?? 20,
+    attackSpeed: 0.5,
+    range: 50,
+    damageType: DamageTypeVal.Physical,
+    isRanged: 0,
+    alertRange: 200,
+    cooldownTimer: 0,
+    targetId: 0,
+    targetSelection: 0,
+    attackMode: 0,
+    splashRadius: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
+    drainPercent: 0,
+  });
+  world.setDisplayName(eid, 'Boss');
+  return eid;
+}
+
+function makeTower(world: TowerWorld, x: number, y: number, hp: number = 200): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 5, magicResist: 5 });
+  world.addComponent(eid, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Category, { value: CategoryVal.Tower });
+  world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Rect, colorR: 100, colorG: 100, colorB: 200,
+    size: 20, alpha: 1, facing: 1,
+  });
+  world.setDisplayName(eid, 'Tower');
+  return eid;
+}
+
+function makeEnemy(world: TowerWorld, x: number, y: number, hp: number = 100): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Faction, { value: FactionVal.Evil });
+  world.addComponent(eid, Category, { value: CategoryVal.Enemy });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  world.addComponent(eid, UnitTag, { isEnemy: 1, atk: 10 });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle, colorR: 200, colorG: 100, colorB: 100,
+    size: 12, alpha: 1, facing: 1,
+  });
+  world.setDisplayName(eid, 'Enemy');
+  return eid;
+}
+
+/** Count alive entities (Health.current > 0) with the given component */
+function countAliveWithBoss(world: TowerWorld): number {
+  const all = bossQuery(world.world);
+  let count = 0;
+  for (const eid of all) {
+    if (Health.current[eid] !== undefined && Health.current[eid]! > 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** Count alive entities with any Health > 0 */
+function countAliveEntities(world: TowerWorld): number {
+  const all = allHealthQuery(world.world);
+  let count = 0;
+  for (const eid of all) {
+    if (Health.current[eid]! > 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** Count alive entities with UnitTag.isEnemy === 1 */
+function countAliveEnemies(world: TowerWorld): number {
+  const all = allHealthQuery(world.world);
+  let count = 0;
+  for (const eid of all) {
+    if (Health.current[eid]! > 0 && UnitTag.isEnemy[eid] === 1) {
+      count++;
+    }
+  }
+  return count;
+}
+
+// ============================================================
+// GiantSlime (0) — Death Split
+// ============================================================
+
+describe('BossSystem — GiantSlime (分裂)', () => {
+  let world: TowerWorld;
+  let system: BossSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new BossSystem();
+  });
+
+  it('巨型史莱姆死亡后分裂为2个中型史莱姆', () => {
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 800, maxHp: 800, splitCount: 0,
+    });
+
+    const initialCount = countAliveWithBoss(world);
+    expect(initialCount).toBe(1);
+
+    // Kill the boss
+    Health.current[boss] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities(); // remove deferred-delete entities
+
+    // Original boss should be destroyed (marked)
+    // 2 medium slimes should be spawned with splitCount=1
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter.length).toBe(2); // 2 medium slimes (original removed)
+
+    // Verify child properties
+    for (const eid of bossesAfter) {
+      expect(Boss.bossType[eid]).toBe(BossType.GiantSlime);
+      expect(Boss.splitCount[eid]).toBe(1);
+      expect(Health.max[eid]).toBe(200);
+      expect(Attack.damage[eid]).toBe(15);
+    }
+  });
+
+  it('中型史莱姆死亡后分裂为2个小型史莱姆', () => {
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 200, maxHp: 200, splitCount: 1, // medium slime
+    });
+
+    // Kill the medium slime
+    Health.current[boss] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities();
+
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter.length).toBe(2); // 2 small slimes
+
+    for (const eid of bossesAfter) {
+      expect(Boss.splitCount[eid]).toBe(2);
+      expect(Health.max[eid]).toBe(80);
+      expect(Attack.damage[eid]).toBe(12);
+    }
+  });
+
+  it('小型史莱姆死亡后不再分裂', () => {
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 80, maxHp: 80, splitCount: 2, // small slime
+    });
+
+    // Kill the small slime
+    Health.current[boss] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities();
+
+    const bossesAfter = bossQuery(world.world);
+    // Small slime should be destroyed with no children
+    expect(bossesAfter.length).toBe(0);
+  });
+});
+
+// ============================================================
+// QueenWorm (1) — tower immunity + minion spawning
+// ============================================================
+
+describe('BossSystem — QueenWorm (虫族女王)', () => {
+  let world: TowerWorld;
+  let system: BossSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new BossSystem();
+  });
+
+  it('虫族女王设置塔免疫标记', () => {
+    const boss = makeBoss(world, BossType.QueenWorm, { hp: 1000 });
+    system.update(world, 0);
+    expect(Boss.immuneToTowers[boss]).toBe(1);
+  });
+
+  it('每15秒召唤3只沙漠黑虫', () => {
+    const boss = makeBoss(world, BossType.QueenWorm, {
+      hp: 1000, spawnTimer: 14.9,
+    });
+    const initialEnemyCount = countAliveEnemies(world);
+
+    // Tick just past 15s
+    system.update(world, 0.2);
+
+    // Should have spawned 3 beetles (enemies)
+    const enemyCountAfter = countAliveEnemies(world);
+    expect(enemyCountAfter - initialEnemyCount).toBe(3);
+
+    // Spawn timer should reset
+    expect(Boss.spawnTimer[boss]).toBeLessThan(1);
+  });
+
+  it('召唤的沙漠黑虫在BOSS周围随机位置', () => {
+    const boss = makeBoss(world, BossType.QueenWorm, {
+      hp: 1000, spawnTimer: 15, x: 500, y: 300,
+    });
+    system.update(world, 0.1);
+
+    const allHealth = allHealthQuery(world.world);
+    for (const eid of allHealth) {
+      if (eid === boss) continue;
+      if (Health.current[eid]! <= 0) continue;
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+
+      const ex = Position.x[eid] ?? 0;
+      const ey = Position.y[eid] ?? 0;
+      const dx = ex - 500;
+      const dy = ey - 300;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // Should be within 70px (40 + 30 random)
+      expect(dist).toBeLessThanOrEqual(70);
+      expect(dist).toBeGreaterThanOrEqual(30);
+    }
+  });
+});
+
+// ============================================================
+// Lucifer (2) — summon skeletons + enrage
+// ============================================================
+
+describe('BossSystem — Lucifer (路西法)', () => {
+  let world: TowerWorld;
+  let system: BossSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new BossSystem();
+  });
+
+  it('每10秒召唤3个骷髅', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 9.9, faction: FactionVal.Chaos,
+    });
+    const initialCount = countAliveEnemies(world);
+
+    system.update(world, 0.2);
+
+    const newCount = countAliveEnemies(world);
+    expect(newCount - initialCount).toBe(3);
+
+    // Verify skeletons are Chaos faction
+    const allHealth = allHealthQuery(world.world);
+    let skeletonCount = 0;
+    for (const eid of allHealth) {
+      if (eid === boss) continue;
+      if (Health.current[eid]! <= 0) continue;
+      if (Faction.value[eid] === FactionVal.Chaos && UnitTag.isEnemy[eid] === 1) {
+        skeletonCount++;
+      }
+    }
+    expect(skeletonCount).toBe(3);
+  });
+
+  it('场上骷髅数达到上限(12)时不继续召唤', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
+      faction: FactionVal.Chaos,
+    });
+
+    // Pre-spawn 12 skeleton-like entities
+    for (let i = 0; i < 12; i++) {
+      const eid = world.createEntity();
+      world.addComponent(eid, Position, { x: 500 + i * 10, y: 300 });
+      world.addComponent(eid, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
+      world.addComponent(eid, Faction, { value: FactionVal.Chaos });
+      world.addComponent(eid, Category, { value: CategoryVal.Enemy });
+      world.addComponent(eid, UnitTag, { isEnemy: 1, atk: 8 });
+    }
+
+    const initialEnemyCount = countAliveEnemies(world);
+    // 12 skeletons + 1 boss = 13
+    expect(initialEnemyCount).toBe(13);
+
+    system.update(world, 0.1);
+
+    // No additional skeletons should spawn (cap reached)
+    const finalEnemyCount = countAliveEnemies(world);
+    expect(finalEnemyCount).toBe(13);
+  });
+
+  it('HP低于30%时进入暴怒：ATK+50%，召唤间隔缩短至5秒', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 300, maxHp: 1200, atk: 40, spawnTimer: 5, // < 30% HP
+      faction: FactionVal.Chaos,
+    });
+
+    const initialAtk = Attack.damage[boss];
+
+    system.update(world, 0.1);
+
+    // ATK should increase by 50%
+    expect(Attack.damage[boss]).toBe(Math.round(initialAtk! * 1.5));
+    // transitionTimer marked as enraged
+    expect(Boss.transitionTimer[boss]).toBe(1);
+
+    // With spawnTimer at 5s, should spawn skeletons (enrage interval = 5s)
+    const allHealth = allHealthQuery(world.world);
+    let skeletonCount = 0;
+    for (const eid of allHealth) {
+      if (eid === boss) continue;
+      if (Health.current[eid]! <= 0) continue;
+      if (Faction.value[eid] === FactionVal.Chaos && UnitTag.isEnemy[eid] === 1) {
+        skeletonCount++;
+      }
+    }
+    expect(skeletonCount).toBe(3);
+  });
+});
+
+// ============================================================
+// SuperRobot (3) — missile bombardment
+// ============================================================
+
+describe('BossSystem — SuperRobot (超级机器人)', () => {
+  let world: TowerWorld;
+  let system: BossSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new BossSystem();
+  });
+
+  it('首次10秒后进入警告阶段(phase=1)，创建TargetingMark', () => {
+    // Create towers for targeting
+    makeTower(world, 500, 300, 200);
+    makeTower(world, 520, 310, 200); // close to first tower (dense area)
+
+    makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 9.9, phase: 0,
+    });
+
+    system.update(world, 0.2); // abilityTimer: 9.9 + 0.2 = 10.1 → should fire
+
+    // Check that targeting mark was created (TargetingMark entity has no Health component)
+    let markFound = false;
+    const allEntities = allPositionedQuery(world.world);
+    for (const eid of allEntities) {
+      if (hasComponent(world.world, TargetingMark, eid)) {
+        markFound = true;
+        break;
+      }
+    }
+    expect(markFound).toBe(true);
+  });
+
+  it('12秒后导弹爆炸，伤害密集区域内的塔', () => {
+    // Create towers: 2 close (dense area) + 1 far
+    const tower1 = makeTower(world, 500, 300, 200);
+    const tower2 = makeTower(world, 530, 310, 200); // within 192px
+    const tower3 = makeTower(world, 800, 300, 200); // far away (outside blast)
+
+    // Boss in warning phase, 0.1s from detonation (abilityTimer=1.9 + 0.2 = 2.1 >= 2)
+    const boss = makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 1.9, phase: 1,
+    });
+
+    // Tick to trigger detonation
+    system.update(world, 0.2);
+
+    // Tower1 and Tower2 should take damage (they're in the dense cluster)
+    // Tower3 should NOT take damage (far away)
+    expect(Health.current[tower1]).toBeLessThan(200);
+    expect(Health.current[tower2]).toBeLessThan(200);
+    expect(Health.current[tower3]).toBe(200); // unharmed
+  });
+
+  it('没有塔时不发射导弹', () => {
+    const boss = makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 10, phase: 0,
+    });
+
+    system.update(world, 0.1);
+
+    // No targeting mark should exist
+    let markFound = false;
+    const allEntities = allPositionedQuery(world.world);
+    for (const eid of allEntities) {
+      if (hasComponent(world.world, TargetingMark, eid)) {
+        markFound = true;
+        break;
+      }
+    }
+    expect(markFound).toBe(false);
+    // abilityTimer should reset
+    expect(Boss.abilityTimer[boss]).toBe(0);
+  });
+});
+
+// ============================================================
+// AbyssLord (4) — annihilation + heal
+// ============================================================
+
+describe('BossSystem — AbyssLord (深渊领主)', () => {
+  let world: TowerWorld;
+  let system: BossSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new BossSystem();
+  });
+
+  it('每5秒吞噬周围150px内所有单位', () => {
+    const boss = makeBoss(world, BossType.AbyssLord, {
+      hp: 3000, maxHp: 3000, abilityTimer: 4.9, x: 500, y: 300,
+    });
+
+    // Create entities within 150px
+    makeEnemy(world, 520, 310, 100);   // ~22px away
+    makeTower(world, 550, 350, 200);   // ~70px away
+    makeEnemy(world, 450, 280, 100);   // ~53px away
+
+    // Create entities outside 150px
+    makeEnemy(world, 700, 300, 100);   // ~200px away (safe)
+
+    const initialAlive = countAliveEntities(world);
+    // boss + 3 close + 1 far = 5 alive
+
+    system.update(world, 0.2);
+
+    // Only the far entity (700,300) and boss should survive
+    const aliveAfter = countAliveEntities(world);
+    expect(aliveAfter).toBe(2); // boss + far enemy
+
+    // Verify far enemy is still alive
+    const allHealth = allHealthQuery(world.world);
+    let farEnemyFound = false;
+    for (const eid of allHealth) {
+      if (Health.current[eid]! > 0 && Position.x[eid] === 700) {
+        farEnemyFound = true;
+        break;
+      }
+    }
+    expect(farEnemyFound).toBe(true);
+  });
+
+  it('每吞噬一个单位回复2%最大HP', () => {
+    const boss = makeBoss(world, BossType.AbyssLord, {
+      hp: 2000, maxHp: 3000, abilityTimer: 5, x: 500, y: 300,
+    });
+
+    // Create 2 entities within 150px
+    makeEnemy(world, 520, 310, 100);
+    makeEnemy(world, 510, 300, 100);
+
+    system.update(world, 0.1);
+
+    // 2 kills → heal 2% * 2 = 4% of 3000 = 120 HP
+    // Expected HP: 2000 + 120 = 2120
+    expect(Health.current[boss]).toBe(2120);
+  });
+
+  it('不吞噬其他BOSS和基地', () => {
+    const boss = makeBoss(world, BossType.AbyssLord, {
+      hp: 2000, maxHp: 3000, abilityTimer: 5, x: 500, y: 300,
+    });
+
+    // Create another boss within 150px
+    const otherBoss = makeBoss(world, BossType.GiantSlime, {
+      hp: 800, maxHp: 800, x: 550, y: 350, splitCount: 0,
+    });
+
+    // Create an objective (crystal) within 150px
+    const crystal = world.createEntity();
+    world.addComponent(crystal, Position, { x: 480, y: 320 });
+    world.addComponent(crystal, Health, { current: 500, max: 500, armor: 0, magicResist: 0 });
+    world.addComponent(crystal, Category, { value: CategoryVal.Objective });
+    world.addComponent(crystal, Faction, { value: FactionVal.Neutral });
+
+    // Create a regular enemy
+    makeEnemy(world, 520, 310, 100);
+
+    system.update(world, 0.1);
+
+    // other boss should survive
+    expect(Health.current[otherBoss]).toBeGreaterThan(0);
+    // crystal should survive
+    expect(Health.current[crystal]).toBeGreaterThan(0);
+    // regular enemy destroyed
+    // Heal: 1 kill → 2% of 3000 = 60 HP
+    expect(Health.current[boss]).toBe(2060);
+  });
+
+  it('不吞噬自身', () => {
+    const boss = makeBoss(world, BossType.AbyssLord, {
+      hp: 3000, maxHp: 3000, abilityTimer: 5, x: 500, y: 300,
+    });
+
+    system.update(world, 0.1);
+
+    // Boss should still be alive (not self-destroyed)
+    expect(Health.current[boss]).toBeGreaterThan(0);
+  });
+});

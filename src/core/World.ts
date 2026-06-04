@@ -28,6 +28,7 @@ import {
 // Import component definitions — these are needed by systems that
 // reference the component stores when calling addComponent / query.
 import * as components from '../core/components.js';
+import type { UnitVisualParts } from '../types/index.js';
 
 // Debug logging
 import { entityCreated, entityDestroyed, componentAdded, componentRemoved } from '../utils/debugLog.js';
@@ -67,6 +68,34 @@ export class TowerWorld {
 
   /** Entity display names (eid → name string) — used by RenderSystem for overhead HUD */
   private displayNames = new Map<number, string>();
+
+  private unitVisualPartsTable: UnitVisualParts[] = [];
+
+  /** Phase 0: RunContext type removed, use any as compatibility stub */
+  runContext: any | null = null;
+
+  /**
+   * 挂载新 Run 的运行时上下文（每次进入战斗调用）。
+   * Phase 0: 类型擦除为 any，Phase 3 恢复具体类型。
+   */
+  attachRunContext(ctx: any): void {
+    this.runContext = ctx;
+  }
+
+  /** 卸载当前 Run 上下文（返回主菜单 / Run 结束时）。 */
+  detachRunContext(): void {
+    this.runContext = null;
+  }
+
+  registerUnitVisualParts(parts: UnitVisualParts): number {
+    this.unitVisualPartsTable.push(parts);
+    return this.unitVisualPartsTable.length;
+  }
+
+  getUnitVisualParts(id: number): UnitVisualParts | undefined {
+    if (id <= 0) return undefined;
+    return this.unitVisualPartsTable[id - 1];
+  }
 
   // ---- Entity Lifecycle ----
 
@@ -156,7 +185,9 @@ export class TowerWorld {
   reset(): void {
     this.deadEntities.clear();
     this.displayNames.clear();
+    this.unitVisualPartsTable.length = 0;
     this.systems.length = 0;
+    this.runContext = null;
     // Remove all existing entities from current world before creating a new one
     const allEntities = getAllEntities(this.world);
     for (const eid of allEntities) {

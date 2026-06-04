@@ -16,9 +16,10 @@ export type { World };
 // ============================================================
 
 export const FactionVal = {
-  Player: 0,
-  Enemy: 1,
-  Neutral: 2,
+  Justice: 0,
+  Evil: 1,
+  Chaos: 2,
+  Neutral: 3,
 } as const;
 export type FactionVal = (typeof FactionVal)[keyof typeof FactionVal];
 
@@ -36,11 +37,11 @@ export const CategoryVal = {
   Tower: 0,
   Soldier: 1,
   Enemy: 2,
-  Building: 3,
-  Trap: 4,
-  Neutral: 5,
-  Objective: 6,
-  Effect: 7,
+  Trap: 3,
+  Boss: 4,
+  Objective: 5,
+  Effect: 6,
+  Decoration: 7,
 } as const;
 export type CategoryVal = (typeof CategoryVal)[keyof typeof CategoryVal];
 
@@ -73,7 +74,6 @@ export const MoveModeVal = {
 
 export const ResourceTypeVal = {
   Gold: 0,
-  Energy: 1,
 } as const;
 
 export const TargetSelectionVal = {
@@ -100,6 +100,18 @@ export const AlertMarkVal = {
   Blinking: 1,
   Solid: 2,
 } as const;
+
+export const TrapTypeVal = {
+  SpikeTrap: 0,
+  BearTrap: 1,
+  TarPit: 2,
+  Boulder: 3,
+  Fan: 4,
+  WaterPit: 5,
+  BoxingGlove: 6,
+  MechanicalArm: 7,
+} as const;
+export type TrapTypeVal = (typeof TrapTypeVal)[keyof typeof TrapTypeVal];
 
 // ============================================================
 // 核心组件 — 所有单位共享
@@ -153,7 +165,26 @@ export const Visual = defineComponent({
   alpha: Types.f32,      // 透明度 (0-1)
   outline: Types.ui8,    // 是否有描边 (0/1)
   hitFlashTimer: Types.f32, // 受击闪白计时器
-  idlePhase: Types.f32,     // 待机动画相位
+  idlePhase: Types.f32,     // 待机动画相位 (projectile 复用为飞行角度)
+
+  // ---- 可移动单位视觉增强字段 ----
+  // 设计文档: design/15-refactoring-plan.md, AGENTS.md (单位形象重设计)
+  /** 朝向：-1 = 面朝左, +1 = 面朝右（仅 X 轴翻转，不做 360° 旋转）。默认 1。 */
+  facing: Types.f32,
+  /** 移动晃动相位（弧度）：MovementSystem 根据实际位移累加，渲染层用 sin(bobPhase) 计算 bob/sway 偏移 */
+  bobPhase: Types.f32,
+  /** 待机呼吸相位（秒）：RenderSystem 每帧累加，用于 ±2% 缩放呼吸 */
+  breathPhase: Types.f32,
+  /** 攻击动画剩余时长（秒）：AttackSystem 触发时设为 attackAnimDuration，渲染层用于挥砍角度插值 */
+  attackAnimTimer: Types.f32,
+  /** 攻击动画总时长（秒），用于插值归一化。0 = 不绘制武器挥砍动作 */
+  attackAnimDuration: Types.f32,
+  /**
+   * 视觉部件配置索引（关联 World.unitVisualParts 表）。
+   * 0 = 无配置（按基础 shape 单层绘制，兼容塔/敌人/特效）
+   * 非 0 = 渲染层走 composite 多部件路径，绘制身体 + 装备 + 武器 + 眼睛
+   */
+  partsId: Types.ui16,
 });
 
 // ============================================================
@@ -175,8 +206,10 @@ export const Attack = defineComponent({
   splashRadius: Types.f32,     // AOE溅射半径
   chainCount: Types.ui8,       // 弹跳次数
   chainRange: Types.f32,       // 弹跳搜索半径
-  chainDecay: Types.f32,       // 弹跳衰减比例
+  chainDecay: Types.f32,     // 弹跳衰减比例
   drainPercent: Types.f32,     // 吸血比例（蝙蝠塔）
+  tauntCapacity: Types.ui8,   // 嘲讽容量 — 同时能吸引多少敌人攻击自己（0 = 无嘲讽）
+  attackerCount: Types.ui8,   // 当前正在攻击此单位的敌人数（与 tauntCapacity 配合限流）
 });
 
 /** 弹道 */
@@ -205,24 +238,34 @@ export const Projectile = defineComponent({
   chainIndex: Types.ui8,
   drainAmount: Types.f32,
   sourceTowerType: Types.ui8,
+  // 导弹塔抛物线锁定参数（发射时一次计算，飞行期不再读 mark 实体）。
+  // 强制 T_x = T_y 保证落点精准，参见 design/19-missile-tower。
+  targetX: Types.f32,
+  targetY: Types.f32,
+  flightTime: Types.f32,
+  totalTime: Types.f32,
+  vyInitial: Types.f32,
 });
 
 // ============================================================
 // 移动组件
 // ============================================================
 
-/** 移动能力 */
+/** 移动能力（D.6 真图遍历：design/60-tech/64-level-editor.md §4.5.3）。0xFFFF = sentinel/未初始化。 */
 export const Movement = defineComponent({
-  speed: Types.f32,        // 基准速度（px/s）
-  currentSpeed: Types.f32, // 当前实际速度（受Buff影响）
+  speed: Types.f32,
+  currentSpeed: Types.f32,
   targetX: Types.f32,
   targetY: Types.f32,
-  pathIndex: Types.ui16,   // 当前路径索引
-  progress: Types.f32,     // 路段进度(0-1)
-  moveMode: Types.ui8,     // MoveModeVal
-  homeX: Types.f32,        // 出生/部署位置
+  pathIndex: Types.ui16,
+  progress: Types.f32,
+  moveMode: Types.ui8,
+  homeX: Types.f32,
   homeY: Types.f32,
-  moveRange: Types.f32,    // 移动范围限制
+  moveRange: Types.f32,
+  spawnIdx: Types.ui16,
+  currentNodeIdx: Types.ui16,
+  targetNodeIdx: Types.ui16,
 });
 
 // ============================================================
@@ -275,22 +318,35 @@ export const Trap = defineComponent({
   animDuration: Types.f32,
   triggerCount: Types.ui8, // 触发次数限制
   maxTriggers: Types.ui8,
+  trapType: Types.ui8,     // TrapTypeVal — which trap type this is
+  direction: Types.ui8,    // 0=right, 1=down, 2=left, 3=up (for directional traps)
+  stunDuration: Types.f32, // 眩晕持续时间（BearTrap专用）
+  damage: Types.f32,       // 一次性伤害（BearTrap专用）
 });
 
 /** Boss属性 */
 export const Boss = defineComponent({
-  phase: Types.ui8,        // 当前阶段 1/2
-  phase2HpRatio: Types.f32,// 进入二阶段的血量比例
-  transitionTimer: Types.f32,
+  bossType: Types.ui8,        // BossType enum (0-4, see BossSystem.ts); 0xFF=data-driven
+  phase: Types.ui8,           // 当前阶段 1/2/3
+  phase2HpRatio: Types.f32,   // 进入二阶段的血量比例
+  transitionTimer: Types.f32, // 阶段过渡计时/暴怒标记(Lucifer)
+  abilityTimer: Types.f32,    // 技能冷却计时（通用: SuperRobot/AbyssLord 等）
+  spawnTimer: Types.f32,      // 召唤间隔计时（通用: QueenWorm/Lucifer）
+  splitCount: Types.ui8,      // GiantSlime 分裂层级: 0=giant, 1=medium, 2=small
+  immuneToTowers: Types.ui8,  // QueenWorm 免疫塔攻击: 0/1
+  // Data-driven boss skill timers
+  skillTimer0: Types.f32,     // 技能0冷却计时
+  skillTimer1: Types.f32,     // 技能1冷却计时
+  skillTimer2: Types.f32,     // 技能2冷却计时
+  selfDestructTimer: Types.f32, // 自爆倒计时（-1=未激活）
 });
 
-/** 炸弹（重力下落 + 触底 AOE）— ownerFaction 之外阵营受伤 */
-export const Bomb = defineComponent({
-  targetY: Types.f32,
-  fallSpeed: Types.f32,
-  damage: Types.f32,
-  radius: Types.f32,
-  ownerFaction: Types.ui8,
+/** 精英敌人标记 */
+export const Elite = defineComponent({
+  cardOptions: Types.ui8,   // 可选卡牌数量（3选1）
+  hpMultiplier: Types.f32,  // HP 倍率（默认 2.0）
+  atkMultiplier: Types.f32, // ATK 倍率（默认 1.5）
+  visualScale: Types.f32,   // 体型缩放倍率（默认 1.2）
 });
 
 /** 死亡特效 */
@@ -325,6 +381,42 @@ export const FadingMark = defineComponent({
   maxAlpha: Types.f32,
 });
 
+/** 近战扇形刀光特效 */
+export const SlashEffect = defineComponent({
+  duration: Types.f32,
+  elapsed: Types.f32,
+  radius: Types.f32,
+  startAngle: Types.f32,
+  endAngle: Types.f32,
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+});
+
+/** 技能卡投射物（火球术、剑雨、暴风雪等动画） */
+export const SpellProjectile = defineComponent({
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  targetX: Types.f32,         // 目标位置X
+  targetY: Types.f32,         // 目标位置Y
+  startX: Types.f32,          // 起始位置X
+  startY: Types.f32,          // 起始位置Y
+  duration: Types.f32,        // 飞行/动画总时长
+  elapsed: Types.f32,         // 已用时间
+  damage: Types.f32,          // 伤害值
+  radius: Types.f32,          // 效果半径
+  phase: Types.ui8,           // 0=飞行中, 1=爆炸/效果中, 2=完成
+});
+
+/** 技能卡爆炸/效果动画 */
+export const SpellEffect = defineComponent({
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  duration: Types.f32,        // 效果持续时长
+  elapsed: Types.f32,         // 已用时间
+  radius: Types.f32,          // 效果半径
+  damage: Types.f32,          // 伤害值
+  hasDealtDamage: Types.ui8,  // 是否已造成伤害
+});
+
 // ============================================================
 // 导弹塔专属组件
 // ============================================================
@@ -353,27 +445,29 @@ export const ScreenShake = defineComponent({
   frequency: Types.f32,      // 震动频率Hz
 });
 
-/** 地格破损标记 — 导弹爆炸后在地格上留下的裂纹效果 */
+/** 地格破损标记 — 导弹爆炸后在地格/地面留下的弹坑效果 */
 export const TileDamageMark = defineComponent({
-  row: Types.ui8,            // 地格行
-  col: Types.ui8,            // 地格列
+  row: Types.ui8,            // 地格行（craterRadius==0 时使用，逐格模式）
+  col: Types.ui8,            // 地格列（craterRadius==0 时使用，逐格模式）
   duration: Types.f32,       // 总持续时间
   elapsed: Types.f32,        // 已过时间
   crackSeed: Types.ui8,      // 裂纹随机种子（0-255）
   maxAlpha: Types.f32,       // 最大透明度
+  craterRadius: Types.f32,   // 圆形弹坑半径（>0 时使用圆形模式，击中点 = Position）
 });
 
 // ============================================================
-// AI组件
+// 士兵 AI 组件（替代行为树）
 // ============================================================
 
-/** AI行为树引用 */
-export const AI = defineComponent({
-  configId: Types.ui16,    // AI配置ID
-  targetId: Types.eid,
-  lastUpdateTime: Types.f32,
-  updateInterval: Types.f32,
-  active: Types.ui8,       // 是否激活 (0/1)
+/** 士兵 AI 状态机 */
+export const Soldier = defineComponent({
+  state: Types.ui8,       // 0=idle, 1=combat, 2=returning, 3=healing
+  homeX: Types.f32,        // 部署位置X
+  homeY: Types.f32,        // 部署位置Y
+  moveRange: Types.f32,    // 移动范围限制
+  attackTarget: Types.eid, // 当前攻击目标
+  stateTimer: Types.f32,   // 状态持续时间
 });
 
 // ============================================================
@@ -383,6 +477,12 @@ export const AI = defineComponent({
 /** 眩晕状态 */
 export const Stunned = defineComponent({
   timer: Types.f32,
+});
+
+/** 建造中状态 — 塔安装后到 timer 归零之间挂载此组件，期间不参与攻击/不被锁定/不可选中 */
+export const BuildingTower = defineComponent({
+  timer: Types.f32,     // 剩余建造时间（秒），递减至 0 时移除组件
+  duration: Types.f32,  // 总建造时长（秒），用于计算进度条比例
 });
 
 /** 冰冻状态 */
@@ -396,6 +496,12 @@ export const Slowed = defineComponent({
   timer: Types.f32,
   stacks: Types.ui8,
   maxStacks: Types.ui8,
+});
+
+/** 中毒状态 — 毒塔DOT伤害时挂载，驱动绿色中毒shader特效 */
+export const Poisoned = defineComponent({
+  timer: Types.f32,     // 动画计时器（脉冲效果驱动）
+  intensity: Types.f32, // 中毒强度 0~1（颜色叠加浓度）
 });
 
 /** 嘲讽状态 — 指向施法者 */
@@ -505,6 +611,7 @@ export const PlayerOwned = defineComponent({});
 /** 统一单位标签 — 存储附加类型标记 */
 export const UnitTag = defineComponent({
   isEnemy: Types.ui8,         // 0/1
+  isElite: Types.ui8,         // 0/1 精英敌人标记
   isBoss: Types.ui8,          // 0/1
   isRanged: Types.ui8,        // 0/1 远程攻击
   canAttackBuildings: Types.ui8, // 0/1
@@ -513,6 +620,20 @@ export const UnitTag = defineComponent({
   popCost: Types.ui8,         // 人口占用
   cost: Types.f32,            // 造价
   atk: Types.f32,             // 攻击力（敌人到达基地的伤害源；同步自配置 atk）
+  level: Types.ui8,           // 当前等级 1-N（仅 player 单位升级；enemy 不升级保持 1）
+  maxLevel: Types.ui8,        // 等级上限（来自 UnitConfig.maxLevel，默认 3）
+  totalInvested: Types.f32,   // 累计投入金币（基础造价 + 所有升级费）— 用于回收时按比例退款
+  unitTypeNum: Types.ui8,     // UnitType 数值化（与 UNIT_TYPE_BY_ID 对应）— 用于升级时查 UnitConfig
+});
+
+// ============================================================
+// 卡牌关联组件
+// ============================================================
+
+/** 卡牌关联 — 标记由卡牌生成的单位 */
+export const CardComponent = defineComponent({
+  cardConfigId: Types.ui16,  // CardConfig 注册表索引
+  handIndex: Types.ui8,      // 手牌位置（0-3）
 });
 
 // ============================================================
@@ -581,6 +702,12 @@ export const projectileQuery = defineQuery([Position, Projectile]);
 
 /** Boss实体 */
 export const bossQuery = defineQuery([Position, Health, Boss]);
+
+/** 精英实体 */
+export const eliteQuery = defineQuery([Position, Health, Elite]);
+
+/** 士兵实体 */
+export const soldierQuery = defineQuery([Position, Health, Soldier]);
 
 /** 警戒标记实体 */
 export const alertMarkQuery = defineQuery([Position, AlertMark, Visual]);

@@ -5,9 +5,11 @@
 // and populates the unit config registry.
 // ============================================================
 
-import { load as parseYaml } from 'js-yaml';
+import { load as parseYaml, loadAll as parseAllYaml } from 'js-yaml';
 import type { UnitConfig } from './registry.js';
 import { unitConfigRegistry } from './registry.js';
+import type { CardConfig } from './cardRegistry.js';
+import { cardConfigRegistry } from './cardRegistry.js';
 
 // ---- Bundled YAML modules ----
 // Vite bundles all *.yaml files in config/ as raw strings at build time.
@@ -77,38 +79,45 @@ export async function loadAllUnitConfigs(): Promise<UnitConfig[]> {
 
   for (const path of unitPaths) {
     const content = yamlModules[path]!;
-    let parsed: unknown;
+    // Unit YAML files use `---` to separate per-unit documents (49+ docs per enemy file).
+    // parseYaml() reads only the first doc; we need parseAllYaml() to get every unit.
+    const docs: Array<Record<string, unknown>> = [];
     try {
-      parsed = parseYaml(content);
+      parseAllYaml(content, (doc) => {
+        if (doc !== null && doc !== undefined) {
+          docs.push(doc as Record<string, unknown>);
+        }
+      });
     } catch (err) {
       throw new Error(
         `[ConfigLoader] Failed to parse unit config "${path}": ${(err as Error).message}`,
       );
     }
 
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error(
-        `[ConfigLoader] Unit config "${path}" must be a YAML mapping with unit IDs as keys.`,
-      );
-    }
-
-    const record = parsed as Record<string, Record<string, unknown>>;
-
-    for (const [id, rawConfig] of Object.entries(record)) {
-      if (typeof rawConfig !== 'object' || rawConfig === null) {
+    for (const doc of docs) {
+      if (typeof doc !== 'object' || doc === null) {
         throw new Error(
-          `[ConfigLoader] Unit "${id}" in "${path}" must be a YAML mapping.`,
+          `[ConfigLoader] Unit config doc in "${path}" must be a YAML mapping.`,
         );
       }
 
-      const config: UnitConfig = {
-        id,
-        ...rawConfig,
-      } as UnitConfig;
+      const record = doc as Record<string, Record<string, unknown>>;
 
-      // Register immediately so it's available to later steps
-      unitConfigRegistry.register(config);
-      configs.push(config);
+      for (const [id, rawConfig] of Object.entries(record)) {
+        if (typeof rawConfig !== 'object' || rawConfig === null) {
+          throw new Error(
+            `[ConfigLoader] Unit "${id}" in "${path}" must be a YAML mapping.`,
+          );
+        }
+
+        const config: UnitConfig = {
+          id,
+          ...rawConfig,
+        } as UnitConfig;
+
+        unitConfigRegistry.register(config);
+        configs.push(config);
+      }
     }
   }
 
@@ -155,4 +164,73 @@ export async function loadLevelConfigs(): Promise<LevelConfig[]> {
   }
 
   return configs;
+}
+
+/**
+ * Load all card configs from `src/config/cards/**\/*.yaml` and register them.
+ *
+ * Each YAML file may contain multiple cards keyed by ID, same shape as units:
+ * ```yaml
+ * card_arrow_tower:
+ *   name: 箭塔
+ *   type: unit
+ *   energyCost: 3
+ *   rarity: common
+ *   unitConfigId: arrow_tower
+ *   placement:
+ *     targetType: tile
+ * ```
+ *
+ * Returns an empty array if no card YAMLs are present (Phase A1.1 placeholder).
+ */
+export function loadAllCardConfigsSync(): CardConfig[] {
+  const configs: CardConfig[] = [];
+
+  const cardPaths = Object.keys(yamlModules).filter((p) => p.startsWith('./cards/'));
+
+  for (const path of cardPaths) {
+    const content = yamlModules[path]!;
+    let parsed: unknown;
+    try {
+      parsed = parseYaml(content);
+    } catch (err) {
+      throw new Error(
+        `[ConfigLoader] Failed to parse card config "${path}": ${(err as Error).message}`,
+      );
+    }
+
+    if (parsed === null || parsed === undefined) {
+      continue;
+    }
+
+    if (typeof parsed !== 'object') {
+      throw new Error(
+        `[ConfigLoader] Card config "${path}" must be a YAML mapping with card IDs as keys.`,
+      );
+    }
+
+    const record = parsed as Record<string, Record<string, unknown>>;
+
+    for (const [id, rawConfig] of Object.entries(record)) {
+      if (typeof rawConfig !== 'object' || rawConfig === null) {
+        throw new Error(
+          `[ConfigLoader] Card "${id}" in "${path}" must be a YAML mapping.`,
+        );
+      }
+
+      const config: CardConfig = {
+        id,
+        ...rawConfig,
+      } as CardConfig;
+
+      cardConfigRegistry.register(config);
+      configs.push(config);
+    }
+  }
+
+  return configs;
+}
+
+export async function loadAllCardConfigs(): Promise<CardConfig[]> {
+  return loadAllCardConfigsSync();
 }

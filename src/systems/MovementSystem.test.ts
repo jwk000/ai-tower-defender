@@ -28,23 +28,26 @@ import {
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
-import type { MapConfig, GridPos } from '../types/index.js';
+import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
 
 const TILE = 32;
 
 function makeMap(): MapConfig {
-  const waypoints: GridPos[] = [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-  ];
   return {
     name: 'test',
     cols: 2,
     rows: 1,
     tileSize: TILE,
     tiles: [[TileType.Spawn, TileType.Base]],
-    enemyPath: waypoints,
+    spawns: [{ id: 'sp', row: 0, col: 0 }],
+    pathGraph: {
+      nodes: [
+        { id: 's', row: 0, col: 0, role: 'spawn', spawnId: 'sp' },
+        { id: 'e', row: 0, col: 1, role: 'crystal_anchor' },
+      ],
+      edges: [{ from: 's', to: 'e' }],
+    },
   };
 }
 
@@ -69,13 +72,16 @@ function makeEnemyAtEnd(
   opts: { atk: number; withAttackComponent?: boolean },
 ): number {
   const eid = world.createEntity();
-  world.addComponent(eid, Position, { x: 0, y: 0 });
+  world.addComponent(eid, Position, { x: TILE + TILE / 2, y: TILE / 2 });
   world.addComponent(eid, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
   world.addComponent(eid, Movement, {
     speed: 50,
     moveMode: MoveModeVal.FollowPath,
     pathIndex: 1,
     progress: 0,
+    spawnIdx: 0,
+    currentNodeIdx: 1,
+    targetNodeIdx: 0xffff,
   });
   world.addComponent(eid, UnitTag, {
     isEnemy: 1,
@@ -164,14 +170,22 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[base]).toBe(0);
   });
 
-  it('到达终点的敌人被销毁', () => {
+  it('到达终点的敌人被销毁（攻击动画完成后）', () => {
     makeBase(world, 100);
     const enemy = makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
 
+    // 首个 frame：敌人到达终点，触发攻击动画，伤害已生效但敌人尚未销毁
+    system.update(world, 0.016);
+    expect(Visual.attackAnimTimer[enemy], 'attackAnimTimer 应 > 0').toBeGreaterThan(0);
+    expect(Visual.attackAnimDuration[enemy], 'attackAnimDuration 应 > 0').toBeGreaterThan(0);
+    expect(world.hasComponent(enemy, Position), '动画中仍存活').toBe(true);
+
+    // 第 2 帧：衰减攻击动画计时器
+    system.update(world, 0.5); // 大于 0.4s，确保计时器衰减到 <= 0
+    // 第 3 帧：动画计时器 <= 0，触发销毁逻辑
     system.update(world, 0.016);
     world.cleanupDeadEntities();
-
-    expect(world.hasComponent(enemy, Position)).toBe(false);
+    expect(world.hasComponent(enemy, Position), '动画完成后应被销毁').toBe(false);
   });
 
   it('敌人自身（带 UnitTag.isEnemy=1+Health）不会因 baseQuery 命中而被自伤', () => {

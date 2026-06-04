@@ -241,6 +241,162 @@ export class Renderer {
     return w;
   }
 
+  /**
+   * Apply gaussian blur effect to the current canvas content.
+   * This captures the current frame, applies blur, and redraws it.
+   * Use for modal overlays (draft, pause, etc.) to blur the background.
+   *
+   * @param blurRadius Blur strength in pixels (default: 12)
+   */
+  applyBlur(blurRadius: number = 12): void {
+    const ctx = this.ctx;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    // Save current transform
+    ctx.save();
+
+    // Reset to viewport space for capture
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Create temporary canvas to capture current frame
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext('2d')!;
+
+    // Copy current canvas to temp
+    tempCtx.drawImage(this.canvas, 0, 0);
+
+    // Apply blur multiple times for stronger effect
+    ctx.clearRect(0, 0, w, h);
+    ctx.filter = `blur(${blurRadius}px)`;
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Second pass for even stronger blur
+    ctx.drawImage(this.canvas, 0, 0);
+
+    // Reset filter
+    ctx.filter = 'none';
+
+    // Restore transform
+    ctx.restore();
+  }
+
+  /**
+   * Apply a green poison tint shader effect to a circular region.
+   * Uses globalCompositeOperation 'source-atop' so the green overlay
+   * only affects existing pixels (the entity shape), like a fragment shader.
+   *
+   * @param x        Center X (design-space)
+   * @param y        Center Y (design-space)
+   * @param radius   Radius of the effect region
+   * @param intensity 0~1 poison intensity (affects green alpha)
+   * @param timer    Animation timer for pulse effect
+   */
+  applyPoisonTint(x: number, y: number, radius: number, intensity: number, timer: number): void {
+    const ctx = this.ctx;
+
+    // Pulse factor: oscillates between 0.6 and 1.0
+    const pulse = 0.6 + 0.4 * Math.sin(timer * 4);
+
+    ctx.save();
+
+    // Clip to entity region (circle)
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Use 'source-atop' compositing: green overlay only on existing pixels
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = intensity * pulse * 0.5;
+    ctx.fillStyle = '#4caf50'; // Material green
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+
+    // Second pass: lighter green highlight for depth
+    ctx.globalAlpha = intensity * pulse * 0.25;
+    ctx.fillStyle = '#81c784'; // Light green
+    ctx.beginPath();
+    ctx.arc(x, y - radius * 0.15, radius * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /**
+   * Draw a pulsing green glow aura beneath a poisoned entity.
+   *
+   * @param x        Center X (design-space)
+   * @param y        Center Y (design-space)
+   * @param baseSize Base entity size
+   * @param timer    Animation timer for pulse
+   */
+  drawPoisonGlow(x: number, y: number, baseSize: number, timer: number): void {
+    const pulse = 0.7 + 0.3 * Math.sin(timer * 3);
+    const glowSize = baseSize * 1.8 * pulse;
+
+    this.push({
+      shape: 'circle',
+      x, y,
+      size: glowSize,
+      color: '#2e7d32', // Dark green
+      alpha: 0.2 * pulse,
+      z: 2, // Below entity (Ground=5)
+    });
+
+    // Inner glow
+    this.push({
+      shape: 'circle',
+      x, y,
+      size: glowSize * 0.6,
+      color: '#66bb6a', // Medium green
+      alpha: 0.15 * pulse,
+      z: 2,
+    });
+  }
+
+  /**
+   * Draw floating green poison bubbles around an entity.
+   *
+   * @param x        Center X (design-space)
+   * @param y        Center Y (design-space)
+   * @param baseSize Base entity size
+   * @param timer    Animation timer
+   */
+  drawPoisonBubbles(x: number, y: number, baseSize: number, timer: number): void {
+    const bubbleCount = 4;
+    const spread = baseSize * 0.8;
+
+    for (let i = 0; i < bubbleCount; i++) {
+      // Each bubble has its own phase offset
+      const phase = (i / bubbleCount) * Math.PI * 2;
+      const cycle = (timer * 1.5 + phase) % (Math.PI * 2);
+      const progress = cycle / (Math.PI * 2); // 0→1 over one cycle
+
+      // Float upward
+      const bubbleY = y + baseSize * 0.5 - progress * baseSize * 1.5;
+      // Slight horizontal wobble
+      const bubbleX = x + Math.sin(timer * 2 + phase) * spread * 0.5;
+
+      // Fade in then out
+      const alpha = Math.sin(progress * Math.PI) * 0.6;
+      // Size varies
+      const bubbleSize = 3 + Math.sin(phase) * 1.5;
+
+      if (alpha > 0.05) {
+        this.push({
+          shape: 'circle',
+          x: bubbleX,
+          y: bubbleY,
+          size: bubbleSize,
+          color: '#a5d6a7', // Light green
+          alpha,
+          z: 8, // Above entity
+        });
+      }
+    }
+  }
+
   get context(): CanvasRenderingContext2D {
     return this.ctx;
   }

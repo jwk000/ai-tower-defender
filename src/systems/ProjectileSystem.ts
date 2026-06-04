@@ -14,7 +14,7 @@ import {
   Stunned, ExplosionEffect, BloodParticle, FadingMark,
   UnitTag, Boss, ShapeVal, DamageTypeVal,
   TargetingMark, Layer, LayerVal,
-  Tower,
+  Tower, Poisoned,
 } from '../core/components.js';
 import { calcPhysicalDamage } from '../utils/combatFormulas.js';
 import { addBuff, BuffPriority } from './BuffSystem.js';
@@ -32,7 +32,6 @@ import { TileDamageSystem } from './TileDamageSystem.js';
 
 const projectileQuery = defineQuery([Position, Projectile]);
 const enemyQuery = defineQuery([Position, Health, UnitTag]);
-const targetingMarkQuery = defineQuery([Position, TargetingMark]);
 
 // ============================================================
 // Constants
@@ -85,9 +84,6 @@ export class ProjectileSystem implements System {
   /** Vine tower DOT entries: targetId → DOT state */
   private dotEntries = new Map<number, VineDOT>();
 
-  /** Missile projectile vertical velocity: entityId → vy (px/s) */
-  private missileVelY = new Map<number, number>();
-
   constructor(map: MapConfig) {
     this.map = map;
   }
@@ -103,50 +99,38 @@ export class ProjectileSystem implements System {
       const isMissile = sourceTowerType === 6;
 
       if (isMissile) {
-        // ── Missile: parabolic trajectory, target is a position marker (no Health) ──
-        const ttx = Position.x[targetId];
-        const tty = Position.y[targetId];
+        // ── Missile: 参数化抛物线（design/19 §X/Y 参数化）──
+        // 飞行参数发射时一次锁定在 Projectile 组件，飞行期不读 mark 实体
+        const fromX = Projectile.fromX[eid]!;
+        const fromY = Projectile.fromY[eid]!;
+        const ttx = Projectile.targetX[eid]!;
+        const tty = Projectile.targetY[eid]!;
+        const totalTime = Projectile.totalTime[eid]!;
+        const vyInitial = Projectile.vyInitial[eid]!;
+        const g = 400;
 
-        if (ttx === undefined || tty === undefined) {
+        const newT = (Projectile.flightTime[eid]! + dt);
+        Projectile.flightTime[eid] = newT;
+
+        if (newT >= totalTime) {
+          // 强制对齐落点（消除浮点漂移）→ 触发命中
+          Position.x[eid] = ttx;
+          Position.y[eid] = tty;
+          this.onHit(world, eid, ttx, tty);
           world.destroyEntity(eid);
-          this.missileVelY.delete(eid);
           continue;
         }
 
-        const px = Position.x[eid]!;
-        const py = Position.y[eid]!;
-        const speed = Projectile.speed[eid]!;
+        const ratio = newT / totalTime;
+        const newX = fromX + (ttx - fromX) * ratio;
+        const newY = fromY + vyInitial * newT + 0.5 * g * newT * newT;
+        Position.x[eid] = newX;
+        Position.y[eid] = newY;
 
-        // Initialize vertical velocity on first frame
-        let vy = this.missileVelY.get(eid);
-        if (vy === undefined) {
-          vy = -150; // initial upward velocity
-          this.missileVelY.set(eid, vy);
-        }
-
-        // Apply gravity
-        vy += 400 * dt;
-        this.missileVelY.set(eid, vy);
-
-        // Horizontal movement toward target
-        const dx = ttx - px;
-        const dirX = dx > 0 ? 1 : -1;
-        const moveX = Math.min(Math.abs(dx), speed * dt) * dirX;
-
-        Position.x[eid] = px + moveX;
-        Position.y[eid] = py + vy * dt;
-
-        // Rotate toward velocity direction (stored in idlePhase for renderer)
         if (hasComponent(world.world, Visual, eid)) {
-          Visual.idlePhase[eid] = Math.atan2(vy, dirX * speed);
-        }
-
-        // Check if missile has reached/passed target Y
-        const newY = Position.y[eid]!;
-        if (newY >= tty) {
-          this.onHit(world, eid, Position.x[eid]!, newY);
-          this.missileVelY.delete(eid);
-          world.destroyEntity(eid);
+          const vyNow = vyInitial + g * newT;
+          const vxNow = (ttx - fromX) / totalTime;
+          Visual.idlePhase[eid] = Math.atan2(vyNow, vxNow);
         }
       } else {
         // ── Non‑missile: straight‑line trajectory ──
@@ -188,7 +172,15 @@ export class ProjectileSystem implements System {
     for (const [targetId, dot] of this.dotEntries) {
       if (!isAlive(targetId)) {
         this.dotEntries.delete(targetId);
+        // 移除中毒视觉组件
+        if (hasComponent(world.world, Poisoned, targetId)) {
+          world.removeComponent(targetId, Poisoned);
+        }
         continue;
+      }
+      // 更新中毒动画计时器
+      if (hasComponent(world.world, Poisoned, targetId)) {
+        Poisoned.timer[targetId]! += dt;
       }
       dot.timer -= dt;
       while (dot.timer <= 0) {
@@ -199,6 +191,10 @@ export class ProjectileSystem implements System {
         dot.ticksRemaining--;
         if (dot.ticksRemaining <= 0) {
           this.dotEntries.delete(targetId);
+          // DOT结束，移除中毒视觉组件
+          if (hasComponent(world.world, Poisoned, targetId)) {
+            world.removeComponent(targetId, Poisoned);
+          }
           break;
         }
       }
@@ -271,17 +267,10 @@ export class ProjectileSystem implements System {
     if (isMissile) {
       // ── Missile: enhanced explosion + screen shake + tile damage ──
 
-      // Clean up TargetingMark entities near impact point
-      for (const markId of targetingMarkQuery(world.world)) {
-        const mx = Position.x[markId];
-        const my = Position.y[markId];
-        if (mx !== undefined && my !== undefined) {
-          const mdx = mx - hitX;
-          const mdy = my - hitY;
-          if (Math.sqrt(mdx * mdx + mdy * mdy) < 10) {
-            world.destroyEntity(markId);
-          }
-        }
+      // Destroy this missile's own TargetingMark (Projectile.targetId points to it).
+      // 不依赖位置距离阈值——抛物线轨迹的落点必然偏离 mark 中心，距离 cleanup 会漏。
+      if (targetId !== 0 && hasComponent(world.world, TargetingMark, targetId)) {
+        world.destroyEntity(targetId);
       }
 
       // Enhanced explosion: bigger, longer, larger initial radius
@@ -325,24 +314,28 @@ export class ProjectileSystem implements System {
       }
     }
 
-    // -- Vine: stacking DOT true damage --
-    if (sourceTowerType === 7 && isAlive(targetId)) {
-      const vineCfg = TOWER_CONFIGS[TowerType.Vine];
-      if (vineCfg?.dotDamage !== undefined && vineCfg?.dotDuration !== undefined) {
+    // -- DOT: stacking poison/fire damage (sourceTowerType 7=Fire, 8=Poison) --
+    if ((sourceTowerType === 7 || sourceTowerType === 8) && isAlive(targetId)) {
+      const dotCfg = TOWER_CONFIGS[TowerType.Poison];
+      if (dotCfg?.dotDamage !== undefined && dotCfg?.dotDuration !== undefined) {
         const existing = this.dotEntries.get(targetId);
         if (existing) {
           existing.stackCount = Math.min(
             existing.stackCount + 1,
-            vineCfg.dotMaxStacks ?? 5,
+            dotCfg.dotMaxStacks ?? 5,
           );
-          existing.ticksRemaining = vineCfg.dotDuration;
+          existing.ticksRemaining = dotCfg.dotDuration;
         } else {
           this.dotEntries.set(targetId, {
-            damagePerTick: vineCfg.dotDamage,
-            ticksRemaining: vineCfg.dotDuration,
+            damagePerTick: dotCfg.dotDamage,
+            ticksRemaining: dotCfg.dotDuration,
             stackCount: 1,
             timer: 1.0,
           });
+          // 添加中毒视觉组件
+          if (!hasComponent(world.world, Poisoned, targetId)) {
+            world.addComponent(targetId, Poisoned, { timer: 0, intensity: 1.0 });
+          }
         }
       }
     }
@@ -375,6 +368,10 @@ export class ProjectileSystem implements System {
 
     for (const enemyId of enemyQuery(world.world)) {
       if (!isAlive(enemyId)) continue;
+
+      // 友军伤害守卫：splash 仅伤敌方单位，不伤友军塔/建筑/陷阱（含发射源塔自身）
+      if (UnitTag.isEnemy[enemyId] !== 1) continue;
+      if (enemyId === sourceTowerId) continue;
 
       // Missile: skip flying enemies (ground explosion doesn't reach them)
       if (cantTargetFlying && (Layer.value[enemyId] ?? LayerVal.Ground) === LayerVal.LowAir) {

@@ -2,9 +2,13 @@ export type BgmKey =
   | 'main_menu'
   | 'battle_default'
   | 'battle_intense'
+  | 'battle_meadow'
+  | 'battle_desert'
+  | 'battle_castle'
+  | 'battle_waste'
+  | 'battle_abyss'
   | 'battle_snow'
   | 'battle_lava'
-  | 'battle_castle'
   | 'wave_break'
   | 'victory'
   | 'defeat'
@@ -16,14 +20,18 @@ const BASE = import.meta.env.BASE_URL;
 const BGM_PATH: Record<BgmKey, string> = {
   main_menu: 'bgm/main_menu.ogg',
   battle_default: 'bgm/battle_default.ogg',
-  battle_intense: 'bgm/battle_intense.ogg',
-  battle_snow: 'bgm/battle_snow.ogg',
-  battle_lava: 'bgm/battle_lava.ogg',
+  battle_intense: 'bgm/battle_intense.mp3',
+  battle_meadow: 'bgm/battle_meadow.mp3',
+  battle_desert: 'bgm/battle_desert.mp3',
   battle_castle: 'bgm/battle_castle.ogg',
+  battle_waste: 'bgm/battle_waste.ogg',
+  battle_abyss: 'bgm/battle_abyss.mp3',
+  battle_snow: 'bgm/battle_meadow.mp3',
+  battle_lava: 'bgm/battle_abyss.mp3',
   wave_break: 'bgm/wave_break.ogg',
-  victory: 'bgm/victory.mp3',
-  defeat: 'bgm/defeat.ogg',
-  endless: 'bgm/endless.mp3',
+  victory: 'bgm/victory.ogg',
+  defeat: 'bgm/defeat.mp3',
+  endless: 'bgm/endless.ogg',
 };
 
 /** Cross-fade an audio element's volume over a given duration in seconds. */
@@ -130,6 +138,18 @@ export class Music {
   /** Which track is currently playing (null if none). */
   static getCurrentKey(): BgmKey | null {
     return Music.currentKey;
+  }
+
+  /** Map a level number (1-5) to its themed BGM key. */
+  static getLevelBgm(levelId: number): BgmKey {
+    const map: Record<number, BgmKey> = {
+      1: 'battle_meadow',
+      2: 'battle_desert',
+      3: 'battle_castle',
+      4: 'battle_waste',
+      5: 'battle_abyss',
+    };
+    return map[levelId] ?? 'battle_default';
   }
 
   // ─── internal ──────────────────────────────────────────────

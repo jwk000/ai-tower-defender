@@ -17,9 +17,8 @@ export class ProductionSystem implements System {
         Production.accumulator[eid]! -= 1;
         if (Production.resourceType[eid] === ResourceTypeVal.Gold) {
           this.economy.addGold(1);
-        } else {
-          this.economy.addEnergy(1);
         }
+        // v4.0: energy type removed — only gold production remains
       }
     }
   }

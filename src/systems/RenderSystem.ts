@@ -10,7 +10,7 @@ import { TowerWorld, System, defineQuery, hasComponent } from '../core/World.js'
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { TileType, TowerType } from '../types/index.js';
-import type { MapConfig, SceneLayout, ShapeType, CompositePart, UpgradeVisualConfig } from '../types/index.js';
+import type { MapConfig, SceneLayout, ShapeType, CompositePart, UpgradeVisualConfig, UnitVisualParts } from '../types/index.js';
 import {
   Position,
   Visual,
@@ -32,12 +32,15 @@ import {
   AlertMarkVal,
   Frozen,
   Stunned,
+  Poisoned,
   Production,
   Layer,
   LayerVal,
   TargetingMark,
   TileDamageMark,
   MissileCharge,
+  BuildingTower,
+  SlashEffect,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
@@ -166,13 +169,13 @@ export class RenderSystem implements System {
     const tc = map.tileColors ?? {};
 
     const defaults: Partial<Record<TileType, string>> = {
-      [TileType.Empty]: '#7d9b6e',
-      [TileType.Path]: '#bfad94',
-      [TileType.Blocked]: '#78909c',
-      [TileType.Spawn]: '#ff8f00',
-      [TileType.Base]: '#1e88e5',
+      [TileType.Empty]: '#5e6b4e',
+      [TileType.Path]: '#8a7d6b',
+      [TileType.Blocked]: '#566570',
+      [TileType.Spawn]: '#b86b1e',
+      [TileType.Base]: '#1866a8',
     };
-    const emptyAdjacentColor = '#8eaa80';
+    const emptyAdjacentColor = '#6b7d5e';
 
     for (let r = 0; r < map.rows; r++) {
       for (let c = 0; c < map.cols; c++) {
@@ -201,9 +204,9 @@ export class RenderSystem implements System {
         if (tile === TileType.Empty && isAdjacentToPath(r, c, map) && !tc[TileType.Empty]) {
           this.renderer.push({
             shape: 'rect', x, y, size: ts - 2,
-            color: '#81c784',
-            alpha: 0.25,
-            stroke: '#a5d6a7',
+            color: '#5c7e5c',
+            alpha: 0.2,
+            stroke: '#709470',
             strokeWidth: 1,
             z: 0,
           });
@@ -239,65 +242,267 @@ export class RenderSystem implements System {
   }
 
   // ============================================
-  // TargetingMark rendering (red crosshair + rotating ring on ground)
+  // TargetingMark rendering — concentric rings + crosshair
   // ============================================
+  // Visual: 3 concentric rings (outer = blast radius, middle = 60%, inner = 25%) + 4-arm
+  // crosshair extending past the outer ring. All red, pulsing alpha. Marker is destroyed
+  // on missile impact (ProjectileSystem.onHit) so it disappears together with the boom.
   private drawTargetingMarks(world: TowerWorld, dt: number): void {
     const entities = targetingMarkQuery(world.world);
     for (const eid of entities) {
       const px = Position.x[eid]!;
       const py = Position.y[eid]!;
       const blastRadius = TargetingMark.blastRadius[eid]!;
+      if (blastRadius <= 0) continue;
 
-      // Advance timing
       TargetingMark.pulsePhase[eid]! += dt;
-      TargetingMark.ringRotation[eid]! += dt * (2 * Math.PI / 1.2);
-
       const pulsePhase = TargetingMark.pulsePhase[eid]!;
-      const ringRot = TargetingMark.ringRotation[eid]!;
+      const pulse = 0.75 + 0.25 * Math.sin(pulsePhase * 10);
 
-      // Pulsing alpha: oscillates between 0.5 – 1.0
-      const pulseAlpha = 0.75 + 0.25 * Math.sin(pulsePhase * 12);
+      const outerR = blastRadius;
+      const midR = blastRadius * 0.6;
+      const innerR = blastRadius * 0.25;
 
-      // ---- Red crosshair (two lines crossing at center) ----
-      // Vertical line
-      this.renderer.push({ shape: 'rect', x: px, y: py, size: 2, h: 24, color: '#ff1744', alpha: pulseAlpha, z: 4 });
-      // Horizontal line
-      this.renderer.push({ shape: 'rect', x: px, y: py, size: 24, h: 2, color: '#ff1744', alpha: pulseAlpha, z: 4 });
+      this.renderer.push({
+        shape: 'circle', x: px, y: py, size: outerR * 2,
+        color: 'transparent', alpha: 0.55 * pulse,
+        stroke: '#ff1744', strokeWidth: 3, z: 4,
+      });
+      this.renderer.push({
+        shape: 'circle', x: px, y: py, size: midR * 2,
+        color: 'transparent', alpha: 0.7 * pulse,
+        stroke: '#ff1744', strokeWidth: 2, z: 4,
+      });
+      this.renderer.push({
+        shape: 'circle', x: px, y: py, size: innerR * 2,
+        color: 'transparent', alpha: 0.85 * pulse,
+        stroke: '#d50000', strokeWidth: 2, z: 4,
+      });
 
-      // ---- Center dot ----
-      this.renderer.push({ shape: 'circle', x: px, y: py, size: 8, color: '#ff0000', alpha: 1, z: 4 });
+      const crossLen = outerR * 1.15;
+      const crossThick = 2;
+      this.renderer.push({
+        shape: 'rect', x: px, y: py,
+        size: crossThick, h: crossLen * 2,
+        color: '#ff1744', alpha: 0.85 * pulse, z: 4,
+      });
+      this.renderer.push({
+        shape: 'rect', x: px, y: py,
+        size: crossLen * 2, h: crossThick,
+        color: '#ff1744', alpha: 0.85 * pulse, z: 4,
+      });
 
-      // ---- Rotating ring ----
-      if (blastRadius > 0) {
-        // Ring outline (stroke only, no fill)
+      this.renderer.push({
+        shape: 'circle', x: px, y: py, size: 6,
+        color: '#ff1744', alpha: 1, z: 4,
+      });
+    }
+  }
+
+  /**
+   * 士兵 composite 渲染：身体 + 装饰部件 + 眼睛 + 武器，应用 bob/breath/挥砍动画。
+   *
+   * 绘制顺序（z 自下而上）：武器光晕 → 身体（带 breathing scale）→ bodyParts → 武器 → 眼睛
+   * facing 决定 X 翻转；attackAnimTimer/Duration 驱动武器摆角；bobPhase 决定 bobY 偏移；breathPhase 决定身体 scale
+   */
+  private drawSoldierComposite(
+    eid: number,
+    posX: number,
+    posY: number,
+    drawSize: number,
+    color: string,
+    alpha: number,
+    strokeColor: string | undefined,
+    strokeW: number | undefined,
+    z: number,
+    parts: UnitVisualParts,
+  ): void {
+    const facing: number = (Visual.facing[eid] ?? 1) >= 0 ? 1 : -1;
+    const bobPhase = Visual.bobPhase[eid] ?? 0;
+    const breathPhase = Visual.breathPhase[eid] ?? 0;
+    const attackDur = Visual.attackAnimDuration[eid] ?? 0;
+    const attackTimer = Visual.attackAnimTimer[eid] ?? 0;
+
+    const floating = parts.bobStyle === 'floating';
+    const bobY = floating ? Math.sin(bobPhase) * 4 : Math.sin(bobPhase) * 2;
+    const swayX = floating ? 0 : Math.sin(bobPhase * 0.5) * 0.6 * facing;
+    const breathScale = 1 + Math.sin(breathPhase) * 0.04;
+    const bodySize = drawSize * breathScale;
+
+    const bodyX = posX + swayX;
+    const bodyY = posY + bobY;
+
+    const swingProgress = attackDur > 0 && attackTimer > 0
+      ? 1 - attackTimer / attackDur
+      : 0;
+    const swingOffset = Math.sin(swingProgress * Math.PI);
+
+    const shape: ShapeType = shapeValToString(Visual.shape[eid]!);
+
+    if (parts.weapon) {
+      const w = parts.weapon;
+      const glowColor = w.glowColor;
+      const glowRadius = w.glowRadius;
+      if (glowColor !== undefined && glowRadius !== undefined && glowRadius > 0) {
+        const ax = bodyX + w.anchorX * facing;
+        const ay = bodyY + w.anchorY;
+        const glowAlpha = (w.glowAlpha ?? 0.4) * (0.85 + 0.15 * Math.sin(Date.now() * 0.008));
         this.renderer.push({
-          shape: 'circle', x: px, y: py, size: blastRadius * 2,
-          color: 'transparent', alpha: 0.6, stroke: '#d50000', strokeWidth: 2, z: 4,
+          shape: 'circle',
+          x: ax + (w.length * 0.5) * facing,
+          y: ay,
+          size: glowRadius * 2,
+          color: glowColor,
+          alpha: glowAlpha,
+          z: z - 1,
         });
-        // Ring tick marks (4 dots rotating around the ring)
-        for (let i = 0; i < 4; i++) {
-          const angle = ringRot + (i * Math.PI) / 2;
-          const tx = px + Math.cos(angle) * blastRadius;
-          const ty = py + Math.sin(angle) * blastRadius;
-          this.renderer.push({
-            shape: 'circle', x: tx, y: ty, size: 5,
-            color: '#d50000', alpha: 0.9, z: 4,
-          });
-        }
       }
+    }
+
+    this.renderer.push({
+      shape,
+      x: bodyX, y: bodyY,
+      size: bodySize,
+      color,
+      alpha,
+      stroke: strokeColor,
+      strokeWidth: strokeW,
+      z,
+    });
+
+    if (parts.bodyParts) {
+      for (const part of parts.bodyParts) {
+        this.renderer.push({
+          shape: part.shape,
+          x: bodyX + part.offsetX * facing,
+          y: bodyY + part.offsetY,
+          size: part.size,
+          h: part.h,
+          color: part.color,
+          alpha: part.alpha ?? 1,
+          stroke: part.stroke,
+          strokeWidth: part.strokeWidth,
+          rotation: part.rotation,
+          z,
+        });
+      }
+    }
+
+    if (parts.weapon) {
+      const w = parts.weapon;
+      const ax = bodyX + w.anchorX * facing;
+      const ay = bodyY + w.anchorY;
+      const angle = (w.restAngle + swingOffset * w.swingAngle) * facing;
+      const midX = ax + Math.cos(angle) * (w.length * 0.5) * facing;
+      const midY = ay + Math.sin(angle) * (w.length * 0.5);
+      this.renderer.push({
+        shape: 'rect',
+        x: midX,
+        y: midY,
+        size: w.length,
+        h: w.width,
+        color: w.color,
+        alpha: 1,
+        stroke: w.stroke,
+        strokeWidth: w.strokeWidth,
+        rotation: angle,
+        z: z + 1,
+      });
+    }
+
+    if (parts.eyes) {
+      const e = parts.eyes;
+      const eyeOffsetX = e.offsetX ?? drawSize * 0.18;
+      const eyeOffsetY = e.offsetY ?? -drawSize * 0.12;
+      const eyeY = bodyY + eyeOffsetY;
+      const leftX = bodyX - eyeOffsetX;
+      const rightX = bodyX + eyeOffsetX;
+      if (e.scleraRadius && e.scleraRadius > 0) {
+        this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: 1, z: z + 2 });
+        this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: 1, z: z + 2 });
+      }
+      this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: 1, z: z + 3 });
+      this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: 1, z: z + 3 });
     }
   }
 
   // ============================================
-  // TileDamageMark rendering (dark overlay + crack pattern on damaged tiles)
+  // Missile projectile rendering — black body + red warhead + blue trail + orange glow
+  // ============================================
+  // Drawn 4-layer back-to-front (each at projectile's z):
+  //   1) outer orange-red glow halo (pulsing)
+  //   2) blue exhaust trail (3 fading dots behind, sized by velocity angle)
+  //   3) black missile body (rotated rect aligned with flight direction)
+  //   4) red warhead (diamond at the front tip)
+  private drawMissileProjectile(eid: number, posX: number, posY: number): void {
+    const angle = Visual.idlePhase[eid] ?? 0;
+    const size = Visual.size[eid] ?? 40;
+    const layerVal = Layer.value[eid] ?? LayerVal.Ground;
+    const z = LAYER_TO_Z[layerVal] ?? 5;
+
+    const bodyLen = size;
+    const bodyW = Math.max(6, size * 0.32);
+
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    const pulse = 0.85 + 0.15 * Math.sin(Date.now() * 0.012);
+    this.renderer.push({
+      shape: 'circle', x: posX, y: posY, size: size * 1.6 * pulse,
+      color: '#ff5722', alpha: 0.22, z,
+    });
+    this.renderer.push({
+      shape: 'circle', x: posX, y: posY, size: size * 1.0 * pulse,
+      color: '#ff8a50', alpha: 0.35, z,
+    });
+
+    for (let i = 1; i <= 3; i++) {
+      const dist = bodyLen * 0.45 + i * bodyLen * 0.45;
+      const tx = posX - cos * dist;
+      const ty = posY - sin * dist;
+      const tAlpha = 0.7 - i * 0.18;
+      const tSize = bodyW * (1.4 - i * 0.25);
+      this.renderer.push({
+        shape: 'circle', x: tx, y: ty, size: tSize * 1.8,
+        color: '#40c4ff', alpha: tAlpha * 0.4, z,
+      });
+      this.renderer.push({
+        shape: 'circle', x: tx, y: ty, size: tSize,
+        color: '#82e9ff', alpha: tAlpha, z,
+      });
+    }
+
+    this.renderer.push({
+      shape: 'rect', x: posX, y: posY,
+      size: bodyLen, h: bodyW,
+      color: '#111111', alpha: 1,
+      stroke: '#3a3a3a', strokeWidth: 1,
+      rotation: angle, z,
+    });
+
+    const headLen = bodyLen * 0.4;
+    const tipX = posX + cos * (bodyLen * 0.5 + headLen * 0.5);
+    const tipY = posY + sin * (bodyLen * 0.5 + headLen * 0.5);
+    this.renderer.push({
+      shape: 'diamond', x: tipX, y: tipY,
+      size: bodyW * 1.4,
+      color: '#ff1744', alpha: 1, z,
+    });
+    this.renderer.push({
+      shape: 'circle', x: tipX, y: tipY, size: bodyW * 0.55,
+      color: '#ffcdd2', alpha: 0.9, z,
+    });
+  }
+
+  // ============================================
+  // TileDamageMark rendering (circular crater or legacy tile-aligned damage)
   // ============================================
   private drawTileDamageMarks(world: TowerWorld): void {
     const entities = tileDamageMarkQuery(world.world);
     const ts = this.map.tileSize;
 
     for (const eid of entities) {
-      const row = TileDamageMark.row[eid]!;
-      const col = TileDamageMark.col[eid]!;
+      const craterRadius = TileDamageMark.craterRadius[eid]!;
       const duration = TileDamageMark.duration[eid]!;
       const elapsed = TileDamageMark.elapsed[eid]!;
       const crackSeed = TileDamageMark.crackSeed[eid]!;
@@ -312,32 +517,92 @@ export class RenderSystem implements System {
       }
       const alpha = maxAlpha * fadeFactor;
 
-      // Tile center position (matches drawMap tile positioning)
-      const tileX = RenderSystem.sceneOffsetX + col * ts + ts / 2;
-      const tileY = RenderSystem.sceneOffsetY + row * ts + ts / 2;
+      if (craterRadius > 0) {
+        // ── Circular crater mode (missile impact, center = entity Position) ──
+        const cx = Position.x[eid]!;
+        const cy = Position.y[eid]!;
+        const outerR = craterRadius * 0.85;
 
-      // ---- Dark overlay ----
-      this.renderer.push({
-        shape: 'rect', x: tileX, y: tileY, size: ts,
-        color: '#000000', alpha: alpha * 0.4, z: 1,
-      });
-
-      // ---- Crack dots (scattered dots from center, seeded PRNG) ----
-      const rand = simplePRNG(crackSeed);
-      const numDots = 10 + (crackSeed % 6); // 10–15 dots
-      for (let i = 0; i < numDots; i++) {
-        const angle = rand() * Math.PI * 2;
-        const dist = ts * 0.1 + rand() * ts * 0.4;
-        const dx = Math.cos(angle) * dist;
-        const dy = Math.sin(angle) * dist;
+        // Dark crater fill (large filled circle)
         this.renderer.push({
-          shape: 'circle',
-          x: tileX + dx, y: tileY + dy,
-          size: 1.5 + rand() * 3,
-          color: '#3e2723',
-          alpha: alpha * (0.5 + rand() * 0.5),
-          z: 2,
+          shape: 'circle', x: cx, y: cy, size: outerR * 2,
+          color: '#1a120e', alpha: alpha * 0.55, z: 1,
         });
+        // Rim ring
+        this.renderer.push({
+          shape: 'circle', x: cx, y: cy, size: outerR * 1.84,
+          color: 'transparent', alpha: alpha * 0.35,
+          stroke: '#281912', strokeWidth: 2, z: 2,
+        });
+
+        // ---- Crack lines (thin rects rotated, seeded PRNG) ----
+        const rand = simplePRNG(crackSeed);
+        const crackCount = 6 + (crackSeed % 5); // 6-10 cracks
+        for (let i = 0; i < crackCount; i++) {
+          const angle = rand() * Math.PI * 2;
+          const len = outerR * (0.5 + rand() * 0.5);
+          const startDist = craterRadius * 0.25 * (0.3 + rand() * 0.7);
+          const sx = cx + Math.cos(angle) * startDist;
+          const sy = cy + Math.sin(angle) * startDist;
+
+          this.renderer.push({
+            shape: 'rect',
+            x: sx, y: sy,
+            size: 1.2, h: len,
+            color: '#3e2723', alpha: alpha * 0.7,
+            rotation: angle - Math.PI / 2, // rect drawn from left→right, rotate to match angle
+            z: 2,
+          });
+        }
+
+        // ---- Debris dots around rim ----
+        const debrisCount = 8 + (crackSeed % 7);
+        for (let i = 0; i < debrisCount; i++) {
+          const angle = rand() * Math.PI * 2;
+          const dist = outerR * (0.6 + rand() * 0.35);
+          const dx = cx + Math.cos(angle) * dist;
+          const dy = cy + Math.sin(angle) * dist;
+          this.renderer.push({
+            shape: 'circle',
+            x: dx, y: dy,
+            size: 2 + rand() * 3,
+            color: '#2c211c',
+            alpha: alpha * (0.35 + rand() * 0.35),
+            z: 2,
+          });
+        }
+      } else {
+        // ── Legacy tile-aligned mode (fallback) ──
+        const row = TileDamageMark.row[eid]!;
+        const col = TileDamageMark.col[eid]!;
+
+        // Tile center position (matches drawMap tile positioning)
+        const tileX = RenderSystem.sceneOffsetX + col * ts + ts / 2;
+        const tileY = RenderSystem.sceneOffsetY + row * ts + ts / 2;
+
+        // ---- Dark overlay ----
+        this.renderer.push({
+          shape: 'rect', x: tileX, y: tileY, size: ts,
+          color: '#000000', alpha: alpha * 0.4, z: 1,
+        });
+
+        // ---- Crack dots (scattered dots from center, seeded PRNG) ----
+        const rand = simplePRNG(crackSeed);
+        const numDots = 10 + (crackSeed % 6);
+        for (let i = 0; i < numDots; i++) {
+          const angle = rand() * Math.PI * 2;
+          const dist = ts * 0.1 + rand() * ts * 0.4;
+          const dx = Math.cos(angle) * dist;
+          const dy = Math.sin(angle) * dist;
+          this.renderer.push({
+            shape: 'circle',
+            x: tileX + dx, y: tileY + dy,
+            size: 1.5 + rand() * 3,
+            color: '#3e2723',
+            alpha: alpha * (0.5 + rand() * 0.5),
+            z: 2,
+          });
+        }
       }
     }
   }
@@ -367,49 +632,297 @@ export class RenderSystem implements System {
       const isUnit = hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Soldier;
       const isProduction = hasComponent(world.world, Production, eid);
 
+      // ---- Missile projectile: dedicated multi-layer visual (glow + black body + red head + blue trail) ----
+      // sourceTowerType=6 (Missile) gets a fully custom render path. Bypasses the generic arrow render.
+      if (isProjectile && Projectile.sourceTowerType[eid] === 6) {
+        this.drawMissileProjectile(eid, posX, posY);
+        continue;
+      }
+
       // ---- Buff/status flags (computed once) ----
       const hasFrozen = hasComponent(world.world, Frozen, eid);
       const hasSlowed = hasComponent(world.world, Slowed, eid);
       const hasStunnedComponent = hasComponent(world.world, Stunned, eid);
 
       // ========================================
-      // TRAP rendering
+      // TRAP rendering — 根据机关类型绘制不同外观
       // ========================================
       if (isTrap) {
         const animTimer = Trap.animTimer[eid]!;
         const animDuration = Trap.animDuration[eid]!;
-        let spikeOffset = 0;
-        let spikeSizeBonus = 0;
-        if (animTimer > 0) {
-          const progress = 1 - animTimer / animDuration;
-          const factor = Math.sin(progress * Math.PI);
-          spikeOffset = -factor * 12;
-          spikeSizeBonus = factor * 6;
+        const trapType = Trap.trapType[eid] ?? 0;
+        const trapDirection = Trap.direction[eid] ?? 0;
+
+        // 动画进度（0→1）
+        const animProgress = animTimer > 0 ? (1 - animTimer / animDuration) : 0;
+        const animFactor = Math.sin(animProgress * Math.PI);
+
+        switch (trapType) {
+          case 0: // SpikeTrap - 地刺：灰色三角形尖刺从地面冒出
+          {
+            const spikeOffset = -animFactor * 12;
+            const spikeSizeBonus = animFactor * 6;
+            for (let o = -1; o <= 1; o++) {
+              this.renderer.push({
+                shape: 'triangle',
+                x: posX + o * 8,
+                y: posY + spikeOffset,
+                size: 14 + spikeSizeBonus,
+                color: '#757575',
+                alpha: 1,
+              });
+            }
+            break;
+          }
+
+          case 1: // BearTrap - 捕兽夹：金属锯齿夹子
+          {
+            // 两个菱形组合表示夹子
+            this.renderer.push({
+              shape: 'diamond',
+              x: posX - 6,
+              y: posY,
+              size: 16,
+              color: '#8d6e63',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'diamond',
+              x: posX + 6,
+              y: posY,
+              size: 16,
+              color: '#8d6e63',
+              alpha: 1,
+            });
+            // 中心锯齿
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY,
+              size: 8,
+              h: 4,
+              color: '#d7ccc8',
+              alpha: 1,
+            });
+            break;
+          }
+
+          case 2: // TarPit - 焦油坑：黑色半透明圆形
+          {
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 28,
+              color: '#424242',
+              alpha: 0.7,
+            });
+            // 内部深色
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 18,
+              color: '#212121',
+              alpha: 0.8,
+            });
+            break;
+          }
+
+          case 3: // Boulder - 巨石：灰色大型岩石
+          {
+            // 主体圆形
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 36,
+              color: '#78909c',
+              alpha: 1,
+            });
+            // 裂纹装饰
+            this.renderer.push({
+              shape: 'rect',
+              x: posX - 8,
+              y: posY - 4,
+              size: 12,
+              h: 2,
+              color: '#546e7a',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'rect',
+              x: posX + 6,
+              y: posY + 6,
+              size: 10,
+              h: 2,
+              color: '#546e7a',
+              alpha: 1,
+            });
+            break;
+          }
+
+          case 4: // Fan - 风扇：带旋转扇叶的机械风扇
+          {
+            // 底座
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY,
+              size: 24,
+              h: 24,
+              color: '#42a5f5',
+              alpha: 1,
+            });
+            // 扇叶（根据方向旋转）
+            const fanRotation = animTimer > 0 ? animFactor * 90 : 0;
+            const bladeSize = 10;
+            // 4片扇叶
+            for (let i = 0; i < 4; i++) {
+              const angle = (i * 90 + fanRotation) * Math.PI / 180;
+              const bx = posX + Math.cos(angle) * 8;
+              const by = posY + Math.sin(angle) * 8;
+              this.renderer.push({
+                shape: 'rect',
+                x: bx,
+                y: by,
+                size: bladeSize,
+                h: 4,
+                color: '#90caf9',
+                alpha: 1,
+              });
+            }
+            break;
+          }
+
+          case 5: // WaterPit - 水坑：蓝色水坑+波纹动画
+          {
+            // 外圈波纹
+            const waveSize = 28 + animFactor * 4;
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: waveSize,
+              color: '#29b6f6',
+              alpha: 0.5,
+            });
+            // 内圈水面
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 20,
+              color: '#0288d1',
+              alpha: 0.8,
+            });
+            // 高光
+            this.renderer.push({
+              shape: 'circle',
+              x: posX - 4,
+              y: posY - 4,
+              size: 6,
+              color: '#b3e5fc',
+              alpha: 0.6,
+            });
+            break;
+          }
+
+          case 6: // BoxingGlove - 拳击套：红色拳击手套+弹簧装置
+          {
+            // 弹簧底座
+            this.renderer.push({
+              shape: 'rect',
+              x: posX,
+              y: posY + 8,
+              size: 16,
+              h: 8,
+              color: '#795548',
+              alpha: 1,
+            });
+            // 拳套主体
+            const gloveOffset = trapDirection === 0 ? 8 : trapDirection === 2 ? -8 : 0;
+            const gloveOffsetY = trapDirection === 1 ? 8 : trapDirection === 3 ? -8 : 0;
+            this.renderer.push({
+              shape: 'circle',
+              x: posX + gloveOffset,
+              y: posY + gloveOffsetY - 4,
+              size: 20,
+              color: '#f44336',
+              alpha: 1,
+            });
+            // 拳套高光
+            this.renderer.push({
+              shape: 'circle',
+              x: posX + gloveOffset - 3,
+              y: posY + gloveOffsetY - 7,
+              size: 6,
+              color: '#ef9a9a',
+              alpha: 0.8,
+            });
+            break;
+          }
+
+          case 7: // MechanicalArm - 机械臂：灰色金属臂+夹爪
+          {
+            // 臂主体
+            const armLength = 20 + animFactor * 8;
+            const armDirX = trapDirection === 0 ? 1 : trapDirection === 2 ? -1 : 0;
+            const armDirY = trapDirection === 1 ? 1 : trapDirection === 3 ? -1 : 0;
+            this.renderer.push({
+              shape: 'rect',
+              x: posX + armDirX * armLength / 2,
+              y: posY + armDirY * armLength / 2,
+              size: armLength,
+              h: 8,
+              color: '#607d8b',
+              alpha: 1,
+            });
+            // 夹爪
+            this.renderer.push({
+              shape: 'triangle',
+              x: posX + armDirX * armLength,
+              y: posY + armDirY * armLength - 6,
+              size: 10,
+              color: '#455a64',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'triangle',
+              x: posX + armDirX * armLength,
+              y: posY + armDirY * armLength + 6,
+              size: 10,
+              color: '#455a64',
+              alpha: 1,
+            });
+            // 底座
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY,
+              size: 14,
+              color: '#78909c',
+              alpha: 1,
+            });
+            break;
+          }
+
+          default: {
+            // 默认地刺样式
+            const spikeOffset = -animFactor * 12;
+            const spikeSizeBonus = animFactor * 6;
+            for (let o = -1; o <= 1; o++) {
+              this.renderer.push({
+                shape: 'triangle',
+                x: posX + o * 8,
+                y: posY + spikeOffset,
+                size: 14 + spikeSizeBonus,
+                color: '#757575',
+                alpha: 1,
+              });
+            }
+          }
         }
-        const tColor = '#f44336';
-        const tAlpha = 1;
-        for (let o = -1; o <= 1; o++) {
-          this.renderer.push({
-            shape: 'triangle',
-            x: posX + o * 8,
-            y: posY + spikeOffset,
-            size: 14 + spikeSizeBonus,
-            color: tColor,
-            alpha: tAlpha,
-          });
-        }
-        this.renderer.push({
-          shape: 'rect',
-          x: posX,
-          y: posY + 16,
-          size: 0.1,
-          h: 0.1,
-          color: '#f44336',
-          alpha: 1,
-          label: '地刺',
-          labelColor: '#ffffff',
-          labelSize: 12,
-        });
         continue;
       }
 
@@ -453,6 +966,22 @@ export class RenderSystem implements System {
       }
 
       // ========================================
+      // Poison visual — green tint (shader effect via lerp)
+      // ========================================
+      const hasPoisoned = hasComponent(world.world, Poisoned, eid);
+      if (hasPoisoned && !flashActive && !hasFrozen) {
+        const poisonIntensity = Poisoned.intensity[eid]! || 1.0;
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        // Pulse the tint intensity
+        const pulse = 0.7 + 0.3 * Math.sin(poisonTimer * 4);
+        const t = poisonIntensity * pulse * 0.6;
+        displayColor = this.lerpColorRGB(
+          Visual.colorR[eid]!, Visual.colorG[eid]!, Visual.colorB[eid]!,
+          '#4caf50', t,
+        );
+      }
+
+      // ========================================
       // Boss rendering
       // ========================================
       const isBossEntity = hasComponent(world.world, Boss, eid);
@@ -480,8 +1009,21 @@ export class RenderSystem implements System {
         (selectedUnitId !== null && eid === selectedUnitId) ||
         (selectedTrapId !== null && eid === selectedTrapId) ||
         (selectedProductionId !== null && eid === selectedProductionId);
-      const strokeColor = isSelected ? '#ffffff' : (Visual.outline[eid] ? '#ffffff' : undefined);
-      const strokeW = isSelected ? 3 : (Visual.outline[eid] ? 2 : undefined);
+      let strokeColor = isSelected ? '#ffffff' : (Visual.outline[eid] ? '#ffffff' : undefined);
+      let strokeW = isSelected ? 3 : (Visual.outline[eid] ? 2 : undefined);
+
+      // ========================================
+      // Elite enemy rendering — gold border + 20% size increase
+      // design/02-gameplay.md §2.4: 金色边框+体型增大20%
+      // ========================================
+      const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
+      if (isEliteEnemy) {
+        drawSize = drawSize * 1.2;
+        if (!isSelected) {
+          strokeColor = '#FFD700';
+          strokeW = 3;
+        }
+      }
 
       // ========================================
       // Unit move-range circle (when selected)
@@ -588,6 +1130,14 @@ export class RenderSystem implements System {
       }
 
       // ========================================
+      // Building period: half-transparent body so player can see placement
+      // ========================================
+      const isBuilding = isTower && hasComponent(world.world, BuildingTower, eid);
+      if (isBuilding) {
+        displayAlpha *= 0.5;
+      }
+
+      // ========================================
       // MissileCharge visual (pulsing red glow + alpha flicker)
       // ========================================
       if (isTower && hasComponent(world.world, MissileCharge, eid)) {
@@ -606,9 +1156,118 @@ export class RenderSystem implements System {
       }
 
       // ========================================
+      // Poison glow aura (below entity body)
+      // ========================================
+      if (hasPoisoned && !isProjectile) {
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        this.renderer.drawPoisonGlow(posX, posY, drawSize, poisonTimer);
+      }
+
+      // ========================================
+      // Enemy attack animation: squash-stretch deformation
+      // ========================================
+      let attackAnimPosX = posX;
+      let attackAnimPosY = posY;
+      let attackAnimSize = drawSize;
+      if (isEnemy) {
+        const atkTimer = Visual.attackAnimTimer[eid]!;
+        const atkDur = Visual.attackAnimDuration[eid]!;
+        if (atkTimer > 0 && atkDur > 0) {
+          const progress = 1 - atkTimer / atkDur;
+          const facing = Visual.facing[eid] ?? 1;
+
+          // Phase 1: wind-up (0-35%) — shrink
+          // Phase 2: strike (35-60%) — expand + lunge toward target
+          // Phase 3: recovery (60-100%) — spring back to normal
+          let scale = 1.0;
+          let lungeDist = 0;
+          if (progress < 0.35) {
+            const t = progress / 0.35;
+            scale = 1 - 0.15 * t;
+          } else if (progress < 0.6) {
+            const t = (progress - 0.35) / 0.25;
+            scale = 0.85 + 0.3 * t;
+            lungeDist = 6 * Math.sin(t * Math.PI);
+          } else {
+            const t = (progress - 0.6) / 0.4;
+            scale = 1 + 0.1 * (1 - t);
+          }
+          attackAnimSize = drawSize * scale;
+          attackAnimPosX = posX + lungeDist * facing;
+        }
+      }
+
+      // ========================================
       // 1. Entity body (bottom layer — drawn first)
       // ========================================
-      pushCmd();
+      const unitPartsId = Visual.partsId[eid] ?? 0;
+      if ((isUnit || isEnemy) && unitPartsId !== 0) {
+        const parts = world.getUnitVisualParts(unitPartsId);
+        if (parts) {
+          this.drawSoldierComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
+        } else {
+          // Use attack-animated position/size for simple-shape enemies
+          this.renderer.push({
+            shape: shapeValToString(Visual.shape[eid]!),
+            x: attackAnimPosX, y: attackAnimPosY,
+            size: attackAnimSize,
+            color: displayColor,
+            alpha: displayAlpha,
+            stroke: strokeColor,
+            strokeWidth: strokeW,
+            z: renderZ,
+          });
+        }
+      } else {
+        // Use attack-animated position/size for simple-shape enemies/non-unit entities
+        if (isEnemy) {
+          this.renderer.push({
+            shape: shapeValToString(Visual.shape[eid]!),
+            x: attackAnimPosX, y: attackAnimPosY,
+            size: attackAnimSize,
+            color: displayColor,
+            alpha: displayAlpha,
+            stroke: strokeColor,
+            strokeWidth: strokeW,
+            z: renderZ,
+          });
+        } else {
+          pushCmd();
+        }
+      }
+
+      // ========================================
+      // Enemy attack animation: pulse wave (concentric expanding circles)
+      // ========================================
+      if (isEnemy) {
+        const atkTimer = Visual.attackAnimTimer[eid]!;
+        const atkDur = Visual.attackAnimDuration[eid]!;
+        if (atkTimer > 0 && atkDur > 0) {
+          const progress = 1 - atkTimer / atkDur;
+          // Draw 3 concentric wave rings that expand outward and fade
+          const waveCount = 3;
+          const waveLiftZ = (LAYER_TO_Z[LayerVal.Ground] ?? 5) + 1; // draw just above entity
+          for (let w = 0; w < waveCount; w++) {
+            const waveStart = w * 0.22;
+            const waveProgress = Math.max(0, Math.min(1, (progress - waveStart) / 0.55));
+            if (waveProgress > 0 && waveProgress < 1) {
+              const radius = (drawSize * 0.4) + waveProgress * drawSize * 0.8;
+              const alpha = 0.45 * (1 - waveProgress) * (1 - waveProgress);
+              this.renderer.push({
+                shape: 'circle',
+                x: posX,
+                y: posY,
+                size: radius * 2,
+                color: '#ffffff',
+                alpha,
+                stroke: '#ffffff',
+                strokeWidth: 1.5,
+                z: waveLiftZ,
+              });
+            }
+          }
+        }
+      }
 
       // ========================================
       // 2. Composite geometry extra parts (L3-L5 towers)
@@ -628,22 +1287,6 @@ export class RenderSystem implements System {
             z: renderZ,
           });
         }
-      }
-
-      // ========================================
-      // Boss crown (keep existing)
-      // ========================================
-      if (isBossEntity) {
-        const crownSize = Visual.size[eid]! * 0.4;
-        this.renderer.push({
-          shape: 'triangle',
-          x: posX,
-          y: posY - drawSize / 2 - crownSize / 2 - 2,
-          size: crownSize,
-          color: '#ffd700',
-          alpha: 0.95,
-          z: renderZ,
-        });
       }
 
       // ========================================
@@ -703,13 +1346,24 @@ export class RenderSystem implements System {
       // ========================================
       // 2.5. Cooldown bar (thin blue bar below health bar, towers only)
       // ========================================
-      if (isTower && hasComponent(world.world, Attack, eid) && drawSize > 0 && isFinite(entityTop)) {
+      if (isTower && hasComponent(world.world, Attack, eid) && drawSize > 0 && isFinite(entityTop) && !isBuilding) {
         const atkSpeed = Attack.attackSpeed[eid]!;
         const cdTimer = Attack.cooldownTimer[eid]!;
         // fillRatio: 0 = just fired (empty), 1 = ready to fire (full)
         const fillRatio = Math.max(0, Math.min(1, 1 - cdTimer * atkSpeed));
         const cdBarY = healthBarY + HEALTH_BAR_HALF_H + CD_BAR_GAP + CD_BAR_HALF_H;
         this.drawCooldownBar(posX, cdBarY, barW, fillRatio, renderZ);
+      }
+
+      // ========================================
+      // 2.6. Building progress bar (orange → green gradient below tower)
+      // ========================================
+      if (isBuilding && drawSize > 0 && isFinite(entityTop)) {
+        const timer = BuildingTower.timer[eid]!;
+        const duration = BuildingTower.duration[eid]!;
+        const progress = duration > 0 ? Math.max(0, Math.min(1, 1 - timer / duration)) : 1;
+        const barY = posY + drawSize / 2 + 8;
+        this.drawBuildingProgressBar(posX, barY, barW, progress, renderZ);
       }
 
       // ========================================
@@ -868,6 +1522,14 @@ export class RenderSystem implements System {
           }
         }
       }
+
+      // ========================================
+      // Poison bubbles (green rising particles for poisoned enemies)
+      // ========================================
+      if (hasPoisoned && !flashActive && !isProjectile) {
+        const poisonTimer = Poisoned.timer[eid]! || 0;
+        this.renderer.drawPoisonBubbles(posX, posY, drawSize, poisonTimer);
+      }
     }
   }
 
@@ -976,6 +1638,38 @@ export class RenderSystem implements System {
         h: barH,
         color: CD_BAR_COLOR,
         alpha: 0.95,
+        z,
+      });
+    }
+  }
+
+  // ============================================
+  // Building progress bar — orange→green gradient below tower body
+  // ============================================
+  private drawBuildingProgressBar(
+    x: number, y: number, width: number, progress: number, z: number,
+  ): void {
+    const barH = CD_BAR_HEIGHT;
+    const barW = width;
+    const halfW = barW / 2;
+
+    this.renderer.push({
+      shape: 'rect', x, y, size: barW, h: barH,
+      color: '#222222', alpha: 0.85,
+      z,
+    });
+
+    const fillW = Math.max(barW * progress, 0);
+    if (fillW > 0) {
+      const fillColor = this.lerpColorRGB(0xff, 0x8c, 0x00, '#00ff00', progress);
+      this.renderer.push({
+        shape: 'rect',
+        x: x - halfW + fillW / 2,
+        y,
+        size: fillW,
+        h: barH,
+        color: fillColor,
+        alpha: 1,
         z,
       });
     }

@@ -68,6 +68,49 @@ export enum ObstacleType {
   Pillar = 'pillar',
   Brazier = 'brazier',
   Rubble = 'rubble',
+  // ---- v3.2 8 关 roguelike 装饰（不影响 gameplay，DecorationSystem fallback 到通用几何） ----
+  // 关 2 沙漠虫潮
+  SandDune = 'sand_dune',
+  TunnelEntrance = 'tunnel_entrance',
+  TunnelExit = 'tunnel_exit',
+  // 关 3 极地暴雪
+  IcePillar = 'ice_pillar',
+  SnowPile = 'snow_pile',
+  IceTile = 'ice_tile',
+  // 关 4 失落神庙
+  TemplePillar = 'temple_pillar',
+  AncientStatue = 'ancient_statue',
+  VineOvergrowth = 'vine_overgrowth',
+  // 关 5 沉没港口
+  ShipWreck = 'ship_wreck',
+  DockCrate = 'dock_crate',
+  Buoy = 'buoy',
+  TideShoal = 'tide_shoal',
+  // 关 6 齿轮工厂
+  ConveyorBelt = 'conveyor_belt',
+  GearDecoration = 'gear_decoration',
+  SteamPipe = 'steam_pipe',
+  CoalPile = 'coal_pile',
+  // 关 7 孢子菌林
+  MushroomCluster = 'mushroom_cluster',
+  SporePod = 'spore_pod',
+  MoldSpawner = 'mold_spawner',
+  HyphalRoot = 'hyphal_root',
+  // 关 8 异界终战
+  AlienPillar = 'alien_pillar',
+  CorruptedObelisk = 'corrupted_obelisk',
+  VoidRift = 'void_rift',
+  RealityWarp = 'reality_warp',
+  // ---- v4.0 通用装饰物（跨主题） ----
+  // 城堡/古堡
+  DeadTree = 'dead_tree',
+  Wall = 'wall',
+  // 废土
+  Car = 'car',
+  // 深渊
+  FloatingRock = 'floating_rock',
+  PurpleFlame = 'purple_flame',
+  CrystalObstacle = 'crystal_obstacle',
 }
 
 export interface ObstaclePlacement {
@@ -130,7 +173,8 @@ export interface MapConfig {
   rows: number;
   tileSize: number;
   tiles: TileType[][];
-  enemyPath: GridPos[];
+  spawns?: import('../level/graph/types.js').SpawnPoint[];
+  pathGraph?: import('../level/graph/types.js').PathGraph;
   tileColors?: Partial<Record<TileType, string>>;
   altSpawnPoints?: GridPos[];
   sceneDescription?: string;
@@ -157,15 +201,15 @@ export interface GridPos {
 
 export enum TowerType {
   Arrow = 'arrow',
+  Ballista = 'ballista',
   Cannon = 'cannon',
-  Ice = 'ice',
-  Lightning = 'lightning',
   Laser = 'laser',
   Bat = 'bat',
   Missile = 'missile',
-  Vine = 'vine',
-  Command = 'command',
-  Ballista = 'ballista',
+  Ice = 'ice',
+  Fire = 'fire',
+  Poison = 'poison',
+  Lightning = 'lightning',
 }
 
 export interface TowerConfig {
@@ -181,6 +225,8 @@ export interface TowerConfig {
   upgradeAtkBonus: number[];
   upgradeRangeBonus: number[];
   color: string;
+  /** 建造耗时（秒）— 安装后到可攻击之间的延迟。省略则按默认值 2.0s。 */
+  buildTime?: number;
   splashRadius?: number;
   stunDuration?: number;
   slowPercent?: number;
@@ -213,25 +259,46 @@ export interface TowerConfig {
   cantTargetFlying?: boolean;        // 不能命中飞行敌（地面爆炸不伤飞行）
   centerBonusRadiusRatio?: number;   // L5+ 热压：中心加成半径占爆炸半径的比例
   centerBonusMultiplier?: number;    // L5+ 热压：中心加成伤害倍数
+  // Multi-shot: 同时发射的弹丸数量（按等级递增）
+  projectileCount?: number[];        // index 0=L1, 1=L2, ... 不设置则默认 [1]
 }
 
 // ---- Enemy ----
 
 export enum EnemyType {
-  Grunt = 'grunt',
-  Runner = 'runner',
-  Heavy = 'heavy',
-  Mage = 'mage',
-  Exploder = 'exploder',
-  BossCommander = 'boss_commander',
-  BossBeast = 'boss_beast',
-  HotAirBalloon = 'hot_air_balloon',
-  Shaman = 'shaman',
-  Juggernaut = 'juggernaut',
+  // 绿野仙踪（怪兽族）
+  Goblin = 'goblin',
+  Boar = 'boar',
+  Elephant = 'elephant',
+  Giant = 'giant',
+  GiantSlime = 'giant_slime',
+  // 沙漠虫潮（虫族）
+  DesertBeetle = 'desert_beetle',
+  BurrowBeetle = 'burrow_beetle',
+  Locust = 'locust',
+  BombBeetle = 'bomb_beetle',
+  QueenBeetle = 'queen_beetle',
+  // 黑暗古堡（黑暗族）
+  Werewolf = 'werewolf',
+  VampireBat = 'vampire_bat',
+  Wizard = 'wizard',
+  Priest = 'priest',
+  Frankenstein = 'frankenstein',
+  Lucifer = 'lucifer',
+  // 末日废土（机械族）
+  Plane = 'plane',
+  Tank = 'tank',
+  OilTruck = 'oil_truck',
+  RobotDog = 'robot_dog',
+  GiantRobot = 'giant_robot',
+  Drone = 'drone',
+  SuperRobot = 'super_robot',
+  // 深渊裂隙
+  AbyssLord = 'abyss_lord',
 }
 
 export interface EnemyConfig {
-  type: EnemyType;
+  type: string;
   name: string;
   hp: number;
   speed: number;
@@ -281,6 +348,12 @@ export interface EnemyConfig {
   stunResist?: number;
   /** 铁甲巨兽专用：冰冻抵抗(秒, 免疫时长减免) */
   freezeResist?: number;
+  /** 基础几何形状：'circle' / 'rect' / 'hexagon' 等。默认 'circle'（敌人历史上是圆形） */
+  shape?: ShapeType;
+  /** 视觉部件配置（眼睛/武器/身体细节）— 不填则只画基础 shape，无装饰 */
+  visualParts?: UnitVisualParts;
+  /** 攻击动画时长（秒）— 用于挥砍/拉弓等武器动作。默认 0.3 秒；0 则不播放武器挥砍 */
+  attackAnimDuration?: number;
 }
 
 // ---- Unit ----
@@ -288,6 +361,11 @@ export interface EnemyConfig {
 export enum UnitType {
   ShieldGuard = 'shield_guard',
   Swordsman = 'swordsman',
+  Archer = 'archer',
+  Priest = 'priest',
+  Engineer = 'engineer',
+  Assassin = 'assassin',
+  Mage = 'mage',
 }
 
 export interface UnitConfig {
@@ -306,6 +384,49 @@ export interface UnitConfig {
   cost: number;
   moveRange: number;
   alertRange?: number; // detection radius for soldier AI alert behavior (default 0)
+  tauntCapacity?: number; // 嘲讽容量基础值：能同时吸引多少敌人攻击自己（默认 0 = 无嘲讽）
+  tauntCapacityPerLevel?: number; // 每升一级嘲讽容量增量（默认 0）
+  splashRadius?: number; // 近战 AOE 半径（px），>0 时每次攻击对周围目标造成 60% 溅射伤害
+  maxLevel?: number; // 等级上限（默认 3）
+  upgradeCosts?: readonly number[]; // 各级升级费用：[1→2, 2→3, ...]（长度 = maxLevel - 1）
+  upgradeHpBonus?: readonly number[]; // 每级升级增加的最大 HP
+  upgradeAtkBonus?: readonly number[]; // 每级升级增加的攻击力
+  upgradeTauntCapacityBonus?: readonly number[]; // 每级升级增加的嘲讽容量（与 tauntCapacityPerLevel 二选一；优先此字段）
+  /** 基础几何形状：'circle' / 'rect' / 'hexagon' 等。默认 'rect'（士兵历史上是方块） */
+  shape?: ShapeType;
+  /** 视觉部件配置（眼睛/武器/身体细节）— 不填则只画基础 shape，无装饰 */
+  visualParts?: UnitVisualParts;
+  /** 攻击动画时长（秒）— 用于挥砍/拉弓等武器动作。默认 0.3 秒；0 则不播放武器挥砍 */
+  attackAnimDuration?: number;
+  /** 目标选择策略（默认 'nearest'） */
+  targetSelection?: string;
+}
+
+// ---- Trap ----
+
+export interface TrapConfig {
+  type: string;
+  name: string;
+  hp: number;
+  damagePerSecond: number;
+  radius: number;
+  cooldown: number;
+  maxTriggers: number;
+  color: string;
+  size: number;
+  cost: number;
+  shape?: ShapeType;
+  layer?: string;
+  // 机关特有可选属性
+  rootDuration?: number;
+  stunDuration?: number;
+  damage?: number;
+  bossImmune?: boolean;
+  slowPercent?: number;
+  killChance?: number;
+  pushDistance?: number;
+  pullDistance?: number;
+  range?: number;
 }
 
 // ---- Production ----
@@ -347,6 +468,13 @@ export enum WeatherType {
   Snow = 'snow',
   Fog = 'fog',
   Night = 'night',
+  // ---- v3.2 8 关 roguelike 主题天气 (16-level-blueprints §0-§9) ----
+  Sandstorm = 'sandstorm',   // 关 2 沙漠虫潮
+  Blizzard = 'blizzard',     // 关 3 极地暴雪要塞
+  Storm = 'storm',           // 关 5 沉没港口（暴雨）
+  Smog = 'smog',             // 关 6 齿轮工厂（煤烟）
+  SporeMist = 'spore_mist',  // 关 7 孢子菌林
+  Void = 'void',             // 关 8 异界终战
 }
 
 export interface WeatherModifier {
@@ -401,18 +529,16 @@ export interface SkillConfig {
 
 export interface PlayerResources {
   gold: number;
-  energy: number;
   lives: number;
-  population: number;
-  maxPopulation: number;
 }
 
 // ---- Wave ----
 
 export interface WaveEnemyGroup {
-  enemyType: EnemyType;
+  enemyType: string;
   count: number;
   spawnInterval: number;
+  spawnId?: string;
 }
 
 export interface WaveConfig {
@@ -421,6 +547,8 @@ export interface WaveConfig {
   spawnDelay: number;
   isBossWave?: boolean;
   spawnPointIndex?: number;
+  /** 波次通关奖励金币 */
+  reward?: number;
 }
 
 // ---- Game State ----
@@ -492,11 +620,81 @@ export interface CompositePart {
   offsetX: number;   // relative to entity center
   offsetY: number;   // relative to entity center
   size: number;
+  /** Rect height (defaults to size = square). Ignored for non-rect shapes. */
+  h?: number;
   color: string;
   alpha?: number;
   stroke?: string;
   strokeWidth?: number;
   rotation?: number;
+}
+
+/**
+ * 可移动单位的视觉部件配置 — 描述身体之上的装饰元素（眼睛、武器、肩甲等）。
+ *
+ * 渲染规则（详见 RenderSystem.drawSoldierComposite）：
+ * - eyes：两个对称圆点，pupil 描绘瞳孔；位置随 facing 沿 X 轴翻转
+ * - weapon：从单位 anchor 偏移出发的矩形武器，攻击时沿 pivot 旋转挥砍
+ * - bodyParts：附加身体几何（围巾/护甲条纹等），随 facing 翻转
+ * - bobbing/breathing 由 RenderSystem 统一应用，无需在配置中指定
+ */
+export interface UnitVisualParts {
+  /** 眼睛：两个对称圆点，沿单位 X 轴对称分布 */
+  eyes?: {
+    /** 眼睛距单位中心的 X 偏移（绝对像素，左右对称）；默认 size * 0.18 */
+    offsetX?: number;
+    /** 眼睛距单位中心的 Y 偏移（向上为负）；默认 -size * 0.12 */
+    offsetY?: number;
+    /** 眼白/巩膜半径，0 表示不画眼白只画瞳孔 */
+    scleraRadius?: number;
+    /** 眼白颜色，默认 #ffffff */
+    scleraColor?: string;
+    /** 瞳孔半径 */
+    pupilRadius: number;
+    /** 瞳孔颜色 */
+    pupilColor: string;
+  };
+
+  /**
+   * 武器：单根矩形 + 可选光晕，相对单位 anchor（默认右手 = size * 0.45, -size * 0.05）。
+   * 旋转 pivot 固定在 anchor 处，挥砍角度从 restAngle 摆向 swingAngle。
+   */
+  weapon?: {
+    /** 武器在单位坐标系中的 anchor X（相对中心，朝向为右，正值=右） */
+    anchorX: number;
+    /** 武器在单位坐标系中的 anchor Y（向上为负） */
+    anchorY: number;
+    /** 武器长度（沿其自身轴向） */
+    length: number;
+    /** 武器宽度 */
+    width: number;
+    /** 武器颜色 */
+    color: string;
+    /** 武器描边颜色 */
+    stroke?: string;
+    /** 武器描边宽度 */
+    strokeWidth?: number;
+    /** 武器静止时绕 anchor 的旋转角度（弧度，0 = 水平向右，向下旋转为正） */
+    restAngle: number;
+    /** 攻击挥砍最大角度（弧度），动画从 restAngle 平滑摆向 restAngle + swingAngle 后回弹 */
+    swingAngle: number;
+    /** 武器发光颜色（绘制在武器下层做光晕），undefined = 不发光 */
+    glowColor?: string;
+    /** 发光半径（覆盖整把武器的圆形光晕） */
+    glowRadius?: number;
+    /** 发光透明度，默认 0.4 */
+    glowAlpha?: number;
+  };
+
+  /** 附加身体部件（肩甲、围巾、徽记等），跟随 facing 翻转 */
+  bodyParts?: CompositePart[];
+
+  /**
+   * 移动晃动风格：
+   * - 'walking'（默认）：地面单位 — 浅 Y bob (±2px) + X 摇摆 (±0.6px)
+   * - 'floating'：空中单位 — 较深 Y bob (±4px)，无 X 摇摆（气球类）
+   */
+  bobStyle?: 'walking' | 'floating';
 }
 
 /** Per-level upgrade visual configuration */
@@ -548,14 +746,15 @@ export const CType = {
   GoldChest: 'GoldChest',
   DeathEffect: 'DeathEffect',
   ExplosionEffect: 'ExplosionEffect',
-  Bomb: 'Bomb',
   // New unified unit system components
   UnitTag: 'UnitTag',
-  AI: 'AI',
   Lifecycle: 'Lifecycle',
   BatSwarmMember: 'BatSwarmMember',
   BatTower: 'BatTower',
   LaserBeam: 'LaserBeam',
+  Soldier: 'Soldier',
+  Elite: 'Elite',
+  CardComponent: 'CardComponent',
 } as const;
 
 export type ComponentType = (typeof CType)[keyof typeof CType];
@@ -575,6 +774,8 @@ export enum LevelTheme {
   Tundra = 'tundra',
   Volcano = 'volcano',
   Castle = 'castle',
+  Wasteland = 'wasteland',
+  Abyss = 'abyss',
 }
 
 export interface LevelConfig {
@@ -604,11 +805,11 @@ export enum UnitCategory {
   Tower = 'tower',           // 防御塔
   Enemy = 'enemy',           // 敌人
   Soldier = 'soldier',       // 士兵（玩家单位）
-  Building = 'building',     // 建筑（生产建筑等）
   Trap = 'trap',             // 陷阱
   Decoration = 'decoration', // 场景装饰
   Objective = 'objective',   // 目标点（出生点、大本营等）
   Effect = 'effect',         // 特效单位
+  Boss = 'boss',             // BOSS
 }
 
 /**
@@ -672,6 +873,7 @@ export interface UnitTypeConfig {
   color: string;
   size: number;
   shape: ShapeType;
+  visualParts?: UnitVisualParts; // 视觉部件配置（眼睛/武器/身体细节）
 
   // AI behavior
   aiConfig: string; // AI preset ID
@@ -709,102 +911,12 @@ export interface EffectConfig {
 }
 
 // ============================================================
-// AI System — Behavior Tree
+// v4.0 Soldier AI — 四状态机
 // ============================================================
 
-/** Behavior tree node status */
-export enum NodeStatus {
-  Success = 'success',
-  Failure = 'failure',
-  Running = 'running',
-}
-
-/** Behavior tree node types */
-export enum BTNodeType {
-  // Composite
-  Sequence = 'sequence',
-  Selector = 'selector',
-  Parallel = 'parallel',
-
-  // Decorator
-  Inverter = 'inverter',
-  Repeater = 'repeater',
-  UntilFail = 'until_fail',
-  AlwaysSucceed = 'always_succeed',
-  Cooldown = 'cooldown',
-
-  // Condition
-  CheckHP = 'check_hp',
-  CheckEnemyInRange = 'check_enemy_in_range',
-  CheckAllyInRange = 'check_ally_in_range',
-  CheckBuff = 'check_buff',
-  CheckCooldown = 'check_cooldown',
-  CheckPhase = 'check_phase',
-  CheckTargetAlive = 'check_target_alive',
-  CheckDistanceToTarget = 'check_distance_to_target',
-  CheckMoving = 'check_moving',
-  CheckStunned = 'check_stunned',
-  CheckPlayerControl = 'check_player_control',
-
-  // Action
-  Attack = 'attack',
-  MoveTo = 'move_to',
-  MoveTowards = 'move_towards',
-  Flee = 'flee',
-  UseSkill = 'use_skill',
-  Wait = 'wait',
-  Spawn = 'spawn',
-  Patrol = 'patrol',
-  SetTarget = 'set_target',
-  ClearTarget = 'clear_target',
-  PlayAnimation = 'play_animation',
-}
-
-/** Target selection types */
-export enum TargetType {
-  Self = 'self',
-  NearestEnemy = 'nearest_enemy',
-  NearestAlly = 'nearest_ally',
-  WeakestEnemy = 'weakest_enemy',
-  StrongestEnemy = 'strongest_enemy',
-  LowestHPAlly = 'lowest_hp_ally',
-  PathWaypoint = 'path_waypoint',
-  Home = 'home',
-  PlayerTarget = 'player_target',
-  AllInRange = 'all_in_range',
-}
-
-/** Behavior tree node configuration */
-export interface BTNodeConfig {
-  type: string;
-  name?: string;
-  params?: Record<string, unknown>;
-  children?: BTNodeConfig[];
-}
-
-/** Behavior tree configuration */
-export interface BehaviorTreeConfig {
-  id: string;
-  name: string;
-  description?: string;
-  version?: string;
-  blackboard?: Record<string, unknown>;
-  root: BTNodeConfig;
-}
-
-/** AI preset configuration */
-export interface AIPresetConfig {
-  id: string;
-  name: string;
-  description?: string;
-  tree: BehaviorTreeConfig;
-}
-
-/** Comparison operators for conditions */
-export type ComparisonOperator = '==' | '!=' | '<' | '>' | '<=' | '>=';
-
-/** Comparison expression */
-export interface ComparisonExpr {
-  op: ComparisonOperator;
-  value: number;
+export enum SoldierState {
+  Idle = 0,
+  Combat = 1,
+  Returning = 2,
+  Healing = 3,
 }
