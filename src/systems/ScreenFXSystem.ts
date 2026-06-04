@@ -208,41 +208,53 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 雾效 —— 粒子雾 shader
+  // 雾效 —— 随机雾团（FogPuff）
   // ============================================================
 
   /**
-   * 密集粒子雾：fBm 噪声场驱动 alpha，数千微小粒子在全屏叠加出体积雾效果
-   * 无几何图形 —— 纯粒子重叠，模拟 volumetric fog shader
+   * 随机位置大雾团 + 径向渐变软边缘 + 正弦振荡漂移
+   * 参考 weather-canvas FogPuff 实现，无网格、无几何感
    */
   private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Fog) return;
 
     ctx.save();
 
-    const color = '#cdd5df';
-    const cellSize = 16;
-    const cols = Math.ceil(LayoutManager.DESIGN_W / cellSize) + 1;
-    const rows = Math.ceil(LayoutManager.DESIGN_H / cellSize) + 1;
-    const timeScale = this.time * 0.06;
+    const puffCount = 16;
+    const baseColor = '#cdd5df';
 
-    for (let cy = 0; cy < rows; cy++) {
-      for (let cx = 0; cx < cols; cx++) {
-        const wx = cx * cellSize;
-        const wy = cy * cellSize;
-        const n = this.fbm2D(wx * 0.004 + timeScale, wy * 0.004 + timeScale * 0.6, 3);
-        if (n < 0.4) continue;
+    for (let i = 0; i < puffCount; i++) {
+      // 确定性参数（splitmix32 链，彻底独立）
+      let s = ((i * 2654435761 + 777) >>> 0);
+      const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const py = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_H;
+      const radius = 120 + this.hashToFloat(s = this.nextHash(s)) * 250;  // 120-370px
+      const alpha = 0.03 + this.hashToFloat(s = this.nextHash(s)) * 0.06;
+      const driftSpeed = (0.3 + this.hashToFloat(s = this.nextHash(s)) * 0.7)
+        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1); // 随机方向
+      const oscAmp = 10 + this.hashToFloat(this.nextHash(s)) * 30;
+      const oscFreq = 0.2 + this.hashToFloat(this.nextHash(s)) * 0.4;
+      const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
 
-        const t = (n - 0.4) / 0.6;
-        const r = 2 + t * 6;          // 2-8px 粒子
-        const alpha = t * t * 0.1;    // 平方曲线
+      // 漂移 + 正弦振荡
+      const dx = px + this.time * driftSpeed * 25;
+      const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
 
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(wx, wy, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // 循环回绕
+      const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
+      const wrapY = ((dy % (LayoutManager.DESIGN_H + radius * 2)) + (LayoutManager.DESIGN_H + radius * 2)) % (LayoutManager.DESIGN_H + radius * 2) - radius;
+
+      // 径向渐变：中心实 → 边缘虚 → 软边
+      const grad = ctx.createRadialGradient(wrapX, wrapY, radius * 0.2, wrapX, wrapY, radius);
+      grad.addColorStop(0,    'rgba(205,213,223,0)');
+      grad.addColorStop(0.3,  `rgba(205,213,223,${alpha})`);
+      grad.addColorStop(0.7,  `rgba(205,213,223,${alpha * 0.6})`);
+      grad.addColorStop(1,    'rgba(205,213,223,0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
@@ -323,44 +335,52 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 乌云 —— 粒子雾 shader
+  // 乌云 —— 随机云团（DarkCloudPuff）
   // ============================================================
 
   /**
-   * 密集粒子云层：fBm 噪声场驱动 alpha，数千微小粒子叠加出体积云效果
-   * 无几何图形 —— 纯粒子重叠，模拟 volumetric cloud shader
+   * 随机位置乌云团 + 径向渐变软边缘 + 正弦振荡漂移，集中在屏幕顶部
+   * 参考 weather-canvas FogPuff 实现，无网格、无几何感
    */
   private drawDarkClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Rain) return;
 
     ctx.save();
 
-    const color = '#1e2430';
-    const cellSize = 14;
-    const cols = Math.ceil(LayoutManager.DESIGN_W / cellSize) + 1;
-    const cloudBottom = 180;
-    const rows = Math.ceil(cloudBottom / cellSize);
+    const puffCount = 20;
+    const cloudTop = 240;  // 云层底部
 
-    const timeScale = this.time * 0.05;
+    for (let i = 0; i < puffCount; i++) {
+      let s = (((i + 2000) * 2654435761) >>> 0);
+      const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const py = this.hashToFloat(s = this.nextHash(s)) * cloudTop;
+      const radius = 80 + this.hashToFloat(s = this.nextHash(s)) * 160;   // 80-240px
+      const alpha = 0.08 + this.hashToFloat(s = this.nextHash(s)) * 0.14; // 0.08-0.22
+      const driftSpeed = (0.2 + this.hashToFloat(s = this.nextHash(s)) * 0.6)
+        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1);
+      const oscAmp = 5 + this.hashToFloat(this.nextHash(s)) * 15;
+      const oscFreq = 0.15 + this.hashToFloat(this.nextHash(s)) * 0.35;
+      const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
 
-    for (let cy = 0; cy < rows; cy++) {
-      for (let cx = 0; cx < cols; cx++) {
-        const wx = cx * cellSize;
-        const wy = cy * cellSize;
-        const n = this.fbm2D(wx * 0.006 + timeScale, wy * 0.007 + timeScale * 0.5, 4);
-        if (n < 0.28) continue;
+      const dx = px + this.time * driftSpeed * 20;
+      const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
 
-        // 噪声映射到粒子半径和 alpha
-        const t = (n - 0.28) / 0.72; // 归一化 [0, 1]
-        const r = 3 + t * 8;          // 3-11px 粒子
-        const alpha = t * t * 0.3;    // 平方曲线让浓处更浓
+      // 水平环绕
+      const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
+      // 垂直方向超出顶部则消失，底部受限
+      const wrapY = Math.max(-radius, Math.min(cloudTop + radius, dy));
 
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(wx, wy, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // 径向渐变软边
+      const grad = ctx.createRadialGradient(wrapX, wrapY, radius * 0.15, wrapX, wrapY, radius);
+      grad.addColorStop(0,    'rgba(30,36,48,0)');
+      grad.addColorStop(0.25, `rgba(30,36,48,${alpha})`);
+      grad.addColorStop(0.65, `rgba(20,25,36,${alpha * 0.7})`);
+      grad.addColorStop(1,    'rgba(20,25,36,0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
