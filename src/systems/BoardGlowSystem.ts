@@ -99,6 +99,11 @@ export class BoardGlowSystem implements System {
 
     ctx.save();
 
+    // 裁剪到棋盘区域，不透出格子外
+    ctx.beginPath();
+    ctx.rect(ox, oy, mapW, mapH);
+    ctx.clip();
+
     // 绕棋盘中心旋转 45°，使竖直光带变为斜向
     ctx.translate(cx, cy);
     ctx.rotate(this.sweepAngle);
