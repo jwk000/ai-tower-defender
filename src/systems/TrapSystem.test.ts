@@ -5,16 +5,23 @@
  * - design/03-units.md §4 (机关单位，8种陷阱)
  * - design/18-layer-system.md §5.4 (陷阱触发规则)
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { TowerWorld, hasComponent } from '../core/World.js';
 import {
-  Position, Health, Trap, GridOccupant, Layer, LayerVal,
-  Boss, Stunned, Slowed, TrapTypeVal,
+  Boss,
+  GridOccupant,
+  Health,
+  Layer, LayerVal,
+  Position,
+  Slowed,
+  Stunned,
+  Trap,
+  TrapTypeVal,
 } from '../core/components.js';
-import { TrapSystem } from './TrapSystem.js';
-import { RenderSystem } from './RenderSystem.js';
-import { TileType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
+import { TileType } from '../types/index.js';
+import { RenderSystem } from './RenderSystem.js';
+import { TrapSystem } from './TrapSystem.js';
 
 const TILE = 32;
 
@@ -245,7 +252,7 @@ describe('TrapSystem — BearTrap (捕兽夹)', () => {
   it('敌人触发后添加 Stunned (2.0s) 并造成20点伤害', () => {
     makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1, stunDuration: 2.0, damage: 20 });
     const enemy = makeEnemy(world, 5, 5);
-    const hpBefore = Health.current[enemy];
+    const hpBefore = Health.current[enemy] ?? 0;
     system.update(world, 0.016);
     expect(hasComponent(world.world, Stunned, enemy)).toBe(true);
     expect(Stunned.timer[enemy]).toBeCloseTo(2.0);
