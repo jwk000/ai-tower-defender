@@ -88,6 +88,9 @@ export class DecorationSystem implements System {
   private clouds: CloudState[] = [];
   private cloudsInitialized = false;
 
+  /** 预渲染云粒子纹理（径向渐变圆，软边） */
+  private cloudParticleTex: HTMLCanvasElement | null = null;
+
   /** 飞鸟列表（首次更新时初始化） */
   private birds: BirdState[] = [];
   private birdsInitialized = false;
@@ -538,7 +541,7 @@ export class DecorationSystem implements System {
     return 'plains';
   }
 
-  /** 纯粒子云：80-120微小圆点随机散布 + 独立微漂移，形状由密度定义 */
+  /** 纯粒子云：预渲染软边粒子纹理 + 批量贴图，重叠自动融合 */
   private drawClouds(): void {
     if (this.getWeather() !== WeatherType.Sunny) return;
 
@@ -547,31 +550,55 @@ export class DecorationSystem implements System {
       this.cloudsInitialized = true;
     }
 
+    // 延后初始化纹理（需要 ctx）
+    if (!this.cloudParticleTex) {
+      this.cloudParticleTex = this.createCloudParticleTex();
+    }
+
     const ctx = this.renderer.context;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     const W = LayoutManager.viewportW;
+    const tex = this.cloudParticleTex;
 
     for (const cloud of this.clouds) {
       cloud.x += cloud.speed * (1 / 60);
       if (cloud.x > W + 500) { cloud.x = -500; }
 
       for (const p of cloud.particles) {
-        // 微漂移 + 正弦摇摆
         const wobble = Math.sin(this.currentTime * p.wobbleFreq + p.wobblePhase) * 4;
         const px = cloud.x + p.ox + p.driftX * this.currentTime * 3 + wobble;
         const py = cloud.y + p.oy + p.driftY * this.currentTime * 3;
+        const alpha = p.alpha * (0.85 + Math.sin(this.currentTime * 1.2 + p.wobblePhase) * 0.15);
 
-        ctx.globalAlpha = p.alpha * (0.8 + Math.sin(this.currentTime * 1.2 + p.wobblePhase) * 0.2);
-        ctx.fillStyle = '#d8dde5';
-        ctx.beginPath();
-        ctx.arc(px, py, p.r, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(tex, px - p.r, py - p.r, p.r * 2, p.r * 2);
       }
     }
 
     ctx.restore();
+  }
+
+  /** 预渲染一个径向渐变软边圆 → 16×16 纹理 */
+  private createCloudParticleTex(): HTMLCanvasElement {
+    const size = 16;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const tctx = c.getContext('2d')!;
+    const r = size / 2;
+    const grad = tctx.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0,    'rgba(216,221,229,1)');
+    grad.addColorStop(0.3,  'rgba(210,215,224,0.9)');
+    grad.addColorStop(0.6,  'rgba(200,206,216,0.5)');
+    grad.addColorStop(0.85, 'rgba(195,201,212,0.1)');
+    grad.addColorStop(1,    'rgba(195,201,212,0)');
+    tctx.fillStyle = grad;
+    tctx.beginPath();
+    tctx.arc(r, r, r, 0, Math.PI * 2);
+    tctx.fill();
+    return c;
   }
 
   private initClouds(): void {
@@ -581,12 +608,12 @@ export class DecorationSystem implements System {
     for (let i = 0; i < count; i++) {
       const cx = Math.random() * LayoutManager.viewportW;
       const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55;
-      const particleCount = 800 + Math.floor(Math.random() * 400); // 800-1200 粒子
+      const particleCount = 500 + Math.floor(Math.random() * 250); // 500-750 粒子
       const particles: CloudParticle[] = [];
 
       // 云的散布范围（水平长，垂直短）
-      const spreadX = 100 + Math.random() * 150;
-      const spreadY = spreadX * (0.15 + Math.random() * 0.2);
+      const spreadX = 120 + Math.random() * 180;
+      const spreadY = spreadX * (0.12 + Math.random() * 0.18);
 
       for (let j = 0; j < particleCount; j++) {
         // 高斯分布采样 → 中心密、边缘疏
@@ -594,16 +621,15 @@ export class DecorationSystem implements System {
         do {
           ox = (Math.random() * 2 - 1) * spreadX;
           oy = (Math.random() * 2 - 1) * spreadY;
-        } while (Math.abs(ox / spreadX) + Math.abs(oy / spreadY) > 1.3); // 菱形裁剪
+        } while (Math.abs(ox / spreadX) + Math.abs(oy / spreadY) > 1.3);
 
-        // 距中心越近 alpha 越高
         const dist = Math.sqrt((ox / spreadX) ** 2 + (oy / spreadY) ** 2);
-        const alpha = 0.3 + (1 - dist) * 0.5; // 0.3-0.8，中心更密
+        const alpha = 0.25 + (1 - dist) * 0.55; // 0.25-0.8
 
         particles.push({
           ox,
           oy,
-          r: 1 + Math.random() * 3,                           // 1-4px 微小圆
+          r: 6 + Math.random() * 10,                          // 6-16px 软边粒子（预渲染纹理 16×16）
           alpha,
           driftX: (Math.random() - 0.5) * 0.4,                // 极慢独立漂移
           driftY: (Math.random() - 0.5) * 0.3,
