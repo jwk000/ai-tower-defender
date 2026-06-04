@@ -88,6 +88,11 @@ export class WaveSystem implements System {
   countdown: number = 0;
   private countdownDuration: number = 5;
 
+  /** v5.0: fixed-interval wave spawning — seconds between wave starts */
+  private waveInterval: number = 30;
+  /** v5.0: elapsed seconds since current wave started */
+  private waveElapsed: number = 0;
+
   /** Tracks last integer-second value of countdown for tick sound */
   private lastCountdownInt: number = 0;
 
@@ -196,20 +201,21 @@ export class WaveSystem implements System {
         interval: g.spawnInterval,
         spawnId: g.spawnId,
       }));
-      this.spawnTimer = wave.spawnDelay;
-      this.spawnIntervalTimer = 0;
-      this.spawnedInWave = 0;
-      this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
-      this.waveActive = true;
+    this.spawnTimer = wave.spawnDelay;
+    this.spawnIntervalTimer = 0;
+    this.spawnedInWave = 0;
+    this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
+    this.waveActive = true;
+    this.waveElapsed = 0; // v5.0: reset fixed-interval timer
 
-      // v4.0: reset elite tracking & spawn point
-      this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
-      this.waveSpawnPointIndex = wave.spawnPointIndex;
-      this.spawnDistributionCounter = 0;
+    // v4.0: reset elite tracking & spawn point
+    this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
+    this.waveSpawnPointIndex = wave.spawnPointIndex;
+    this.spawnDistributionCounter = 0;
 
-      this.setPhase(GamePhase.Battle);
-      this.onWaveStart?.();
-      return;
+    this.setPhase(GamePhase.Battle);
+    this.onWaveStart?.();
+    return;
     }
 
     if (this.currentWaveIndex >= this.waves.length) return;
@@ -229,6 +235,7 @@ export class WaveSystem implements System {
     this.spawnedInWave = 0;
     this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
     this.waveActive = true;
+    this.waveElapsed = 0; // v5.0: reset fixed-interval timer
 
     // v4.0: reset elite tracking & spawn point
     this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
@@ -276,6 +283,9 @@ export class WaveSystem implements System {
 
     if (!this.waveActive) return;
 
+    // v5.0: track elapsed time for fixed-interval spawning
+    this.waveElapsed += dt;
+
     // Wait for initial spawn delay
     if (this.spawnTimer > 0) {
       this.spawnTimer -= dt;
@@ -298,44 +308,22 @@ export class WaveSystem implements System {
       }
     }
 
-    // Check if wave is complete (all enemies spawned AND all dead)
+    // v4.0: spawn elite after all regular enemies are out (only once)
     if (
       this.spawnedInWave >= this.totalInWave &&
       this.spawnQueue.length === 0
     ) {
-      // v4.0: spawn elite after all regular enemies are out (only once)
       if (!this.eliteSpawned && this.eliteEnemyType !== null) {
         this.spawnEliteEnemy();
       }
+    }
 
-      const hasAliveEnemies = this.hasAliveEnemies();
-      if (!hasAliveEnemies) {
-        this.waveActive = false;
-        Sound.play('wave_clear');
-        this.isBossWave = false;
-
-        // v4.0: fire wave reward callback
-        const wave = this.isEndless
-          ? null
-          : (this.currentWaveIndex < this.waves.length ? this.waves[this.currentWaveIndex] : null);
-        if (wave?.reward && this.onWaveReward) {
-          this.onWaveReward(wave.reward);
-        }
-
-        this.currentWaveIndex++;
-
-        if (this.isEndless) {
-          this.onWaveComplete?.();
-          this.setPhase(GamePhase.WaveBreak);
-          this.startAutoCountdown(3); // 3s between endless waves
-        } else if (this.currentWaveIndex >= this.waves.length) {
-          this.setPhase(GamePhase.Victory);
-        } else {
-          this.onWaveComplete?.();
-          this.setPhase(GamePhase.WaveBreak);
-          this.startAutoCountdown(3); // 3s between waves
-        }
-      }
+    // v5.0: fixed-interval wave spawning — end wave after waveInterval seconds,
+    // regardless of whether enemies are still alive. Enemies that survive
+    // carry over into the next wave alongside newly spawned enemies.
+    // Use epsilon comparison to avoid floating-point imprecision edge cases.
+    if (this.waveElapsed >= this.waveInterval - 0.001) {
+      this.finishWave();
     }
 
     // v4.0: check if elite was killed (must check every frame while elite is alive)
@@ -346,6 +334,50 @@ export class WaveSystem implements System {
         this.eliteEid = 0; // prevent repeated triggers
       }
     }
+  }
+
+  /** v5.0: finish the current wave and transition to the next one (countdown → next wave).
+   *  Called when the fixed-interval timer expires, regardless of alive enemies. */
+  private finishWave(): void {
+    this.waveActive = false;
+    Sound.play('wave_clear');
+    this.isBossWave = false;
+
+    // v4.0: fire wave reward callback
+    const wave = this.isEndless
+      ? null
+      : (this.currentWaveIndex < this.waves.length ? this.waves[this.currentWaveIndex] : null);
+    if (wave?.reward && this.onWaveReward) {
+      this.onWaveReward(wave.reward);
+    }
+
+    this.currentWaveIndex++;
+
+    if (this.isEndless) {
+      this.onWaveComplete?.();
+      this.setPhase(GamePhase.WaveBreak);
+      this.startAutoCountdown(3); // 3s between endless waves
+    } else if (this.currentWaveIndex >= this.waves.length) {
+      this.setPhase(GamePhase.Victory);
+    } else {
+      this.onWaveComplete?.();
+      this.setPhase(GamePhase.WaveBreak);
+      this.startAutoCountdown(3); // 3s between waves
+    }
+  }
+
+  /** v5.0: set the fixed interval (seconds) between wave starts. Default 30s. */
+  setWaveInterval(seconds: number): void {
+    this.waveInterval = Math.max(1, seconds);
+  }
+
+  get waveIntervalSeconds(): number {
+    return this.waveInterval;
+  }
+
+  /** v5.0: get elapsed seconds in the current wave */
+  get waveElapsedSeconds(): number {
+    return this.waveElapsed;
   }
 
   /** Check if any enemy entities are still alive using bitecs query */

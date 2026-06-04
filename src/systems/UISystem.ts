@@ -308,6 +308,7 @@ export class UISystem implements System {
 
     this.buildTopHUD(phase);
     this.buildBottomPanel(phase);
+    this.buildCountdownOverlay(phase);
     this.buildOverlay(phase);
 
     this.buildDragGhost();
@@ -1056,6 +1057,83 @@ export class UISystem implements System {
       label,
       labelColor: '#ffffff',
       labelSize: 14,
+    });
+  }
+
+  // ============================================================
+  // Countdown Overlay (Deployment / WaveBreak)
+  // ============================================================
+
+  /** v5.0: center-screen countdown overlay with large timer and skip button.
+   *  Appears during Deployment and WaveBreak when countdown > 0. */
+  private buildCountdownOverlay(phase: GamePhase): void {
+    const cd = this.getCountdown?.() ?? 0;
+    if (cd <= 0) return;
+    if (phase === GamePhase.Battle || phase === GamePhase.Victory || phase === GamePhase.Defeat) return;
+
+    const cx = LayoutManager.DESIGN_W / 2;
+    const cy = LayoutManager.DESIGN_H / 2;
+    const panelW = 520;
+    const panelH = 280;
+
+    // Semi-transparent dark backdrop for the entire screen (less opaque than Victory/Defeat)
+    this.renderer.push({
+      shape: 'rect', x: cx, y: cy,
+      size: Math.max(LayoutManager.DESIGN_W, LayoutManager.DESIGN_H),
+      h: Math.max(LayoutManager.DESIGN_W, LayoutManager.DESIGN_H),
+      color: '#000000', alpha: 0.35,
+      z: 999,
+    });
+
+    // Panel background
+    this.renderer.push({
+      shape: 'rect', x: cx, y: cy,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#ffd54f', strokeWidth: 3,
+      z: 1000,
+    });
+
+    // Wave label
+    const isFirstWave = phase === GamePhase.Deployment;
+    const labelText = isFirstWave ? '敌军即将来袭！' : `第 ${this.getWave?.() ?? 1} 波准备`;
+    this.infos.push({
+      x: cx, y: cy - 90,
+      text: labelText,
+      color: '#ffd54f', size: 28,
+      align: 'center',
+    });
+
+    // Countdown timer — large number
+    const cdDisplay = Math.ceil(cd);
+    this.infos.push({
+      x: cx, y: cy - 20,
+      text: `${cdDisplay}`,
+      color: '#ffffff', size: 72,
+      align: 'center',
+    });
+
+    // "秒" label
+    this.infos.push({
+      x: cx, y: cy + 30,
+      text: '秒',
+      color: '#aaaaaa', size: 24,
+      align: 'center',
+    });
+
+    // Skip button — large, centered below the countdown
+    const btnW = 200;
+    const btnH = 48;
+    const btnX = cx - btnW / 2;
+    const btnY = cy + 60;
+
+    this.buttons.push({
+      x: btnX, y: btnY, w: btnW, h: btnH,
+      label: '▶ 现在开始',
+      color: '#2e7d32',
+      textColor: '#ffffff',
+      enabled: true,
+      onClick: () => { this.onSkipCountdown?.(); },
     });
   }
 

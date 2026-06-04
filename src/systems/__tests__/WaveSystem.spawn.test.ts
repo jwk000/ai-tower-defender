@@ -349,20 +349,19 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     const ws = new WaveSystem(world, map, waves, getPhase, setPhase, undefined, undefined, (gold) => {
       rewardGold = gold;
     });
+    // v5.0: set short interval so timer triggers within test timeframe
+    ws.setWaveInterval(0.5);
     ws.startWave();
 
-    // Spawn and kill all enemies (regular + elite)
-    for (let i = 0; i < 20; i++) ws.update(world, 0.1);
-
-    // Kill all enemies to complete wave
-    const allEnemies = enemyQuery(world.world);
-    for (const eid of allEnemies) {
-      Health.current[eid] = 0;
+    // v5.0: run enough updates for waveInterval timer to expire
+    // Note: 10 × 0.1 = 0.9999... (floating point), so we need 11 iterations for >= 1.0
+    for (let i = 0; i < 11; i++) {
+      ws.update(world, 0.1);
     }
 
-    // Process completion
-    ws.update(world, 0.1);
-
+    // After 11 × 0.1 = 1.1s, waveInterval (clamped to 1) has elapsed.
+    // finishWave should have transitioned phase and fired reward callback.
+    expect(phase).toBe(GamePhase.Victory);
     expect(rewardGold).toBe(75);
   });
 
@@ -384,15 +383,11 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     const ws = new WaveSystem(world, map, waves, getPhase, setPhase, undefined, undefined, () => {
       rewardCalled = true;
     });
+    // v5.0: set short interval so timer triggers within test timeframe
+    ws.setWaveInterval(0.5);
     ws.startWave();
 
-    for (let i = 0; i < 20; i++) ws.update(world, 0.1);
-
-    const allEnemies = enemyQuery(world.world);
-    for (const eid of allEnemies) {
-      Health.current[eid] = 0;
-    }
-    ws.update(world, 0.1);
+    for (let i = 0; i < 11; i++) ws.update(world, 0.1);
 
     expect(rewardCalled).toBe(false);
   });
