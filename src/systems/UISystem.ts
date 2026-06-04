@@ -1300,12 +1300,12 @@ export class UISystem implements System {
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    const panelW = 700;
-    const panelH = 380;
+    const panelW = 560;
+    const panelH = 300;
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
-    // Panel glow effect only (no solid background)
+    // Panel glow effect
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
@@ -1315,98 +1315,72 @@ export class UISystem implements System {
 
     // Title at top
     this.infos.push({
-      x: mapCenterX, y: panelY + 40,
+      x: mapCenterX, y: panelY + 35,
       text: '✨ 选择一张卡牌加入手牌 ✨',
-      color: '#ffffff', size: 28, align: 'center',
+      color: '#ffffff', size: 24, align: 'center',
     });
 
-    // Subtitle
-    this.infos.push({
-      x: mapCenterX, y: panelY + 75,
-      text: '精英敌人已被击败！选择一张卡牌强化你的牌组',
-      color: '#b0bec5', size: 14, align: 'center',
-    });
-
-    const cardW = 180;
-    const cardH = 240;
-    const gap = 30;
+    // v5.0: card layout unified with hand-card style (120×168)
+    const cardW = 120;
+    const cardH = 168;
+    const artW = 96;
+    const artH = 80;
+    const gap = 24;
     const totalW = options.length * cardW + (options.length - 1) * gap;
     const startX = mapCenterX - totalW / 2 + cardW / 2;
-    const cardCenterY = panelY + 120 + cardH / 2; // Card center Y
+    const cardCenterY = panelY + 85 + cardH / 2;
 
     for (let i = 0; i < options.length; i++) {
       const opt = options[i]!;
       const cx = startX + i * (cardW + gap);
+      const cardTop = cardCenterY - cardH / 2;
+      const cardLeft = cx - cardW / 2;
       const runContext = this._world?.runContext;
       const config = runContext?.registry.get(opt.id);
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
 
-      // Card glow effect
+      // Card background — hand-card style
       this.renderer.push({
-        shape: 'rect',
-        x: cx, y: cardCenterY,
-        size: cardW + 8, h: cardH + 8,
-        color: borderColor, alpha: 0.25,
-      });
-
-      // Card background
-      this.renderer.push({
-        shape: 'rect',
-        x: cx, y: cardCenterY,
+        shape: 'rect', x: cx, y: cardCenterY,
         size: cardW, h: cardH,
         color: '#1a2332', alpha: 0.95,
-        stroke: borderColor, strokeWidth: 3,
+        stroke: borderColor, strokeWidth: 2,
       });
 
-      // Card type icon/glyph (inside card, near top)
+      // Art area — hand-card style
+      const artCenterY = cardTop + 12 + artH / 2;
+      this.renderer.push({
+        shape: 'rect', x: cx, y: artCenterY,
+        size: artW, h: artH,
+        color: '#0d1b2a', alpha: 1,
+        stroke: '#37474f', strokeWidth: 1,
+      });
+
+      // Glyph — hand-card style
       if (config) {
         const glyph = cardTypeGlyph(config.type as CardType);
         this.infos.push({
-          x: cx, y: cardCenterY - cardH / 2 + 35,
+          x: cx, y: artCenterY,
           text: glyph, color: borderColor, size: 36, align: 'center',
         });
       }
 
-      // Card name (inside card, below icon)
+      // Card name — hand-card style
       this.infos.push({
-        x: cx, y: cardCenterY - cardH / 2 + 75,
-        text: opt.name, color: '#ffffff', size: 18, align: 'center',
+        x: cx, y: cardTop + 12 + artH + 14,
+        text: opt.name, color: '#ffffff', size: 12, align: 'center',
       });
 
-      // Separator line
+      // Description — compact, below name
       this.infos.push({
-        x: cx, y: cardCenterY - cardH / 2 + 95,
-        text: '━━━━━━━━━━━━',
-        color: '#3a4a5a', size: 10, align: 'center',
-      });
-
-      // Card description (inside card, center area)
-      this.infos.push({
-        x: cx, y: cardCenterY + 10,
+        x: cx, y: cardTop + 12 + artH + 34,
         text: opt.description,
-        color: '#b0bec5', size: 12, align: 'center',
+        color: '#90a4ae', size: 9, align: 'center',
       });
 
-      // Rarity label (inside card, near bottom)
-      if (config) {
-        const rarityColors: Record<string, string> = {
-          common: '#9e9e9e',
-          uncommon: '#4caf50',
-          rare: '#2196f3',
-          epic: '#9c27b0',
-          legendary: '#ff9800',
-        };
-        const rarityColor = rarityColors[config.rarity] ?? '#9e9e9e';
-        this.infos.push({
-          x: cx, y: cardCenterY + cardH / 2 - 20,
-          text: config.rarity.toUpperCase(),
-          color: rarityColor, size: 11, align: 'center',
-        });
-      }
-
-      // Selection button (covers entire card)
+      // Full card click button
       this.buttons.push({
-        x: cx - cardW / 2, y: cardCenterY - cardH / 2,
+        x: cardLeft, y: cardTop,
         w: cardW, h: cardH,
         label: '',
         color: '#7c4dff', textColor: '#ffffff',
