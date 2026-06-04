@@ -158,6 +158,9 @@ export class UISystem implements System {
   /** Tower info panel background — drawn in renderUI() to stay above weather tint */
   private towerPanelBg: { x: number; y: number; w: number; h: number; strokeColor: string } | null = null;
 
+  /** v5.0: countdown overlay backdrop alpha (0 = hidden, 0.6 = visible) */
+  private countdownBackdropAlpha: number = 0;
+
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
 
@@ -271,6 +274,7 @@ export class UISystem implements System {
     this.buttons = [];
     this.infos = [];
     this.overlay = null;
+    this.countdownBackdropAlpha = 0;
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -505,6 +509,16 @@ export class UISystem implements System {
 
   renderUI(): void {
     const ctx = this.renderer.context;
+
+    // v5.0: full-viewport countdown backdrop — covers actual browser window,
+    // not just the 16:9 design space. Required for ultrawide / non-standard displays.
+    if (this.countdownBackdropAlpha > 0) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // switch to viewport space
+      ctx.fillStyle = `rgba(0, 0, 0, ${this.countdownBackdropAlpha})`;
+      ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
+      ctx.restore();
+    }
 
     // Draw tower info panel background (after weather tint, before buttons/text)
     if (this.towerPanelBg) {
@@ -1076,14 +1090,10 @@ export class UISystem implements System {
     const panelW = 520;
     const panelH = 280;
 
-    // Full-screen dark backdrop (covers entire design space, not just a square)
-    this.renderer.push({
-      shape: 'rect', x: cx, y: cy,
-      size: LayoutManager.DESIGN_W,
-      h: LayoutManager.DESIGN_H,
-      color: '#000000', alpha: 0.6,
-      z: 999,
-    });
+    // v5.0: signal renderUI() to draw a full-viewport dark backdrop.
+    // This MUST cover the actual viewport (not just design-space) so it
+    // works correctly on ultrawide and non-16:9 displays.
+    this.countdownBackdropAlpha = 0.6;
 
     // Panel background
     this.renderer.push({
