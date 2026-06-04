@@ -16,7 +16,7 @@ shield_guard:
     atk: 8
     attackSpeed: 0.8
     range: 50
-    speed: 60
+    speed: 30
     armor: 40
     mr: 5
     damageType: physical
@@ -79,7 +79,7 @@ swordsman:
     atk: 15
     attackSpeed: 1.0
     range: 55
-    speed: 80
+    speed: 40
     armor: 10
     mr: 0
     damageType: physical
@@ -147,7 +147,7 @@ archer:
     atk: 20
     attackSpeed: 0.7
     range: 250
-    speed: 70
+    speed: 35
     armor: 5
     mr: 0
     damageType: physical
@@ -210,7 +210,7 @@ priest:
   stats:
     hp: 80
     atk: 0
-    speed: 50
+    speed: 25
     armor: 5
     mr: 20
     healAmount: 8
@@ -273,7 +273,7 @@ engineer:
     atk: 5
     attackSpeed: 0.6
     range: 40
-    speed: 50
+    speed: 25
     armor: 10
     mr: 5
     moveRange: 100
@@ -334,7 +334,7 @@ assassin:
     atk: 35
     attackSpeed: 1.5
     range: 40
-    speed: 110
+    speed: 55
     armor: 0
     mr: 0
     damageType: physical
@@ -401,7 +401,7 @@ mage:
     atk: 25
     attackSpeed: 1.0
     range: 150
-    speed: 30
+    speed: 15
     armor: 5
     mr: 20
     damageType: magic
