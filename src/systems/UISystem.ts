@@ -158,8 +158,8 @@ export class UISystem implements System {
   /** Tower info panel background — drawn in renderUI() to stay above weather tint */
   private towerPanelBg: { x: number; y: number; w: number; h: number; strokeColor: string } | null = null;
 
-  /** v5.0: countdown overlay backdrop alpha (0 = hidden, 0.6 = visible) */
-  private countdownBackdropAlpha: number = 0;
+  /** v5.0: modal backdrop alpha drawn in viewport-space (0 = hidden, 0.6 = visible) */
+  private modalBackdropAlpha: number = 0;
 
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
@@ -274,7 +274,7 @@ export class UISystem implements System {
     this.buttons = [];
     this.infos = [];
     this.overlay = null;
-    this.countdownBackdropAlpha = 0;
+    this.modalBackdropAlpha = 0;
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -510,12 +510,13 @@ export class UISystem implements System {
   renderUI(): void {
     const ctx = this.renderer.context;
 
-    // v5.0: full-viewport countdown backdrop — covers actual browser window,
-    // not just the 16:9 design space. Required for ultrawide / non-standard displays.
-    if (this.countdownBackdropAlpha > 0) {
+    // v5.0: full-viewport modal backdrop — covers actual browser window,
+    // not just the 16:9 design space. Used by countdown, pause, card draft,
+    // buff selection, and victory/defeat overlays.
+    if (this.modalBackdropAlpha > 0) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0); // switch to viewport space
-      ctx.fillStyle = `rgba(0, 0, 0, ${this.countdownBackdropAlpha})`;
+      ctx.fillStyle = `rgba(0, 0, 0, ${this.modalBackdropAlpha})`;
       ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
       ctx.restore();
     }
@@ -1093,7 +1094,7 @@ export class UISystem implements System {
     // v5.0: signal renderUI() to draw a full-viewport dark backdrop.
     // This MUST cover the actual viewport (not just design-space) so it
     // works correctly on ultrawide and non-16:9 displays.
-    this.countdownBackdropAlpha = 0.6;
+    this.modalBackdropAlpha = 0.6;
 
     // Panel background
     this.renderer.push({
@@ -1155,18 +1156,12 @@ export class UISystem implements System {
     if (phase === GamePhase.Victory) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
-      this.renderer.push({
-        shape: 'rect', x: LayoutManager.DESIGN_W / 2, y: LayoutManager.DESIGN_H / 2,
-        size: 1600, h: 400, color: '#000000', alpha: 0.6,
-      });
+      this.modalBackdropAlpha = 0.6;
       this.overlay = { phase, color: '#4caf50', title: '胜利!', subtext: '刷新页面重新开始' };
     } else if (phase === GamePhase.Defeat) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
-      this.renderer.push({
-        shape: 'rect', x: LayoutManager.DESIGN_W / 2, y: LayoutManager.DESIGN_H / 2,
-        size: 1600, h: 400, color: '#000000', alpha: 0.6,
-      });
+      this.modalBackdropAlpha = 0.6;
       this.overlay = { phase, color: '#f44336', title: '失败!', subtext: '刷新页面重新开始' };
     }
   }
@@ -1179,15 +1174,7 @@ export class UISystem implements System {
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    this.renderer.push({
-      shape: 'rect',
-      x: mapCenterX,
-      y: mapCenterY,
-      size: RenderSystem.sceneW,
-      h: RenderSystem.sceneH,
-      color: '#000000',
-      alpha: 0.6,
-    });
+    this.modalBackdropAlpha = 0.6;
 
     const menuW = 500;
     const menuH = 380;
@@ -1308,17 +1295,10 @@ export class UISystem implements System {
     // Apply gaussian blur to background for modal effect
     this.renderer.applyBlur(12);
 
+    this.modalBackdropAlpha = 0.7;
+
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
-
-    // Full-screen black semi-transparent overlay
-    this.renderer.push({
-      shape: 'rect',
-      x: mapCenterX, y: mapCenterY,
-      size: RenderSystem.sceneW,
-      h: RenderSystem.sceneH,
-      color: '#000000', alpha: 0.7,
-    });
 
     const panelW = 700;
     const panelH = 380;
@@ -1453,13 +1433,7 @@ export class UISystem implements System {
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    this.renderer.push({
-      shape: 'rect',
-      x: mapCenterX, y: mapCenterY,
-      size: RenderSystem.sceneW,
-      h: RenderSystem.sceneH,
-      color: '#000000', alpha: 0.6,
-    });
+    this.modalBackdropAlpha = 0.6;
 
     const panelW = 650;
     const panelH = 320;
