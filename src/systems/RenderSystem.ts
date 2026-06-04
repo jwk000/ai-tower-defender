@@ -1164,18 +1164,109 @@ export class RenderSystem implements System {
       }
 
       // ========================================
+      // Enemy attack animation: squash-stretch deformation
+      // ========================================
+      let attackAnimPosX = posX;
+      let attackAnimPosY = posY;
+      let attackAnimSize = drawSize;
+      if (isEnemy) {
+        const atkTimer = Visual.attackAnimTimer[eid]!;
+        const atkDur = Visual.attackAnimDuration[eid]!;
+        if (atkTimer > 0 && atkDur > 0) {
+          const progress = 1 - atkTimer / atkDur;
+          const facing = Visual.facing[eid] ?? 1;
+
+          // Phase 1: wind-up (0-35%) — shrink
+          // Phase 2: strike (35-60%) — expand + lunge toward target
+          // Phase 3: recovery (60-100%) — spring back to normal
+          let scale = 1.0;
+          let lungeDist = 0;
+          if (progress < 0.35) {
+            const t = progress / 0.35;
+            scale = 1 - 0.15 * t;
+          } else if (progress < 0.6) {
+            const t = (progress - 0.35) / 0.25;
+            scale = 0.85 + 0.3 * t;
+            lungeDist = 6 * Math.sin(t * Math.PI);
+          } else {
+            const t = (progress - 0.6) / 0.4;
+            scale = 1 + 0.1 * (1 - t);
+          }
+          attackAnimSize = drawSize * scale;
+          attackAnimPosX = posX + lungeDist * facing;
+        }
+      }
+
+      // ========================================
       // 1. Entity body (bottom layer — drawn first)
       // ========================================
       const unitPartsId = Visual.partsId[eid] ?? 0;
       if ((isUnit || isEnemy) && unitPartsId !== 0) {
         const parts = world.getUnitVisualParts(unitPartsId);
         if (parts) {
-          this.drawSoldierComposite(eid, posX, posY, drawSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
+          this.drawSoldierComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
+        } else {
+          // Use attack-animated position/size for simple-shape enemies
+          this.renderer.push({
+            shape: shapeValToString(Visual.shape[eid]!),
+            x: attackAnimPosX, y: attackAnimPosY,
+            size: attackAnimSize,
+            color: displayColor,
+            alpha: displayAlpha,
+            stroke: strokeColor,
+            strokeWidth: strokeW,
+            z: renderZ,
+          });
+        }
+      } else {
+        // Use attack-animated position/size for simple-shape enemies/non-unit entities
+        if (isEnemy) {
+          this.renderer.push({
+            shape: shapeValToString(Visual.shape[eid]!),
+            x: attackAnimPosX, y: attackAnimPosY,
+            size: attackAnimSize,
+            color: displayColor,
+            alpha: displayAlpha,
+            stroke: strokeColor,
+            strokeWidth: strokeW,
+            z: renderZ,
+          });
         } else {
           pushCmd();
         }
-      } else {
-        pushCmd();
+      }
+
+      // ========================================
+      // Enemy attack animation: pulse wave (concentric expanding circles)
+      // ========================================
+      if (isEnemy) {
+        const atkTimer = Visual.attackAnimTimer[eid]!;
+        const atkDur = Visual.attackAnimDuration[eid]!;
+        if (atkTimer > 0 && atkDur > 0) {
+          const progress = 1 - atkTimer / atkDur;
+          // Draw 3 concentric wave rings that expand outward and fade
+          const waveCount = 3;
+          const waveLiftZ = (LAYER_TO_Z[LayerVal.Ground] ?? 5) + 1; // draw just above entity
+          for (let w = 0; w < waveCount; w++) {
+            const waveStart = w * 0.22;
+            const waveProgress = Math.max(0, Math.min(1, (progress - waveStart) / 0.55));
+            if (waveProgress > 0 && waveProgress < 1) {
+              const radius = (drawSize * 0.4) + waveProgress * drawSize * 0.8;
+              const alpha = 0.45 * (1 - waveProgress) * (1 - waveProgress);
+              this.renderer.push({
+                shape: 'circle',
+                x: posX,
+                y: posY,
+                size: radius * 2,
+                color: '#ffffff',
+                alpha,
+                stroke: '#ffffff',
+                strokeWidth: 1.5,
+                z: waveLiftZ,
+              });
+            }
+          }
+        }
       }
 
       // ========================================

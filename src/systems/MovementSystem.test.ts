@@ -170,14 +170,22 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[base]).toBe(0);
   });
 
-  it('到达终点的敌人被销毁', () => {
+  it('到达终点的敌人被销毁（攻击动画完成后）', () => {
     makeBase(world, 100);
     const enemy = makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
 
+    // 首个 frame：敌人到达终点，触发攻击动画，伤害已生效但敌人尚未销毁
+    system.update(world, 0.016);
+    expect(Visual.attackAnimTimer[enemy], 'attackAnimTimer 应 > 0').toBeGreaterThan(0);
+    expect(Visual.attackAnimDuration[enemy], 'attackAnimDuration 应 > 0').toBeGreaterThan(0);
+    expect(world.hasComponent(enemy, Position), '动画中仍存活').toBe(true);
+
+    // 第 2 帧：衰减攻击动画计时器
+    system.update(world, 0.5); // 大于 0.4s，确保计时器衰减到 <= 0
+    // 第 3 帧：动画计时器 <= 0，触发销毁逻辑
     system.update(world, 0.016);
     world.cleanupDeadEntities();
-
-    expect(world.hasComponent(enemy, Position)).toBe(false);
+    expect(world.hasComponent(enemy, Position), '动画完成后应被销毁').toBe(false);
   });
 
   it('敌人自身（带 UnitTag.isEnemy=1+Health）不会因 baseQuery 命中而被自伤', () => {

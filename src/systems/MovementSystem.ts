@@ -10,6 +10,7 @@ import { getEffectiveValue } from './BuffSystem.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import { linearizeSpawnPaths } from '../level/graph/PathGraph.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 
 interface CollisionResult {
   blocked: boolean;
@@ -105,9 +106,42 @@ export class MovementSystem implements System {
 
       const pathIndex = Movement.pathIndex[eid]!;
 
-      // Reached end of path — damage base and destroy
+      // Reached end of path — attack animation + damage base
       if (pathIndex >= path.length - 1) {
-        this.onReachEnd(world, eid);
+        const attackDur = Visual.attackAnimDuration[eid]!;
+
+        // Case 1: Attack animation just completed → destroy entity
+        if (attackDur > 0) {
+          world.destroyEntity(eid);
+          continue;
+        }
+
+        // Case 2: First time reaching end → start attack animation, deal damage
+        const damage = UnitTag.atk[eid] ?? 0;
+
+        const bases = this.baseQuery(world.world);
+        for (let i = 0; i < bases.length; i++) {
+          const baseId = bases[i]!;
+          if (Category.value[baseId] !== CategoryVal.Objective) continue;
+          if (damage > 0) {
+            Health.current[baseId]! -= damage;
+            if (Health.current[baseId]! < 0) Health.current[baseId]! = 0;
+          }
+          // Hit flash on base — visual feedback for player
+          if (Visual.hitFlashTimer[baseId] !== undefined) {
+            Visual.hitFlashTimer[baseId] = 0.12;
+          }
+        }
+
+        // Start attack animation timer (pauses enemy movement via the timer check above)
+        Visual.attackAnimTimer[eid] = 0.4;
+        Visual.attackAnimDuration[eid] = 0.4;
+
+        // Micro screen-shake on base hit
+        if (damage > 0) {
+          ScreenShakeSystem.triggerShake(world, 3, 0.25, 12);
+        }
+
         continue;
       }
 
@@ -737,32 +771,6 @@ export class MovementSystem implements System {
     tx = Math.max(ox + margin, Math.min(ox + sw - margin, tx));
     ty = Math.max(oy + margin, Math.min(oy + sh - margin, ty));
     return { tx, ty };
-  }
-
-  // ================================================================
-  // onReachEnd — enemy reached the base
-  // ================================================================
-
-  /**
-   * Deal damage to base and destroy enemy that reached the end.
-   *
-   * Damage source = UnitTag.atk (synced from ENEMY_CONFIGS[type].atk at spawn time).
-   * Do NOT read `Attack.damage[eid]` here: bitecs TypedArray returns 0 (not undefined)
-   * for entities without the Attack component (e.g. Grunt with attackRange=0),
-   * which would silently neutralize all base damage from melee path-enders.
-   */
-  private onReachEnd(world: TowerWorld, eid: number): void {
-    const damage = UnitTag.atk[eid] ?? 0;
-
-    const bases = this.baseQuery(world.world);
-    for (let i = 0; i < bases.length; i++) {
-      const baseId = bases[i]!;
-      if (Category.value[baseId] !== CategoryVal.Objective) continue;
-      Health.current[baseId]! -= damage;
-      if (Health.current[baseId]! < 0) Health.current[baseId]! = 0;
-    }
-
-    world.destroyEntity(eid);
   }
 
   // ================================================================
