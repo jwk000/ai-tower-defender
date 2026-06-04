@@ -24,6 +24,48 @@ export class ScreenFXSystem {
     return h / 0xFFFFFFFF;
   }
 
+  /** 坐标哈希 → 单个格点的伪随机值 */
+  private hashCell(ix: number, iy: number): number {
+    let h = ((ix * 374761393 + iy * 668265263) >>> 0);
+    h = this.nextHash(h);
+    return this.hashToFloat(h);
+  }
+
+  /** 2D 值噪声：双线性插值 + smoothstep */
+  private noise2D(x: number, y: number): number {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const fx = x - ix;
+    const fy = y - iy;
+    // smoothstep
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+
+    const n00 = this.hashCell(ix, iy);
+    const n10 = this.hashCell(ix + 1, iy);
+    const n01 = this.hashCell(ix, iy + 1);
+    const n11 = this.hashCell(ix + 1, iy + 1);
+
+    const nx0 = n00 + (n10 - n00) * sx;
+    const nx1 = n01 + (n11 - n01) * sx;
+    return nx0 + (nx1 - nx0) * sy;
+  }
+
+  /** 分形布朗运动（fBm）：多倍频叠加，模拟柏林噪声的自然感 */
+  private fbm2D(x: number, y: number, octaves: number): number {
+    let value = 0;
+    let amp = 1;
+    let freq = 1;
+    let max = 0;
+    for (let i = 0; i < octaves; i++) {
+      value += this.noise2D(x * freq, y * freq) * amp;
+      max += amp;
+      amp *= 0.5;
+      freq *= 2;
+    }
+    return value / max;
+  }
+
   /**
    * 更新内部时间并渲染所有全屏特效
    * @param ctx    Canvas 2D 渲染上下文
@@ -166,43 +208,43 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 雾效粒子
+  // 雾效 —— fBm 噪声场
   // ============================================================
 
   /**
-   * 半透明雾粒子团块缓慢漂移横跨全屏
-   * 仅在雾天显示
-   * 使用确定性种子（Knuth's hash）避免每帧位置跳动
+   * 基于 2D fBm 噪声的有机雾效，模拟真实雾气的自然密度分布
+   * 网格采样 → 半透明重叠圆，噪声坐标随时间缓慢漂移
    */
   private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Fog) return;
 
     ctx.save();
 
-    const fogCount = 10;
     const color = '#d0d8e0';
+    const cellW = 48;
+    const cellH = 48;
+    const cols = Math.ceil(LayoutManager.DESIGN_W / cellW) + 1;
+    const rows = Math.ceil(LayoutManager.DESIGN_H / cellH) + 1;
 
-    for (let i = 0; i < fogCount; i++) {
-      let s = ((i * 2654435761) >>> 0);
-      const radius = 80 + this.hashToFloat(s = this.nextHash(s)) * 120;
-      const alpha = 0.03 + this.hashToFloat(s = this.nextHash(s)) * 0.05;
-      const driftSpeed = 20 + this.hashToFloat(s = this.nextHash(s)) * 30;
+    // 噪声坐标随时间缓慢漂移
+    const timeScale = this.time * 0.08;
 
-      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
-      const baseY = 100 + this.hashToFloat(s = this.nextHash(s)) * (LayoutManager.DESIGN_H - 200);
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const wx = cx * cellW;
+        const wy = cy * cellH;
+        // fBm 采样（3倍频），时间作为第三维偏移
+        const n = this.fbm2D(wx * 0.003 + timeScale, wy * 0.003 + timeScale * 0.7, 3);
+        // 将噪声 [0,1] 映射到 alpha，低于阈值的格子跳过
+        if (n < 0.35) continue;
+        const alpha = (n - 0.35) * 0.12; // 最大 ~0.078
 
-      // 水平漂移 + 边界循环
-      const driftX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + radius * 2) - radius;
-
-      // 轻微纵向摆动
-      const wobble = Math.sin(this.time * 0.3 + i * 1.7) * 25 + Math.cos(this.time * 0.5 + i * 0.8) * 15;
-      const fogY = baseY + wobble;
-
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(driftX, fogY, radius, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(wx, wy, cellW * 0.85, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     ctx.restore();
@@ -283,37 +325,40 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 乌云效果
+  // 乌云 —— fBm 噪声场
   // ============================================================
 
   /**
-   * 深灰色云层团块在屏幕顶部缓慢漂移
-   * 仅在雨天显示
+   * 基于 2D fBm 噪声的有机乌云层，在屏幕顶部自然分布
+   * 网格采样 → 半透明重叠椭圆，噪声坐标随时间缓慢漂移
    */
   private drawDarkClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Rain) return;
 
     ctx.save();
 
-    const cloudCount = 5;
     const color = '#2a3040';
+    const cellW = 60;
+    const cellH = 40;
+    const cols = Math.ceil(LayoutManager.DESIGN_W / cellW) + 1;
+    const cloudBottom = 200;
 
-    for (let i = 0; i < cloudCount; i++) {
-      let s = ((i * 2654435761) >>> 0);
-      const y = this.hashToFloat(s = this.nextHash(s)) * 200;
-      const hR = 80 + this.hashToFloat(s = this.nextHash(s)) * 80;
-      const vR = 40 + this.hashToFloat(s = this.nextHash(s)) * 30;
-      const alpha = 0.15 + this.hashToFloat(s = this.nextHash(s)) * 0.15;
-      const driftSpeed = 15 + this.hashToFloat(s = this.nextHash(s)) * 20;
+    const timeScale = this.time * 0.06;
 
-      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
-      const cloudX = (this.time * driftSpeed + baseX) % (LayoutManager.DESIGN_W + hR * 2) - hR;
+    for (let cy = 0; cy * cellH < cloudBottom; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const wx = cx * cellW;
+        const wy = cy * cellH;
+        const n = this.fbm2D(wx * 0.004 + timeScale, wy * 0.005 + timeScale * 0.6, 4);
+        if (n < 0.3) continue;
+        const alpha = (n - 0.3) * 0.3; // 最大 ~0.21
 
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(cloudX, y, hR, vR, 0, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(wx, wy, cellW * 0.9, cellH * 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     ctx.restore();
