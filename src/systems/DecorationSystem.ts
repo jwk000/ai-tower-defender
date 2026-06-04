@@ -581,7 +581,7 @@ export class DecorationSystem implements System {
     for (let i = 0; i < count; i++) {
       const cx = Math.random() * LayoutManager.viewportW;
       const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55;
-      const particleCount = 80 + Math.floor(Math.random() * 40); // 80-120 粒子
+      const particleCount = 800 + Math.floor(Math.random() * 400); // 800-1200 粒子
       const particles: CloudParticle[] = [];
 
       // 云的散布范围（水平长，垂直短）
@@ -603,7 +603,7 @@ export class DecorationSystem implements System {
         particles.push({
           ox,
           oy,
-          r: 2 + Math.random() * 5,                           // 2-7px 微小圆
+          r: 1 + Math.random() * 3,                           // 1-4px 微小圆
           alpha,
           driftX: (Math.random() - 0.5) * 0.4,                // 极慢独立漂移
           driftY: (Math.random() - 0.5) * 0.3,
