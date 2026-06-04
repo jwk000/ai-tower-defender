@@ -1305,12 +1305,13 @@ export class UISystem implements System {
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
-    // Panel glow effect
+    // Panel background — unified UI style (#1a1a2e + accent border)
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX, y: mapCenterY,
-      size: panelW + 12, h: panelH + 12,
-      color: '#7c4dff', alpha: 0.2,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#7c4dff', strokeWidth: 2,
     });
 
     // Title at top
