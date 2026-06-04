@@ -13,6 +13,7 @@ import { BuffSystem } from './systems/BuffSystem.js';
 import { BuildSystem } from './systems/BuildSystem.js';
 import { CardDraftSystem } from './systems/CardDraftSystem.js';
 import { DeathEffectSystem } from './systems/DeathEffectSystem.js';
+import { BoardGlowSystem } from './systems/BoardGlowSystem.js';
 import { DecorationSystem } from './systems/DecorationSystem.js';
 import { EconomySystem } from './systems/EconomySystem.js';
 import { ExplosionEffectSystem } from './systems/ExplosionEffectSystem.js';
@@ -132,6 +133,7 @@ class TowerDefenderGame extends Game {
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
+  private boardGlowSystem!: BoardGlowSystem;
   private screenFXSystem!: ScreenFXSystem;
   private screenShakeSystem!: ScreenShakeSystem;
   private tileDamageSystem!: TileDamageSystem;
@@ -668,6 +670,7 @@ class TowerDefenderGame extends Game {
       this.renderer, map,
       () => this.weatherSystem.currentWeather,
     );
+    this.boardGlowSystem = new BoardGlowSystem(map);
     this.screenFXSystem = new ScreenFXSystem();
     this.screenShakeSystem = new ScreenShakeSystem();
     this.tileDamageSystem = new TileDamageSystem(map);
@@ -701,6 +704,10 @@ class TowerDefenderGame extends Game {
       lightningBoltSystem.renderBolts(this.world);
       this.laserBeamSystem.renderBeams(this.world);
       this.tileDamageSystem.render(this.renderer, this.world);
+      // Board glow — flowing light band across the map (design-space)
+      if (this.currentScreen === GameScreen.Battle) {
+        this.boardGlowSystem.render(this.renderer.context);
+      }
       // Weather screen tint (viewport-space — covers entire window)
       if (this.currentScreen === GameScreen.Battle) {
         const tint = this.weatherSystem.screenTint;
@@ -933,6 +940,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(spellProjectileSystem);
     this.world.registerSystem(slashEffectSystem);
     this.world.registerSystem(this.decorationSystem);
+    this.world.registerSystem(this.boardGlowSystem);
     this.world.registerSystem(this.screenShakeSystem);
     this.world.registerSystem(unitAnimationSystem);
     this.world.registerSystem(renderSystem);
