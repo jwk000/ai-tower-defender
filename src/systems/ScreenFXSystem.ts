@@ -339,49 +339,83 @@ export class ScreenFXSystem {
   // ============================================================
 
   /**
-   * 随机位置乌云团 + 径向渐变软边缘 + 正弦振荡漂移，集中在屏幕顶部
-   * 参考 weather-canvas FogPuff 实现，无网格、无几何感
+   * 密集乌云层：双层随机云团 + 径向渐变软边 + 大面积重叠自然纹理
+   * 底层（大团打底）+ 表层（小团增加细节），无圆形镂空
    */
   private drawDarkClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.Rain) return;
 
     ctx.save();
 
-    const puffCount = 20;
-    const cloudTop = 240;  // 云层底部
+    const cloudTop = 260;
 
-    for (let i = 0; i < puffCount; i++) {
+    // ==== 底层：大而淡的雾团（28个，半径120-300px）====
+    for (let i = 0; i < 28; i++) {
       let s = (((i + 2000) * 2654435761) >>> 0);
       const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
       const py = this.hashToFloat(s = this.nextHash(s)) * cloudTop;
-      const radius = 80 + this.hashToFloat(s = this.nextHash(s)) * 160;   // 80-240px
-      const alpha = 0.08 + this.hashToFloat(s = this.nextHash(s)) * 0.14; // 0.08-0.22
-      const driftSpeed = (0.2 + this.hashToFloat(s = this.nextHash(s)) * 0.6)
+      const radius = 120 + this.hashToFloat(s = this.nextHash(s)) * 180;
+      const alpha = 0.06 + this.hashToFloat(s = this.nextHash(s)) * 0.08;
+      const driftSpeed = (0.15 + this.hashToFloat(s = this.nextHash(s)) * 0.4)
         * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1);
-      const oscAmp = 5 + this.hashToFloat(this.nextHash(s)) * 15;
-      const oscFreq = 0.15 + this.hashToFloat(this.nextHash(s)) * 0.35;
+      const oscAmp = 8 + this.hashToFloat(this.nextHash(s)) * 20;
+      const oscFreq = 0.12 + this.hashToFloat(this.nextHash(s)) * 0.3;
       const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
 
-      const dx = px + this.time * driftSpeed * 20;
+      const dx = px + this.time * driftSpeed * 15;
       const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
-
-      // 水平环绕
       const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
-      // 垂直方向超出顶部则消失，底部受限
-      const wrapY = Math.max(-radius, Math.min(cloudTop + radius, dy));
+      const wrapY = Math.max(-radius * 0.3, Math.min(cloudTop + radius * 0.4, dy));
 
-      // 径向渐变软边
-      const grad = ctx.createRadialGradient(wrapX, wrapY, radius * 0.15, wrapX, wrapY, radius);
-      grad.addColorStop(0,    'rgba(30,36,48,0)');
-      grad.addColorStop(0.25, `rgba(30,36,48,${alpha})`);
-      grad.addColorStop(0.65, `rgba(20,25,36,${alpha * 0.7})`);
-      grad.addColorStop(1,    'rgba(20,25,36,0)');
+      const grad = ctx.createRadialGradient(wrapX, wrapY, 0, wrapX, wrapY, radius);
+      grad.addColorStop(0,    `rgba(28,34,46,${alpha})`);
+      grad.addColorStop(0.5,  `rgba(24,30,42,${alpha * 0.85})`);
+      grad.addColorStop(0.85, `rgba(18,23,35,${alpha * 0.3})`);
+      grad.addColorStop(1,    'rgba(18,23,35,0)');
 
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // ==== 表层：小而浓的雾团（40个，半径60-140px）====
+    for (let i = 0; i < 40; i++) {
+      let s = (((i + 3000) * 2654435761) >>> 0);
+      const px = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const py = this.hashToFloat(s = this.nextHash(s)) * cloudTop * 0.85;
+      const radius = 60 + this.hashToFloat(s = this.nextHash(s)) * 80;
+      const alpha = 0.08 + this.hashToFloat(s = this.nextHash(s)) * 0.12;
+      const driftSpeed = (0.2 + this.hashToFloat(s = this.nextHash(s)) * 0.7)
+        * (this.hashToFloat(this.nextHash(s)) > 0.5 ? 1 : -1);
+      const oscAmp = 4 + this.hashToFloat(this.nextHash(s)) * 12;
+      const oscFreq = 0.2 + this.hashToFloat(this.nextHash(s)) * 0.4;
+      const oscPhase = this.hashToFloat(this.nextHash(s)) * Math.PI * 2;
+
+      const dx = px + this.time * driftSpeed * 25;
+      const dy = py + Math.sin(this.time * oscFreq + oscPhase) * oscAmp;
+      const wrapX = ((dx % (LayoutManager.DESIGN_W + radius * 2)) + (LayoutManager.DESIGN_W + radius * 2)) % (LayoutManager.DESIGN_W + radius * 2) - radius;
+      const wrapY = Math.max(-20, Math.min(cloudTop - 10, dy));
+
+      const grad = ctx.createRadialGradient(wrapX, wrapY, 0, wrapX, wrapY, radius);
+      grad.addColorStop(0,    `rgba(22,28,40,${alpha})`);
+      grad.addColorStop(0.4,  `rgba(20,25,38,${alpha * 0.9})`);
+      grad.addColorStop(0.8,  `rgba(15,20,32,${alpha * 0.25})`);
+      grad.addColorStop(1,    'rgba(15,20,32,0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ==== 云底渐变：从云层底部向下渐隐，避免硬截断 ====
+    const bottomGrad = ctx.createLinearGradient(0, cloudTop - 60, 0, cloudTop + 80);
+    bottomGrad.addColorStop(0, 'rgba(18,23,35,0)');
+    bottomGrad.addColorStop(0.5, 'rgba(18,23,35,0.04)');
+    bottomGrad.addColorStop(1, 'rgba(18,23,35,0)');
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(0, cloudTop - 60, LayoutManager.DESIGN_W, 140);
 
     ctx.restore();
   }
