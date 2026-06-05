@@ -135,6 +135,9 @@ export class MovementSystem implements System {
           if (damage > 0) {
             Health.current[baseId]! -= damage;
             if (Health.current[baseId]! < 0) Health.current[baseId]! = 0;
+            if (Health.current[baseId]! <= 0) {
+              this.setPhase?.(GamePhase.Defeat);
+            }
           }
           // Hit flash on base — visual feedback for player
           if (Visual.hitFlashTimer[baseId] !== undefined) {

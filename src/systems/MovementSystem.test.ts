@@ -200,6 +200,18 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[base]).toBe(0);
   });
 
+  it('水晶 HP 被扣到 0 时立即判定游戏失败', () => {
+    makeBase(world, 5);
+    makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
+    let phase = GamePhase.Battle;
+    const setPhase = (next: GamePhase): void => { phase = next; };
+    const baseDestroyedSystem = new MovementSystem(makeMap(), setPhase);
+
+    baseDestroyedSystem.update(world, 0.016);
+
+    expect(phase).toBe(GamePhase.Defeat);
+  });
+
   it('到达终点的敌人被销毁（攻击动画完成后）', () => {
     makeBase(world, 100);
     const enemy = makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
