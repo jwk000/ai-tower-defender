@@ -98,7 +98,7 @@ export class MovementSystem implements System {
 
       // Attack animation pause — stop moving during attack wind-down
       if (Visual.attackAnimTimer[eid]! > 0) {
-        Visual.attackAnimTimer[eid] = Visual.attackAnimTimer[eid]! - dt;
+        Visual.attackAnimTimer[eid] = Math.max(0, Visual.attackAnimTimer[eid]! - dt);
         continue; // skip movement, but attack logic below won't re-fire due to cooldown
       }
 
@@ -119,15 +119,13 @@ export class MovementSystem implements System {
           continue;
         }
 
-        const attackDur = Visual.attackAnimDuration[eid]!;
-
-        // Case 1: Attack animation just completed → destroy entity
-        if (attackDur > 0) {
+        // Reach-crystal attack animation completed after damage was already applied.
+        if (Movement.progress[eid]! < 0) {
           world.destroyEntity(eid);
           continue;
         }
 
-        // Case 2: First time reaching end → start attack animation, deal damage
+        // First time reaching end → deal damage and start attack animation.
         const damage = UnitTag.atk[eid] ?? 0;
 
         const bases = this.baseQuery(world.world);
@@ -147,6 +145,7 @@ export class MovementSystem implements System {
         // Start attack animation timer (pauses enemy movement via the timer check above)
         Visual.attackAnimTimer[eid] = 0.4;
         Visual.attackAnimDuration[eid] = 0.4;
+        Movement.progress[eid] = -1;
 
         // Micro screen-shake on base hit
         if (damage > 0) {

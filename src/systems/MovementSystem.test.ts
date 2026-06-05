@@ -70,7 +70,7 @@ function makeTower(world: TowerWorld, hp: number = 80): number {
 
 function makeEnemyAtEnd(
   world: TowerWorld,
-  opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean },
+  opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean; initialAttackAnimDuration?: number },
 ): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x: TILE + TILE / 2, y: TILE / 2 });
@@ -97,6 +97,8 @@ function makeEnemyAtEnd(
     colorB: 0,
     size: 16,
     alpha: 1,
+    attackAnimTimer: 0,
+    attackAnimDuration: opts.initialAttackAnimDuration ?? 0,
   });
   if (opts.withAttackComponent) {
     world.addComponent(eid, Attack, {
@@ -157,6 +159,25 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     system.update(world, 0.016);
 
     expect(Health.current[base]).toBe(88);
+  });
+
+  it('真实刷怪的初始 attackAnimDuration > 0 时，到达水晶第一帧仍会扣血', () => {
+    const base = makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 7, initialAttackAnimDuration: 0.45 });
+
+    system.update(world, 0.016);
+
+    expect(Health.current[base]).toBe(93);
+  });
+
+  it('敌人到达水晶后的攻击动画期间不会重复扣血', () => {
+    const base = makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 5, initialAttackAnimDuration: 0.45 });
+
+    system.update(world, 0.016);
+    system.update(world, 0.2);
+
+    expect(Health.current[base]).toBe(95);
   });
 
   it('多个敌人同帧到达，基地累计扣血', () => {
