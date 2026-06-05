@@ -2,15 +2,53 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
 import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
+import { Position, Tower, Attack } from '../core/components.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { UISystem } from './UISystem.js';
+import { CardDraftSystem } from './CardDraftSystem.js';
+import { HandSystem } from './HandSystem.js';
+import { LEVEL_1_CARD_POOL } from '../data/cards.js';
 
 class RendererStub {
   commands: RenderCommand[] = [];
+  redrawPredicates: Array<(cmd: RenderCommand) => boolean> = [];
+  context = {
+    save: () => {},
+    restore: () => {},
+    setTransform: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    arc: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    quadraticCurveTo: () => {},
+    bezierCurveTo: () => {},
+    fillRect: () => {},
+    strokeRect: () => {},
+    fill: () => {},
+    stroke: () => {},
+    fillText: () => {},
+    translate: () => {},
+    rotate: () => {},
+    scale: () => {},
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    globalAlpha: 1,
+    font: '',
+    textAlign: 'left' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
+  };
 
   push(cmd: RenderCommand): void {
     this.commands.push(cmd);
   }
+
+  redrawCommands(predicate: (cmd: RenderCommand) => boolean): void {
+    this.redrawPredicates.push(predicate);
+  }
+
+  applyBlur(): void {}
 }
 
 function makeUISystem(renderer: RendererStub, countdown: number): UISystem {
@@ -110,5 +148,68 @@ describe('UISystem 顶部 HUD 布局', () => {
     expect(countdownInfo).toBeDefined();
     expect(countdownInfo!.align).toBe('right');
     expect(countdownInfo!.x).toBe(startWaveButton!.x - 12);
+  });
+});
+
+describe('UISystem UI 层级', () => {
+  beforeEach(() => {
+    LayoutManager.update(1920, 1080);
+  });
+
+  it('塔升级面板归属棋盘 tips 层，不会提升到全屏 UI 层', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 1 });
+    world.addComponent(towerId, Attack, { damage: 10, range: 160, attackSpeed: 1 });
+
+    ui.selectedTowerEntityId = towerId;
+    ui.update(world, 1 / 60);
+
+    const upgradeButton = buttonsOf(ui).find((button) => button.label.startsWith('升级'));
+    expect(upgradeButton).toBeDefined();
+    expect((upgradeButton as { layer?: string }).layer).toBe('board');
+
+    const titleInfo = infosOf(ui).find((info) => info.text.includes('Lv.1'));
+    expect(titleInfo).toBeDefined();
+    expect((titleInfo as { layer?: string }).layer).toBe('board');
+  });
+
+  it('抽卡面板作为全屏 UI 重绘在普通 UI 与塔升级面板之上', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: (id: string) => ({
+          name: id,
+          type: 'unit',
+          rarity: 'common',
+          energyCost: 0,
+          description: id,
+        }),
+      },
+      hand: { state: { hand: [] } },
+    });
+
+    const draft = new CardDraftSystem();
+    const hand = new HandSystem();
+    hand.initialize(LEVEL_1_CARD_POOL);
+    draft.startDraft(LEVEL_1_CARD_POOL, hand);
+    ui.setCardDraftSystem(draft);
+
+    ui.update(world, 1 / 60);
+    ui.renderUI();
+
+    expect(renderer.redrawPredicates.length).toBeGreaterThanOrEqual(2);
+    const fullScreenPredicate = renderer.redrawPredicates[1]!;
+    expect(fullScreenPredicate({ shape: 'rect', x: 0, y: 0, size: 1, color: '#fff', z: 1000 })).toBe(true);
+    expect(fullScreenPredicate({ shape: 'rect', x: 0, y: 0, size: 1, color: '#fff', z: 100 })).toBe(false);
+
+    const draftTitle = infosOf(ui).find((info) => info.text.includes('抽卡奖励'));
+    expect(draftTitle).toBeDefined();
+    expect((draftTitle as { layer?: string }).layer).toBe('fullscreen');
   });
 });

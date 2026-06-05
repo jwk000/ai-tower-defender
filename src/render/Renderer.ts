@@ -85,6 +85,15 @@ export class Renderer {
     }
   }
 
+  redrawCommands(predicate: (cmd: RenderCommand) => boolean): void {
+    const sorted = this.commands
+      .filter(predicate)
+      .sort((a, b) => (a.z ?? 5) - (b.z ?? 5));
+    for (const cmd of sorted) {
+      this.drawCommand(cmd);
+    }
+  }
+
   private drawCommand(cmd: RenderCommand): void {
     const ctx = this.ctx;
     ctx.save();

@@ -79,7 +79,7 @@ export type {
 // ============================================================
 
 interface CardIconDraw {
-  cx: number; cy: number; w: number; h: number; cardId: string; color: string;
+  cx: number; cy: number; w: number; h: number; cardId: string; color: string; layer: UILayer;
 }
 
 // ============================================================
@@ -113,12 +113,14 @@ interface UIButton {
   enabled: boolean | (() => boolean);
   /** v5.0: ghost buttons are invisible click targets (no fill/stroke, only hit area) */
   ghost?: boolean;
+  layer?: UILayer;
 }
 
 interface UIInfo {
   x: number; y: number;
   text: string; color: string; size: number;
   align?: CanvasTextAlign;
+  layer?: UILayer;
 }
 
 interface UIOverlay {
@@ -136,6 +138,14 @@ interface DragState {
   productionType?: ProductionType;
   spellCardId?: string;
 }
+
+const UI_Z = {
+  BOARD_TIPS: 30,
+  NORMAL_UI: 100,
+  FULLSCREEN_UI: 1000,
+} as const;
+
+type UILayer = 'board' | 'normal' | 'fullscreen';
 
 // ============================================================
 // bitecs query — alive enemy count (replaces world.query(CType.Enemy))
@@ -172,6 +182,7 @@ export class UISystem implements System {
 
   /** v5.0: modal backdrop alpha drawn in viewport-space (0 = hidden, 0.6 = visible) */
   private modalBackdropAlpha: number = 0;
+  private hasFullscreenOverlay: boolean = false;
 
   /** Card icon draws — collected during update(), drawn directly in renderUI() */
   private cardIconDraws: CardIconDraw[] = [];
@@ -299,6 +310,7 @@ export class UISystem implements System {
     this.infos = [];
     this.overlay = null;
     this.modalBackdropAlpha = 0;
+    this.hasFullscreenOverlay = false;
     this.cardIconDraws = [];
 
     if (this.enemyEntityId !== null) {
@@ -393,7 +405,7 @@ export class UISystem implements System {
       size: diameter!,
       color,
       alpha: 0.1,
-      z: 20,
+      z: UI_Z.BOARD_TIPS,
     });
     this.renderer.push({
       shape: 'circle',
@@ -403,7 +415,7 @@ export class UISystem implements System {
       alpha: 0.35,
       stroke: color,
       strokeWidth: 2,
-      z: 20,
+      z: UI_Z.BOARD_TIPS,
     });
   }
 
@@ -468,6 +480,7 @@ export class UISystem implements System {
       color: '#ffffff',
       size: 16,
       align: 'center',
+      layer: 'board',
     });
 
     // Stats
@@ -477,6 +490,7 @@ export class UISystem implements System {
       text: `攻击: ${Math.round(atk)}`,
       color: '#e0e0e0',
       size: 13,
+      layer: 'board',
     });
     this.infos.push({
       x: panelLeft + 15,
@@ -484,6 +498,7 @@ export class UISystem implements System {
       text: `范围: ${Math.round(range)}`,
       color: '#e0e0e0',
       size: 13,
+      layer: 'board',
     });
     this.infos.push({
       x: panelLeft + 15,
@@ -491,6 +506,7 @@ export class UISystem implements System {
       text: `攻速: ${atkSpeed.toFixed(1)}/s`,
       color: '#e0e0e0',
       size: 13,
+      layer: 'board',
     });
 
     // Upgrade button — green
@@ -507,6 +523,7 @@ export class UISystem implements System {
       color: canUpgrade && canAfford ? '#4caf50' : '#555555',
       textColor: '#ffffff',
       enabled: canUpgrade && canAfford,
+      layer: 'board',
       onClick: () => {
         this.onUpgradeTower?.(id);
       },
@@ -523,6 +540,7 @@ export class UISystem implements System {
       color: '#e53935',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'board',
       onClick: () => {
         this.onRecycleEntity?.(id);
         this.selectedEntityId = null;
@@ -538,6 +556,13 @@ export class UISystem implements System {
   renderUI(): void {
     const ctx = this.renderer.context;
 
+    this.renderUILayer('board');
+    this.renderer.redrawCommands((cmd) => {
+      const z = cmd.z ?? 5;
+      return z >= UI_Z.NORMAL_UI && z < UI_Z.FULLSCREEN_UI;
+    });
+    this.renderUILayer('normal');
+
     // v5.0: full-viewport modal backdrop — covers actual browser window,
     // not just the 16:9 design space. Used by countdown, pause, card draft,
     // buff selection, and victory/defeat overlays.
@@ -549,8 +574,31 @@ export class UISystem implements System {
       ctx.restore();
     }
 
+    if (this.hasFullscreenOverlay) {
+      this.renderer.redrawCommands((cmd) => (cmd.z ?? 5) >= UI_Z.FULLSCREEN_UI);
+      this.renderUILayer('fullscreen');
+    }
+
+    if (this.overlay) {
+      const cx = LayoutManager.DESIGN_W / 2;
+      const cy = LayoutManager.DESIGN_H / 2;
+      ctx.save();
+      ctx.fillStyle = this.overlay.color;
+      ctx.font = FONTS.title;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.overlay.title, cx, cy);
+      ctx.font = FONTS.subtitle;
+      ctx.fillText(this.overlay.subtext, cx, cy + 50);
+      ctx.restore();
+    }
+  }
+
+  private renderUILayer(layer: UILayer): void {
+    const ctx = this.renderer.context;
+
     // Draw tower info panel background (after weather tint, before buttons/text)
-    if (this.towerPanelBg) {
+    if (layer === 'board' && this.towerPanelBg) {
       const p = this.towerPanelBg;
       ctx.save();
       // Black background
@@ -566,10 +614,13 @@ export class UISystem implements System {
     }
 
     for (const btn of this.buttons) {
-      this.drawButton(btn);
+      if ((btn.layer ?? 'normal') === layer) {
+        this.drawButton(btn);
+      }
     }
 
     for (const info of this.infos) {
+      if ((info.layer ?? 'normal') !== layer) continue;
       ctx.save();
       ctx.fillStyle = info.color;
       ctx.font = getFont(info.size, true);
@@ -581,22 +632,9 @@ export class UISystem implements System {
 
     // Draw vector card icons (hand zone + draft overlay)
     for (const icon of this.cardIconDraws) {
+      if (icon.layer !== layer) continue;
       ctx.save();
       drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
-      ctx.restore();
-    }
-
-    if (this.overlay) {
-      const cx = LayoutManager.DESIGN_W / 2;
-      const cy = LayoutManager.DESIGN_H / 2;
-      ctx.save();
-      ctx.fillStyle = this.overlay.color;
-      ctx.font = FONTS.title;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(this.overlay.title, cx, cy);
-      ctx.font = FONTS.subtitle;
-      ctx.fillText(this.overlay.subtext, cx, cy + 50);
       ctx.restore();
     }
   }
@@ -733,6 +771,7 @@ export class UISystem implements System {
         color: '#1a2332',
         alpha: cardAlpha * 0.95,
         stroke: borderColor, strokeWidth: 2,
+        z: UI_Z.NORMAL_UI,
       });
 
       const artW = 96;
@@ -745,12 +784,13 @@ export class UISystem implements System {
         color: '#0d1b2a',
         alpha: cardAlpha,
         stroke: '#37474f', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI + 1,
       });
 
       const glyph = cardTypeGlyph(config.type);
       this.cardIconDraws.push({
         cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
-        cardId: card.cardId, color: borderColor,
+        cardId: card.cardId, color: borderColor, layer: 'normal',
       });
 
       this.infos.push({
@@ -814,6 +854,7 @@ export class UISystem implements System {
       size: CARD_TOOLTIP_WIDTH, h: CARD_TOOLTIP_HEIGHT,
       color: '#0d1b2a', alpha: 0.96,
       stroke: borderColor, strokeWidth: 3,
+      z: UI_Z.NORMAL_UI + 10,
     });
 
     let cursorY = anchor.y + 28;
@@ -977,6 +1018,7 @@ export class UISystem implements System {
         color: '#2e7d32',
         alpha: 0.9,
         stroke: '#ffffff', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI,
       });
 
       this.buttons.push({
@@ -1004,6 +1046,7 @@ export class UISystem implements System {
       color: speedColor,
       alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.NORMAL_UI,
     });
 
     this.buttons.push({
@@ -1027,6 +1070,7 @@ export class UISystem implements System {
       color: '#37474f',
       alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.NORMAL_UI,
     });
 
     this.buttons.push({
@@ -1164,6 +1208,7 @@ export class UISystem implements System {
     // This MUST cover the actual viewport (not just design-space) so it
     // works correctly on ultrawide and non-16:9 displays.
     this.modalBackdropAlpha = 0.6;
+    this.hasFullscreenOverlay = true;
 
     // Panel background
     this.renderer.push({
@@ -1171,7 +1216,7 @@ export class UISystem implements System {
       size: panelW, h: panelH,
       color: '#1a1a2e', alpha: 0.95,
       stroke: '#ffd54f', strokeWidth: 3,
-      z: 1000,
+      z: UI_Z.FULLSCREEN_UI,
     });
 
     // Wave label
@@ -1182,6 +1227,7 @@ export class UISystem implements System {
       text: labelText,
       color: '#ffd54f', size: 28,
       align: 'center',
+      layer: 'fullscreen',
     });
 
     // Countdown timer — large number
@@ -1191,6 +1237,7 @@ export class UISystem implements System {
       text: `${cdDisplay}`,
       color: '#ffffff', size: 72,
       align: 'center',
+      layer: 'fullscreen',
     });
 
     // "秒" label
@@ -1199,6 +1246,7 @@ export class UISystem implements System {
       text: '秒',
       color: '#aaaaaa', size: 24,
       align: 'center',
+      layer: 'fullscreen',
     });
 
     // Skip button — large, centered below the countdown
@@ -1213,6 +1261,7 @@ export class UISystem implements System {
       color: '#2e7d32',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onSkipCountdown?.(); },
     });
   }
@@ -1226,11 +1275,13 @@ export class UISystem implements System {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
       this.modalBackdropAlpha = 0.6;
+      this.hasFullscreenOverlay = true;
       this.overlay = { phase, color: '#4caf50', title: '胜利!', subtext: '刷新页面重新开始' };
     } else if (phase === GamePhase.Defeat) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
       this.modalBackdropAlpha = 0.6;
+      this.hasFullscreenOverlay = true;
       this.overlay = { phase, color: '#f44336', title: '失败!', subtext: '刷新页面重新开始' };
     }
   }
@@ -1244,6 +1295,7 @@ export class UISystem implements System {
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
     this.modalBackdropAlpha = 0.6;
+    this.hasFullscreenOverlay = true;
 
     const hasEncyclopedia = this.onOpenEncyclopedia !== null;
     const menuW = 500;
@@ -1261,6 +1313,7 @@ export class UISystem implements System {
       alpha: 0.95,
       stroke: '#555555',
       strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
     });
 
     this.infos.push({
@@ -1270,6 +1323,7 @@ export class UISystem implements System {
       color: '#ffffff',
       size: 40,
       align: 'center',
+      layer: 'fullscreen',
     });
 
     const btnW = 200;
@@ -1287,6 +1341,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: continueY, w: btnW, h: btnH,
@@ -1294,6 +1349,7 @@ export class UISystem implements System {
       color: '#2e7d32',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onResume?.(); },
     });
 
@@ -1310,6 +1366,7 @@ export class UISystem implements System {
         alpha: 0.9,
         stroke: '#78909c',
         strokeWidth: 1,
+        z: UI_Z.FULLSCREEN_UI,
       });
       this.buttons.push({
         x: btnX, y: encY, w: btnW, h: btnH,
@@ -1317,6 +1374,7 @@ export class UISystem implements System {
         color: '#37474f',
         textColor: '#ffffff',
         enabled: true,
+        layer: 'fullscreen',
         onClick: () => { this.onOpenEncyclopedia?.(); },
       });
     }
@@ -1332,6 +1390,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: restartY, w: btnW, h: btnH,
@@ -1339,6 +1398,7 @@ export class UISystem implements System {
       color: '#f9a825',
       textColor: '#000000',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onRestart?.(); },
     });
 
@@ -1353,6 +1413,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: exitY, w: btnW, h: btnH,
@@ -1360,6 +1421,7 @@ export class UISystem implements System {
       color: '#c62828',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onExit?.(); },
     });
 
@@ -1372,6 +1434,7 @@ export class UISystem implements System {
       color: '#aaaaaa',
       size: 24,
       align: 'center',
+      layer: 'fullscreen',
     });
   }
 
@@ -1390,6 +1453,7 @@ export class UISystem implements System {
     this.renderer.applyBlur(12);
 
     this.modalBackdropAlpha = 0.7;
+    this.hasFullscreenOverlay = true;
 
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
@@ -1406,6 +1470,7 @@ export class UISystem implements System {
       size: panelW, h: panelH,
       color: '#1a1a2e', alpha: 0.95,
       stroke: '#7c4dff', strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
     });
 
     // Title at top
@@ -1413,6 +1478,7 @@ export class UISystem implements System {
       x: mapCenterX, y: panelY + 32,
       text: '🎲 抽卡奖励',
       color: '#ffffff', size: 24, align: 'center',
+      layer: 'fullscreen',
     });
 
     // v5.0: card layout — 3 columns, centered, 120×168 cards
@@ -1439,6 +1505,7 @@ export class UISystem implements System {
         size: cardW, h: cardH,
         color: '#1a2332', alpha: 0.95,
         stroke: borderColor, strokeWidth: 2,
+        z: UI_Z.FULLSCREEN_UI,
       });
 
       // Art area — hand-card style
@@ -1448,13 +1515,14 @@ export class UISystem implements System {
         size: artW, h: artH,
         color: '#0d1b2a', alpha: 1,
         stroke: '#37474f', strokeWidth: 1,
+        z: UI_Z.FULLSCREEN_UI + 1,
       });
 
       // Glyph — hand-card style
       if (config) {
         this.cardIconDraws.push({
           cx, cy: artCenterY, w: artW, h: artH,
-          cardId: opt.id, color: borderColor,
+          cardId: opt.id, color: borderColor, layer: 'fullscreen',
         });
       }
 
@@ -1462,6 +1530,7 @@ export class UISystem implements System {
       this.infos.push({
         x: cx, y: cardTop + 12 + artH + 14,
         text: opt.name, color: '#ffffff', size: 12, align: 'center',
+        layer: 'fullscreen',
       });
 
       // Description — compact, below name, auto-wrapped within card
@@ -1471,6 +1540,7 @@ export class UISystem implements System {
           x: cx, y: cardTop + 12 + artH + 34 + li * 12,
           text: descLines[li]!,
           color: '#90a4ae', size: 9, align: 'center',
+          layer: 'fullscreen',
         });
       }
     }
@@ -1490,12 +1560,14 @@ export class UISystem implements System {
       size: btnW, h: btnH,
       color: '#2e7d32', alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: confirmBtnX, y: btnY, w: btnW, h: btnH,
       label: '确定',
       color: '#2e7d32', textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => {
         Sound.play('draft_select');
         sys.confirmDraft();
@@ -1510,12 +1582,14 @@ export class UISystem implements System {
       size: btnW, h: btnH,
       color: rerollEnabled ? '#1565c0' : '#37474f', alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: rerollBtnX, y: btnY, w: btnW, h: btnH,
       label: '🎲再抽一次',
       color: '#1565c0', textColor: '#ffffff',
       enabled: rerollEnabled,
+      layer: 'fullscreen',
       onClick: () => {
         this.draftRerollUsed = true;
         Sound.play('ui_click');
@@ -1551,12 +1625,14 @@ export class UISystem implements System {
       size: panelW, h: panelH,
       color: '#1a1a2e', alpha: 0.95,
       stroke: '#ff9800', strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
     });
 
     this.infos.push({
       x: mapCenterX, y: panelY + 30,
       text: '选择一个 Buff 带入下一关',
       color: '#ffffff', size: 24, align: 'center',
+      layer: 'fullscreen',
     });
 
     const cardW = 260;
@@ -1583,29 +1659,34 @@ export class UISystem implements System {
         size: cardW, h: cardH,
         color: '#1a2332', alpha: 0.95,
         stroke: borderColor, strokeWidth: 3,
+        z: UI_Z.FULLSCREEN_UI,
       });
 
       this.infos.push({
         x: cx, y: cardY - cardH / 2 + 30,
         text: opt.name, color: '#ffffff', size: 18, align: 'center',
+        layer: 'fullscreen',
       });
 
       const rarityLabel = opt.rarity.charAt(0).toUpperCase() + opt.rarity.slice(1);
       this.infos.push({
         x: cx, y: cardY - cardH / 2 + 52,
         text: rarityLabel, color: borderColor, size: 13, align: 'center',
+        layer: 'fullscreen',
       });
 
       this.infos.push({
         x: cx, y: cardY,
         text: opt.description,
         color: '#b0bec5', size: 13, align: 'center',
+        layer: 'fullscreen',
       });
 
       this.infos.push({
         x: cx, y: cardY + 50,
         text: `${opt.effect.type}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
         color: '#ffcc80', size: 14, align: 'center',
+        layer: 'fullscreen',
       });
 
       this.buttons.push({
@@ -1614,6 +1695,7 @@ export class UISystem implements System {
         label: `选择 ${opt.name}`,
         color: '#ff9800', textColor: '#ffffff',
         enabled: true,
+        layer: 'fullscreen',
         onClick: () => {
           Sound.play('buff_select');
           sys.selectBuff(i);
