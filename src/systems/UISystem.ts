@@ -152,7 +152,7 @@ export class UISystem implements System {
   // requiredComponents removed — no entity iteration; queries run inline
 
   static readonly TOP_H = 36;
-  static readonly TOP_HUD_SIDE_MARGIN = 20;
+  static readonly TOP_HUD_SIDE_MARGIN = 200;
   static readonly BTN_W = 80;
   static readonly BTN_H = 80;
   static readonly BTN_GAP = 8;

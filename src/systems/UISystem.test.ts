@@ -51,7 +51,7 @@ describe('UISystem 顶部 HUD 布局', () => {
     LayoutManager.update(1920, 1080);
   });
 
-  it('右侧暂停按钮距离屏幕右边缘 20px，与左侧 HUD 内边距对称', () => {
+  it('右侧暂停按钮距离屏幕右边缘 200px，与左侧 HUD 内边距对称', () => {
     const ui = makeUISystem(new RendererStub(), 0);
 
     ui.update(new TowerWorld(), 1 / 60);
