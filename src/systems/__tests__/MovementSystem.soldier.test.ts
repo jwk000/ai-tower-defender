@@ -315,6 +315,26 @@ describe('MovementSystem — soldier movement', () => {
     expect(Position.x[eid]!).toBeCloseTo(targetX, 0);
   });
 
+  it('ChaseTarget: soldier can overlap an enemy target without being pushed away', () => {
+    const targetX = 150;
+    const targetY = 100;
+    const eid = spawnSoldier(world, {
+      x: 100, y: targetY,
+      homeX: 100, homeY: targetY,
+      moveRange: 500,
+      moveMode: MoveModeVal.ChaseTarget,
+      speed: 500,
+      targetX,
+      targetY,
+    });
+    spawnEnemy(world, targetX, targetY, 0, 0);
+
+    sys.update(world, 0.1);
+
+    expect(Position.x[eid]!).toBeCloseTo(targetX, 0);
+    expect(Position.y[eid]!).toBeCloseTo(targetY, 0);
+  });
+
   // --- Scene bounds clamping ---
 
   it('Soldier movement is clamped within scene bounds', () => {
@@ -333,9 +353,9 @@ describe('MovementSystem — soldier movement', () => {
     expect(Position.x[eid]!).toBeGreaterThanOrEqual(8);
   });
 
-  // --- Soldier collision ---
+  // --- Soldier overlap ---
 
-  it('Two soldiers can push past each other with loose collision', () => {
+  it('Two soldiers can overlap without pushing each other', () => {
     const s1 = spawnSoldier(world, {
       x: 200, y: 200,
       homeX: 200, homeY: 200,
@@ -360,10 +380,10 @@ describe('MovementSystem — soldier movement', () => {
 
     sys.update(world, 0.1);
 
-    // Both should move (they don't fully block each other)
-    expect(Position.x[s1]!).not.toBeCloseTo(x1_0);
-    expect(Position.x[s2]!).not.toBeCloseTo(x2_0);
-    // s1 should still move rightward, s2 leftward (though may be slightly pushed)
+    expect(Position.x[s1]!).toBeCloseTo(x1_0 + 8, 3);
+    expect(Position.y[s1]!).toBeCloseTo(200, 3);
+    expect(Position.x[s2]!).toBeCloseTo(x2_0 - 8, 3);
+    expect(Position.y[s2]!).toBeCloseTo(200, 3);
   });
 });
 
@@ -404,6 +424,28 @@ describe('MovementSystem — path recovery', () => {
     const dx = Position.x[eid]! - x0;
     expect(dx).toBeGreaterThan(0); // moving right
     expect(Position.y[eid]).toBeCloseTo(y0, 2); // same row
+  });
+
+  it('Enemy overlapping a soldier still follows the path without avoidance offset', () => {
+    const wp2 = path6[2]!;
+    const startX = wp2.col * TILE + TILE / 2;
+    const startY = wp2.row * TILE + TILE / 2;
+    const eid = spawnEnemy(world, startX, startY, 80, 2);
+    spawnSoldier(world, {
+      x: startX + 4,
+      y: startY,
+      homeX: startX + 4,
+      homeY: startY,
+      moveRange: 300,
+      moveMode: MoveModeVal.HoldPosition,
+      speed: 0,
+    });
+    spawnBase(world, 100);
+
+    sys.update(world, 0.1);
+
+    expect(Position.x[eid]!).toBeCloseTo(startX + 8, 3);
+    expect(Position.y[eid]!).toBeCloseTo(startY, 3);
   });
 
   it('Enemy pushed far off path snaps to nearest waypoint', () => {

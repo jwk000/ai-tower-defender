@@ -1,7 +1,7 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
-  Visual, Attack, Projectile, DeathEffect, Trap, Category, CategoryVal, Soldier,
+  Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
   Boss,
 } from '../core/components.js';
@@ -14,23 +14,11 @@ import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 import { GamePhase } from '../types/index.js';
 
-interface CollisionResult {
-  blocked: boolean;
-  pushX: number;
-  pushY: number;
-}
-
-/** Components excluded from collision — projectiles, death effects, traps pass through */
-const EXCLUDE_COLLISION = [Projectile, DeathEffect, Trap] as const;
-
 /** Distance threshold multiplier: enemy is "off-path" when perpendicular distance > ts * this */
 const PATH_RECOVERY_MULT = 1.5;
 
 /** Distance (px) within which a soldier considers itself at its patrol target */
 const SOLDIER_REACH_THRESHOLD = 5;
-
-/** Collision radius multiplier for soldier-on-soldier (looser — allows pushing past) */
-const SOLDIER_VS_SOLDIER_RADIUS_MULT = 0.3;
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
@@ -39,8 +27,6 @@ export class MovementSystem implements System {
   private movingQuery = defineQuery([Position, Movement, UnitTag]);
   /** Query: player soldier entities (non-enemy with Soldier component) */
   private soldierQuery = defineQuery([Position, Movement, UnitTag, Soldier]);
-  /** Query: all entities with physical presence (for collision detection) */
-  private collisionQuery = defineQuery([Position, Visual]);
   /** Query: base objective entities (Category.Objective) for damage on enemy reach-end */
   private baseQuery = defineQuery([Position, Health, Category]);
   /** Query: player tower entities */
@@ -204,39 +190,8 @@ export class MovementSystem implements System {
         newY = cy + dy * progress;
       }
 
-      const radius = this.getEntityRadius(eid);
-
-      // Collision avoidance
-      const collision = this.checkCollision(world, eid, newX, newY, radius);
-
-      if (collision.blocked) {
-        const avoidance = this.findAvoidance(world, eid, posX, posY, radius, nx, ny);
-
-        if (avoidance) {
-          const avoidDx = avoidance.x - posX;
-          const avoidDy = avoidance.y - posY;
-          const avoidDist = Math.sqrt(avoidDx * avoidDx + avoidDy * avoidDy);
-
-          if (avoidDist > 0.1) {
-            const avoidStep = Math.min(dist * 0.8, avoidDist);
-            const avoidX = posX + (avoidDx / avoidDist) * avoidStep;
-            const avoidY = posY + (avoidDy / avoidDist) * avoidStep;
-
-            const recheck = this.checkCollision(world, eid, avoidX, avoidY, radius);
-            Position.x[eid] = recheck.blocked ? newX : avoidX;
-            Position.y[eid] = recheck.blocked ? newY : avoidY;
-          } else {
-            Position.x[eid] = newX;
-            Position.y[eid] = newY;
-          }
-        } else {
-          Position.x[eid] = newX;
-          Position.y[eid] = newY;
-        }
-      } else {
-        Position.x[eid] = newX;
-        Position.y[eid] = newY;
-      }
+      Position.x[eid] = newX;
+      Position.y[eid] = newY;
 
       const stepDx = Position.x[eid]! - posX;
       if (stepDx > 0.05) Visual.facing[eid] = 1;
@@ -695,18 +650,6 @@ export class MovementSystem implements System {
     newX = Math.max(ox + margin, Math.min(ox + sw - margin, newX));
     newY = Math.max(oy + margin, Math.min(oy + sh - margin, newY));
 
-    // Loose collision — soldiers push past each other
-    const radius = this.getEntityRadius(eid);
-    const collision = this.checkCollisionSoldier(world, eid, newX, newY, radius);
-
-    if (collision.blocked) {
-      // Gentle push away from collision, then re-clamp
-      newX += collision.pushX * 0.5;
-      newY += collision.pushY * 0.5;
-      newX = Math.max(ox + margin, Math.min(ox + sw - margin, newX));
-      newY = Math.max(oy + margin, Math.min(oy + sh - margin, newY));
-    }
-
     Position.x[eid] = newX;
     Position.y[eid] = newY;
 
@@ -717,53 +660,6 @@ export class MovementSystem implements System {
     if (Math.abs(stepDx) > 0.05) {
       Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
     }
-  }
-
-  /** Collision check with reduced radius for soldier-vs-soldier (looser — allows pushing past) */
-  private checkCollisionSoldier(
-    world: TowerWorld,
-    selfId: number,
-    x: number,
-    y: number,
-    selfRadius: number,
-  ): CollisionResult {
-    const result: CollisionResult = { blocked: false, pushX: 0, pushY: 0 };
-    const others = this.collisionQuery(world.world);
-
-    for (let i = 0; i < others.length; i++) {
-      const otherId = others[i]!;
-      if (otherId === selfId) continue;
-      if (this.isExcluded(world, otherId)) continue;
-
-      const otherX = Position.x[otherId]!;
-      const otherY = Position.y[otherId]!;
-      let otherRadius = this.getEntityRadius(otherId);
-
-      // Looser collision between two soldiers
-      let effectiveSelfRadius = selfRadius;
-      let effectiveOtherRadius = otherRadius;
-      if (hasComponent(world.world, Soldier, otherId)) {
-        effectiveSelfRadius = selfRadius * SOLDIER_VS_SOLDIER_RADIUS_MULT;
-        effectiveOtherRadius = otherRadius * SOLDIER_VS_SOLDIER_RADIUS_MULT;
-      }
-
-      const dx = x - otherX;
-      const dy = y - otherY;
-      const distSq = dx * dx + dy * dy;
-      const minDist = effectiveSelfRadius + effectiveOtherRadius;
-
-      if (distSq < minDist * minDist && distSq > 0.01) {
-        const dist = Math.sqrt(distSq);
-        const overlap = minDist - dist;
-        const nx = dx / dist;
-        const ny = dy / dist;
-        result.blocked = true;
-        result.pushX += nx * overlap;
-        result.pushY += ny * overlap;
-      }
-    }
-
-    return result;
   }
 
   /** Pick a random patrol destination within moveRange radius of anchor point */
@@ -784,121 +680,6 @@ export class MovementSystem implements System {
     tx = Math.max(ox + margin, Math.min(ox + sw - margin, tx));
     ty = Math.max(oy + margin, Math.min(oy + sh - margin, ty));
     return { tx, ty };
-  }
-
-  // ================================================================
-  // Collision helpers (shared)
-  // ================================================================
-
-  private getEntityRadius(eid: number): number {
-    return (Visual.size[eid] ?? 32) / 2;
-  }
-
-  /** Check if moving to (x, y) would collide with any non-excluded entity */
-  private checkCollision(
-    world: TowerWorld,
-    selfId: number,
-    x: number,
-    y: number,
-    radius: number,
-  ): CollisionResult {
-    const result: CollisionResult = { blocked: false, pushX: 0, pushY: 0 };
-    const others = this.collisionQuery(world.world);
-
-    for (let i = 0; i < others.length; i++) {
-      const otherId = others[i]!;
-      if (otherId === selfId) continue;
-
-      if (this.isExcluded(world, otherId)) continue;
-
-      const otherX = Position.x[otherId]!;
-      const otherY = Position.y[otherId]!;
-      const otherRadius = this.getEntityRadius(otherId);
-
-      const dx = x - otherX;
-      const dy = y - otherY;
-      const distSq = dx * dx + dy * dy;
-      const minDist = radius + otherRadius;
-
-      if (distSq < minDist * minDist && distSq > 0.01) {
-        const dist = Math.sqrt(distSq);
-        const overlap = minDist - dist;
-        const nx = dx / dist;
-        const ny = dy / dist;
-        result.blocked = true;
-        result.pushX += nx * overlap;
-        result.pushY += ny * overlap;
-      }
-    }
-
-    return result;
-  }
-
-  /** Find a perpendicular avoidance position near a blocking entity */
-  private findAvoidance(
-    world: TowerWorld,
-    selfId: number,
-    x: number,
-    y: number,
-    radius: number,
-    targetX: number,
-    targetY: number,
-  ): { x: number; y: number } | null {
-    const others = this.collisionQuery(world.world);
-
-    for (let i = 0; i < others.length; i++) {
-      const otherId = others[i]!;
-      if (otherId === selfId) continue;
-
-      if (this.isExcluded(world, otherId)) continue;
-
-      const otherX = Position.x[otherId]!;
-      const otherY = Position.y[otherId]!;
-      const otherRadius = this.getEntityRadius(otherId);
-
-      const dx = x - otherX;
-      const dy = y - otherY;
-      const distSq = dx * dx + dy * dy;
-      const minDist = radius + otherRadius + 10;
-
-      if (distSq < minDist * minDist && distSq > 0.01) {
-        const dist = Math.sqrt(distSq);
-        const nx = dx / dist;
-        const ny = dy / dist;
-
-        const toTargetX = targetX - x;
-        const toTargetY = targetY - y;
-        const toTargetLen = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
-
-        if (toTargetLen > 0.01) {
-          const dirX = toTargetX / toTargetLen;
-          const dirY = toTargetY / toTargetLen;
-          const perpX = -dirY;
-          const perpY = dirX;
-          const dot = nx * perpX + ny * perpY;
-          const sign = dot > 0 ? 1 : -1;
-          return {
-            x: otherX + (radius + otherRadius + 15) * perpX * sign,
-            y: otherY + (radius + otherRadius + 15) * perpY * sign,
-          };
-        } else {
-          return {
-            x: otherX + nx * (radius + otherRadius + 15),
-            y: otherY + ny * (radius + otherRadius + 15),
-          };
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /** Check if an entity should be excluded from collision (projectiles, effects, traps) */
-  private isExcluded(world: TowerWorld, eid: number): boolean {
-    for (const comp of EXCLUDE_COLLISION) {
-      if (hasComponent(world.world, comp, eid)) return true;
-    }
-    return false;
   }
 
   // ================================================================

@@ -9,6 +9,8 @@ import {
   Projectile,
   DeathEffect,
   Trap,
+  UnitTag,
+  Soldier,
 } from '../core/components.js';
 import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
@@ -273,6 +275,7 @@ export class UnitSystem implements System {
       const otherId = others[i]!;
       if (otherId === selfId) continue;
 
+      if (this.canOverlap(world, selfId, otherId)) continue;
       if (this.isExcluded(world, otherId)) continue;
 
       const otherX = Position.x[otherId]!;
@@ -314,6 +317,7 @@ export class UnitSystem implements System {
       const otherId = others[i]!;
       if (otherId === selfId) continue;
 
+      if (this.canOverlap(world, selfId, otherId)) continue;
       if (this.isExcluded(world, otherId)) continue;
 
       const otherX = Position.x[otherId]!;
@@ -363,6 +367,15 @@ export class UnitSystem implements System {
       if (hasComponent(world.world, comp, eid)) return true;
     }
     return false;
+  }
+
+  private canOverlap(world: TowerWorld, selfId: number, otherId: number): boolean {
+    return this.isEnemyOrSoldier(world, selfId) && this.isEnemyOrSoldier(world, otherId);
+  }
+
+  private isEnemyOrSoldier(world: TowerWorld, eid: number): boolean {
+    if (hasComponent(world.world, Soldier, eid)) return true;
+    return hasComponent(world.world, UnitTag, eid) && UnitTag.isEnemy[eid] === 1;
   }
 }
 
