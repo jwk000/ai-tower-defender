@@ -232,7 +232,9 @@ class TowerDefenderGame extends Game {
     this.input.onPointerMove = (e: InputEvent) => {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.handleMouseMove(e.x, e.y);
+        return;
       }
+      this.levelSelectUI?.handleMouseMove?.(e.x, e.y);
     };
     this.input.onPointerUp = (e: InputEvent) => {
       this.encyclopedia.handleMouseUp(e.x, e.y);
