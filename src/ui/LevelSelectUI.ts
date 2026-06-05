@@ -95,6 +95,9 @@ function themeFor(theme: string): ThemeBackground {
   return THEME_BACKGROUNDS[theme] ?? fallback;
 }
 
+const BACKGROUND_BASE_W = 1920;
+const BACKGROUND_BASE_H = 1080;
+
 /** LevelSelectUI — renders level selection menu and handles clicks */
 export class LevelSelectUI {
   private buttons: LevelButton[] = [];
@@ -174,6 +177,7 @@ export class LevelSelectUI {
     const theme = themeFor(selected?.theme ?? 'plains');
 
     this.drawThemeBackground(theme);
+    this.renderer.applyDesignTransform();
 
     // Title
     ctx.save();
@@ -233,10 +237,11 @@ export class LevelSelectUI {
 
   private drawThemeBackground(theme: ThemeBackground): void {
     const ctx = this.renderer.context;
-    const w = LayoutManager.DESIGN_W;
-    const h = LayoutManager.DESIGN_H;
+    const w = LayoutManager.viewportW;
+    const h = LayoutManager.viewportH;
     const t = this.animationTime;
 
+    this.renderer.resetTransform();
     ctx.save();
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
     gradient.addColorStop(0, theme.top);
@@ -245,6 +250,13 @@ export class LevelSelectUI {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
+
+    const scale = Math.max(w / BACKGROUND_BASE_W, h / BACKGROUND_BASE_H);
+    const offsetX = (w - BACKGROUND_BASE_W * scale) / 2;
+    const offsetY = (h - BACKGROUND_BASE_H * scale) / 2;
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
 
     switch (theme.id) {
       case 'desert':
@@ -266,6 +278,7 @@ export class LevelSelectUI {
     }
 
     this.drawBackgroundVignette();
+    ctx.restore();
   }
 
   private drawPlainsBackground(theme: ThemeBackground, t: number): void {
@@ -423,14 +436,14 @@ export class LevelSelectUI {
   private drawAbyssBackground(theme: ThemeBackground, t: number): void {
     const ctx = this.renderer.context;
     ctx.save();
-    const cx = LayoutManager.DESIGN_W / 2;
+    const cx = BACKGROUND_BASE_W / 2;
     const pulse = 0.55 + Math.sin(t * 1.6) * 0.12;
     const glow = ctx.createRadialGradient(cx, 560, 20, cx, 560, 560);
     glow.addColorStop(0, `rgba(199,125,255,${pulse})`);
     glow.addColorStop(0.45, 'rgba(83,23,132,0.34)');
     glow.addColorStop(1, 'rgba(6,0,12,0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
+    ctx.fillRect(0, 0, BACKGROUND_BASE_W, BACKGROUND_BASE_H);
 
     ctx.strokeStyle = theme.accent;
     ctx.lineWidth = 8;
@@ -457,7 +470,7 @@ export class LevelSelectUI {
     }
     ctx.fillStyle = 'rgba(255,255,255,0.68)';
     for (let i = 0; i < 36; i++) {
-      const x = (i * 131 + Math.sin(t + i) * 60) % 1920;
+      const x = (i * 131 + Math.sin(t + i) * 60) % BACKGROUND_BASE_W;
       const y = 210 + ((i * 47) % 660);
       ctx.globalAlpha = 0.12 + 0.18 * Math.sin(t * 1.5 + i);
       ctx.beginPath();
@@ -475,12 +488,12 @@ export class LevelSelectUI {
       ctx.fillStyle = colors[layer]!;
       ctx.globalAlpha = 0.88;
       ctx.beginPath();
-      ctx.moveTo(0, LayoutManager.DESIGN_H);
-      for (let x = 0; x <= LayoutManager.DESIGN_W; x += 96) {
+      ctx.moveTo(0, BACKGROUND_BASE_H);
+      for (let x = 0; x <= BACKGROUND_BASE_W; x += 96) {
         const y = base + Math.sin(x * 0.006 + t + layer) * (34 + layer * 12);
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
+      ctx.lineTo(BACKGROUND_BASE_W, BACKGROUND_BASE_H);
       ctx.closePath();
       ctx.fill();
     }
@@ -506,7 +519,7 @@ export class LevelSelectUI {
     gradient.addColorStop(0.72, 'rgba(0,0,0,0.22)');
     gradient.addColorStop(1, 'rgba(0,0,0,0.72)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
+    ctx.fillRect(0, 0, BACKGROUND_BASE_W, BACKGROUND_BASE_H);
     ctx.restore();
   }
 

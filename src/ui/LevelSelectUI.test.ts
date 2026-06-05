@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LevelSelectUI } from './LevelSelectUI.js';
 import { SaveManager, type SaveData } from '../utils/SaveManager.js';
+import { LayoutManager } from './LayoutManager.js';
 
 const localStorageStore: Record<string, string> = {};
 
@@ -44,6 +45,7 @@ function createMockContext(): CanvasRenderingContext2D {
     ellipse: noop,
     roundRect: noop,
     translate: noop,
+    scale: noop,
     rotate: noop,
     createLinearGradient: vi.fn(() => gradient),
     createRadialGradient: vi.fn(() => gradient),
@@ -53,9 +55,21 @@ function createMockContext(): CanvasRenderingContext2D {
   } as unknown as CanvasRenderingContext2D;
 }
 
+function createMockRenderer(): {
+  context: CanvasRenderingContext2D;
+  resetTransform: ReturnType<typeof vi.fn>;
+  applyDesignTransform: ReturnType<typeof vi.fn>;
+} {
+  return {
+    context: createMockContext(),
+    resetTransform: vi.fn(),
+    applyDesignTransform: vi.fn(),
+  };
+}
+
 function createLevelSelect(onStartLevel = vi.fn()): LevelSelectUI {
   return new LevelSelectUI(
-    { context: createMockContext() } as never,
+    createMockRenderer() as never,
     onStartLevel,
   );
 }
@@ -102,5 +116,21 @@ describe('LevelSelectUI — 主题背景选择与 hover 交互', () => {
 
     expect(ui.getSelectedLevelId()).toBe(3);
     expect(onStartLevel).toHaveBeenCalledWith(3);
+  });
+
+  it('背景绘制使用 viewport 尺寸并在 UI 绘制前恢复设计坐标', () => {
+    LayoutManager.update(2560, 1080);
+    const renderer = createMockRenderer();
+    const ui = new LevelSelectUI(renderer as never, vi.fn());
+    const ctx = renderer.context as unknown as {
+      fillRect: ReturnType<typeof vi.fn>;
+      createLinearGradient: ReturnType<typeof vi.fn>;
+    };
+
+    ui.update(1 / 60);
+
+    expect(renderer.resetTransform).toHaveBeenCalledBefore(renderer.applyDesignTransform);
+    expect(ctx.createLinearGradient).toHaveBeenCalledWith(0, 0, 0, 1080);
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 2560, 1080);
   });
 });
