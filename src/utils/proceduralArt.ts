@@ -199,6 +199,72 @@ function enemyParts(unit: UnitConfig): UnitVisualParts {
   };
 }
 
+function bossParts(unit: UnitConfig): UnitVisualParts {
+  const size = visualSize(unit);
+  const color = visualColor(unit);
+  const id = unit.id;
+  const isSlime = id.includes('slime');
+  const isQueen = id.includes('queen') || id.includes('beetle');
+  const isLucifer = id.includes('lucifer');
+  const isRobot = id.includes('robot');
+  const isAbyss = id.includes('abyss') || id.includes('lord');
+  const core = isSlime ? '#c8e6c9'
+    : isQueen ? '#ffcc80'
+      : isLucifer ? '#ff5252'
+        : isRobot ? '#00e5ff'
+          : '#e040fb';
+  const armor = isRobot ? '#37474f'
+    : isQueen ? '#5d4037'
+      : isLucifer || isAbyss ? '#1a0033'
+        : '#2e7d32';
+  const halo = isSlime ? '#a5d6a7'
+    : isQueen ? '#ffb74d'
+      : isLucifer ? '#ff1744'
+        : isRobot ? '#80deea'
+          : '#7c4dff';
+
+  const bodyParts: CompositePart[] = [
+    part('circle', 0, size * 0.3, size * 1.25, '#000000', { alpha: 0.2 }),
+    part('circle', 0, 0, size * 1.52, halo, { alpha: 0.14, stroke: halo, strokeWidth: 1 }),
+    part('circle', 0, 0, size * 1.28, '#ffffff', { alpha: 0.07, stroke: '#fff8e1', strokeWidth: 1 }),
+    part(shape(unit, isRobot ? 'rect' : 'hexagon'), 0, 0, size * 1.02, color, { stroke: '#ffd54f', strokeWidth: 3 }),
+    part('circle', 0, -size * 0.06, size * 0.5, core, { alpha: 0.9, stroke: '#ffffff', strokeWidth: 1 }),
+    part('diamond', 0, -size * 0.06, size * 0.28, '#ffffff', { alpha: 0.45 }),
+    part('rect', -size * 0.36, size * 0.1, size * 0.22, armor, { h: size * 0.46, alpha: 0.88, stroke: '#ffd54f', strokeWidth: 1, rotation: -0.16 }),
+    part('rect', size * 0.36, size * 0.1, size * 0.22, armor, { h: size * 0.46, alpha: 0.88, stroke: '#ffd54f', strokeWidth: 1, rotation: 0.16 }),
+    part('triangle', -size * 0.34, -size * 0.42, size * 0.28, armor, { rotation: -0.36, stroke: '#ffd54f', strokeWidth: 1 }),
+    part('triangle', size * 0.34, -size * 0.42, size * 0.28, armor, { rotation: 0.36, stroke: '#ffd54f', strokeWidth: 1 }),
+    part('circle', -size * 0.22, size * 0.28, size * 0.16, '#fff59d', { alpha: 0.75 }),
+    part('circle', size * 0.22, size * 0.28, size * 0.16, '#fff59d', { alpha: 0.75 }),
+  ];
+
+  if (isSlime) {
+    bodyParts.push(part('circle', -size * 0.34, size * 0.18, size * 0.34, '#81c784', { alpha: 0.65, stroke: '#2e7d32', strokeWidth: 1 }));
+    bodyParts.push(part('circle', size * 0.32, size * 0.2, size * 0.3, '#a5d6a7', { alpha: 0.6, stroke: '#2e7d32', strokeWidth: 1 }));
+    bodyParts.push(part('circle', 0, -size * 0.44, size * 0.24, '#e8f5e9', { alpha: 0.75 }));
+  } else if (isQueen) {
+    for (const x of [-0.56, -0.38, 0.38, 0.56]) {
+      bodyParts.push(part('triangle', size * x, size * 0.06, size * 0.32, '#3e2723', { rotation: x < 0 ? -0.75 : 0.75, stroke: '#ffcc80', strokeWidth: 1 }));
+    }
+    bodyParts.push(part('diamond', 0, -size * 0.48, size * 0.34, '#ffab40', { stroke: '#ffe0b2', strokeWidth: 1 }));
+  } else if (isLucifer || isAbyss) {
+    bodyParts.push(part('triangle', -size * 0.58, -size * 0.04, size * 0.58, '#311b92', { alpha: 0.85, rotation: -0.52, stroke: halo, strokeWidth: 1 }));
+    bodyParts.push(part('triangle', size * 0.58, -size * 0.04, size * 0.58, '#311b92', { alpha: 0.85, rotation: 0.52, stroke: halo, strokeWidth: 1 }));
+    bodyParts.push(part('circle', 0, 0, size * 1.78, halo, { alpha: isAbyss ? 0.1 : 0.08, stroke: halo, strokeWidth: 2 }));
+    bodyParts.push(part('diamond', 0, -size * 0.52, size * 0.28, isAbyss ? '#7c4dff' : '#ff1744', { alpha: 0.9 }));
+  } else if (isRobot) {
+    bodyParts.push(part('rect', 0, size * 0.18, size * 0.9, '#263238', { h: size * 0.24, stroke: '#90a4ae', strokeWidth: 1 }));
+    bodyParts.push(part('rect', size * 0.54, -size * 0.14, size * 0.56, '#212121', { h: size * 0.14, stroke: '#80deea', strokeWidth: 1 }));
+    bodyParts.push(part('rect', -size * 0.54, -size * 0.14, size * 0.56, '#212121', { h: size * 0.14, stroke: '#80deea', strokeWidth: 1 }));
+    bodyParts.push(part('circle', 0, -size * 0.48, size * 0.24, '#ff1744', { alpha: 0.82 }));
+  }
+
+  return {
+    bodyParts,
+    bobStyle: isAbyss ? 'floating' : 'walking',
+  };
+}
+
 export function getProceduralVisualParts(unit: UnitConfig): UnitVisualParts {
   const explicit = unit['visualParts'] as UnitVisualParts | undefined;
   let generated: UnitVisualParts;
@@ -211,6 +277,9 @@ export function getProceduralVisualParts(unit: UnitConfig): UnitVisualParts {
       break;
     case 'Enemy':
       generated = enemyParts(unit);
+      break;
+    case 'Boss':
+      generated = bossParts(unit);
       break;
     case 'Soldier':
     default:
