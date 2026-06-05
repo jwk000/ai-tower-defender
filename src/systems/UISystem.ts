@@ -52,6 +52,7 @@ import type {
   ResolvedCardEntity,
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
+import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 
 // Re-export for backward compatibility
 export {
@@ -72,6 +73,14 @@ export type {
   ResolvedCardEntity,
   CardTooltipLine,
 };
+
+// ============================================================
+// Card icon draw data (for direct Canvas 2D drawing)
+// ============================================================
+
+interface CardIconDraw {
+  cx: number; cy: number; w: number; h: number; cardId: string; color: string;
+}
 
 // ============================================================
 // TowerType numeric ID → enum mapping (matches BuildSystem)
@@ -162,6 +171,9 @@ export class UISystem implements System {
 
   /** v5.0: modal backdrop alpha drawn in viewport-space (0 = hidden, 0.6 = visible) */
   private modalBackdropAlpha: number = 0;
+
+  /** Card icon draws — collected during update(), drawn directly in renderUI() */
+  private cardIconDraws: CardIconDraw[] = [];
 
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
@@ -285,6 +297,7 @@ export class UISystem implements System {
     this.infos = [];
     this.overlay = null;
     this.modalBackdropAlpha = 0;
+    this.cardIconDraws = [];
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -564,6 +577,13 @@ export class UISystem implements System {
       ctx.restore();
     }
 
+    // Draw vector card icons (hand zone + draft overlay)
+    for (const icon of this.cardIconDraws) {
+      ctx.save();
+      drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
+      ctx.restore();
+    }
+
     if (this.overlay) {
       const cx = LayoutManager.DESIGN_W / 2;
       const cy = LayoutManager.DESIGN_H / 2;
@@ -726,10 +746,9 @@ export class UISystem implements System {
       });
 
       const glyph = cardTypeGlyph(config.type);
-      this.infos.push({
-        x: cardCenterX, y: artCenterY,
-        text: glyph,
-        color: borderColor, size: 36, align: 'center',
+      this.cardIconDraws.push({
+        cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
+        cardId: card.cardId, color: borderColor,
       });
 
       this.infos.push({
@@ -1424,10 +1443,9 @@ export class UISystem implements System {
 
       // Glyph — hand-card style
       if (config) {
-        const glyph = cardTypeGlyph(config.type as CardType);
-        this.infos.push({
-          x: cx, y: artCenterY,
-          text: glyph, color: borderColor, size: 36, align: 'center',
+        this.cardIconDraws.push({
+          cx, cy: artCenterY, w: artW, h: artH,
+          cardId: opt.id, color: borderColor,
         });
       }
 

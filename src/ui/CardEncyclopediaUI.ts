@@ -99,8 +99,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc', arcane: '#ffa726',
 };
 
-/** 在美术区绘制卡牌专属矢量图标 */
-function drawCardIcon(
+/** 在美术区绘制卡牌专属矢量图标（可跨模块复用） */
+export function drawCardIcon(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
   w: number, h: number,
