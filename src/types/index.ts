@@ -491,6 +491,7 @@ export enum WeatherType {
   Snow = 'snow',
   Fog = 'fog',
   Night = 'night',
+  RedMist = 'red_mist',
   // ---- v3.2 8 关 roguelike 主题天气 (16-level-blueprints §0-§9) ----
   Sandstorm = 'sandstorm',   // 关 2 沙漠虫潮
   Blizzard = 'blizzard',     // 关 3 极地暴雪要塞

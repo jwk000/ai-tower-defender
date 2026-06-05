@@ -42,6 +42,14 @@ export const WEATHER_CONFIGS: Record<WeatherType, WeatherConfig> = {
     screenAlpha: 0.45,
   },
 
+  [WeatherType.RedMist]: {
+    type: WeatherType.RedMist,
+    name: '红雾',
+    modifiers: [],
+    screenTint: 'rgba(120,15,12,0.34)',
+    screenAlpha: 0.34,
+  },
+
   [WeatherType.Sandstorm]: {
     type: WeatherType.Sandstorm,
     name: '沙暴',

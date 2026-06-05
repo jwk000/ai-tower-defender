@@ -9,9 +9,21 @@ interface ArcCall {
   fillStyle: unknown;
 }
 
-function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[] } {
+interface EllipseCall {
+  x: number;
+  y: number;
+  radiusX: number;
+  radiusY: number;
+  fillStyle: unknown;
+}
+
+function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; ellipses: EllipseCall[] } {
   const arcs: ArcCall[] = [];
+  const ellipses: EllipseCall[] = [];
   let currentFillStyle: unknown = '';
+  let translateX = 0;
+  let translateY = 0;
+  const transformStack: Array<{ x: number; y: number }> = [];
   const createGradient = () => {
     const gradient = {
       stops: [] as string[],
@@ -23,20 +35,41 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[] } {
   };
   return {
     arcs,
-    save: () => undefined,
-    restore: () => undefined,
+    ellipses,
+    save: () => {
+      transformStack.push({ x: translateX, y: translateY });
+    },
+    restore: () => {
+      const previous = transformStack.pop();
+      if (!previous) return;
+      translateX = previous.x;
+      translateY = previous.y;
+    },
     beginPath: () => undefined,
     closePath: () => undefined,
     arc: (x: number, y: number, radius: number) => {
-      arcs.push({ x, y, radius, fillStyle: currentFillStyle });
+      arcs.push({ x: x + translateX, y: y + translateY, radius, fillStyle: currentFillStyle });
+    },
+    ellipse: (x: number, y: number, radiusX: number, radiusY: number) => {
+      ellipses.push({
+        x: x + translateX,
+        y: y + translateY,
+        radiusX,
+        radiusY,
+        fillStyle: currentFillStyle,
+      });
     },
     fill: () => undefined,
     stroke: () => undefined,
     fillRect: () => undefined,
     moveTo: () => undefined,
     lineTo: () => undefined,
-    translate: () => undefined,
+    translate: (x: number, y: number) => {
+      translateX += x;
+      translateY += y;
+    },
     rotate: () => undefined,
+    scale: () => undefined,
     createRadialGradient: createGradient,
     createLinearGradient: createGradient,
     set fillStyle(value: string | CanvasGradient | CanvasPattern) {
@@ -45,12 +78,17 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[] } {
     set strokeStyle(_value: string | CanvasGradient | CanvasPattern) {},
     set globalAlpha(_value: number) {},
     set lineWidth(_value: number) {},
-  } as unknown as CanvasRenderingContext2D & { arcs: ArcCall[] };
+  } as unknown as CanvasRenderingContext2D & { arcs: ArcCall[]; ellipses: EllipseCall[] };
 }
 
 function isFogPuff(arc: ArcCall): boolean {
   const stops = (arc.fillStyle as { stops?: string[] }).stops ?? [];
   return stops.some((color) => color.includes('205,213,223') || color.includes('200,210,220'));
+}
+
+function hasGradientStop(shape: ArcCall | EllipseCall, text: string): boolean {
+  const stops = (shape.fillStyle as { stops?: string[] }).stops ?? [];
+  return stops.some((color) => color.includes(text));
 }
 
 describe('ScreenFXSystem 下雪天气特效', () => {
@@ -101,5 +139,63 @@ describe('ScreenFXSystem 夜晚雾效叠加', () => {
 
     const fogPuffs = ctx.arcs.filter(isFogPuff);
     expect(fogPuffs.length).toBe(48);
+  });
+});
+
+describe('ScreenFXSystem 红雾天气特效', () => {
+  it('红雾绘制右上角眼睛夕阳', () => {
+    const fx = new ScreenFXSystem();
+    const ctx = createMockContext();
+
+    fx.render(ctx, 0, WeatherType.RedMist);
+
+    const sunEye = ctx.ellipses.find((ellipse) =>
+      ellipse.radiusX > 100 &&
+      ellipse.radiusY > 60 &&
+      ellipse.x > 1500 &&
+      ellipse.y < 180
+    );
+    const pupil = ctx.ellipses.find((ellipse) =>
+      ellipse.radiusX >= 20 &&
+      ellipse.radiusX <= 35 &&
+      ellipse.radiusY >= 50 &&
+      ellipse.radiusY <= 65 &&
+      ellipse.x > 1500 &&
+      ellipse.y < 180
+    );
+
+    expect(sunEye).toBeDefined();
+    expect(pupil).toBeDefined();
+  });
+
+  it('红雾绘制快速移动的暗红云/火山灰', () => {
+    const fx = new ScreenFXSystem();
+    const first = createMockContext();
+    const second = createMockContext();
+
+    fx.render(first, 0, WeatherType.RedMist);
+    fx.render(second, 1, WeatherType.RedMist);
+
+    const firstAshClouds = first.arcs.filter((arc) => hasGradientStop(arc, '92,9,9'));
+    const secondAshClouds = second.arcs.filter((arc) => hasGradientStop(arc, '92,9,9'));
+
+    expect(firstAshClouds.length).toBe(36);
+    expect(secondAshClouds.length).toBe(36);
+    expect(secondAshClouds[0]!.x - firstAshClouds[0]!.x).toBeGreaterThan(120);
+  });
+
+  it('红雾绘制远方火山山顶红色闪光', () => {
+    const fx = new ScreenFXSystem();
+    const ctx = createMockContext();
+
+    fx.render(ctx, 0, WeatherType.RedMist);
+
+    const volcanicFlares = ctx.arcs.filter((arc) =>
+      arc.radius === 44 &&
+      arc.y < 250 &&
+      hasGradientStop(arc, '255,50,26')
+    );
+
+    expect(volcanicFlares.length).toBe(6);
   });
 });

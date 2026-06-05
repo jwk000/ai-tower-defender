@@ -81,12 +81,15 @@ export class ScreenFXSystem {
     this.time += dt;
 
     this.drawSun(ctx, weather);
+    this.drawRedMistSunEye(ctx, weather);
+    this.drawRedMistMountains(ctx, weather);
     this.drawSunRays(ctx, weather);
     this.drawWindLines(ctx, weather);
     this.drawFogParticles(ctx, weather, options?.fogOverlay);
     this.drawRainDrops(ctx, weather);
     this.drawSnowflakes(ctx, weather);
     this.drawDarkClouds(ctx, weather);
+    this.drawRedMistAshClouds(ctx, weather);
     this.drawStars(ctx, weather);
     this.drawMoon(ctx, weather);
     this.drawVignette(ctx, weather);
@@ -346,6 +349,159 @@ export class ScreenFXSystem {
       ctx.beginPath();
       ctx.arc(wrapX, wrapY, radius, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 红雾：眼睛夕阳、火山灰云、远山闪光
+  // ============================================================
+
+  private drawRedMistSunEye(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.RedMist) return;
+
+    const x = LayoutManager.DESIGN_W * 0.82;
+    const y = 105;
+    const pulse = Math.sin(this.time * 0.9) * 0.06 + 0.94;
+
+    ctx.save();
+
+    const outer = ctx.createRadialGradient(x, y, 40, x, y, 230);
+    outer.addColorStop(0, `rgba(255,72,34,${0.34 * pulse})`);
+    outer.addColorStop(0.48, `rgba(170,20,18,${0.18 * pulse})`);
+    outer.addColorStop(1, 'rgba(80,0,0,0)');
+    ctx.fillStyle = outer;
+    ctx.beginPath();
+    ctx.arc(x, y, 230, 0, Math.PI * 2);
+    ctx.fill();
+
+    const body = ctx.createRadialGradient(x - 18, y - 16, 4, x, y, 82);
+    body.addColorStop(0, '#ffb05a');
+    body.addColorStop(0.35, '#ff3f24');
+    body.addColorStop(0.78, '#8f0908');
+    body.addColorStop(1, '#3a0000');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 112, 72, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.78;
+    ctx.fillStyle = '#1b0000';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 2, 28, 58, -0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#ff2a18';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 116, 74, -0.1, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private drawRedMistAshClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.RedMist) return;
+
+    ctx.save();
+
+    const cloudTop = 300;
+    const count = 36;
+
+    for (let i = 0; i < count; i++) {
+      let s = (((i + 7000) * 2654435761) >>> 0);
+      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const baseY = this.hashToFloat(s = this.nextHash(s)) * cloudTop;
+      const radiusX = 90 + this.hashToFloat(s = this.nextHash(s)) * 170;
+      const radiusY = 24 + this.hashToFloat(s = this.nextHash(s)) * 58;
+      const speed = 145 + this.hashToFloat(s = this.nextHash(s)) * 165;
+      const alpha = 0.11 + this.hashToFloat(s = this.nextHash(s)) * 0.16;
+      const wobble = Math.sin(this.time * (0.7 + i * 0.03) + i) * 14;
+
+      const x = ((baseX + this.time * speed) % (LayoutManager.DESIGN_W + radiusX * 2)) - radiusX;
+      const y = baseY + wobble;
+
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, radiusX);
+      grad.addColorStop(0, `rgba(92,9,9,${alpha})`);
+      grad.addColorStop(0.45, `rgba(70,8,10,${alpha * 0.9})`);
+      grad.addColorStop(0.82, `rgba(34,5,8,${alpha * 0.35})`);
+      grad.addColorStop(1, 'rgba(20,0,0,0)');
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(1, radiusY / radiusX);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, radiusX, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private drawRedMistMountains(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.RedMist) return;
+
+    const baseY = 318;
+    const peaks = [
+      { x: -80, y: baseY },
+      { x: 60, y: 238 },
+      { x: 175, y: 296 },
+      { x: 320, y: 210 },
+      { x: 470, y: 306 },
+      { x: 640, y: 230 },
+      { x: 820, y: 302 },
+      { x: 1010, y: 215 },
+      { x: 1180, y: 306 },
+      { x: 1380, y: 230 },
+      { x: 1530, y: 300 },
+      { x: 1710, y: 218 },
+      { x: 2020, y: baseY },
+    ];
+    const vents = [
+      { x: 320, y: 210 },
+      { x: 640, y: 230 },
+      { x: 1010, y: 215 },
+      { x: 1380, y: 230 },
+      { x: 1710, y: 218 },
+      { x: 60, y: 238 },
+    ];
+
+    ctx.save();
+
+    const silhouette = ctx.createLinearGradient(0, 190, 0, baseY + 110);
+    silhouette.addColorStop(0, '#151010');
+    silhouette.addColorStop(1, '#020000');
+    ctx.fillStyle = silhouette;
+    ctx.beginPath();
+    ctx.moveTo(peaks[0]!.x, peaks[0]!.y);
+    for (const peak of peaks.slice(1)) ctx.lineTo(peak.x, peak.y);
+    ctx.lineTo(LayoutManager.DESIGN_W + 120, baseY + 120);
+    ctx.lineTo(-120, baseY + 120);
+    ctx.closePath();
+    ctx.fill();
+
+    for (let i = 0; i < vents.length; i++) {
+      const vent = vents[i]!;
+      const flare = 0.45 + Math.sin(this.time * 3.8 + i * 1.7) * 0.25;
+      const grad = ctx.createRadialGradient(vent.x, vent.y + 4, 0, vent.x, vent.y + 4, 44);
+      grad.addColorStop(0, `rgba(255,50,26,${flare})`);
+      grad.addColorStop(0.34, `rgba(190,20,12,${flare * 0.55})`);
+      grad.addColorStop(1, 'rgba(80,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(vent.x, vent.y + 4, 44, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = '#ff2f18';
+      ctx.beginPath();
+      ctx.ellipse(vent.x, vent.y + 6, 22, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();

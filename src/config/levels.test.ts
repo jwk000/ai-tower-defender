@@ -38,20 +38,20 @@ describe('关卡 YAML 配置', () => {
     expect(level!.map.lighting?.fogOverlay?.enabled).toBe(true);
   });
 
-  it('第4关 YAML 固定下雪天气', async () => {
+  it('第4关 YAML 固定红雾天气', async () => {
     const level = await loadYamlConfig<LevelWeatherConfig>('./levels/level-04.yaml');
 
     expect(level.id).toBe('level_04');
-    expect(level.weather.pool).toEqual(['Snow']);
-    expect(level.weather.initial).toBe('Snow');
+    expect(level.weather.pool).toEqual(['RedMist']);
+    expect(level.weather.initial).toBe('RedMist');
   });
 
-  it('第4关运行时天气解析为 Snow', () => {
+  it('第4关运行时天气解析为 RedMist', () => {
     const level = loadLevelsFromYaml().find((cfg) => cfg.id === 'level_04');
 
     expect(level).toBeDefined();
-    expect(level!.weatherPool).toEqual([WeatherType.Snow]);
-    expect(level!.weatherFixed).toBe(WeatherType.Snow);
+    expect(level!.weatherPool).toEqual([WeatherType.RedMist]);
+    expect(level!.weatherFixed).toBe(WeatherType.RedMist);
   });
 
   it('所有运行时敌人配置至少有 1 点攻击力', () => {

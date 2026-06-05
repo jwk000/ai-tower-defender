@@ -23,6 +23,8 @@ const WEATHER_MAP: Record<string, WeatherType> = {
   fog: WeatherType.Fog,
   snow: WeatherType.Snow,
   night: WeatherType.Night,
+  redmist: WeatherType.RedMist,
+  red_mist: WeatherType.RedMist,
   sandstorm: WeatherType.Sandstorm,
   blizzard: WeatherType.Blizzard,
   storm: WeatherType.Storm,
