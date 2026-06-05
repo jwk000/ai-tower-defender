@@ -80,6 +80,7 @@ export class ScreenFXSystem {
     this.drawWindLines(ctx, weather);
     this.drawFogParticles(ctx, weather);
     this.drawRainDrops(ctx, weather);
+    this.drawSnowflakes(ctx, weather);
     this.drawDarkClouds(ctx, weather);
     this.drawStars(ctx, weather);
     this.drawMoon(ctx, weather);
@@ -410,6 +411,47 @@ export class ScreenFXSystem {
       ctx.moveTo(x + slantX, rawY);
       ctx.lineTo(x, rawY + len);
       ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 雪花效果
+  // ============================================================
+
+  /**
+   * 固定粒子槽位 + 伪随机初始参数，保证雪花随机分布但帧间连续。
+   * 仅在下雪天气显示。
+   */
+  private drawSnowflakes(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
+    if (weather !== WeatherType.Snow) return;
+
+    ctx.save();
+
+    const count = 40;
+    const fallSpan = LayoutManager.DESIGN_H + 120;
+
+    ctx.fillStyle = '#ffffff';
+
+    for (let i = 0; i < count; i++) {
+      let s = (((i + 4000) * 2654435761) >>> 0);
+      const baseX = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_W;
+      const baseY = this.hashToFloat(s = this.nextHash(s)) * LayoutManager.DESIGN_H;
+      const radius = 4 + this.hashToFloat(s = this.nextHash(s)) * 4;
+      const fallSpeed = 28 + this.hashToFloat(s = this.nextHash(s)) * 42;
+      const driftAmp = 16 + this.hashToFloat(s = this.nextHash(s)) * 36;
+      const driftFreq = 0.6 + this.hashToFloat(s = this.nextHash(s)) * 1.1;
+      const driftPhase = this.hashToFloat(s = this.nextHash(s)) * Math.PI * 2;
+      const alpha = 0.45 + this.hashToFloat(s = this.nextHash(s)) * 0.45;
+
+      const y = ((baseY + this.time * fallSpeed + 60) % fallSpan) - 60;
+      const x = (baseX + Math.sin(this.time * driftFreq + driftPhase) * driftAmp + LayoutManager.DESIGN_W) % LayoutManager.DESIGN_W;
+
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
