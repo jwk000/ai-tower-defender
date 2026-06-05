@@ -17,10 +17,21 @@ interface EllipseCall {
   fillStyle: unknown;
 }
 
-function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; ellipses: EllipseCall[] } {
+interface PathFillCall {
+  points: Array<{ x: number; y: number }>;
+  fillStyle: unknown;
+}
+
+function createMockContext(): CanvasRenderingContext2D & {
+  arcs: ArcCall[];
+  ellipses: EllipseCall[];
+  pathFills: PathFillCall[];
+} {
   const arcs: ArcCall[] = [];
   const ellipses: EllipseCall[] = [];
+  const pathFills: PathFillCall[] = [];
   let currentFillStyle: unknown = '';
+  let currentPath: Array<{ x: number; y: number }> = [];
   let translateX = 0;
   let translateY = 0;
   const transformStack: Array<{ x: number; y: number }> = [];
@@ -36,6 +47,7 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; elli
   return {
     arcs,
     ellipses,
+    pathFills,
     save: () => {
       transformStack.push({ x: translateX, y: translateY });
     },
@@ -45,7 +57,9 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; elli
       translateX = previous.x;
       translateY = previous.y;
     },
-    beginPath: () => undefined,
+    beginPath: () => {
+      currentPath = [];
+    },
     closePath: () => undefined,
     arc: (x: number, y: number, radius: number) => {
       arcs.push({ x: x + translateX, y: y + translateY, radius, fillStyle: currentFillStyle });
@@ -59,11 +73,19 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; elli
         fillStyle: currentFillStyle,
       });
     },
-    fill: () => undefined,
+    fill: () => {
+      if (currentPath.length > 0) {
+        pathFills.push({ points: [...currentPath], fillStyle: currentFillStyle });
+      }
+    },
     stroke: () => undefined,
     fillRect: () => undefined,
-    moveTo: () => undefined,
-    lineTo: () => undefined,
+    moveTo: (x: number, y: number) => {
+      currentPath.push({ x: x + translateX, y: y + translateY });
+    },
+    lineTo: (x: number, y: number) => {
+      currentPath.push({ x: x + translateX, y: y + translateY });
+    },
     translate: (x: number, y: number) => {
       translateX += x;
       translateY += y;
@@ -78,7 +100,11 @@ function createMockContext(): CanvasRenderingContext2D & { arcs: ArcCall[]; elli
     set strokeStyle(_value: string | CanvasGradient | CanvasPattern) {},
     set globalAlpha(_value: number) {},
     set lineWidth(_value: number) {},
-  } as unknown as CanvasRenderingContext2D & { arcs: ArcCall[]; ellipses: EllipseCall[] };
+  } as unknown as CanvasRenderingContext2D & {
+    arcs: ArcCall[];
+    ellipses: EllipseCall[];
+    pathFills: PathFillCall[];
+  };
 }
 
 function isFogPuff(arc: ArcCall): boolean {
@@ -86,7 +112,7 @@ function isFogPuff(arc: ArcCall): boolean {
   return stops.some((color) => color.includes('205,213,223') || color.includes('200,210,220'));
 }
 
-function hasGradientStop(shape: ArcCall | EllipseCall, text: string): boolean {
+function hasGradientStop(shape: ArcCall | EllipseCall | PathFillCall, text: string): boolean {
   const stops = (shape.fillStyle as { stops?: string[] }).stops ?? [];
   return stops.some((color) => color.includes(text));
 }
@@ -184,18 +210,51 @@ describe('ScreenFXSystem 红雾天气特效', () => {
     expect(secondAshClouds[0]!.x - firstAshClouds[0]!.x).toBeGreaterThan(120);
   });
 
-  it('红雾绘制远方火山山顶红色闪光', () => {
+  it('红雾绘制多层淡黑渐变背景远山', () => {
     const fx = new ScreenFXSystem();
     const ctx = createMockContext();
 
     fx.render(ctx, 0, WeatherType.RedMist);
 
-    const volcanicFlares = ctx.arcs.filter((arc) =>
-      arc.radius === 44 &&
-      arc.y < 250 &&
-      hasGradientStop(arc, '255,50,26')
+    const mountainLayers = ctx.pathFills.filter((path) =>
+      hasGradientStop(path, '12,12,13') &&
+      hasGradientStop(path, '0,0,0,0') &&
+      Math.max(...path.points.map((point) => point.y)) <= 506
     );
 
-    expect(volcanicFlares.length).toBe(6);
+    expect(mountainLayers.length).toBe(3);
+    expect(mountainLayers.map((path) => Math.min(...path.points.map((point) => point.y)))).toEqual([
+      250,
+      238,
+      198,
+    ]);
+  });
+
+  it('红雾只有最大山顶有淡红光并冒缓慢黑烟', () => {
+    const fx = new ScreenFXSystem();
+    const first = createMockContext();
+    const second = createMockContext();
+
+    fx.render(first, 0, WeatherType.RedMist);
+    fx.render(second, 1, WeatherType.RedMist);
+
+    const redPeakGlows = first.arcs.filter((arc) =>
+      arc.radius === 62 &&
+      arc.y < 230 &&
+      hasGradientStop(arc, '185,34,22')
+    );
+    const firstSmoke = first.arcs.filter((arc) => hasGradientStop(arc, '8,8,8'));
+    const secondSmoke = second.arcs.filter((arc) => hasGradientStop(arc, '8,8,8'));
+    const maxSmokeStep = Math.max(
+      ...firstSmoke.map((arc, i) =>
+        Math.hypot(secondSmoke[i]!.x - arc.x, secondSmoke[i]!.y - arc.y)
+      )
+    );
+
+    expect(redPeakGlows.length).toBe(1);
+    expect(firstSmoke.length).toBe(12);
+    expect(secondSmoke.length).toBe(12);
+    expect(maxSmokeStep).toBeGreaterThan(1);
+    expect(maxSmokeStep).toBeLessThan(8);
   });
 });
