@@ -9,7 +9,7 @@
 import { TowerWorld, type System } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
-import { ObstacleType, LevelTheme, type MapConfig, type WeatherType } from '../types/index.js';
+import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/index.js';
 import { computeSceneLayout } from './RenderSystem.js';
 
 /**
@@ -35,14 +35,24 @@ interface SwayParams {
   windMultiplier: number;
 }
 
+/** 云粒子 */
+interface CloudParticle {
+  ox: number;    // 相对云中心偏移
+  oy: number;
+  r: number;     // 半径 2-7px
+  alpha: number;
+  driftX: number;
+  driftY: number;
+  wobbleFreq: number;
+  wobblePhase: number;
+}
+
 /** 云朵状态 */
 interface CloudState {
   x: number;
   y: number;
-  /** 组成云朵的椭圆列表 */
-  ellipses: { rx: number; ry: number; offsetX: number; offsetY: number }[];
+  particles: CloudParticle[];
   speed: number;
-  alpha: number;
 }
 
 /** 飞鸟状态 */
@@ -77,6 +87,9 @@ export class DecorationSystem implements System {
   /** 云朵列表（首次更新时初始化） */
   private clouds: CloudState[] = [];
   private cloudsInitialized = false;
+
+  /** 预渲染云粒子纹理（径向渐变圆，软边） */
+  private cloudParticleTex: HTMLCanvasElement | null = null;
 
   /** 飞鸟列表（首次更新时初始化） */
   private birds: BirdState[] = [];
@@ -213,6 +226,175 @@ export class DecorationSystem implements System {
       { shape: 'circle', offsetX: 4, offsetY: 2, size: 6, color: '#757575', alpha: 0.6 },
       { shape: 'circle', offsetX: -1, offsetY: 3, size: 4, color: '#424242', alpha: 0.6 },
     ],
+
+    // ---- 沙漠虫潮 (Level 2) ----
+    [ObstacleType.SandDune]: [
+      { shape: 'circle', offsetX: -3, offsetY: 2, size: 9, color: '#d4b48a' },
+      { shape: 'circle', offsetX: 4, offsetY: 3, size: 7, color: '#c9a374', alpha: 0.85 },
+    ],
+    [ObstacleType.TunnelEntrance]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 12, color: '#3e2723' },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 8, color: '#1b0d05', alpha: 0.95 },
+    ],
+    [ObstacleType.TunnelExit]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 12, color: '#4e342e' },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 8, color: '#2b1812', alpha: 0.9 },
+    ],
+
+    // ---- 极地暴雪 (Level 3) ----
+    [ObstacleType.IcePillar]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 7, h: 22, color: '#b3e5fc' },
+      { shape: 'rect', offsetX: 0, offsetY: -10, size: 9, h: 4, color: '#e1f5fe' },
+      { shape: 'rect', offsetX: 0, offsetY: 10, size: 9, h: 4, color: '#81d4fa' },
+    ],
+    [ObstacleType.SnowPile]: [
+      { shape: 'circle', offsetX: -2, offsetY: 2, size: 8, color: '#ffffff' },
+      { shape: 'circle', offsetX: 3, offsetY: 3, size: 6, color: '#eceff1', alpha: 0.9 },
+    ],
+    [ObstacleType.IceTile]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 22, h: 22, color: '#b3e5fc', alpha: 0.55 },
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 16, color: '#e1f5fe', alpha: 0.4 },
+    ],
+
+    // ---- 失落神庙 (Level 4) ----
+    [ObstacleType.TemplePillar]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 12, h: 24, color: '#a1887f' },
+      { shape: 'rect', offsetX: 0, offsetY: -12, size: 14, h: 4, color: '#bcaaa4' },
+      { shape: 'rect', offsetX: 0, offsetY: 12, size: 14, h: 4, color: '#8d6e63' },
+    ],
+    [ObstacleType.AncientStatue]: [
+      { shape: 'rect', offsetX: 0, offsetY: 4, size: 10, h: 12, color: '#9e9e9e' },
+      { shape: 'circle', offsetX: 0, offsetY: -6, size: 6, color: '#bdbdbd' },
+    ],
+    [ObstacleType.VineOvergrowth]: [
+      { shape: 'circle', offsetX: -3, offsetY: 0, size: 6, color: '#33691e', alpha: 0.8 },
+      { shape: 'circle', offsetX: 3, offsetY: -2, size: 5, color: '#558b2f', alpha: 0.8 },
+      { shape: 'circle', offsetX: 0, offsetY: 3, size: 7, color: '#2e7d32', alpha: 0.7 },
+    ],
+
+    // ---- 沉没港口 (Level 5) ----
+    [ObstacleType.ShipWreck]: [
+      { shape: 'rect', offsetX: 0, offsetY: 4, size: 18, h: 6, color: '#5d4037' },
+      { shape: 'rect', offsetX: -6, offsetY: -2, size: 3, h: 10, color: '#4e342e' },
+      { shape: 'triangle', offsetX: -6, offsetY: -7, size: 5, color: '#3e2723' },
+    ],
+    [ObstacleType.DockCrate]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 12, h: 12, color: '#8d6e63' },
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 10, h: 2, color: '#6d4c41' },
+    ],
+    [ObstacleType.Buoy]: [
+      { shape: 'circle', offsetX: 0, offsetY: 2, size: 7, color: '#d32f2f' },
+      { shape: 'rect', offsetX: 0, offsetY: -5, size: 2, h: 6, color: '#212121' },
+    ],
+    [ObstacleType.TideShoal]: [
+      { shape: 'circle', offsetX: -3, offsetY: 0, size: 8, color: '#4fc3f7', alpha: 0.45 },
+      { shape: 'circle', offsetX: 4, offsetY: 1, size: 7, color: '#29b6f6', alpha: 0.45 },
+    ],
+
+    // ---- 齿轮工厂 (Level 6) ----
+    [ObstacleType.ConveyorBelt]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 24, h: 8, color: '#424242' },
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 22, h: 3, color: '#616161' },
+    ],
+    [ObstacleType.GearDecoration]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 11, color: '#9e9e9e' },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 5, color: '#616161' },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 2, color: '#212121' },
+    ],
+    [ObstacleType.SteamPipe]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 6, h: 22, color: '#78909c' },
+      { shape: 'circle', offsetX: 0, offsetY: -11, size: 5, color: '#cfd8dc', alpha: 0.7 },
+    ],
+    [ObstacleType.CoalPile]: [
+      { shape: 'circle', offsetX: -3, offsetY: 1, size: 6, color: '#212121' },
+      { shape: 'circle', offsetX: 3, offsetY: 2, size: 5, color: '#424242' },
+      { shape: 'circle', offsetX: 0, offsetY: -1, size: 4, color: '#1a1a1a' },
+    ],
+
+    // ---- 孢子菌林 (Level 7) ----
+    [ObstacleType.MushroomCluster]: [
+      { shape: 'rect', offsetX: 0, offsetY: 4, size: 4, h: 8, color: '#fff3e0' },
+      { shape: 'circle', offsetX: 0, offsetY: -2, size: 9, color: '#ad1457' },
+      { shape: 'circle', offsetX: -3, offsetY: -1, size: 2, color: '#fce4ec', alpha: 0.8 },
+      { shape: 'circle', offsetX: 3, offsetY: -3, size: 2, color: '#fce4ec', alpha: 0.8 },
+    ],
+    [ObstacleType.SporePod]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 8, color: '#7b1fa2' },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 4, color: '#ce93d8', alpha: 0.7 },
+    ],
+    [ObstacleType.MoldSpawner]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 10, color: '#4a148c' },
+      { shape: 'circle', offsetX: -2, offsetY: -2, size: 4, color: '#7b1fa2', alpha: 0.8 },
+      { shape: 'circle', offsetX: 2, offsetY: 2, size: 4, color: '#9c27b0', alpha: 0.7 },
+    ],
+    [ObstacleType.HyphalRoot]: [
+      { shape: 'rect', offsetX: -4, offsetY: 0, size: 2, h: 10, color: '#6a1b9a', alpha: 0.8 },
+      { shape: 'rect', offsetX: 4, offsetY: 0, size: 2, h: 10, color: '#6a1b9a', alpha: 0.8 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 3, color: '#8e24aa', alpha: 0.9 },
+    ],
+
+    // ---- 异界终战 (Level 8) ----
+    [ObstacleType.AlienPillar]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 10, h: 26, color: '#4a148c' },
+      { shape: 'diamond', offsetX: 0, offsetY: -10, size: 7, color: '#e1bee7' },
+      { shape: 'diamond', offsetX: 0, offsetY: 10, size: 7, color: '#7b1fa2' },
+    ],
+    [ObstacleType.CorruptedObelisk]: [
+      { shape: 'triangle', offsetX: 0, offsetY: 0, size: 16, color: '#1a0033' },
+      { shape: 'triangle', offsetX: 0, offsetY: 0, size: 10, color: '#311b92', alpha: 0.8 },
+      { shape: 'diamond', offsetX: 0, offsetY: -3, size: 3, color: '#b388ff', alpha: 0.9 },
+    ],
+    [ObstacleType.VoidRift]: [
+      { shape: 'diamond', offsetX: 0, offsetY: 0, size: 14, color: '#000000' },
+      { shape: 'diamond', offsetX: 0, offsetY: 0, size: 8, color: '#311b92', alpha: 0.8 },
+      { shape: 'diamond', offsetX: 0, offsetY: 0, size: 3, color: '#b388ff', alpha: 0.9 },
+    ],
+    [ObstacleType.RealityWarp]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 13, color: '#4527a0', alpha: 0.5 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 8, color: '#7c4dff', alpha: 0.5 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 3, color: '#ffffff', alpha: 0.9 },
+    ],
+
+    // ---- v4.0 通用装饰物（跨主题） ----
+    // 古堡 – 枯树
+    [ObstacleType.DeadTree]: [
+      { shape: 'rect', offsetX: 0, offsetY: 3, size: 4, h: 10, color: '#37474f' },   // 枯干
+      { shape: 'triangle', offsetX: -3, offsetY: -2, size: 6, color: '#455a64' },     // 左枯枝
+      { shape: 'triangle', offsetX: 3, offsetY: -3, size: 5, color: '#37474f' },      // 右枯枝
+      { shape: 'triangle', offsetX: 0, offsetY: -5, size: 4, color: '#546e7a', alpha: 0.6 },
+    ],
+    // 古堡 – 断壁
+    [ObstacleType.Wall]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 14, color: '#616161' },
+      { shape: 'rect', offsetX: 0, offsetY: -4, size: 14, h: 2, color: '#757575' },
+      { shape: 'rect', offsetX: 0, offsetY: 4, size: 12, h: 4, color: '#424242' },
+    ],
+    // 废土 – 报废汽车
+    [ObstacleType.Car]: [
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 8, color: '#5d4037' },
+      { shape: 'rect', offsetX: 0, offsetY: -3, size: 10, h: 4, color: '#4e342e' },
+      { shape: 'circle', offsetX: -4, offsetY: 5, size: 3, color: '#212121' },
+      { shape: 'circle', offsetX: 4, offsetY: 5, size: 3, color: '#212121' },
+    ],
+    // 深渊 – 漂浮石
+    [ObstacleType.FloatingRock]: [
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 10, color: '#37474f' },
+      { shape: 'circle', offsetX: -2, offsetY: -3, size: 5, color: '#455a64', alpha: 0.7 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 3, color: '#78909c', alpha: 0.5 },
+    ],
+    // 深渊 – 紫色火焰
+    [ObstacleType.PurpleFlame]: [
+      { shape: 'rect', offsetX: 0, offsetY: 5, size: 3, h: 14, color: '#4a148c' },     // 柱子
+      { shape: 'diamond', offsetX: 0, offsetY: -5, size: 8, color: '#aa00ff' },          // 外焰
+      { shape: 'diamond', offsetX: 0, offsetY: -4, size: 4, color: '#e1bee7', alpha: 0.8 }, // 焰心
+    ],
+    // 深渊 – 晶簇
+    [ObstacleType.CrystalObstacle]: [
+      { shape: 'diamond', offsetX: 0, offsetY: 0, size: 10, color: '#7c4dff' },
+      { shape: 'diamond', offsetX: -3, offsetY: 2, size: 5, color: '#b388ff', alpha: 0.7 },
+      { shape: 'diamond', offsetX: 3, offsetY: 1, size: 4, color: '#b388ff', alpha: 0.7 },
+      { shape: 'diamond', offsetX: 0, offsetY: -3, size: 4, color: '#d1c4e9', alpha: 0.6 },
+    ],
   };
 
   /**
@@ -225,6 +407,7 @@ export class DecorationSystem implements System {
     [ObstacleType.Cactus]: { amplitudeX: 0.8, amplitudeY: 0.3, frequency: 0.5, windMultiplier: 2.0 },
     [ObstacleType.SnowTree]: { amplitudeX: 1.2, amplitudeY: 0.4, frequency: 0.5, windMultiplier: 2.0 },
     [ObstacleType.ScorchedTree]: { amplitudeX: 1.0, amplitudeY: 0.3, frequency: 0.4, windMultiplier: 2.0 },
+    [ObstacleType.DeadTree]: { amplitudeX: 1.2, amplitudeY: 0.4, frequency: 0.45, windMultiplier: 2.2 },
   };
 
   /** 与风相关的天气类型 */
@@ -320,17 +503,18 @@ export class DecorationSystem implements System {
     const mapH = this.map.rows * this.ts;
     const theme = this.detectTheme();
 
-    // Full-screen sky gradient — covers entire design area
+    // Full-screen sky gradient — covers entire viewport
     const sky = DecorationSystem.SKY_COLORS[theme] ?? DecorationSystem.SKY_COLORS['plains']!;
-    const grad = ctx.createLinearGradient(0, 0, 0, LayoutManager.DESIGN_H);
+    const grad = ctx.createLinearGradient(0, 0, 0, LayoutManager.viewportH);
     grad.addColorStop(0, sky.top);          // pure sky at top
     grad.addColorStop(0.25, sky.top);        // sky persists through upper quarter
     grad.addColorStop(0.55, sky.bottom);     // transition to ground around map level
     grad.addColorStop(1, '#1a1a2e');        // fade to dark at screen bottom
 
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset to viewport space
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
+    ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
     ctx.restore();
 
     // Distant scenery — rendered via command buffer (drawn behind map tiles)
@@ -357,68 +541,108 @@ export class DecorationSystem implements System {
     return 'plains';
   }
 
-  /** 云朵系统 */
+  /** 纯粒子云：预渲染软边粒子纹理 + 批量贴图，重叠自动融合 */
   private drawClouds(): void {
-    // 首次初始化云朵
+    if (this.getWeather() !== WeatherType.Sunny) return;
+
     if (!this.cloudsInitialized) {
       this.initClouds();
       this.cloudsInitialized = true;
     }
 
-    const mapW = this.map.cols * this.ts;
-    const skyArea = this.oy; // full sky height above map (216px)
+    // 延后初始化纹理（需要 ctx）
+    if (!this.cloudParticleTex) {
+      this.cloudParticleTex = this.createCloudParticleTex();
+    }
+
+    const ctx = this.renderer.context;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    const W = LayoutManager.viewportW;
+    const tex = this.cloudParticleTex;
 
     for (const cloud of this.clouds) {
-      // 更新位置
       cloud.x += cloud.speed * (1 / 60);
+      if (cloud.x > W + 500) { cloud.x = -500; }
 
-      // 循环：超出右边界后从左边界重新进入
-      if (cloud.x > LayoutManager.DESIGN_W + 150) {
-        cloud.x = -150;
-        cloud.y = Math.random() * skyArea * 0.7 + 10;
-      }
+      for (const p of cloud.particles) {
+        const wobble = Math.sin(this.currentTime * p.wobbleFreq + p.wobblePhase) * 4;
+        const px = cloud.x + p.ox + p.driftX * this.currentTime * 3 + wobble;
+        const py = cloud.y + p.oy + p.driftY * this.currentTime * 3;
+        const alpha = p.alpha * (0.85 + Math.sin(this.currentTime * 1.2 + p.wobblePhase) * 0.15);
 
-      // 绘制云朵（多个白色椭圆叠加）
-      for (const ell of cloud.ellipses) {
-        this.renderer.push({
-          shape: 'circle',
-          x: cloud.x + ell.offsetX,
-          y: cloud.y + ell.offsetY,
-          size: Math.max(ell.rx, ell.ry) * 2,
-          color: '#ffffff',
-          alpha: cloud.alpha * (ell.rx < 30 ? 0.35 : 0.25),
-        });
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(tex, px - p.r, py - p.r, p.r * 2, p.r * 2);
       }
     }
+
+    ctx.restore();
+  }
+
+  /** 预渲染一个径向渐变软边圆 → 16×16 纹理 */
+  private createCloudParticleTex(): HTMLCanvasElement {
+    const size = 16;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const tctx = c.getContext('2d')!;
+    const r = size / 2;
+    const grad = tctx.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0,    'rgba(216,221,229,1)');
+    grad.addColorStop(0.3,  'rgba(210,215,224,0.9)');
+    grad.addColorStop(0.6,  'rgba(200,206,216,0.5)');
+    grad.addColorStop(0.85, 'rgba(195,201,212,0.1)');
+    grad.addColorStop(1,    'rgba(195,201,212,0)');
+    tctx.fillStyle = grad;
+    tctx.beginPath();
+    tctx.arc(r, r, r, 0, Math.PI * 2);
+    tctx.fill();
+    return c;
   }
 
   private initClouds(): void {
     const skyArea = this.oy;
-    const count = 3 + Math.floor(Math.random() * 3); // 3-5 朵云
+    const count = 4 + Math.floor(Math.random() * 2); // 4-5 朵云
 
     for (let i = 0; i < count; i++) {
-      const ellipsesCount = 3 + Math.floor(Math.random() * 3); // 3-5 个椭圆
-      const ellipses: CloudState['ellipses'] = [];
-      let totalWidth = 0;
+      const cx = Math.random() * LayoutManager.viewportW;
+      const cy = skyArea * 0.4 + Math.random() * skyArea * 0.55;
+      const particleCount = 1000 + Math.floor(Math.random() * 500); // 1000-1500 粒子
+      const particles: CloudParticle[] = [];
 
-      for (let j = 0; j < ellipsesCount; j++) {
-        const rx = 25 + Math.random() * 45;
-        const ry = 12 + Math.random() * 18;
-        ellipses.push({
-          rx,
-          ry,
-          offsetX: totalWidth + rx * 0.7,
-          offsetY: (Math.random() - 0.5) * 15,
+      // 云的散布范围（水平长，垂直短）
+      const spreadX = 140 + Math.random() * 220;
+      const spreadY = spreadX * (0.12 + Math.random() * 0.18);
+
+      for (let j = 0; j < particleCount; j++) {
+        // 高斯分布采样 → 中心密、边缘疏
+        let ox: number, oy: number;
+        do {
+          ox = (Math.random() * 2 - 1) * spreadX;
+          oy = (Math.random() * 2 - 1) * spreadY;
+        } while (Math.abs(ox / spreadX) + Math.abs(oy / spreadY) > 1.3);
+
+        const dist = Math.sqrt((ox / spreadX) ** 2 + (oy / spreadY) ** 2);
+        const alpha = 0.25 + (1 - dist) * 0.55; // 0.25-0.8
+
+        particles.push({
+          ox,
+          oy,
+          r: 6 + Math.random() * 10,                          // 6-16px 软边粒子（预渲染纹理 16×16）
+          alpha,
+          driftX: (Math.random() - 0.5) * 0.4,                // 极慢独立漂移
+          driftY: (Math.random() - 0.5) * 0.3,
+          wobbleFreq: 0.5 + Math.random() * 1.5,
+          wobblePhase: Math.random() * Math.PI * 2,
         });
-        totalWidth += rx * 1.2;
       }
 
       this.clouds.push({
-        x: Math.random() * LayoutManager.DESIGN_W,
-        y: Math.random() * skyArea * 0.7 + 10,
-        ellipses,
-        speed: 15 + Math.random() * 30, // 15-45 px/s
-        alpha: 0.25 + Math.random() * 0.2, // 0.25-0.45
+        x: cx,
+        y: cy,
+        particles,
+        speed: 4 + Math.random() * 12,                        // 4-16 px/s
       });
     }
   }
@@ -536,8 +760,13 @@ export class DecorationSystem implements System {
 
     const mapW = this.map.cols * this.ts;
     const skyMid = this.oy * 0.8;  // birds fly in upper 80% of sky area
+    const weather = this.getWeather();
 
     for (const bird of this.birds) {
+      // Weather-dependent appearance (don't mutate bird state)
+      const birdColor = weather === WeatherType.Sunny ? '#ffffff' : (weather === WeatherType.Night ? '#111111' : bird.color);
+      const birdSize = weather === WeatherType.Sunny ? bird.size * 1.5 : bird.size;
+
       // 更新位置
       bird.x += bird.speed * (1 / 60);
       bird.phase += bird.flapSpeed * (1 / 60);
@@ -560,30 +789,42 @@ export class DecorationSystem implements System {
         shape: 'circle',
         x: bird.x,
         y: hoverY,
-        size: bird.size * 0.6,
-        color: bird.color,
+        size: birdSize * 0.6,
+        color: birdColor,
         alpha: 0.85,
       });
 
       // 左翅
       this.renderer.push({
         shape: 'triangle',
-        x: bird.x - Math.cos(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        size: bird.size * 0.7,
-        color: bird.color,
+        x: bird.x - Math.cos(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        size: birdSize * 0.7,
+        color: birdColor,
         alpha: 0.7,
       });
 
       // 右翅
       this.renderer.push({
         shape: 'triangle',
-        x: bird.x + Math.cos(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * bird.size * 0.5,
-        size: bird.size * 0.7,
-        color: bird.color,
+        x: bird.x + Math.cos(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        y: hoverY - Math.sin(wingOpen * Math.PI / 180) * birdSize * 0.5,
+        size: birdSize * 0.7,
+        color: birdColor,
         alpha: 0.7,
       });
+
+      // Night: red eye
+      if (weather === WeatherType.Night) {
+        this.renderer.push({
+          shape: 'circle',
+          x: bird.x + birdSize * 0.15,
+          y: hoverY - birdSize * 0.05,
+          size: 2,
+          color: '#ff0000',
+          alpha: 1,
+        });
+      }
     }
   }
 

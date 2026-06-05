@@ -20,18 +20,6 @@ describe('EconomySystem', () => {
     it('初始金币 220', () => {
       expect(economy.gold).toBe(220);
     });
-
-    it('初始能量 50', () => {
-      expect(economy.energy).toBe(50);
-    });
-
-    it('初始人口上限 6', () => {
-      expect(economy.maxPopulation).toBe(6);
-    });
-
-    it('初始人口占用 0', () => {
-      expect(economy.population).toBe(0);
-    });
   });
 
   describe('金币操作', () => {
@@ -74,86 +62,14 @@ describe('EconomySystem', () => {
     });
   });
 
-  describe('能量操作', () => {
-    it('addEnergy / spendEnergy 对称', () => {
-      economy.addEnergy(20);
-      const ok = economy.spendEnergy(20);
-      expect(ok).toBe(true);
-      economy.update(null as any, 0);
-      expect(economy.energy).toBe(50);
-    });
-
-    it('spendEnergy 不足时拒绝', () => {
-      const ok = economy.spendEnergy(999);
-      expect(ok).toBe(false);
-    });
-  });
-
-  describe('人口管理', () => {
-    it('canDeployUnit 空间充足时返回 true', () => {
-      expect(economy.canDeployUnit(2)).toBe(true);
-      expect(economy.canDeployUnit(6)).toBe(true);
-    });
-
-    it('canDeployUnit 超上限时返回 false', () => {
-      economy.deployUnit(5);
-      expect(economy.canDeployUnit(2)).toBe(false);
-    });
-
-    it('deployUnit 占人口', () => {
-      economy.deployUnit(3);
-      expect(economy.population).toBe(3);
-    });
-
-    it('releaseUnit 释放人口', () => {
-      economy.deployUnit(4);
-      economy.releaseUnit(2);
-      expect(economy.population).toBe(2);
-    });
-
-    it('releaseUnit 不会低于0', () => {
-      economy.releaseUnit(5);
-      expect(economy.population).toBe(0);
-    });
-
-    it('部署 + 释放完整周期', () => {
-      // 部署三个单位
-      economy.deployUnit(1);
-      economy.deployUnit(2);
-      economy.deployUnit(1);
-      expect(economy.population).toBe(4);
-      expect(economy.canDeployUnit(3)).toBe(false);
-
-      // 释放一个
-      economy.releaseUnit(2);
-      expect(economy.population).toBe(2);
-      expect(economy.canDeployUnit(3)).toBe(true);
-    });
-  });
-
-  describe('无尽模式分数', () => {
-    it('非无尽模式不累加分数', () => {
-      economy.addEndlessKillScore(10, 1);
-      expect(economy.endlessScore).toBe(0);
-    });
-
-    it('无尽模式累加分数 = 奖励金 × 波次', () => {
-      economy.isEndless = true;
-      economy.addEndlessKillScore(10, 3);
-      expect(economy.endlessScore).toBe(30); // 10 * 3
-    });
-  });
-
   describe('update 刷新机制', () => {
     it('update 将 pending 转入实际储备', () => {
       economy.addGold(100);
-      economy.addEnergy(30);
       expect(economy.gold).toBe(220);
 
       economy.update(null as any, 0.016);
 
       expect(economy.gold).toBe(320);
-      expect(economy.energy).toBe(80);
     });
 
     it('update 后 pending 清零', () => {

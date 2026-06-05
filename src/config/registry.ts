@@ -8,7 +8,7 @@
 // ---- Unit Category & Classifications ----
 
 /** Unit category classification */
-export type UnitCategory = 'Tower' | 'Soldier' | 'Enemy' | 'Building' | 'Trap' | 'Neutral' | 'Objective';
+export type UnitCategory = 'Tower' | 'Soldier' | 'Enemy' | 'Boss' | 'Building' | 'Trap' | 'Neutral' | 'Objective';
 
 /** Faction / team allegiance */
 export type Faction = 'Player' | 'Enemy' | 'Neutral';

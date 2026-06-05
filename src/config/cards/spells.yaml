@@ -1,0 +1,151 @@
+# ============================================================
+# Tower Defender — 法术卡配置 (B3-MVP)
+# ============================================================
+# 设计文档:
+#   - design/25-card-roguelike-refactor.md §2 卡牌系统（spell 即用即弃）
+#   - design/03-unit-data.md §8 卡牌目录
+#   - design/21-mda-numerical-design.md §12.2 卡牌能量消耗表
+#
+# 字段约定见 src/config/cardRegistry.ts: CardConfig
+# spellEffect 字段被 SpellSystem.executeSpell 消费（src/unit-system/SpellSystem.ts）
+
+fireball_card:
+  name: 火球术
+  description: 在指定位置爆出一团火焰，对范围内敌人造成 80 点伤害
+  type: spell
+  rarity: common
+  energyCost: 3
+  spellSubtype: damage
+  placement:
+    targetType: area
+    range: cursor
+  spellEffect:
+    handler: aoe_damage
+    damage: 80
+    radius: 80
+    affectAlly: false
+
+arrow_rain_card:
+  name: 剑雨
+  description: 对3x3区域内的敌人造成25点伤害
+  type: spell
+  rarity: common
+  energyCost: 3
+  spellSubtype: damage
+  placement:
+    targetType: area
+    range: cursor
+  spellEffect:
+    handler: aoe_damage
+    damage: 25
+    radius: 128
+    affectAlly: false
+
+blizzard_card:
+  name: 暴风雪
+  description: 对3x3区域内敌人造成15点伤害并减速5秒
+  type: spell
+  rarity: rare
+  energyCost: 4
+  spellSubtype: control
+  placement:
+    targetType: area
+    range: cursor
+  spellEffect:
+    handler: aoe_damage_slow
+    damage: 15
+    radius: 128
+    slowPercent: 30
+    slowDuration: 5.0
+    affectAlly: false
+
+bomb_card:
+  name: 炸弹
+  description: 放置后2秒爆炸，对范围内敌人造成80点伤害
+  type: spell
+  rarity: rare
+  energyCost: 4
+  spellSubtype: damage
+  placement:
+    targetType: area
+    range: cursor
+  spellEffect:
+    handler: delayed_aoe
+    damage: 80
+    radius: 96
+    delay: 2.0
+    affectAlly: false
+
+emergency_shield_card:
+  name: 紧急防护
+  description: 水晶10秒内无敌
+  type: spell
+  rarity: epic
+  energyCost: 5
+  spellSubtype: buff
+  placement:
+    targetType: self
+  spellEffect:
+    handler: crystal_shield
+    duration: 10.0
+
+arrow_boost_card:
+  name: 箭术精通
+  description: 本关内所有箭塔和弩塔攻击力+20%
+  type: spell
+  rarity: rare
+  energyCost: 4
+  spellSubtype: buff
+  placement:
+    targetType: self
+  spellEffect:
+    handler: global_buff
+    targetType: [arrow_tower, ballista_tower]
+    stat: atk
+    bonus: 0.2
+    duration: -1
+
+shield_boost_card:
+  name: 坚韧守护
+  description: 本关内所有盾卫HP+30%
+  type: spell
+  rarity: rare
+  energyCost: 4
+  spellSubtype: buff
+  placement:
+    targetType: self
+  spellEffect:
+    handler: global_buff
+    targetType: [shield_guard]
+    stat: hp
+    bonus: 0.3
+    duration: -1
+
+gold_rush_card:
+  name: 淘金热
+  description: 立即获得80金币
+  type: spell
+  rarity: common
+  energyCost: 0
+  spellSubtype: economy
+  placement:
+    targetType: self
+  spellEffect:
+    handler: gain_gold
+    amount: 80
+
+speed_boost_card:
+  name: 疾风步
+  description: 本关内所有士兵移动速度+25%
+  type: spell
+  rarity: rare
+  energyCost: 4
+  spellSubtype: buff
+  placement:
+    targetType: self
+  spellEffect:
+    handler: global_buff
+    targetType: [soldier]
+    stat: speed
+    bonus: 0.25
+    duration: -1

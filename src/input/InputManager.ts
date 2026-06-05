@@ -53,9 +53,7 @@ export class InputManager {
     const pos = this.getCanvasPos(clientX, clientY);
     this.pointerX = pos.x;
     this.pointerY = pos.y;
-    if (this.pointerDown) {
-      this.events.push({ action: InputAction.PointerMove, x: pos.x, y: pos.y });
-    }
+    this.events.push({ action: InputAction.PointerMove, x: pos.x, y: pos.y });
   };
 
   private handleUp = (clientX: number, clientY: number): void => {

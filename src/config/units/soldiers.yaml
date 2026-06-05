@@ -16,22 +16,30 @@ shield_guard:
     atk: 8
     attackSpeed: 0.8
     range: 50
-    speed: 60
+    speed: 30
     armor: 40
     mr: 5
     damageType: physical
-    moveRange: 200
+    moveRange: 100
 
   cost:
     build: 50
     pop: 2
 
   visual:
-    shape: rect
+    shape: circle
     color: "#4dd0e1"
     size: 30
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 5
+      offsetY: -4
+      scleraRadius: 4
+      scleraColor: "#ffffff"
+      pupilRadius: 2
+      pupilColor: "#1a237e"
 
   behavior:
     targetSelection: nearest
@@ -71,22 +79,30 @@ swordsman:
     atk: 15
     attackSpeed: 1.0
     range: 55
-    speed: 80
+    speed: 40
     armor: 10
     mr: 0
     damageType: physical
-    moveRange: 250
+    moveRange: 100
 
   cost:
     build: 50
     pop: 2
 
   visual:
-    shape: rect
+    shape: circle
     color: "#e57373"
     size: 26
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#b71c1c"
 
   behavior:
     targetSelection: nearest
@@ -131,22 +147,30 @@ archer:
     atk: 20
     attackSpeed: 0.7
     range: 250
-    speed: 70
+    speed: 35
     armor: 5
     mr: 0
     damageType: physical
-    moveRange: 200
+    moveRange: 100
 
   cost:
     build: 55
     pop: 2
 
   visual:
-    shape: rect
+    shape: circle
     color: "#66bb6a"
     size: 24
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#1b5e20"
 
   behavior:
     targetSelection: nearest
@@ -186,23 +210,31 @@ priest:
   stats:
     hp: 80
     atk: 0
-    speed: 50
+    speed: 25
     armor: 5
     mr: 20
     healAmount: 8
     healRange: 150
-    moveRange: 180
+    moveRange: 100
 
   cost:
     build: 55
     pop: 2
 
   visual:
-    shape: rect
+    shape: circle
     color: "#eeeeee"
     size: 24
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#455a64"
 
   behavior:
     targetSelection: nearest
@@ -241,21 +273,29 @@ engineer:
     atk: 5
     attackSpeed: 0.6
     range: 40
-    speed: 50
+    speed: 25
     armor: 10
     mr: 5
-    moveRange: 180
+    moveRange: 100
 
   cost:
     build: 60
     pop: 3
 
   visual:
-    shape: rect
+    shape: circle
     color: "#ffa726"
     size: 26
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#e65100"
 
   behavior:
     targetSelection: nearest
@@ -294,22 +334,30 @@ assassin:
     atk: 35
     attackSpeed: 1.5
     range: 40
-    speed: 110
+    speed: 55
     armor: 0
     mr: 0
     damageType: physical
-    moveRange: 300
+    moveRange: 100
 
   cost:
     build: 60
     pop: 3
 
   visual:
-    shape: rect
+    shape: circle
     color: "#ab47bc"
     size: 22
     outline: true
-    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 3
+      offsetY: -2
+      scleraRadius: 2.5
+      scleraColor: "#ffffff"
+      pupilRadius: 1.2
+      pupilColor: "#4a148c"
 
   behavior:
     targetSelection: weakest
@@ -337,3 +385,75 @@ assassin:
       - type: teleport_effect
       - type: play_animation
         animation: slash_cross
+
+---
+
+# 法师 — 远程魔法AOE输出
+mage:
+  id: mage
+  name: 法师
+  category: Soldier
+  faction: Player
+  layer: Ground
+
+  stats:
+    hp: 100
+    atk: 25
+    attackSpeed: 1.0
+    range: 150
+    speed: 15
+    armor: 5
+    mr: 20
+    damageType: magic
+    moveRange: 100
+
+  cost:
+    build: 55
+    pop: 2
+
+  visual:
+    shape: rect
+    color: "#9c27b0"
+    size: 24
+    outline: true
+    symbol: cross
+
+  visualParts:
+    eyes:
+      offsetX: 4
+      offsetY: -3
+      scleraRadius: 3
+      scleraColor: "#ffffff"
+      pupilRadius: 1.5
+      pupilColor: "#4a148c"
+
+  behavior:
+    targetSelection: closest_to_crystal
+    attackMode: aoe_splash
+    movementMode: player_directed
+    special:
+      splashRadius: 40
+      splashPercent: 1.0
+
+  skills:
+    - id: arcane_blast
+      name: 奥术爆破
+      cooldown: 8
+      energyCost: 20
+      range: 200
+      value: 40
+      description: 对目标区域造成40点魔法AOE伤害
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: death_soldier
+    onHit:
+      - type: flash_color
+        color: "#ffffff"
+        duration: 0.1
+    onAttack:
+      - type: spawn_projectile
+        projectile: magic_bolt
+      - type: play_sound
+        sound: SFX_MAGIC_SHOOT

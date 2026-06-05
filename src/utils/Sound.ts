@@ -47,7 +47,15 @@ export type SfxKey =
   | 'weather_change'
   // Enemy attack
   | 'enemy_attack'
-  | 'mage_attack';
+  | 'mage_attack'
+  // v3.0 CardDraft & BuffSelection
+  | 'draft_select'
+  | 'buff_select'
+  // v3.0 Boss abilities
+  | 'boss_split'
+  | 'boss_summon'
+  | 'boss_devour'
+  | 'boss_missile';
 
 /** Vite base URL — adapts to deployment path (/, /repo-name/, etc.) */
 const BASE = import.meta.env.BASE_URL;
@@ -107,6 +115,14 @@ const SFX_PATH: Record<SfxKey, string> = {
   // Enemy attack
   enemy_attack: '/sfx/enemy_attack.ogg',
   mage_attack: '/sfx/mage_attack.ogg',
+  // v3.0 CardDraft & BuffSelection
+  draft_select: '/sfx/draft_select.ogg',
+  buff_select: '/sfx/buff_select.ogg',
+  // v3.0 Boss abilities
+  boss_split: '/sfx/boss_split.ogg',
+  boss_summon: '/sfx/boss_summon.ogg',
+  boss_devour: '/sfx/boss_devour.ogg',
+  boss_missile: '/sfx/boss_missile.ogg',
 };
 
 const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
@@ -153,6 +169,13 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   weather_change: 0,
   enemy_attack: 0,
   mage_attack: 0,
+  // v3.0 — immediate feedback, no throttle
+  draft_select: 0,
+  buff_select: 0,
+  boss_split: 0,
+  boss_summon: 0,
+  boss_devour: 0,
+  boss_missile: 0,
 };
 
 /** Global concurrent sound cap: sliding-window limit to prevent audio chaos when many units fire simultaneously. */

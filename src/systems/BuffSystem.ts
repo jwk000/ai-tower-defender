@@ -184,24 +184,10 @@ export class BuffSystem implements System {
 
   // ---- Private helpers ----
 
-  private checkFreeze(world: TowerWorld, eid: number, buffs: Map<string, BuffData>): void {
-    const frame = getFrame();
-    for (const [buffId, buff] of buffs) {
-      if (buff.stacks >= buff.maxStacks && buff.isPercent && buff.attribute === 'speed') {
-        buffs.delete(buffId);
-        try {
-          world.addComponent(eid, Frozen, { timer: 1.0 });
-          debug('BuffSystem', `[F${frame}] eid=${eid} FROZEN triggered (stacks=${buff.stacks}/${buff.maxStacks})`);
-        } catch (e) {
-          error('BuffSystem', `[F${frame}] checkFreeze: Failed to add Frozen to eid=${eid}`, {
-            error: String(e),
-            entityExists: entityExists(world.world, eid),
-          });
-          throw e;
-        }
-        break;
-      }
-    }
+  private checkFreeze(_world: TowerWorld, _eid: number, _buffs: Map<string, BuffData>): void {
+    // 减速效果已通过 getEffectiveValue 的 -50% 上限钳制，不再触发完全冻结。
+    // 原逻辑：减速叠满 → Frozen 组件 → 敌人完全停止移动，导致体验问题。
+    // 现在：减速效果自然生效，最高减速 50%，敌人始终能缓慢移动。
   }
 
   private syncSlowed(world: TowerWorld, eid: number, buffs: Map<string, BuffData>): void {
@@ -272,6 +258,11 @@ export class BuffSystem implements System {
           absolute += stackValue;
         }
       }
+    }
+
+    // 速度减速上限：所有减速效果合计最多 -50%（最低 50% 原速）
+    if (attribute === 'speed' && percent < -50) {
+      percent = -50;
     }
 
     return { absolute, percent };
@@ -368,6 +359,10 @@ export function getEffectiveValue(eid: number, attribute: string): { absolute: n
       else absolute += stackValue;
     }
   }
+  // 速度减速上限：所有减速效果合计最多 -50%（最低 50% 原速）
+  if (attribute === 'speed' && percent < -50) {
+    percent = -50;
+  }
   return { absolute, percent };
 }
 
@@ -391,7 +386,7 @@ export function clearAllBuffs(): void {
 function effectivePriority(world: TowerWorld, data: BuffData): number {
   const base = data.priority ?? BuffPriority.Buff;
   if (entityExists(world.world, data.sourceId) && hasComponent(world.world, Faction, data.sourceId)) {
-    if (Faction.value[data.sourceId] === FactionVal.Player) {
+    if (Faction.value[data.sourceId] === FactionVal.Justice) {
       return base - PLAYER_BUFF_PRIORITY_BONUS;
     }
   }

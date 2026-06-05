@@ -1,188 +1,273 @@
 # ============================================================
-# Tower Defender — Level 04: 火山 (Volcano)
+# 第4关：末日废土
+# 路径布局：葫芦形（3出生口，中间直线，两边分叉→合并→再分叉→再合并）
+# 出生口：上方(行1,列20) / 中间(行4,列20) / 下方(行7,列20) | 水晶：中左(行4,列0)
+# 上路径：行1左→列16下→行3左→列14下→列12上→行2左→列8下→行4左→水晶
+# 中路径：行4直线从右到左→水晶
+# 下路径：行7左→列16上→行5左→列14上→列12下→行6左→列8上→行4左→水晶
+# 第一葫芦肚(右)：3路在列12-14汇合 → 窄颈(列8-12) → 第二葫芦肚(左)：分叉再汇合于水晶
 # ============================================================
-# Source: src/data/levels/level-04.ts
-# Tile types: empty, path, blocked, spawn, base
-
-id: L4_volcano
-name: 火山
-theme: volcano
-description: 熔岩地形限制了建造空间，敌人拥有火焰抗性
-sceneDescription: 活火山的斜坡上，岩浆河从裂缝中涌出，将黑曜石般的大地切割成支离破碎的岛屿。烧焦的树干像炭化的骨骼指向天空，火山砾石铺满了所有可以立足的地方。火山灰如黑雪般飘落，空气中弥漫着硫磺的气味。敌人在这种极端环境中如鱼得水。
+id: level_04
+name: 末日废土
+theme: wasteland
+description: 废弃城市，红雾笼罩，远方淡黑山影层叠，最大山峰冒着黑烟
 
 map:
-  name: 火山
   cols: 21
   rows: 9
   tileSize: 64
-
   tiles:
-    # row 0
-    - [empty, spawn, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 1
-    - [empty, path, blocked, empty, empty, blocked, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 2
-    - [empty, path, blocked, path, empty, blocked, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 3
-    - [blocked, empty, path, blocked, blocked, empty, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 4
-    - [blocked, empty, path, blocked, blocked, path, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 5
-    - [empty, path, path, path, path, blocked, path, blocked, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 6
-    - [empty, path, blocked, empty, path, path, path, blocked, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 7
-    - [empty, path, path, blocked, path, path, blocked, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # row 8
-    - [blocked, empty, blocked, empty, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, base]
-
-  enemyPath:
-    - {row: 0, col: 1}
-    - {row: 2, col: 1}
-    - {row: 2, col: 3}
-    - {row: 5, col: 3}
-    - {row: 5, col: 1}
-    - {row: 7, col: 1}
-    - {row: 7, col: 4}
-    - {row: 5, col: 4}
-    - {row: 5, col: 6}
-    - {row: 3, col: 6}
-    - {row: 3, col: 8}
-    - {row: 6, col: 8}
-    - {row: 6, col: 5}
-    - {row: 8, col: 5}
-    - {row: 8, col: 20}
-
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, path, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, path, path, path, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, path, path, path, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, path, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
     empty: '#4e342e'
-    path: '#8d6e63'
-    blocked: '#d32f2f'
-    spawn: '#ff5722'
-    base: '#1e88e5'
+    path: '#5d4037'
+    blocked: '#1a0000'
+    spawn: '#cc4518'
+    base: '#546e7a'
+  obstacles:
+    - { type: rubble, row: 0, col: 8 }
+    - { type: rubble, row: 1, col: 2 }
+    - { type: rubble, row: 3, col: 17 }
+    - { type: rubble, row: 7, col: 3 }
+    - { type: rubble, row: 8, col: 12 }
+    - { type: rubble, row: 8, col: 19 }
+    - { type: pillar, row: 0, col: 15 }
+    - { type: pillar, row: 1, col: 18 }
+    - { type: pillar, row: 5, col: 2 }
+    - { type: pillar, row: 6, col: 5 }
+    - { type: pillar, row: 7, col: 15 }
+    - { type: car, row: 1, col: 8 }
+    - { type: car, row: 2, col: 3 }
+    - { type: car, row: 5, col: 13 }
+    - { type: car, row: 8, col: 6 }
+    - { type: scorched_tree, row: 0, col: 4 }
+    - { type: scorched_tree, row: 3, col: 13 }
+    - { type: scorched_tree, row: 7, col: 9 }
+    - { type: scorched_tree, row: 8, col: 17 }
+    - { type: volcanic_rock, row: 2, col: 6 }
+    - { type: volcanic_rock, row: 3, col: 3 }
+    - { type: volcanic_rock, row: 6, col: 7 }
+  spawns:
+    - id: spawn_0
+      row: 1
+      col: 20
+    - id: spawn_1
+      row: 4
+      col: 20
+    - id: spawn_2
+      row: 7
+      col: 20
+  pathGraph:
+    nodes:
+      # 上方路径(spawn_0): 分叉→汇合→再分叉→汇合水晶
+      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 1, col: 16, role: waypoint }
+      - { id: n2, row: 3, col: 16, role: waypoint }
+      - { id: n3, row: 3, col: 14, role: waypoint }
+      - { id: n4, row: 4, col: 14, role: waypoint }
+      - { id: n5, row: 4, col: 12, role: waypoint }
+      - { id: n6, row: 2, col: 12, role: waypoint }
+      - { id: n7, row: 2, col: 8, role: waypoint }
+      - { id: n8, row: 4, col: 8, role: waypoint }
+      # 中间路径(spawn_1): 直线
+      - { id: n9, row: 4, col: 20, role: spawn, spawnId: spawn_1 }
+      - { id: n10, row: 4, col: 12, role: waypoint }
+      - { id: n11, row: 4, col: 8, role: waypoint }
+      # 下方路径(spawn_2): 分叉→汇合→再分叉→汇合水晶
+      - { id: n12, row: 7, col: 20, role: spawn, spawnId: spawn_2 }
+      - { id: n13, row: 7, col: 16, role: waypoint }
+      - { id: n14, row: 5, col: 16, role: waypoint }
+      - { id: n15, row: 5, col: 14, role: waypoint }
+      - { id: n16, row: 4, col: 14, role: waypoint }
+      - { id: n17, row: 4, col: 12, role: waypoint }
+      - { id: n18, row: 6, col: 12, role: waypoint }
+      - { id: n19, row: 6, col: 8, role: waypoint }
+      - { id: n20, row: 4, col: 8, role: waypoint }
+      # 水晶（三路共用）
+      - { id: n21, row: 4, col: 0, role: crystal_anchor }
+    edges:
+      # 上方路径
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+      - { from: n2, to: n3 }
+      - { from: n3, to: n4 }
+      - { from: n4, to: n5 }
+      - { from: n5, to: n6 }
+      - { from: n6, to: n7 }
+      - { from: n7, to: n8 }
+      - { from: n8, to: n21 }
+      # 中间路径
+      - { from: n9, to: n10 }
+      - { from: n10, to: n11 }
+      - { from: n11, to: n21 }
+      # 下方路径
+      - { from: n12, to: n13 }
+      - { from: n13, to: n14 }
+      - { from: n14, to: n15 }
+      - { from: n15, to: n16 }
+      - { from: n16, to: n17 }
+      - { from: n17, to: n18 }
+      - { from: n18, to: n19 }
+      - { from: n19, to: n20 }
+      - { from: n20, to: n21 }
 
-  sceneDescription: 活火山的斜坡上，岩浆河从裂缝中涌出，将黑曜石般的大地切割成支离破碎的岛屿。烧焦的树干像炭化的骨骼指向天空，火山砾石铺满了所有可以立足的地方。火山灰如黑雪般飘落，空气中弥漫着硫磺的气味。敌人在这种极端环境中如鱼得水。
+weather:
+  pool:
+    - RedMist
+  initial: RedMist
 
-  obstaclePlacements:
-    - {type: lava_vent, row: 0, col: 13}
-    - {type: lava_vent, row: 0, col: 18}
-    - {type: lava_vent, row: 2, col: 14}
-    - {type: lava_vent, row: 6, col: 15}
-    - {type: scorched_tree, row: 1, col: 8}
-    - {type: scorched_tree, row: 3, col: 16}
-    - {type: scorched_tree, row: 4, col: 10}
-    - {type: scorched_tree, row: 7, col: 0}
-    - {type: volcanic_rock, row: 1, col: 16}
-    - {type: volcanic_rock, row: 2, col: 9}
-    - {type: volcanic_rock, row: 4, col: 18}
-    - {type: volcanic_rock, row: 5, col: 14}
-    - {type: volcanic_rock, row: 6, col: 19}
-    - {type: volcanic_rock, row: 7, col: 16}
+crystal:
+  hp: 1200
+
+starting:
+  gold: 350
+  energy: 50
+  maxPopulation: 12
+
+available:
+  towers:
+    - missile
+    - lightning
+    - cannon
+    - ice
+  units:
+    - archer
+    - mage
 
 waves:
+  # 波次1: 三口各出机器狗×2+无人机精英×2
   - waveNumber: 1
-    enemies:
-      - {enemyType: grunt, count: 8, spawnInterval: 1.2}
     spawnDelay: 2
-
+    enemies:
+      - { enemyType: robot_dog, count: 2, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+    reward: 35
+  # 波次2: 上(机器狗×3+飞机精英×2) | 中(机器狗×3+无人机精英×2) | 下(机器狗×3+无人机精英×2)
   - waveNumber: 2
+    spawnDelay: 30
     enemies:
-      - {enemyType: grunt, count: 10, spawnInterval: 1.0}
-    spawnDelay: 2
-
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+    reward: 45
+  # 波次3: 上(机器狗×2+无人机精英×2+油罐精英×1) | 中(机器狗×2+飞机精英×2) | 下(机器狗×2+坦克精英×1)
   - waveNumber: 3
+    spawnDelay: 30
     enemies:
-      - {enemyType: grunt, count: 6, spawnInterval: 1.0}
-      - {enemyType: runner, count: 4, spawnInterval: 0.6}
-    spawnDelay: 2
-
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
+    reward: 55
+  # 波次4: 上(机器狗×2+飞机精英×2+油罐精英×1) | 中(机器狗×2+无人机精英×2+坦克精英×1) | 下(机器狗×2+无人机精英×2+油罐精英×1)
   - waveNumber: 4
+    spawnDelay: 30
     enemies:
-      - {enemyType: heavy, count: 5, spawnInterval: 1.8}
-    spawnDelay: 2
-
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
+    reward: 65
+  # 波次5: 上(机器狗×2+无人机精英×2+油罐精英×1+坦克精英×1) | 中(机器狗×2+飞机精英×2+坦克精英×1) | 下(机器狗×2+无人机精英×2+油罐精英×1)
   - waveNumber: 5
+    spawnDelay: 30
     enemies:
-      - {enemyType: heavy, count: 3, spawnInterval: 2.0}
-      - {enemyType: grunt, count: 4, spawnInterval: 1.0}
-    spawnDelay: 3
-
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
+    reward: 75
+  # 波次6: 上(机器狗×2+无人机精英×2+坦克精英×1+巨型精英×1) | 中(机器狗×2+飞机精英×2+油罐精英×2) | 下(机器狗×2+无人机精英×2+坦克精英×2)
   - waveNumber: 6
+    spawnDelay: 30
     enemies:
-      - {enemyType: runner, count: 8, spawnInterval: 0.5}
-      - {enemyType: mage, count: 3, spawnInterval: 1.5}
-    spawnDelay: 2
-
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+    reward: 85
+  # 波次7: 上(机器狗×3+无人机精英×3+油罐精英×2) | 中(机器狗×3+飞机精英×2+巨型精英×1) | 下(机器狗×3+坦克精英×2+巨型精英×1)
   - waveNumber: 7
+    spawnDelay: 30
     enemies:
-      - {enemyType: heavy, count: 6, spawnInterval: 1.6}
-    spawnDelay: 2
-
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_1 }
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+      - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_2 }
+    reward: 95
+  # 波次8: BOSS波 中口出超级机器人×1+无人机精英×3 | 上口出机器狗×3+坦克精英×2 | 下口出飞机精英×3+油罐精英×2
   - waveNumber: 8
+    spawnDelay: 30
     enemies:
-      - {enemyType: mage, count: 4, spawnInterval: 1.5}
-      - {enemyType: exploder, count: 4, spawnInterval: 1.2}
-    spawnDelay: 2
-
-  - waveNumber: 9
-    enemies:
-      - {enemyType: heavy, count: 5, spawnInterval: 1.8}
-      - {enemyType: runner, count: 4, spawnInterval: 0.6}
-    spawnDelay: 2
-
-  - waveNumber: 10
-    enemies:
-      - {enemyType: boss_commander, count: 1, spawnInterval: 0}
-      - {enemyType: heavy, count: 4, spawnInterval: 1.8}
-    spawnDelay: 3
+      - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: super_robot, count: 1, spawnInterval: 0, spawnId: spawn_1 }
+      - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: plane, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
     isBossWave: true
+    reward: 150
 
-  - waveNumber: 11
-    enemies:
-      - {enemyType: mage, count: 5, spawnInterval: 1.5}
-      - {enemyType: exploder, count: 5, spawnInterval: 1.0}
-    spawnDelay: 2
+cardPool:
+  - card_missile_tower
+  - card_lightning_tower
+  - card_cannon_tower
+  - card_ice_tower
+  - card_archer
+  - card_mage
 
-  - waveNumber: 12
-    enemies:
-      - {enemyType: heavy, count: 4, spawnInterval: 1.8}
-      - {enemyType: mage, count: 4, spawnInterval: 1.5}
-    spawnDelay: 3
+draftPool:
+  - card_missile_tower
+  - card_lightning_tower
+  - card_cannon_tower
+  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_archer
+  - card_mage
+  - card_bomb
+  - card_gold_rush
+  - card_shield_boost
 
-  - waveNumber: 13
-    enemies:
-      - {enemyType: heavy, count: 6, spawnInterval: 1.6}
-      - {enemyType: runner, count: 4, spawnInterval: 0.5}
-    spawnDelay: 2
-
-  - waveNumber: 14
-    enemies:
-      - {enemyType: heavy, count: 5, spawnInterval: 1.8}
-      - {enemyType: mage, count: 4, spawnInterval: 1.5}
-      - {enemyType: exploder, count: 3, spawnInterval: 1.2}
-    spawnDelay: 3
-
-  - waveNumber: 15
-    enemies:
-      - {enemyType: boss_beast, count: 1, spawnInterval: 0}
-      - {enemyType: heavy, count: 3, spawnInterval: 1.8}
-      - {enemyType: runner, count: 4, spawnInterval: 0.5}
-    spawnDelay: 4
-    isBossWave: true
-
-startingGold: 350
-
-availableTowers:
-  - arrow
-  - cannon
-  - lightning
-  - laser
-
-availableUnits: []
-
-unlockStarsRequired: 0
-unlockPrevLevelId: L3_tundra
-
-weatherPool:
-  - sunny
-  - rain
-  - fog
+banPool: []
+neutralPool: []

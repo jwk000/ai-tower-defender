@@ -1,168 +1,172 @@
 # ============================================================
-# Level 02 — 沙漠 (Desert)
-# Source of truth: src/data/levels/level-02.ts
+# 第2关：沙漠虫潮
+# 路径布局：水平S形蛇行
+# 出生口：右侧(行1,列20) | 水晶：左下(行7,列0)
+# 路径：右→左(行1) → 下(列14) → 右(行3) → 下(列6) → 左(行5) → 下(列14) → 左(行7)
+# 每波含精英怪(burrow_beetle/locust/bomb_beetle)
 # ============================================================
-
-id: L2_desert
-name: 沙漠
+id: level_02
+name: 沙漠虫潮
 theme: desert
-description: 蜿蜒的沙漠路径，岩石阻碍了建造空间
-sceneDescription: 古代商路的沙漠遗迹。沙漠掠夺者、沙岩铠甲兵和沙漠术士据守此地。第6波强盗头目现身，第12波沙虫巨兽压阵。岩石限制了防御塔的布置。
+description: 黄色沙漠，虫族入侵
 
 map:
-  name: 沙漠
   cols: 21
   rows: 9
   tileSize: 64
-
-  # 21 columns × 9 rows — TileType string values
   tiles:
-    # Row 0
-    - [empty, empty, spawn, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 1
-    - [empty, empty, path,  empty, blocked, empty, empty, blocked, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 2
-    - [blocked, empty, path, path, path, path, blocked, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 3
-    - [empty, empty, path, path, path, path, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 4
-    - [blocked, empty, path, empty, path, empty, blocked, empty, path, path, path, path, path, path, path, path, path, path, path, path, base]
-    # Row 5
-    - [empty, empty, path, path, blocked, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 6
-    - [path, path, path, blocked, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 7
-    - [blocked, empty, empty, empty, path, blocked, path, blocked, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    # Row 8
-    - [path, path, path, blocked, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-
-  enemyPath:
-    - { row: 0, col: 2 }
-    - { row: 3, col: 2 }
-    - { row: 3, col: 5 }
-    - { row: 6, col: 5 }
-    - { row: 6, col: 1 }
-    - { row: 8, col: 1 }
-    - { row: 8, col: 6 }
-    - { row: 5, col: 6 }
-    - { row: 5, col: 3 }
-    - { row: 2, col: 3 }
-    - { row: 2, col: 8 }
-    - { row: 4, col: 8 }
-    - { row: 4, col: 20 }
-
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#c9a96e'
-    path: '#8b7355'
+    empty: '#bf9e3a'
+    path: '#9e8438'
     blocked: '#795548'
-    spawn: '#e6c44d'
-    base: '#1e88e5'
-
+    spawn: '#b85a10'
+    base: '#4a589e'
   obstacles:
-    - { type: rock,   row: 0, col: 6 }
-    - { type: rock,   row: 0, col: 14 }
-    - { type: rock,   row: 3, col: 15 }
-    - { type: rock,   row: 7, col: 18 }
-    - { type: rock,   row: 6, col: 13 }
-    - { type: cactus, row: 1, col: 10 }
-    - { type: cactus, row: 2, col: 18 }
-    - { type: cactus, row: 5, col: 16 }
-    - { type: cactus, row: 7, col: 3 }
-    - { type: cactus, row: 8, col: 9 }
-    - { type: bones,  row: 1, col: 14 }
-    - { type: bones,  row: 3, col: 10 }
-    - { type: bones,  row: 5, col: 19 }
-    - { type: bones,  row: 7, col: 0 }
-    - { type: bones,  row: 8, col: 16 }
+    - { type: rock, row: 0, col: 3 }
+    - { type: rock, row: 0, col: 5 }
+    - { type: rock, row: 1, col: 12 }
+    - { type: rock, row: 3, col: 16 }
+    - { type: rock, row: 7, col: 18 }
+    - { type: rock, row: 8, col: 18 }
+    - { type: cactus, row: 0, col: 19 }
+    - { type: cactus, row: 1, col: 3 }
+    - { type: cactus, row: 5, col: 17 }
+    - { type: cactus, row: 6, col: 15 }
+    - { type: cactus, row: 7, col: 16 }
+    - { type: cactus, row: 8, col: 8 }
+    - { type: bones, row: 1, col: 8 }
+    - { type: bones, row: 3, col: 5 }
+    - { type: bones, row: 7, col: 15 }
+    - { type: bones, row: 8, col: 2 }
+    - { type: sand_dune, row: 0, col: 12 }
+    - { type: sand_dune, row: 5, col: 4 }
+    - { type: sand_dune, row: 8, col: 13 }
+    - { type: tunnel_entrance, row: 3, col: 1 }
+    - { type: tunnel_exit, row: 7, col: 19 }
+  spawns:
+    - id: spawn_0
+      row: 1
+      col: 20
+  pathGraph:
+    nodes:
+      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 1, col: 14, role: waypoint }
+      - { id: n2, row: 3, col: 14, role: waypoint }
+      - { id: n3, row: 3, col: 6, role: waypoint }
+      - { id: n4, row: 5, col: 6, role: waypoint }
+      - { id: n5, row: 5, col: 14, role: waypoint }
+      - { id: n6, row: 7, col: 14, role: waypoint }
+      - { id: n7, row: 7, col: 0, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+      - { from: n2, to: n3 }
+      - { from: n3, to: n4 }
+      - { from: n4, to: n5 }
+      - { from: n5, to: n6 }
+      - { from: n6, to: n7 }
 
-# ── Starting resources ──
+weather:
+  pool:
+    - Sunny
+  initial: Sunny
+
+crystal:
+  hp: 700
+
 starting:
   gold: 250
+  energy: 50
+  maxPopulation: 8
 
-# ── Available towers & units ──
 available:
-  towers: [arrow, cannon, laser]
-  units: []
+  towers:
+    - arrow
+    - cannon
+    - fire
+    - poison
+  units:
+    - archer
+    - mage
 
-# ── Weather ──
-weather:
-  pool: [sunny, fog, night]
-  initial: sunny
-
-# ── Random pools (from design doc) ──
-banPool: ~
-neutralPool: ~
-
-# ── Waves (12 waves total) ──
 waves:
+  # 波次1: 黑虫×6 + 钻地甲虫(精英)×3
   - waveNumber: 1
-    enemies:
-      - { enemyType: grunt, count: 6, spawnInterval: 1.3 }
     spawnDelay: 2
-
+    enemies:
+      - { enemyType: desert_beetle, count: 6, spawnInterval: 1.5 }
+      - { enemyType: burrow_beetle, count: 3, spawnInterval: 2.0 }
+    reward: 25
+  # 波次2: 黑虫×8 + 钻地甲虫(精英)×3
   - waveNumber: 2
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 8, spawnInterval: 1.1 }
-    spawnDelay: 2
-
+      - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
+      - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
+    reward: 35
+  # 波次3: 黑虫×8 + 钻地甲虫(精英)×3 + 蝗虫(精英)×5
   - waveNumber: 3
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt,  count: 4, spawnInterval: 1.0 }
-      - { enemyType: runner, count: 4, spawnInterval: 0.7 }
-    spawnDelay: 2
-
+      - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
+      - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
+      - { enemyType: locust, count: 5, spawnInterval: 1.5 }
+    reward: 45
+  # 波次4: 黑虫×10 + 蝗虫(精英)×4 + 自爆甲虫(精英)×3
   - waveNumber: 4
+    spawnDelay: 30
     enemies:
-      - { enemyType: runner, count: 8, spawnInterval: 0.5 }
-    spawnDelay: 2
-
+      - { enemyType: desert_beetle, count: 10, spawnInterval: 1.5 }
+      - { enemyType: locust, count: 4, spawnInterval: 1.5 }
+      - { enemyType: bomb_beetle, count: 3, spawnInterval: 1.5 }
+    reward: 55
+  # 波次5: 黑虫×12 + 蝗虫(精英)×6 + 自爆甲虫(精英)×4
   - waveNumber: 5
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 6, spawnInterval: 1.0 }
-      - { enemyType: heavy, count: 2, spawnInterval: 2.0 }
-    spawnDelay: 3
-
+      - { enemyType: desert_beetle, count: 12, spawnInterval: 1.5 }
+      - { enemyType: locust, count: 6, spawnInterval: 1.5 }
+      - { enemyType: bomb_beetle, count: 4, spawnInterval: 1.5 }
+    reward: 65
+  # 波次6: BOSS蜂后(精英)×1 + 黑虫×8 + 自爆甲虫(精英)×3
   - waveNumber: 6
+    spawnDelay: 30
+    enemies:
+      - { enemyType: queen_beetle, count: 1, spawnInterval: 0 }
+      - { enemyType: desert_beetle, count: 8, spawnInterval: 2.0 }
+      - { enemyType: bomb_beetle, count: 3, spawnInterval: 2.0 }
     isBossWave: true
-    enemies:
-      - { enemyType: grunt,          count: 3, spawnInterval: 1.0 }
-      - { enemyType: boss_commander, count: 1, spawnInterval: 0   }
-      - { enemyType: runner,         count: 2, spawnInterval: 0.6 }
-    spawnDelay: 3
+    reward: 100
 
-  - waveNumber: 7
-    enemies:
-      - { enemyType: heavy, count: 5, spawnInterval: 1.8 }
-    spawnDelay: 2
+cardPool:
+  - card_cannon_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_archer
+  - card_mage
+  - card_tar_pit
+  - card_fireball
 
-  - waveNumber: 8
-    enemies:
-      - { enemyType: mage,  count: 3, spawnInterval: 1.5 }
-      - { enemyType: runner, count: 4, spawnInterval: 0.6 }
-    spawnDelay: 2
+draftPool:
+  - card_arrow_tower
+  - card_cannon_tower
+  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_lightning_tower
+  - card_mage
+  - card_priest
+  - card_bomb
+  - card_blizzard
 
-  - waveNumber: 9
-    enemies:
-      - { enemyType: grunt,    count: 5, spawnInterval: 1.0 }
-      - { enemyType: exploder, count: 3, spawnInterval: 1.2 }
-    spawnDelay: 2
-
-  - waveNumber: 10
-    enemies:
-      - { enemyType: heavy, count: 4, spawnInterval: 1.8 }
-      - { enemyType: mage,  count: 3, spawnInterval: 1.5 }
-    spawnDelay: 3
-
-  - waveNumber: 11
-    enemies:
-      - { enemyType: runner,   count: 5, spawnInterval: 0.5 }
-      - { enemyType: exploder, count: 4, spawnInterval: 1.0 }
-    spawnDelay: 2
-
-  - waveNumber: 12
-    isBossWave: true
-    enemies:
-      - { enemyType: boss_beast, count: 1, spawnInterval: 0   }
-      - { enemyType: heavy,      count: 3, spawnInterval: 1.8 }
-      - { enemyType: runner,     count: 3, spawnInterval: 0.5 }
-    spawnDelay: 4
+banPool: []
+neutralPool: []

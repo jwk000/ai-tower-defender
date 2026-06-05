@@ -1,0 +1,82 @@
+import { describe, expect, it, beforeEach } from 'vitest';
+import type { RenderCommand } from '../types/index.js';
+import { TileType } from '../types/index.js';
+import { TowerWorld } from '../core/World.js';
+import {
+  Category,
+  CategoryVal,
+  Health,
+  Position,
+  ShapeVal,
+  Visual,
+} from '../core/components.js';
+import { RenderSystem } from './RenderSystem.js';
+import type { MapConfig } from '../types/index.js';
+
+class RendererStub {
+  commands: RenderCommand[] = [];
+  context = { translate: (): void => {} };
+
+  push(command: RenderCommand): void {
+    this.commands.push(command);
+  }
+
+  measureLabel(label: string, size: number): number {
+    return label.length * size;
+  }
+}
+
+function makeMap(): MapConfig {
+  return {
+    name: 'crystal-render-test',
+    cols: 2,
+    rows: 1,
+    tileSize: 64,
+    tiles: [[TileType.Spawn, TileType.Base]],
+    spawns: [{ id: 'sp', row: 0, col: 0 }],
+    pathGraph: {
+      nodes: [
+        { id: 's', row: 0, col: 0, role: 'spawn', spawnId: 'sp' },
+        { id: 'c', row: 0, col: 1, role: 'crystal_anchor' },
+      ],
+      edges: [{ from: 's', to: 'c' }],
+    },
+  };
+}
+
+describe('RenderSystem — 水晶显示', () => {
+  beforeEach(() => {
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+  });
+
+  it('Objective 水晶实体即使不属于 UnitTag，也必须以非透明命令绘制', () => {
+    const world = new TowerWorld();
+    const eid = world.createEntity();
+    world.addComponent(eid, Position, { x: 96, y: 32 });
+    world.addComponent(eid, Health, { current: 100, max: 100 });
+    world.addComponent(eid, Category, { value: CategoryVal.Objective });
+    world.addComponent(eid, Visual, {
+      shape: ShapeVal.Hexagon,
+      colorR: 66,
+      colorG: 165,
+      colorB: 245,
+      size: 38,
+      alpha: 1,
+    });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0.016);
+
+    expect(renderer.commands).toContainEqual(
+      expect.objectContaining({
+        shape: 'hexagon',
+        x: 96,
+        y: 32,
+        alpha: 1,
+      }),
+    );
+  });
+});

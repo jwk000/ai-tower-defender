@@ -4,12 +4,14 @@
 // HUD, tooltips, buttons, overlays — the largest UI system.
 // Canvas 2D drawing code preserved; data access migrated to
 // bitecs SoA stores and defineQuery.
+//
+// Pure layout/constants functions extracted to ../ui/LayoutConstants.ts
 // ============================================================
 
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, ENEMY_CONFIGS } from '../data/gameData.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS } from '../data/gameData.js';
 import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { FONTS, getFont } from '../config/fonts.js';
@@ -25,10 +27,70 @@ import {
   Category,
   CategoryVal,
   Trap,
-  Movement,
-  Boss,
   PlayerOwned,
+  BatTower,
 } from '../core/components.js';
+import type { CardConfig, CardType } from '../config/cardRegistry.js';
+import type { CardDraftSystem } from './CardDraftSystem.js';
+import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
+import { Sound } from '../utils/Sound.js';
+import {
+  computeCardSlotsLayout,
+  computeHandZoneSlotRects,
+  HAND_ZONE_CARD_WIDTH,
+  HAND_ZONE_CARD_HEIGHT,
+  HAND_ZONE_DEFAULT_SLOT_COUNT,
+  HAND_ZONE_GAP,
+  RARITY_BORDER_COLORS,
+  rarityBorderColor,
+  getHandZoneBounds,
+  hitTestHandCard,
+  cardTypeLabel,
+  cardTypeGlyph,
+  resolveCardToEntityType,
+  CARD_TOOLTIP_WIDTH,
+  CARD_TOOLTIP_HEIGHT,
+  buildCardTooltipLines,
+  computeTooltipAnchor,
+} from '../ui/LayoutConstants.js';
+import type {
+  ResolvedCardEntity,
+  CardTooltipLine,
+} from '../ui/LayoutConstants.js';
+import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
+
+// Re-export for backward compatibility
+export {
+  computeCardSlotsLayout,
+  computeHandZoneSlotRects,
+  HAND_ZONE_CARD_WIDTH,
+  HAND_ZONE_CARD_HEIGHT,
+  HAND_ZONE_DEFAULT_SLOT_COUNT,
+  HAND_ZONE_GAP,
+  RARITY_BORDER_COLORS,
+  rarityBorderColor,
+  getHandZoneBounds,
+  hitTestHandCard,
+  cardTypeLabel,
+  cardTypeGlyph,
+  resolveCardToEntityType,
+  CARD_TOOLTIP_WIDTH,
+  CARD_TOOLTIP_HEIGHT,
+  buildCardTooltipLines,
+  computeTooltipAnchor,
+};
+export type {
+  ResolvedCardEntity,
+  CardTooltipLine,
+};
+
+// ============================================================
+// Card icon draw data (for direct Canvas 2D drawing)
+// ============================================================
+
+interface CardIconDraw {
+  cx: number; cy: number; w: number; h: number; cardId: string; color: string; layer: UILayer;
+}
 
 // ============================================================
 // TowerType numeric ID → enum mapping (matches BuildSystem)
@@ -42,8 +104,8 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Laser,     // 4
   TowerType.Bat,       // 5
   TowerType.Missile,   // 6
-  TowerType.Vine,      // 7
-  TowerType.Command,   // 8
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
 
@@ -59,12 +121,16 @@ interface UIButton {
   iconShape?: { shape: string; color: string };
   onClick: () => void;
   enabled: boolean | (() => boolean);
+  /** v5.0: ghost buttons are invisible click targets (no fill/stroke, only hit area) */
+  ghost?: boolean;
+  layer?: UILayer;
 }
 
 interface UIInfo {
   x: number; y: number;
   text: string; color: string; size: number;
   align?: CanvasTextAlign;
+  layer?: UILayer;
 }
 
 interface UIOverlay {
@@ -76,11 +142,20 @@ interface UIOverlay {
 
 interface DragState {
   active: boolean;
-  entityType: 'tower' | 'unit' | 'production' | 'trap';
+  entityType: 'tower' | 'unit' | 'production' | 'trap' | 'spell';
   towerType?: TowerType;
   unitType?: UnitType;
   productionType?: ProductionType;
+  spellCardId?: string;
 }
+
+const UI_Z = {
+  BOARD_TIPS: 30,
+  NORMAL_UI: 100,
+  FULLSCREEN_UI: 1000,
+} as const;
+
+type UILayer = 'board' | 'normal' | 'fullscreen';
 
 // ============================================================
 // bitecs query — alive enemy count (replaces world.query(CType.Enemy))
@@ -97,6 +172,7 @@ export class UISystem implements System {
   // requiredComponents removed — no entity iteration; queries run inline
 
   static readonly TOP_H = 36;
+  static readonly TOP_HUD_SIDE_MARGIN = 200;
   static readonly BTN_W = 80;
   static readonly BTN_H = 80;
   static readonly BTN_GAP = 8;
@@ -111,6 +187,16 @@ export class UISystem implements System {
   private infos: UIInfo[] = [];
   private overlay: UIOverlay | null = null;
 
+  /** Tower info panel background — drawn in renderUI() to stay above weather tint */
+  private towerPanelBg: { x: number; y: number; w: number; h: number; strokeColor: string } | null = null;
+
+  /** v5.0: modal backdrop alpha drawn in viewport-space (0 = hidden, 0.6 = visible) */
+  private modalBackdropAlpha: number = 0;
+  private hasFullscreenOverlay: boolean = false;
+
+  /** Card icon draws — collected during update(), drawn directly in renderUI() */
+  private cardIconDraws: CardIconDraw[] = [];
+
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
 
@@ -119,6 +205,27 @@ export class UISystem implements System {
 
   /** Cached world reference — set at beginning of each update() call */
   private _world: TowerWorld | null = null;
+
+  // ---- v3.0 roguelike: CardDraft & BuffSelection system references ----
+
+  private cardDraftSystem: CardDraftSystem | null = null;
+  private interLevelBuffSystem: InterLevelBuffSystem | null = null;
+  private onOpenEncyclopedia: (() => void) | null = null;
+
+  /** 当前抽卡会话中骰子是否已被使用 */
+  private draftRerollUsed: boolean = false;
+
+  setCardDraftSystem(sys: CardDraftSystem): void {
+    this.cardDraftSystem = sys;
+  }
+
+  setInterLevelBuffSystem(sys: InterLevelBuffSystem): void {
+    this.interLevelBuffSystem = sys;
+  }
+
+  setEncyclopediaCallback(cb: () => void): void {
+    this.onOpenEncyclopedia = cb;
+  }
 
   selectEnemy(id: number): void {
     this.selectedEntityId = null;
@@ -137,11 +244,8 @@ export class UISystem implements System {
     private getSelectedTower: () => TowerType | null,
     private selectTower: (type: TowerType) => void,
     private startWave: () => void,
-    private getEnergy: () => number,
-    private getPopulation: () => number,
-    private getMaxPopulation: () => number,
     private onUpgradeTower: ((entityId: number) => void) | null = null,
-    private onStartDrag: ((entityType: string, towerType?: TowerType, unitType?: UnitType, productionType?: ProductionType) => void) | null = null,
+    private onStartDrag: ((entityType: string, towerType?: TowerType, unitType?: UnitType, productionType?: ProductionType, trapTypeId?: string) => void) | null = null,
     private getDragState: (() => DragState | null) | null = null,
     private getPointerPosition: (() => { x: number; y: number }) | null = null,
     private getEndlessScore: (() => number) | null = null,
@@ -166,42 +270,11 @@ export class UISystem implements System {
      * | 'combat_damage' | 'combat_attack').
      */
     private getRefundQuote: ((entityId: number) => { amount: number; reason: string } | null) | null = null,
+    private onUpgradeUnit: ((entityId: number) => void) | null = null,
+    private getCrystalHealth: (() => { current: number; max: number } | null) | null = null,
   ) {}
 
   // ---- Selection getter/setter helpers (unchanged) ----
-
-  /**
-   * Resolve refund button display + enable state.
-   * P1-#11: prefer live quote from EconomySystem; fall back to 50% estimate when
-   * the quote callback isn't wired (e.g. legacy callers or unit-test harnesses).
-   *
-   * Reason → UI mapping:
-   *   'ok' / 'misbuild'  → enabled, show amount
-   *   'cooldown'         → disabled, show "建造中" (just built, too soon)
-   *   'combat_damage'    → disabled, show "受击中"
-   *   'combat_attack'    → disabled, show "战斗中"
-   *   null fallback      → enabled, show 50% estimate (legacy)
-   */
-  private resolveRefund(id: number, fallbackCost: number): { label: string; enabled: boolean; color: string } {
-    const quote = this.getRefundQuote?.(id) ?? null;
-    if (quote === null) {
-      const refund = Math.floor(fallbackCost * 0.5);
-      return { label: `回收${refund}G`, enabled: true, color: '#c62828' };
-    }
-    if (quote.reason === 'ok' || quote.reason === 'misbuild') {
-      return { label: `回收${quote.amount}G`, enabled: true, color: '#c62828' };
-    }
-    const reasonText: Record<string, string> = {
-      'cooldown': '建造中',
-      'combat_damage': '受击中',
-      'combat_attack': '战斗中',
-    };
-    return {
-      label: reasonText[quote.reason] ?? '不可回收',
-      enabled: false,
-      color: '#555555',
-    };
-  }
 
   get selectedTowerEntityId(): number | null {
     return this.selectedEntityType === 'tower' ? this.selectedEntityId : null;
@@ -246,12 +319,31 @@ export class UISystem implements System {
     this.buttons = [];
     this.infos = [];
     this.overlay = null;
+    this.modalBackdropAlpha = 0;
+    this.hasFullscreenOverlay = false;
+    this.cardIconDraws = [];
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
       if (this.enemySelectTimer <= 0) {
         this.enemyEntityId = null;
       }
+    }
+
+    // CardDraft / BuffSelection overlays take priority over pause overlay
+    if (this.cardDraftSystem?.isActive()) {
+      this.buildTopHUD(phase);
+      this.renderCardDraftOverlay();
+      return;
+    } else {
+      // 抽卡会话结束时重置骰子状态
+      this.draftRerollUsed = false;
+    }
+
+    if (this.interLevelBuffSystem?.isActive()) {
+      this.buildTopHUD(phase);
+      this.renderBuffSelectionOverlay();
+      return;
     }
 
     if (this.isPaused?.()) {
@@ -263,18 +355,15 @@ export class UISystem implements System {
 
     if (this.selectedEntityId !== null && this.selectedEntityType === 'tower') {
       this.drawRangePreview();
+      this.buildTowerInfoPanel();
+    } else {
+      this.towerPanelBg = null;
     }
 
     this.buildTopHUD(phase);
     this.buildBottomPanel(phase);
+    this.buildCountdownOverlay(phase);
     this.buildOverlay(phase);
-
-    if (this.selectedEntityId !== null) {
-      this.buildEntityTooltip();
-    }
-    if (this.enemyEntityId !== null) {
-      this.buildEnemyTooltip();
-    }
 
     this.buildDragGhost();
   }
@@ -288,16 +377,24 @@ export class UISystem implements System {
     if (id === null || !this._world) return;
 
     const px = Position.x[id];
-    const py = Position.y[id]!;
-    if (px === undefined) return;
+    const py = Position.y[id];
+    if (px === undefined || py === undefined) return;
 
     let diameter = 0;
     let color = '#ffffff';
 
     if (this.selectedEntityType === 'tower') {
-      const atkRange = Attack.range[id];
       const towerTypeVal = Tower.towerType[id];
-      if (atkRange === undefined || towerTypeVal === undefined) return;
+      if (towerTypeVal === undefined) return;
+
+      let atkRange: number | undefined;
+      // Bat towers use BatTower component, others use Attack component
+      if (towerTypeVal === 5 && hasComponent(this._world.world, BatTower, id)) {
+        atkRange = BatTower.batAttackRange[id];
+      } else {
+        atkRange = Attack.range[id];
+      }
+      if (atkRange === undefined) return;
 
       const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal];
       const config = towerTypeEnum ? TOWER_CONFIGS[towerTypeEnum] : undefined;
@@ -317,16 +414,148 @@ export class UISystem implements System {
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.15,
+      alpha: 0.1,
+      z: UI_Z.BOARD_TIPS,
     });
     this.renderer.push({
       shape: 'circle',
       x: px, y: py,
       size: diameter!,
       color,
-      alpha: 0.4,
+      alpha: 0.35,
       stroke: color,
       strokeWidth: 2,
+      z: UI_Z.BOARD_TIPS,
+    });
+  }
+
+  // ============================================================
+  // Tower Info Panel (upgrade / recycle)
+  // ============================================================
+
+  private buildTowerInfoPanel(): void {
+    const id = this.selectedEntityId;
+    if (id === null || !this._world) return;
+
+    const towerTypeVal = Tower.towerType[id];
+    if (towerTypeVal === undefined) return;
+    const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal];
+    if (towerTypeEnum === undefined) return;
+    const config = TOWER_CONFIGS[towerTypeEnum];
+    if (!config) return;
+
+    const level = Tower.level[id] ?? 1;
+    const isBat = towerTypeVal === 5;
+
+    // Stats
+    const atk = isBat ? (BatTower.batDamage[id] ?? 0) : (Attack.damage[id] ?? 0);
+    const range = isBat ? (BatTower.batAttackRange[id] ?? 0) : (Attack.range[id] ?? 0);
+    const atkSpeed = isBat ? (BatTower.batAttackSpeed[id] ?? 0) : (Attack.attackSpeed[id] ?? 0);
+
+    // Upgrade info
+    const maxLevel = config.upgradeCosts.length + 1;
+    const canUpgrade = level < maxLevel;
+    const upgradeCost = canUpgrade ? (config.upgradeCosts[level - 1] ?? 0) : 0;
+    const gold = this.getGold();
+    const canAfford = gold >= upgradeCost;
+
+    // Refund info
+    const refund = this.getRefundQuote?.(id);
+
+    // Panel layout — above the tower
+    const panelW = 200;
+    const panelH = 180;
+    const towerX = Position.x[id] ?? 0;
+    const towerY = Position.y[id] ?? 0;
+
+    // Clamp panel position to stay within screen bounds
+    const panelX = Math.max(panelW / 2 + 10, Math.min(towerX, LayoutManager.DESIGN_W - panelW / 2 - 10));
+    const panelY = Math.max(10, towerY - 100 - panelH);
+
+    // Store panel background for drawing in renderUI() (after weather tint)
+    this.towerPanelBg = {
+      x: panelX,
+      y: panelY,
+      w: panelW,
+      h: panelH,
+      strokeColor: config.color ?? '#ffffff',
+    };
+
+    // Tower name + level
+    const panelLeft = panelX - panelW / 2;
+    this.infos.push({
+      x: panelX,
+      y: panelY + 20,
+      text: `${config.name} Lv.${level}`,
+      color: '#ffffff',
+      size: 16,
+      align: 'center',
+      layer: 'board',
+    });
+
+    // Stats
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 48,
+      text: `攻击: ${Math.round(atk)}`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 68,
+      text: `范围: ${Math.round(range)}`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 88,
+      text: `攻速: ${atkSpeed.toFixed(1)}/s`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+
+    // Upgrade button — green
+    const btnW = 85;
+    const btnH = 32;
+    const btnY = panelY + panelH - 50;
+
+    this.buttons.push({
+      x: panelLeft + 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: canUpgrade ? `升级 ${upgradeCost}G` : '满级',
+      color: canUpgrade && canAfford ? '#4caf50' : '#555555',
+      textColor: '#ffffff',
+      enabled: canUpgrade && canAfford,
+      layer: 'board',
+      onClick: () => {
+        this.onUpgradeTower?.(id);
+      },
+    });
+
+    // Recycle button — red
+    const refundText = refund ? `+${refund.amount}G` : '';
+    this.buttons.push({
+      x: panelLeft + panelW - btnW - 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: `回收 ${refundText}`,
+      color: '#e53935',
+      textColor: '#ffffff',
+      enabled: true,
+      layer: 'board',
+      onClick: () => {
+        this.onRecycleEntity?.(id);
+        this.selectedEntityId = null;
+        this.selectedEntityType = null;
+      },
     });
   }
 
@@ -337,18 +566,27 @@ export class UISystem implements System {
   renderUI(): void {
     const ctx = this.renderer.context;
 
-    for (const btn of this.buttons) {
-      this.drawButton(btn);
+    this.renderUILayer('board');
+    this.renderer.redrawCommands((cmd) => {
+      const z = cmd.z ?? 5;
+      return z >= UI_Z.NORMAL_UI && z < UI_Z.FULLSCREEN_UI;
+    });
+    this.renderUILayer('normal');
+
+    // v5.0: full-viewport modal backdrop — covers actual browser window,
+    // not just the 16:9 design space. Used by countdown, pause, card draft,
+    // buff selection, and victory/defeat overlays.
+    if (this.modalBackdropAlpha > 0) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // switch to viewport space
+      ctx.fillStyle = `rgba(0, 0, 0, ${this.modalBackdropAlpha})`;
+      ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
+      ctx.restore();
     }
 
-    for (const info of this.infos) {
-      ctx.save();
-      ctx.fillStyle = info.color;
-      ctx.font = getFont(info.size, true);
-      ctx.textAlign = info.align ?? 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(info.text, info.x, info.y);
-      ctx.restore();
+    if (this.hasFullscreenOverlay) {
+      this.renderer.redrawCommands((cmd) => (cmd.z ?? 5) >= UI_Z.FULLSCREEN_UI);
+      this.renderUILayer('fullscreen');
     }
 
     if (this.overlay) {
@@ -366,16 +604,76 @@ export class UISystem implements System {
     }
   }
 
+  private renderUILayer(layer: UILayer): void {
+    const ctx = this.renderer.context;
+
+    // Draw tower info panel background (after weather tint, before buttons/text)
+    if (layer === 'board' && this.towerPanelBg) {
+      const p = this.towerPanelBg;
+      ctx.save();
+      // Black background
+      ctx.fillStyle = '#000000';
+      ctx.globalAlpha = 0.92;
+      ctx.fillRect(p.x - p.w / 2, p.y, p.w, p.h);
+      // Border
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = p.strokeColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x - p.w / 2, p.y, p.w, p.h);
+      ctx.restore();
+    }
+
+    for (const btn of this.buttons) {
+      if ((btn.layer ?? 'normal') === layer) {
+        this.drawButton(btn);
+      }
+    }
+
+    for (const info of this.infos) {
+      if ((info.layer ?? 'normal') !== layer) continue;
+      ctx.save();
+      ctx.fillStyle = info.color;
+      ctx.font = getFont(info.size, true);
+      ctx.textAlign = info.align ?? 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(info.text, info.x, info.y);
+      ctx.restore();
+    }
+
+    // Draw vector card icons (hand zone + draft overlay)
+    for (const icon of this.cardIconDraws) {
+      if (icon.layer !== layer) continue;
+      ctx.save();
+      drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
+      ctx.restore();
+    }
+  }
+
   // ---- Button drawing ----
 
   private drawButton(btn: UIButton): void {
     const ctx = this.renderer.context;
     const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+
+    // v5.0: ghost buttons are invisible click targets — skip visual rendering
+    if (btn.ghost) return;
+
     const lines = btn.label.split('\n');
     const lineH = 16;
     const startY = btn.y + btn.h / 2 - ((lines.length - 1) * lineH) / 2;
 
     ctx.save();
+
+    // Button background
+    ctx.fillStyle = enabled ? btn.color : '#555555';
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+    // Button border
+    ctx.strokeStyle = enabled ? '#ffffff44' : '#333333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+    // Button text
     ctx.fillStyle = enabled ? btn.textColor : '#888888';
     ctx.font = FONTS.body;
     ctx.textAlign = 'center';
@@ -383,6 +681,7 @@ export class UISystem implements System {
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i]!, btn.x + btn.w / 2, startY + i * lineH);
     }
+
     ctx.restore();
   }
 
@@ -405,12 +704,253 @@ export class UISystem implements System {
     return LayoutManager.toDesignX(LayoutManager.viewportW / 2);
   }
 
+  // ---- v5.0: text wrapping ----
+
+  /** Split text into lines to fit within `maxWidth` pixels at given `fontSize`.
+   *  Rough estimate: CJK chars ~ fontSize px, ASCII ~ fontSize*0.55 px. */
+  private wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+    const lines: string[] = [];
+    let current = '';
+    let currentW = 0;
+
+    for (const ch of text) {
+      const charW = /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch) ? fontSize : fontSize * 0.55;
+      if (currentW + charW > maxWidth && current.length > 0) {
+        lines.push(current);
+        current = ch;
+        currentW = charW;
+      } else {
+        current += ch;
+        currentW += charW;
+      }
+    }
+    if (current.length > 0) lines.push(current);
+    return lines.length > 0 ? lines : [text];
+  }
+
+  /**
+   * v3.0 roguelike — 手牌区渲染（design/20 §4.5.2）。
+   *   - 锚点 bottom-center offset(0, -130)，size 800×180
+   *   - 单卡 120×168，水平居中排列，卡间距 16px，最多 8 张
+   *   - 边框 2px 稀有度色（design/09 §3.2）
+   *   - 主图区 96×80 放占位符号（type 字母 + 卡名首字）
+   *   - 底部：◇ 能量消耗（蓝色菱形）
+   *   - 右上角：persistAcrossWaves=true 画金色 ✦ 角标（design/14 §3.2 line 72）
+   *   - 能量不足整卡 alpha=0.4 并叠加"能量不足"红字
+   *   - 灰色底板与 4 个空槽始终绘制，保证手牌区域存在感
+   *   - runContext 未装配时仅绘制底板/空槽，主菜单/编辑器流程保持无交互
+   */
+  private renderHandZone(): void {
+    const bounds = getHandZoneBounds();
+    const slotRects = computeHandZoneSlotRects(HAND_ZONE_DEFAULT_SLOT_COUNT);
+    this.renderer.push({
+      shape: 'rect',
+      x: bounds.centerX, y: bounds.centerY,
+      size: bounds.width, h: bounds.height,
+      color: '#2b3038',
+      alpha: 0.72,
+      stroke: '#6d737d', strokeWidth: 2,
+      z: UI_Z.NORMAL_UI - 2,
+    });
+    this.renderer.push({
+      shape: 'rect',
+      x: bounds.centerX, y: bounds.centerY + bounds.height / 2 - 6,
+      size: bounds.width - 24, h: 2,
+      color: '#9aa0a8',
+      alpha: 0.28,
+      z: UI_Z.NORMAL_UI - 1,
+    });
+    for (const slot of slotRects) {
+      this.renderer.push({
+        shape: 'rect',
+        x: slot.centerX, y: slot.centerY,
+        size: slot.width, h: slot.height,
+        color: '#111820',
+        alpha: 0.62,
+        stroke: '#737b85', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI - 1,
+      });
+      this.renderer.push({
+        shape: 'rect',
+        x: slot.centerX, y: slot.centerY - 10,
+        size: slot.width - 18, h: slot.height - 28,
+        color: '#202833',
+        alpha: 0.38,
+        stroke: '#3f4853', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI - 1,
+      });
+    }
+
+    const runContext = this._world?.runContext;
+    if (!runContext) return;
+
+    const cards = runContext.hand.state.hand;
+    if (cards.length === 0) return;
+
+    const slots = computeCardSlotsLayout(cards.length, bounds.width, HAND_ZONE_CARD_WIDTH, HAND_ZONE_GAP);
+
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      if (!card) continue;
+      const slot = slots[i]!;
+      const config = runContext.registry.get(card.cardId);
+      if (!config) continue;
+
+      const cardLeft = bounds.left + slot.x;
+      const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
+      const cardCenterX = cardLeft + HAND_ZONE_CARD_WIDTH / 2;
+      const cardCenterY = cardTop + HAND_ZONE_CARD_HEIGHT / 2;
+
+      const cardAlpha = 1;
+      const borderColor = rarityBorderColor(config.rarity);
+
+      this.renderer.push({
+        shape: 'rect',
+        x: cardCenterX, y: cardCenterY,
+        size: HAND_ZONE_CARD_WIDTH, h: HAND_ZONE_CARD_HEIGHT,
+        color: '#1a2332',
+        alpha: cardAlpha * 0.95,
+        stroke: borderColor, strokeWidth: 2,
+        z: UI_Z.NORMAL_UI,
+      });
+
+      const artW = 96;
+      const artH = 80;
+      const artCenterY = cardTop + 12 + artH / 2;
+      this.renderer.push({
+        shape: 'rect',
+        x: cardCenterX, y: artCenterY,
+        size: artW, h: artH,
+        color: '#0d1b2a',
+        alpha: cardAlpha,
+        stroke: '#37474f', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI + 1,
+      });
+
+      const glyph = cardTypeGlyph(config.type);
+      this.cardIconDraws.push({
+        cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
+        cardId: card.cardId, color: borderColor, layer: 'normal',
+      });
+
+      this.infos.push({
+        x: cardCenterX, y: cardTop + 12 + artH + 14,
+        text: config.name,
+        color: '#ffffff',
+        size: 12, align: 'center',
+      });
+
+      // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
+      if (config.persistAcrossWaves) {
+        this.infos.push({
+          x: cardLeft + HAND_ZONE_CARD_WIDTH - 12, y: cardTop + 14,
+          text: '✦',
+          color: '#ffc107',
+          size: 18, align: 'center',
+        });
+      }
+    }
+  }
+
+
+  /**
+   * v3.0 roguelike — A4-UI A2 悬停详情卡片（design/14 §3.2 line 77）。
+   *   - 鼠标位置由 getPointerPosition callback 提供（每帧最新值）
+   *   - hitTestHandCard 命中槽位 i → 取 runContext.hand[i] → CardConfig
+   *   - buildCardTooltipLines 结构化文本 + computeTooltipAnchor 定位
+   *   - 在所有手牌渲染之后绘制（保证 z-order 在最上）
+   *   - runContext 未装配 / getPointerPosition 未注入 / 未命中手牌 时静默跳过
+   *   - 拖卡 (BuildSystem.dragState != null) 期间不显示，避免与拖拽视觉重叠
+   */
+  private renderHandTooltip(): void {
+    const runContext = this._world?.runContext;
+    if (!runContext) return;
+    if (!this.getPointerPosition) return;
+    if (this.getDragState?.()) return;
+    const cards = runContext.hand.state.hand;
+    if (cards.length === 0) return;
+
+    const pos = this.getPointerPosition();
+    const idx = hitTestHandCard(pos.x, pos.y, cards.length);
+    if (idx < 0) return;
+
+    const card = cards[idx];
+    if (!card) return;
+
+    const config = runContext.registry.get(card.cardId);
+    if (!config) return;
+
+    const REGION_W = 800;
+    const CARD_W = 120;
+    const GAP = 16;
+    const anchor = computeTooltipAnchor(idx, cards.length, REGION_W, CARD_W, GAP);
+    const lines = buildCardTooltipLines(config);
+    const borderColor = rarityBorderColor(config.rarity);
+
+    this.renderer.push({
+      shape: 'rect',
+      x: anchor.x + CARD_TOOLTIP_WIDTH / 2,
+      y: anchor.y + CARD_TOOLTIP_HEIGHT / 2,
+      size: CARD_TOOLTIP_WIDTH, h: CARD_TOOLTIP_HEIGHT,
+      color: '#0d1b2a', alpha: 0.96,
+      stroke: borderColor, strokeWidth: 3,
+      z: UI_Z.NORMAL_UI + 10,
+    });
+
+    let cursorY = anchor.y + 28;
+    for (const line of lines) {
+      switch (line.kind) {
+        case 'name':
+          this.infos.push({
+            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
+            text: line.text, color: borderColor, size: 22, align: 'center',
+          });
+          cursorY += 30;
+          break;
+        case 'meta':
+          this.infos.push({
+            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
+            text: line.text, color: '#90a4ae', size: 13, align: 'center',
+          });
+          cursorY += 24;
+          break;
+        case 'energy':
+          this.infos.push({
+            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
+            text: line.text, color: '#bbdefb', size: 18, align: 'center',
+          });
+          cursorY += 28;
+          break;
+        case 'persist':
+          this.infos.push({
+            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
+            text: line.text, color: '#ffc107', size: 14, align: 'center',
+          });
+          cursorY += 22;
+          break;
+        case 'desc':
+          this.infos.push({
+            x: anchor.x + 16, y: cursorY,
+            text: line.text, color: '#e0e0e0', size: 13,
+          });
+          cursorY += 20 * Math.max(1, Math.ceil(line.text.length / 20));
+          break;
+        case 'flavor':
+          this.infos.push({
+            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
+            text: line.text, color: '#78909c', size: 11, align: 'center',
+          });
+          cursorY += 18;
+          break;
+      }
+    }
+  }
+
+  // renderEnergyBar 已移除 — 能量机制已移除
+
   private buildTopHUD(phase: GamePhase): void {
     const world = this._world;
     const gold = this.getGold();
-    const energy = this.getEnergy();
-    const population = this.getPopulation();
-    const maxPop = this.getMaxPopulation();
     const wave = this.getWave();
     const total = this.getTotalWaves();
 
@@ -428,9 +968,15 @@ export class UISystem implements System {
       alpha: 0.9,
     });
 
+    const crystalHealth = this.getCrystalHealth?.() ?? null;
     this.infos.push({
-      x: 20, y: UISystem.TOP_H / 2,
-      text: `💰${gold} ⚡${energy} 👥${population}/${maxPop}`,
+      x: UISystem.TOP_HUD_SIDE_MARGIN, y: UISystem.TOP_H / 2,
+      text: crystalHealth ? `💎${Math.ceil(crystalHealth.current)}/${Math.ceil(crystalHealth.max)}` : '💎--/--',
+      color: '#4fc3f7', size: 20,
+    });
+    this.infos.push({
+      x: UISystem.TOP_HUD_SIDE_MARGIN + 150, y: UISystem.TOP_H / 2,
+      text: `💰${gold}`,
       color: '#ffd54f', size: 20,
     });
 
@@ -484,23 +1030,26 @@ export class UISystem implements System {
       }
     }
 
+    // v3.0 roguelike: 能量机制已移除
+
     const currentlyPaused = this.isPaused?.() ?? false;
 
     // Viewport-right-anchored button positions (design-space)
     const rightEdgeD = this.viewportRightDesignX();
+    const rightControlsEdgeD = rightEdgeD - UISystem.TOP_HUD_SIDE_MARGIN;
 
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
       const cd = this.getCountdown();
-      this.infos.push({
-        x: rightEdgeD - 270, y: UISystem.TOP_H / 2,
-        text: `⏱${formatNumber(cd)}s`,
-        color: '#ffd54f', size: 20,
-      });
-
-      const skipBtnX = rightEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
+      const skipBtnX = rightControlsEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
       const skipBtnW = 50;
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
+      this.infos.push({
+        x: skipBtnX - 12, y: UISystem.TOP_H / 2,
+        text: `⏱${formatNumber(cd)}s`,
+        color: '#ffd54f', size: 20,
+        align: 'right',
+      });
 
       this.renderer.push({
         shape: 'rect',
@@ -509,6 +1058,7 @@ export class UISystem implements System {
         color: '#2e7d32',
         alpha: 0.9,
         stroke: '#ffffff', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI,
       });
 
       this.buttons.push({
@@ -521,7 +1071,7 @@ export class UISystem implements System {
       });
     }
 
-    const speedBtnX = rightEdgeD - 71;    // 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 71
+    const speedBtnX = rightControlsEdgeD - 71;    // 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 71
     const speedBtnW = 30;
     const speedBtnH = 28;
     const speedBtnY = (UISystem.TOP_H - speedBtnH) / 2;
@@ -536,6 +1086,7 @@ export class UISystem implements System {
       color: speedColor,
       alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.NORMAL_UI,
     });
 
     this.buttons.push({
@@ -547,7 +1098,7 @@ export class UISystem implements System {
       onClick: () => { this.onToggleSpeed?.(); },
     });
 
-    const pauseBtnX = rightEdgeD - 29;    // touches viewport right edge
+    const pauseBtnX = rightControlsEdgeD - 29;
     const pauseBtnW = 29;
     const pauseBtnH = 28;
     const pauseBtnY = (UISystem.TOP_H - pauseBtnH) / 2;
@@ -559,6 +1110,7 @@ export class UISystem implements System {
       color: '#37474f',
       alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.NORMAL_UI,
     });
 
     this.buttons.push({
@@ -586,563 +1138,11 @@ export class UISystem implements System {
   }
 
   private buildBottomPanel(phase: GamePhase): void {
-    const sceneBottom = this.getSceneBottom();
-    const panelY = sceneBottom + 8;
-    const panelH = UISystem.PANEL_H;   // 100
-    const panelCenterX = LayoutManager.DESIGN_W / 2;     // design center
-    const panelW = UISystem.PANEL_W;   // 1344
     const available = phase !== GamePhase.Victory && phase !== GamePhase.Defeat;
+    if (!available) return;
 
-    if (panelY + panelH > LayoutManager.DESIGN_H) return;
-
-    // Panel background — centered, narrower than full width
-    this.renderer.push({
-      shape: 'rect',
-      x: panelCenterX, y: panelY + panelH / 2,
-      size: panelW, h: panelH,
-      color: '#0d1b2a',
-      alpha: 0.9,
-    });
-
-    const btnY = panelY + 10;
-    const bw = UISystem.BTN_W;   // 80
-    const bh = UISystem.BTN_H;   // 80
-    const gap = UISystem.BTN_GAP; // 8
-    const step = bw + gap;       // 88
-    const btnStartX = UISystem.PANEL_BTN_START_X; // 308
-
-    // ---- Tower buttons (7) ----
-    const towerTypes = [TowerType.Arrow, TowerType.Cannon, TowerType.Ice, TowerType.Lightning, TowerType.Laser, TowerType.Bat, TowerType.Missile, TowerType.Vine, TowerType.Ballista];
-    const towerLabelX = btnStartX + towerTypes.length * step / 2 - step / 2;
-    this.infos.push({ x: towerLabelX, y: panelY + 6, text: '防御塔', color: '#aaaaaa', size: 14, align: 'center' });
-
-    const selected = this.getSelectedTower();
-
-    for (let i = 0; i < towerTypes.length; i++) {
-      const type = towerTypes[i]!;
-      const config = TOWER_CONFIGS[type];
-      if (!config) continue;
-
-      const cx = btnStartX + i * step + bw / 2;
-      const canAfford = this.getGold() >= config.cost;
-      const isSel = selected === type;
-
-      this.renderer.push({
-        shape: 'rect',
-        x: cx, y: btnY + bh / 2,
-        size: bw, h: bh,
-        color: isSel ? '#1e88e5' : canAfford ? '#37474f' : '#444444',
-        alpha: 0.9,
-        stroke: '#ffffff', strokeWidth: 1,
-      });
-
-      this.buttons.push({
-        x: cx - bw / 2, y: btnY, w: bw, h: bh,
-        label: `${config.name}\n${config.cost}G`,
-        color: isSel ? '#1e88e5' : '#37474f',
-        textColor: canAfford ? '#ffffff' : '#888888',
-        enabled: available,
-        onClick: () => {
-          this.selectTower(type);
-          if (available && this.onStartDrag) {
-            this.onStartDrag('tower', type);
-          }
-        },
-      });
-    }
-
-    // ---- Divider ----
-    const divX1 = btnStartX + towerTypes.length * step;
-    this.renderer.push({
-      shape: 'rect',
-      x: divX1, y: btnY + bh / 2,
-      size: 2, h: bh + 16,
-      color: '#444444',
-      alpha: 1,
-    });
-
-    // ---- Unit buttons (2) + Trap (1) ----
-    const unitStartX = divX1 + 20;
-    this.infos.push({ x: unitStartX + bw, y: panelY + 6, text: '单位/陷阱', color: '#aaaaaa', size: 14, align: 'center' });
-
-    const unitTypes = [UnitType.ShieldGuard, UnitType.Swordsman];
-
-    for (let i = 0; i < unitTypes.length; i++) {
-      const utype = unitTypes[i]!;
-      const uconfig = UNIT_CONFIGS[utype];
-      if (!uconfig) continue;
-
-      const cx = unitStartX + i * step + bw / 2;
-      const canAffordGold = this.getGold() >= uconfig.cost;
-      const hasPop = this.getPopulation() + uconfig.popCost <= this.getMaxPopulation();
-      const canAfford = canAffordGold && hasPop;
-
-      this.renderer.push({
-        shape: 'rect',
-        x: cx, y: btnY + bh / 2,
-        size: bw, h: bh,
-        color: canAfford ? '#37474f' : '#444444',
-        alpha: 0.9,
-        stroke: '#ffffff', strokeWidth: 1,
-      });
-
-      this.buttons.push({
-        x: cx - bw / 2, y: btnY, w: bw, h: bh,
-        label: `${uconfig.name}\n${uconfig.cost}G`,
-        color: '#37474f',
-        textColor: canAfford ? '#ffffff' : '#888888',
-        enabled: available && canAfford,
-        onClick: () => {
-          if (available && canAfford && this.onStartDrag) {
-            this.onStartDrag('unit', undefined, utype);
-          }
-        },
-      });
-    }
-
-    // Trap button
-    const trapCost = 40;
-    const trapAffordable = this.getGold() >= trapCost;
-    const trapX = unitStartX + 2 * step + bw / 2;
-
-    this.renderer.push({
-      shape: 'rect',
-      x: trapX, y: btnY + bh / 2,
-      size: bw, h: bh,
-      color: trapAffordable ? '#4a0000' : '#444444',
-      alpha: 0.9,
-      stroke: '#e53935', strokeWidth: 1,
-    });
-
-    this.buttons.push({
-      x: trapX - bw / 2, y: btnY, w: bw, h: bh,
-      label: `地刺\n${trapCost}G`,
-      color: '#4a0000',
-      textColor: trapAffordable ? '#ffffff' : '#888888',
-      enabled: available && trapAffordable,
-      onClick: () => {
-        if (available && trapAffordable && this.onStartDrag) {
-          this.onStartDrag('trap');
-        }
-      },
-    });
-
-    // ---- Divider ----
-    const divX2 = unitStartX + 3 * step - gap + 10;
-    this.renderer.push({
-      shape: 'rect',
-      x: divX2, y: btnY + bh / 2,
-      size: 2, h: bh + 16,
-      color: '#444444',
-      alpha: 1,
-    });
-
-    // ---- Production buttons (2) ----
-    const prodStartX = divX2 + 20;
-    this.infos.push({ x: prodStartX + bw, y: panelY + 6, text: '生产', color: '#aaaaaa', size: 14, align: 'center' });
-
-    const prodTypes = [ProductionType.GoldMine, ProductionType.EnergyTower];
-
-    for (let i = 0; i < prodTypes.length; i++) {
-      const ptype = prodTypes[i]!;
-      const pconfig = PRODUCTION_CONFIGS[ptype];
-      if (!pconfig) continue;
-
-      const cx = prodStartX + i * step + bw / 2;
-      const canAfford = this.getGold() >= pconfig.cost;
-
-      this.renderer.push({
-        shape: 'rect',
-        x: cx, y: btnY + bh / 2,
-        size: bw, h: bh,
-        color: canAfford ? '#37474f' : '#444444',
-        alpha: 0.9,
-        stroke: '#ffffff', strokeWidth: 1,
-      });
-
-      this.buttons.push({
-        x: cx - bw / 2, y: btnY, w: bw, h: bh,
-        label: `${pconfig.name}\n${pconfig.cost}G`,
-        color: '#37474f',
-        textColor: canAfford ? '#ffffff' : '#888888',
-        enabled: available && canAfford,
-        onClick: () => {
-          if (available && canAfford && this.onStartDrag) {
-            this.onStartDrag('production', undefined, undefined, ptype);
-          }
-        },
-      });
-    }
-
-    // ---- Divider ----
-    const divX3 = prodStartX + 2 * step - gap + 10;
-    this.renderer.push({
-      shape: 'rect',
-      x: divX3, y: btnY + bh / 2,
-      size: 2, h: bh + 16,
-      color: '#444444',
-      alpha: 1,
-    });
-
-  }
-
-
-  // ============================================================
-  // Entity Tooltip (above selected entity)
-  // ============================================================
-
-  private buildEntityTooltip(): void {
-    const id = this.selectedEntityId;
-    if (id === null) return;
-
-    const px = Position.x[id];
-    const py = Position.y[id];
-    if (px === undefined) return;
-
-    const tw = 230;
-    let th = 110;
-    const tx = px;
-
-    // Use taller panel for units (extra stat line + HP bar)
-    if (this.selectedEntityType === 'unit') th = 130;
-    // Production needs space for rate info
-    if (this.selectedEntityType === 'production') th = 120;
-
-    const ty = py! - (th + 10);
-
-    this.renderer.push({
-      shape: 'rect',
-      x: tx, y: ty,
-      size: tw, h: th,
-      color: '#1a1a2e',
-      alpha: 0.9,
-      stroke: '#555555',
-      strokeWidth: 1,
-    });
-
-    if (this.selectedEntityType === 'tower') {
-      const towerTypeVal = Tower.towerType[id];
-      const atkDamage = Attack.damage[id];
-      const hpCurrent = Health.current[id];
-      const hpMax = Health.max[id];
-
-      if (towerTypeVal !== undefined) {
-        const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal];
-        const config = towerTypeEnum ? TOWER_CONFIGS[towerTypeEnum] : undefined;
-        const towerLevel = Tower.level[id] ?? 1;
-
-        if (config) {
-          this.infos.push({
-            x: tx - tw / 2 + 10, y: ty - th / 2 + 14,
-            text: `${config.name} Lv.${towerLevel}`,
-            color: '#ffffff', size: 18,
-          });
-          this.infos.push({
-            x: tx - tw / 2 + 10, y: ty - th / 2 + 36,
-            text: `HP: ${hpCurrent !== undefined && hpMax !== undefined ? `${Math.ceil(hpCurrent)}/${hpMax}` : `${config.hp}/${config.hp}`}  ATK: ${atkDamage !== undefined ? formatNumber(atkDamage) : config.atk}`,
-            color: '#ffffff', size: 16,
-          });
-
-          // Upgrade button
-          const isMaxLevel = towerLevel >= 5;
-          const costIdx = towerLevel - 1;
-          const upgradeCost = towerLevel <= config.upgradeCosts.length
-            ? config.upgradeCosts[costIdx]
-            : undefined;
-          if (!isMaxLevel && upgradeCost !== undefined) {
-            const canAfford = this.getGold() >= upgradeCost;
-            const ubw = 55;
-            const ubh = 20;
-            const ubx = tx - tw / 2 + 10;
-            const uby = ty - th / 2 + 52;
-            this.renderer.push({
-              shape: 'rect',
-              x: ubx + ubw / 2, y: uby + ubh / 2,
-              size: ubw, h: ubh,
-              color: canAfford ? '#2e7d32' : '#555555',
-              alpha: 0.9,
-              stroke: '#ffffff', strokeWidth: 1,
-            });
-            this.buttons.push({
-              x: ubx, y: uby, w: ubw, h: ubh,
-              label: `${upgradeCost}G`,
-              color: canAfford ? '#2e7d32' : '#555555',
-              textColor: canAfford ? '#ffffff' : '#888888',
-              enabled: canAfford,
-              onClick: () => { if (this.onUpgradeTower) this.onUpgradeTower(id); },
-            });
-          }
-
-          // Recycle button — P1-#11 live quote
-          const totalInvested = Tower.totalInvested[id] ?? config.cost;
-          const refundInfo = this.resolveRefund(id, totalInvested);
-          const rbw = 65;
-          const rbh = 20;
-          const rbx = tx + tw / 2 - rbw - 10;
-          const rby = ty - th / 2 + 52;
-          this.renderer.push({
-            shape: 'rect',
-            x: rbx + rbw / 2, y: rby + rbh / 2,
-            size: rbw, h: rbh,
-            color: refundInfo.color,
-            alpha: 0.9,
-            stroke: '#ffffff', strokeWidth: 1,
-          });
-          this.buttons.push({
-            x: rbx, y: rby, w: rbw, h: rbh,
-            label: refundInfo.label,
-            color: refundInfo.color,
-            textColor: refundInfo.enabled ? '#ffffff' : '#aaaaaa',
-            enabled: refundInfo.enabled,
-            onClick: () => { if (refundInfo.enabled) this.onRecycleEntity?.(id); },
-          });
-
-          // HP bar
-          if (hpCurrent !== undefined && hpMax !== undefined && hpMax > 0) {
-            const ratio = hpCurrent / hpMax;
-            const barX = tx - tw / 2 + 10;
-            const barW = 120;
-            this.renderer.push({ shape: 'rect', x: barX + barW / 2, y: ty + th / 2 - 12, size: barW, h: 6, color: '#222222', alpha: 0.9 });
-            const fillW = Math.max(barW * ratio, 0);
-            if (fillW > 0) {
-              const barColor = ratio > 0.6 ? '#4caf50' : ratio > 0.3 ? '#ffc107' : '#f44336';
-              this.renderer.push({ shape: 'rect', x: barX + fillW / 2, y: ty + th / 2 - 12, size: fillW, h: 6, color: barColor, alpha: 0.95 });
-            }
-          }
-        }
-      }
-    } else if (this.selectedEntityType === 'unit') {
-      const hpCurrent = Health.current[id];
-      const hpMax = Health.max[id];
-      const atkDamage = Attack.damage[id];
-      const atkSpeed = Attack.attackSpeed[id];
-      const atkRange = Attack.range[id];
-      const unitCost = UnitTag.cost[id];
-
-      const unitName = this._world?.getDisplayName(id) || '单位';
-
-      if (unitCost !== undefined || unitName !== '单位') {
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 14,
-          text: unitName,
-          color: '#ffffff', size: 18,
-        });
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 34,
-          text: `HP: ${hpCurrent !== undefined && hpMax !== undefined ? `${Math.ceil(hpCurrent)}/${hpMax}` : '?'}  ATK: ${atkDamage !== undefined ? formatNumber(atkDamage) : '?'}`,
-          color: '#ffffff', size: 16,
-        });
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 52,
-          text: `攻速: ${atkSpeed !== undefined ? formatNumber(atkSpeed) + '/s' : '?'}  范围: ${atkRange !== undefined ? formatNumber(atkRange) + 'px' : '?'}`,
-          color: '#aaaaaa', size: 14,
-        });
-
-        // Recycle button — P1-#11 live quote
-        const refundInfo = this.resolveRefund(id, unitCost ?? 100);
-        const rbw = 65;
-        const rbh = 20;
-        const rbx = tx - tw / 2 + 10;
-        const rby = ty - th / 2 + 72;
-        this.renderer.push({
-          shape: 'rect',
-          x: rbx + rbw / 2, y: rby + rbh / 2,
-          size: rbw, h: rbh,
-          color: refundInfo.color,
-          alpha: 0.9,
-          stroke: '#ffffff', strokeWidth: 1,
-        });
-        this.buttons.push({
-          x: rbx, y: rby, w: rbw, h: rbh,
-          label: refundInfo.label,
-          color: refundInfo.color,
-          textColor: refundInfo.enabled ? '#ffffff' : '#aaaaaa',
-          enabled: refundInfo.enabled,
-          onClick: () => { if (refundInfo.enabled) this.onRecycleEntity?.(id); },
-        });
-
-        // HP bar
-        if (hpCurrent !== undefined && hpMax !== undefined && hpMax > 0) {
-          const ratio = hpCurrent / hpMax;
-          const barX = tx - tw / 2 + rbx + rbw + 10;
-          const barW = tw - 20 - rbw - 10;
-          this.renderer.push({ shape: 'rect', x: barX + barW / 2, y: rby + rbh / 2, size: barW, h: 6, color: '#222222', alpha: 0.9 });
-          const fillW = Math.max(barW * ratio, 0);
-          if (fillW > 0) {
-            const barColor = ratio > 0.6 ? '#4caf50' : ratio > 0.3 ? '#ffc107' : '#f44336';
-            this.renderer.push({ shape: 'rect', x: barX + fillW / 2, y: rby + rbh / 2, size: fillW, h: 6, color: barColor, alpha: 0.95 });
-          }
-        }
-      }
-    } else if (this.selectedEntityType === 'production') {
-      const prodResourceType = Production.resourceType[id];
-      const prodRate = Production.rate[id];
-      const prodLevel = Production.level[id];
-      const hpCurrent = Health.current[id];
-      const hpMax = Health.max[id];
-
-      if (prodRate !== undefined && prodLevel !== undefined) {
-        const prodName = this._world?.getDisplayName(id) || '生产建筑';
-        const resourceLabel = prodResourceType === 0 ? '金' : '能';
-
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 14,
-          text: `${prodName} Lv.${prodLevel}`,
-          color: '#ffffff', size: 18,
-        });
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 34,
-          text: `HP: ${hpCurrent !== undefined && hpMax !== undefined ? `${Math.ceil(hpCurrent)}/${hpMax}` : '?'}  产出: +${formatNumber(prodRate)}${resourceLabel}/s`,
-          color: '#ffffff', size: 16,
-        });
-
-        // Recycle button — P1-#11 live quote
-        const cfg = PRODUCTION_CONFIGS[prodResourceType === 0 ? ProductionType.GoldMine : ProductionType.EnergyTower];
-        const prodCost = cfg?.cost ?? 65;
-        const refundInfo = this.resolveRefund(id, prodCost);
-        const rbw = 65;
-        const rbh = 20;
-        const rbx = tx - tw / 2 + 10;
-        const rby = ty - th / 2 + 52;
-        this.renderer.push({
-          shape: 'rect',
-          x: rbx + rbw / 2, y: rby + rbh / 2,
-          size: rbw, h: rbh,
-          color: refundInfo.color,
-          alpha: 0.9,
-          stroke: '#ffffff', strokeWidth: 1,
-        });
-        this.buttons.push({
-          x: rbx, y: rby, w: rbw, h: rbh,
-          label: refundInfo.label,
-          color: refundInfo.color,
-          textColor: refundInfo.enabled ? '#ffffff' : '#aaaaaa',
-          enabled: refundInfo.enabled,
-          onClick: () => { if (refundInfo.enabled) this.onRecycleEntity?.(id); },
-        });
-
-        // HP bar
-        if (hpCurrent !== undefined && hpMax !== undefined && hpMax > 0) {
-          const ratio = hpCurrent / hpMax;
-          const barX = tx - tw / 2 + rbx + rbw + 10;
-          const barW = tw - 20 - rbw - 10;
-          this.renderer.push({ shape: 'rect', x: barX + barW / 2, y: rby + rbh / 2, size: barW, h: 6, color: '#222222', alpha: 0.9 });
-          const fillW = Math.max(barW * ratio, 0);
-          if (fillW > 0) {
-            const barColor = ratio > 0.6 ? '#4caf50' : ratio > 0.3 ? '#ffc107' : '#f44336';
-            this.renderer.push({ shape: 'rect', x: barX + fillW / 2, y: rby + rbh / 2, size: fillW, h: 6, color: barColor, alpha: 0.95 });
-          }
-        }
-      }
-    } else if (this.selectedEntityType === 'trap') {
-      const trapDps = Trap.damagePerSecond[id];
-      const trapRadius = Trap.radius[id];
-
-      if (trapDps !== undefined && trapRadius !== undefined) {
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 14,
-          text: '地刺',
-          color: '#ffffff', size: 18,
-        });
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 36,
-          text: `DPS: ${formatNumber(trapDps)}  范围: ${formatNumber(trapRadius)}px`,
-          color: '#ffffff', size: 16,
-        });
-
-        // Recycle button — P1-#11 live quote (trap default cost=40)
-        const refundInfo = this.resolveRefund(id, 40);
-        const rbw = 65;
-        const rbh = 20;
-        const rbx = tx - tw / 2 + 10;
-        const rby = ty - th / 2 + 52;
-        this.renderer.push({
-          shape: 'rect',
-          x: rbx + rbw / 2, y: rby + rbh / 2,
-          size: rbw, h: rbh,
-          color: refundInfo.color,
-          alpha: 0.9,
-          stroke: '#ffffff', strokeWidth: 1,
-        });
-        this.buttons.push({
-          x: rbx, y: rby, w: rbw, h: rbh,
-          label: refundInfo.label,
-          color: refundInfo.color,
-          textColor: refundInfo.enabled ? '#ffffff' : '#aaaaaa',
-          enabled: refundInfo.enabled,
-          onClick: () => { if (refundInfo.enabled) this.onRecycleEntity?.(id); },
-        });
-      }
-    }
-  }
-
-  // ============================================================
-  // Enemy Tooltip
-  // ============================================================
-
-  private buildEnemyTooltip(): void {
-    const id = this.enemyEntityId;
-    if (id === null) return;
-
-    const px = Position.x[id];
-    const py = Position.y[id];
-    const hpCurrent = Health.current[id];
-    const hpMax = Health.max[id];
-    const moveSpeed = Movement.speed[id];
-    const isBoss = UnitTag.isBoss[id] === 1;
-
-    if (px === undefined) return;
-
-    const tw = 200;
-    const th = 100;
-    const tx = px;
-    const ty = py! - 100;
-
-    this.renderer.push({
-      shape: 'rect',
-      x: tx, y: ty,
-      size: tw, h: th,
-      color: '#1a1a2e',
-      alpha: 0.9,
-      stroke: '#e53935',
-      strokeWidth: 1,
-    });
-
-    const enemyName = isBoss ? 'Boss' : '敌人';
-    this.infos.push({
-      x: tx - tw / 2 + 10, y: ty - th / 2 + 14,
-      text: enemyName,
-      color: '#ef5350', size: 18,
-    });
-
-    if (hpCurrent !== undefined && hpMax !== undefined) {
-      this.infos.push({
-        x: tx - tw / 2 + 10, y: ty - th / 2 + 36,
-        text: `HP: ${Math.ceil(hpCurrent)}/${hpMax}`,
-        color: '#ffffff', size: 16,
-      });
-    }
-
-    if (moveSpeed !== undefined) {
-      this.infos.push({
-        x: tx - tw / 2 + 10, y: ty - th / 2 + 56,
-        text: `速度: ${formatNumber(moveSpeed)}`,
-        color: '#ffffff', size: 16,
-      });
-    }
-
-    if (isBoss) {
-      const bossPhase = Boss.phase[id];
-      const bossTimer = Boss.transitionTimer[id];
-      if (bossPhase !== undefined) {
-        const phaseText = bossPhase === 2 ? '形态 2' : bossTimer && bossTimer > 0 ? '转换中...' : '形态 1';
-        this.infos.push({
-          x: tx - tw / 2 + 10, y: ty - th / 2 + 76,
-          text: phaseText,
-          color: '#aaaaaa', size: 16,
-        });
-      }
-    }
+    this.renderHandZone();
+    this.renderHandTooltip();
   }
 
   // ============================================================
@@ -1207,6 +1207,13 @@ export class UISystem implements System {
         label = '陷阱';
         break;
       }
+      case 'spell': {
+        color = '#7c4dff';
+        shape = 'circle';
+        size = 28;
+        label = '法术';
+        break;
+      }
     }
 
     this.renderer.push({
@@ -1222,6 +1229,84 @@ export class UISystem implements System {
   }
 
   // ============================================================
+  // Countdown Overlay (Deployment / WaveBreak)
+  // ============================================================
+
+  /** v5.0: center-screen countdown overlay with large timer and skip button.
+   *  Appears during Deployment and WaveBreak when countdown > 0. */
+  private buildCountdownOverlay(phase: GamePhase): void {
+    const cd = this.getCountdown?.() ?? 0;
+    if (cd <= 0) return;
+    if (phase === GamePhase.Battle || phase === GamePhase.Victory || phase === GamePhase.Defeat) return;
+
+    const cx = LayoutManager.DESIGN_W / 2;
+    const cy = LayoutManager.DESIGN_H / 2;
+    const panelW = 520;
+    const panelH = 280;
+
+    // v5.0: signal renderUI() to draw a full-viewport dark backdrop.
+    // This MUST cover the actual viewport (not just design-space) so it
+    // works correctly on ultrawide and non-16:9 displays.
+    this.modalBackdropAlpha = 0.6;
+    this.hasFullscreenOverlay = true;
+
+    // Panel background
+    this.renderer.push({
+      shape: 'rect', x: cx, y: cy,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#ffd54f', strokeWidth: 3,
+      z: UI_Z.FULLSCREEN_UI,
+    });
+
+    // Wave label
+    const isFirstWave = phase === GamePhase.Deployment;
+    const labelText = isFirstWave ? '敌军即将来袭！' : `第 ${this.getWave?.() ?? 1} 波准备`;
+    this.infos.push({
+      x: cx, y: cy - 90,
+      text: labelText,
+      color: '#ffd54f', size: 28,
+      align: 'center',
+      layer: 'fullscreen',
+    });
+
+    // Countdown timer — large number
+    const cdDisplay = Math.ceil(cd);
+    this.infos.push({
+      x: cx, y: cy - 20,
+      text: `${cdDisplay}`,
+      color: '#ffffff', size: 72,
+      align: 'center',
+      layer: 'fullscreen',
+    });
+
+    // "秒" label
+    this.infos.push({
+      x: cx, y: cy + 30,
+      text: '秒',
+      color: '#aaaaaa', size: 24,
+      align: 'center',
+      layer: 'fullscreen',
+    });
+
+    // Skip button — large, centered below the countdown
+    const btnW = 200;
+    const btnH = 48;
+    const btnX = cx - btnW / 2;
+    const btnY = cy + 60;
+
+    this.buttons.push({
+      x: btnX, y: btnY, w: btnW, h: btnH,
+      label: '▶ 现在开始',
+      color: '#2e7d32',
+      textColor: '#ffffff',
+      enabled: true,
+      layer: 'fullscreen',
+      onClick: () => { this.onSkipCountdown?.(); },
+    });
+  }
+
+  // ============================================================
   // Overlays (Victory / Defeat)
   // ============================================================
 
@@ -1229,18 +1314,14 @@ export class UISystem implements System {
     if (phase === GamePhase.Victory) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
-      this.renderer.push({
-        shape: 'rect', x: LayoutManager.DESIGN_W / 2, y: LayoutManager.DESIGN_H / 2,
-        size: 1600, h: 400, color: '#000000', alpha: 0.6,
-      });
+      this.modalBackdropAlpha = 0.6;
+      this.hasFullscreenOverlay = true;
       this.overlay = { phase, color: '#4caf50', title: '胜利!', subtext: '刷新页面重新开始' };
     } else if (phase === GamePhase.Defeat) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
-      this.renderer.push({
-        shape: 'rect', x: LayoutManager.DESIGN_W / 2, y: LayoutManager.DESIGN_H / 2,
-        size: 1600, h: 400, color: '#000000', alpha: 0.6,
-      });
+      this.modalBackdropAlpha = 0.6;
+      this.hasFullscreenOverlay = true;
       this.overlay = { phase, color: '#f44336', title: '失败!', subtext: '刷新页面重新开始' };
     }
   }
@@ -1253,18 +1334,12 @@ export class UISystem implements System {
     const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
-    this.renderer.push({
-      shape: 'rect',
-      x: mapCenterX,
-      y: mapCenterY,
-      size: RenderSystem.sceneW,
-      h: RenderSystem.sceneH,
-      color: '#000000',
-      alpha: 0.6,
-    });
+    this.modalBackdropAlpha = 0.6;
+    this.hasFullscreenOverlay = true;
 
+    const hasEncyclopedia = this.onOpenEncyclopedia !== null;
     const menuW = 500;
-    const menuH = 380;
+    const menuH = hasEncyclopedia ? 450 : 380;
     const menuX = mapCenterX - menuW / 2;
     const menuY = mapCenterY - menuH / 2;
 
@@ -1278,6 +1353,7 @@ export class UISystem implements System {
       alpha: 0.95,
       stroke: '#555555',
       strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
     });
 
     this.infos.push({
@@ -1287,6 +1363,7 @@ export class UISystem implements System {
       color: '#ffffff',
       size: 40,
       align: 'center',
+      layer: 'fullscreen',
     });
 
     const btnW = 200;
@@ -1304,6 +1381,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: continueY, w: btnW, h: btnH,
@@ -1311,10 +1389,37 @@ export class UISystem implements System {
       color: '#2e7d32',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onResume?.(); },
     });
 
-    const restartY = menuY + 180;
+    // Encyclopedia button (conditionally shown)
+    const encY = menuY + 180;
+    if (hasEncyclopedia) {
+      this.renderer.push({
+        shape: 'rect',
+        x: mapCenterX,
+        y: encY + btnH / 2,
+        size: btnW,
+        h: btnH,
+        color: '#37474f',
+        alpha: 0.9,
+        stroke: '#78909c',
+        strokeWidth: 1,
+        z: UI_Z.FULLSCREEN_UI,
+      });
+      this.buttons.push({
+        x: btnX, y: encY, w: btnW, h: btnH,
+        label: '📖 卡牌图鉴',
+        color: '#37474f',
+        textColor: '#ffffff',
+        enabled: true,
+        layer: 'fullscreen',
+        onClick: () => { this.onOpenEncyclopedia?.(); },
+      });
+    }
+
+    const restartY = hasEncyclopedia ? menuY + 250 : menuY + 180;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1325,6 +1430,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: restartY, w: btnW, h: btnH,
@@ -1332,10 +1438,11 @@ export class UISystem implements System {
       color: '#f9a825',
       textColor: '#000000',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onRestart?.(); },
     });
 
-    const exitY = menuY + 250;
+    const exitY = hasEncyclopedia ? menuY + 320 : menuY + 250;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1346,6 +1453,7 @@ export class UISystem implements System {
       alpha: 0.9,
       stroke: '#ffffff',
       strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
     });
     this.buttons.push({
       x: btnX, y: exitY, w: btnW, h: btnH,
@@ -1353,6 +1461,7 @@ export class UISystem implements System {
       color: '#c62828',
       textColor: '#ffffff',
       enabled: true,
+      layer: 'fullscreen',
       onClick: () => { this.onExit?.(); },
     });
 
@@ -1360,12 +1469,279 @@ export class UISystem implements System {
     const total = this.getTotalWaves();
     this.infos.push({
       x: mapCenterX,
-      y: menuY + 320,
+      y: hasEncyclopedia ? menuY + 390 : menuY + 320,
       text: total === -1 ? `当前波次: ${wave}` : `当前波次: ${wave} / ${total}`,
       color: '#aaaaaa',
       size: 24,
       align: 'center',
+      layer: 'fullscreen',
     });
+  }
+
+  // ============================================================
+  // CardDraft Overlay — 3选1抽卡面板
+  // ============================================================
+
+  private renderCardDraftOverlay(): void {
+    const sys = this.cardDraftSystem;
+    if (!sys) return;
+
+    const options = sys.getOptions();
+    if (options.length === 0) return;
+
+    // Apply gaussian blur to background for modal effect
+    this.renderer.applyBlur(12);
+
+    this.modalBackdropAlpha = 0.7;
+    this.hasFullscreenOverlay = true;
+
+    const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
+    const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
+
+    const panelW = 560;
+    const panelH = 340;
+    const panelX = mapCenterX - panelW / 2;
+    const panelY = mapCenterY - panelH / 2;
+
+    // Panel background — unified UI style (#1a1a2e + accent border)
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#7c4dff', strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
+    });
+
+    // Title at top
+    this.infos.push({
+      x: mapCenterX, y: panelY + 32,
+      text: '🎲 抽卡奖励',
+      color: '#ffffff', size: 24, align: 'center',
+      layer: 'fullscreen',
+    });
+
+    // v5.0: card layout — 3 columns, centered, 120×168 cards
+    const cardW = 120;
+    const cardH = 168;
+    const artW = 96;
+    const artH = 80;
+    const gap = 24;
+    const totalW = options.length * cardW + (options.length - 1) * gap;
+    const startX = mapCenterX - totalW / 2 + cardW / 2;
+    const cardCenterY = panelY + 100 + cardH / 2; // card top at panelY + 100
+
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i]!;
+      const cx = startX + i * (cardW + gap);
+      const cardTop = cardCenterY - cardH / 2;
+      const runContext = this._world?.runContext;
+      const config = runContext?.registry.get(opt.id);
+      const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
+
+      // Card background — hand-card style
+      this.renderer.push({
+        shape: 'rect', x: cx, y: cardCenterY,
+        size: cardW, h: cardH,
+        color: '#1a2332', alpha: 0.95,
+        stroke: borderColor, strokeWidth: 2,
+        z: UI_Z.FULLSCREEN_UI,
+      });
+
+      // Art area — hand-card style
+      const artCenterY = cardTop + 12 + artH / 2;
+      this.renderer.push({
+        shape: 'rect', x: cx, y: artCenterY,
+        size: artW, h: artH,
+        color: '#0d1b2a', alpha: 1,
+        stroke: '#37474f', strokeWidth: 1,
+        z: UI_Z.FULLSCREEN_UI + 1,
+      });
+
+      // Glyph — hand-card style
+      if (config) {
+        this.cardIconDraws.push({
+          cx, cy: artCenterY, w: artW, h: artH,
+          cardId: opt.id, color: borderColor, layer: 'fullscreen',
+        });
+      }
+
+      // Card name — hand-card style
+      this.infos.push({
+        x: cx, y: cardTop + 12 + artH + 14,
+        text: opt.name, color: '#ffffff', size: 12, align: 'center',
+        layer: 'fullscreen',
+      });
+
+      // Description — compact, below name, auto-wrapped within card
+      const descLines = this.wrapText(opt.description, cardW - 16, 9);
+      for (let li = 0; li < descLines.length && li < 3; li++) {
+        this.infos.push({
+          x: cx, y: cardTop + 12 + artH + 34 + li * 12,
+          text: descLines[li]!,
+          color: '#90a4ae', size: 9, align: 'center',
+          layer: 'fullscreen',
+        });
+      }
+    }
+
+    // Action buttons — "确定" and "🎲再抽一次"
+    const btnW = 120;
+    const btnH = 36;
+    const btnGap = 24;
+    const btnY = panelY + panelH - btnH - 20;
+    const confirmBtnX = mapCenterX - btnW - btnGap / 2;
+    const rerollBtnX = mapCenterX + btnGap / 2;
+
+    // Confirm button — "确定" (green)
+    this.renderer.push({
+      shape: 'rect',
+      x: confirmBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: '#2e7d32', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
+    });
+    this.buttons.push({
+      x: confirmBtnX, y: btnY, w: btnW, h: btnH,
+      label: '确定',
+      color: '#2e7d32', textColor: '#ffffff',
+      enabled: true,
+      layer: 'fullscreen',
+      onClick: () => {
+        Sound.play('draft_select');
+        sys.confirmDraft();
+      },
+    });
+
+    // Reroll button — "🎲再抽一次" (blue, one-time use)
+    const rerollEnabled = !this.draftRerollUsed;
+    this.renderer.push({
+      shape: 'rect',
+      x: rerollBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: rerollEnabled ? '#1565c0' : '#37474f', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+      z: UI_Z.FULLSCREEN_UI,
+    });
+    this.buttons.push({
+      x: rerollBtnX, y: btnY, w: btnW, h: btnH,
+      label: '🎲再抽一次',
+      color: '#1565c0', textColor: '#ffffff',
+      enabled: rerollEnabled,
+      layer: 'fullscreen',
+      onClick: () => {
+        this.draftRerollUsed = true;
+        Sound.play('ui_click');
+        sys.reroll();
+      },
+    });
+  }
+
+  // ============================================================
+  // BuffSelection Overlay — 关间2选1 Buff面板
+  // ============================================================
+
+  private renderBuffSelectionOverlay(): void {
+    const sys = this.interLevelBuffSystem;
+    if (!sys) return;
+
+    const options = sys.getOptions();
+    if (options.length === 0) return;
+
+    const mapCenterX = RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2;
+    const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
+
+    this.modalBackdropAlpha = 0.6;
+
+    const panelW = 650;
+    const panelH = 320;
+    const panelX = mapCenterX - panelW / 2;
+    const panelY = mapCenterY - panelH / 2;
+
+    this.renderer.push({
+      shape: 'rect',
+      x: mapCenterX, y: mapCenterY,
+      size: panelW, h: panelH,
+      color: '#1a1a2e', alpha: 0.95,
+      stroke: '#ff9800', strokeWidth: 2,
+      z: UI_Z.FULLSCREEN_UI,
+    });
+
+    this.infos.push({
+      x: mapCenterX, y: panelY + 30,
+      text: '选择一个 Buff 带入下一关',
+      color: '#ffffff', size: 24, align: 'center',
+      layer: 'fullscreen',
+    });
+
+    const cardW = 260;
+    const cardH = 220;
+    const gap = 30;
+    const totalW = options.length * cardW + (options.length - 1) * gap;
+    const startX = mapCenterX - totalW / 2 + cardW / 2;
+    const cardY = panelY + 100;
+
+    const rarityColors: Record<string, string> = {
+      common: '#ffffff',
+      rare: '#2196f3',
+      epic: '#9c27b0',
+    };
+
+    for (let i = 0; i < options.length; i++) {
+      const opt = options[i]!;
+      const cx = startX + i * (cardW + gap);
+      const borderColor = rarityColors[opt.rarity] ?? '#ffffff';
+
+      this.renderer.push({
+        shape: 'rect',
+        x: cx, y: cardY,
+        size: cardW, h: cardH,
+        color: '#1a2332', alpha: 0.95,
+        stroke: borderColor, strokeWidth: 3,
+        z: UI_Z.FULLSCREEN_UI,
+      });
+
+      this.infos.push({
+        x: cx, y: cardY - cardH / 2 + 30,
+        text: opt.name, color: '#ffffff', size: 18, align: 'center',
+        layer: 'fullscreen',
+      });
+
+      const rarityLabel = opt.rarity.charAt(0).toUpperCase() + opt.rarity.slice(1);
+      this.infos.push({
+        x: cx, y: cardY - cardH / 2 + 52,
+        text: rarityLabel, color: borderColor, size: 13, align: 'center',
+        layer: 'fullscreen',
+      });
+
+      this.infos.push({
+        x: cx, y: cardY,
+        text: opt.description,
+        color: '#b0bec5', size: 13, align: 'center',
+        layer: 'fullscreen',
+      });
+
+      this.infos.push({
+        x: cx, y: cardY + 50,
+        text: `${opt.effect.type}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
+        color: '#ffcc80', size: 14, align: 'center',
+        layer: 'fullscreen',
+      });
+
+      this.buttons.push({
+        x: cx - cardW / 2, y: cardY - cardH / 2,
+        w: cardW, h: cardH,
+        label: `选择 ${opt.name}`,
+        color: '#ff9800', textColor: '#ffffff',
+        enabled: true,
+        layer: 'fullscreen',
+        onClick: () => {
+          Sound.play('buff_select');
+          sys.selectBuff(i);
+        },
+      });
+    }
   }
 
   // ============================================================
@@ -1373,6 +1749,29 @@ export class UISystem implements System {
   // ============================================================
 
   handleClick(x: number, y: number): boolean {
+    // CardDraft / BuffSelection overlays consume all clicks (buttons handle their own)
+    if (this.cardDraftSystem?.isActive()) {
+      for (const btn of this.buttons) {
+        const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+        if (enabled && x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          btn.onClick();
+          return true;
+        }
+      }
+      return true; // consume click even outside buttons (block everything else)
+    }
+
+    if (this.interLevelBuffSystem?.isActive()) {
+      for (const btn of this.buttons) {
+        const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
+        if (enabled && x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          btn.onClick();
+          return true;
+        }
+      }
+      return true;
+    }
+
     for (const btn of this.buttons) {
       const enabled = typeof btn.enabled === 'function' ? btn.enabled() : btn.enabled;
       if (enabled && x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {

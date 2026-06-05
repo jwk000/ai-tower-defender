@@ -25,26 +25,30 @@ import {
   DamageTypeVal,
   Category,
   CategoryVal,
+  Boss,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
-import type { MapConfig, GridPos } from '../types/index.js';
-import { TileType } from '../types/index.js';
+import type { MapConfig } from '../types/index.js';
+import { GamePhase, TileType } from '../types/index.js';
 
 const TILE = 32;
 
 function makeMap(): MapConfig {
-  const waypoints: GridPos[] = [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-  ];
   return {
     name: 'test',
     cols: 2,
     rows: 1,
     tileSize: TILE,
     tiles: [[TileType.Spawn, TileType.Base]],
-    enemyPath: waypoints,
+    spawns: [{ id: 'sp', row: 0, col: 0 }],
+    pathGraph: {
+      nodes: [
+        { id: 's', row: 0, col: 0, role: 'spawn', spawnId: 'sp' },
+        { id: 'e', row: 0, col: 1, role: 'crystal_anchor' },
+      ],
+      edges: [{ from: 's', to: 'e' }],
+    },
   };
 }
 
@@ -66,16 +70,19 @@ function makeTower(world: TowerWorld, hp: number = 80): number {
 
 function makeEnemyAtEnd(
   world: TowerWorld,
-  opts: { atk: number; withAttackComponent?: boolean },
+  opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean; initialAttackAnimDuration?: number },
 ): number {
   const eid = world.createEntity();
-  world.addComponent(eid, Position, { x: 0, y: 0 });
+  world.addComponent(eid, Position, { x: TILE + TILE / 2, y: TILE / 2 });
   world.addComponent(eid, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
   world.addComponent(eid, Movement, {
     speed: 50,
     moveMode: MoveModeVal.FollowPath,
     pathIndex: 1,
     progress: 0,
+    spawnIdx: 0,
+    currentNodeIdx: 1,
+    targetNodeIdx: 0xffff,
   });
   world.addComponent(eid, UnitTag, {
     isEnemy: 1,
@@ -90,6 +97,8 @@ function makeEnemyAtEnd(
     colorB: 0,
     size: 16,
     alpha: 1,
+    attackAnimTimer: 0,
+    attackAnimDuration: opts.initialAttackAnimDuration ?? 0,
   });
   if (opts.withAttackComponent) {
     world.addComponent(eid, Attack, {
@@ -97,6 +106,14 @@ function makeEnemyAtEnd(
       attackSpeed: 1,
       range: 0,
       damageType: DamageTypeVal.Physical,
+    });
+  }
+  if (opts.isBoss) {
+    world.addComponent(eid, Boss, {
+      bossType: 0xff,
+      phase: 1,
+      phase2HpRatio: 0.5,
+      selfDestructTimer: -1,
     });
   }
   return eid;
@@ -144,6 +161,25 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[base]).toBe(88);
   });
 
+  it('真实刷怪的初始 attackAnimDuration > 0 时，到达水晶第一帧仍会扣血', () => {
+    const base = makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 7, initialAttackAnimDuration: 0.45 });
+
+    system.update(world, 0.016);
+
+    expect(Health.current[base]).toBe(93);
+  });
+
+  it('敌人到达水晶后的攻击动画期间不会重复扣血', () => {
+    const base = makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 5, initialAttackAnimDuration: 0.45 });
+
+    system.update(world, 0.016);
+    system.update(world, 0.2);
+
+    expect(Health.current[base]).toBe(95);
+  });
+
   it('多个敌人同帧到达，基地累计扣血', () => {
     const base = makeBase(world, 100);
     makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
@@ -164,14 +200,34 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[base]).toBe(0);
   });
 
-  it('到达终点的敌人被销毁', () => {
+  it('水晶 HP 被扣到 0 时立即判定游戏失败', () => {
+    makeBase(world, 5);
+    makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
+    let phase = GamePhase.Battle;
+    const setPhase = (next: GamePhase): void => { phase = next; };
+    const baseDestroyedSystem = new MovementSystem(makeMap(), setPhase);
+
+    baseDestroyedSystem.update(world, 0.016);
+
+    expect(phase).toBe(GamePhase.Defeat);
+  });
+
+  it('到达终点的敌人被销毁（攻击动画完成后）', () => {
     makeBase(world, 100);
     const enemy = makeEnemyAtEnd(world, { atk: 5, withAttackComponent: false });
 
+    // 首个 frame：敌人到达终点，触发攻击动画，伤害已生效但敌人尚未销毁
+    system.update(world, 0.016);
+    expect(Visual.attackAnimTimer[enemy], 'attackAnimTimer 应 > 0').toBeGreaterThan(0);
+    expect(Visual.attackAnimDuration[enemy], 'attackAnimDuration 应 > 0').toBeGreaterThan(0);
+    expect(world.hasComponent(enemy, Position), '动画中仍存活').toBe(true);
+
+    // 第 2 帧：衰减攻击动画计时器
+    system.update(world, 0.5); // 大于 0.4s，确保计时器衰减到 <= 0
+    // 第 3 帧：动画计时器 <= 0，触发销毁逻辑
     system.update(world, 0.016);
     world.cleanupDeadEntities();
-
-    expect(world.hasComponent(enemy, Position)).toBe(false);
+    expect(world.hasComponent(enemy, Position), '动画完成后应被销毁').toBe(false);
   });
 
   it('敌人自身（带 UnitTag.isEnemy=1+Health）不会因 baseQuery 命中而被自伤', () => {
@@ -195,5 +251,17 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
 
     expect(Health.current[base], '基地正常扣血').toBe(70);
     expect(Health.current[tower], '塔不应因敌人到达基地而掉血').toBe(towerHp0);
+  });
+
+  it('Boss 到达水晶后立即判定失败', () => {
+    makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 5, isBoss: true });
+    let phase = GamePhase.Battle;
+    const setPhase = (next: GamePhase): void => { phase = next; };
+    const bossReachSystem = new MovementSystem(makeMap(), setPhase);
+
+    bossReachSystem.update(world, 0.016);
+
+    expect(phase).toBe(GamePhase.Defeat);
   });
 });

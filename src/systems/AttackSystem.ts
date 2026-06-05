@@ -1,4 +1,4 @@
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, entityExists, hasComponent } from '../core/World.js';
 import {
   Position,
   Attack,
@@ -15,12 +15,15 @@ import {
   DamageTypeVal,
   MissileCharge,
   TargetingMark,
+  BuildingTower,
+  Faction,
 } from '../core/components.js';
 import { TowerType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
 import { Sound, type SfxKey } from '../utils/Sound.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 
@@ -36,8 +39,8 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Laser,     // 4
   TowerType.Bat,       // 5
   TowerType.Missile,   // 6
-  TowerType.Vine,      // 7
-  TowerType.Command,   // 8
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
 
@@ -52,8 +55,8 @@ export const TOWER_SHOOT_SOUNDS: SfxKey[] = [
   'tower_laser',     // 4
   'tower_bat',       // 5
   'tower_missile',   // 6
-  'tower_arrow',     // 7  vine (reuse arrow sound)
-  'tower_arrow',     // 8  command (no attack, placeholder)
+  'tower_arrow',     // 7  fire (reuse arrow sound)
+  'tower_arrow',     // 8  poison (reuse arrow sound)
   'tower_arrow',     // 9  ballista (reuse arrow sound)
 ];
 
@@ -95,9 +98,9 @@ const PROJ_VISUAL: Record<number, ProjectileVisual> = {
   3: { speed: 600, shape: ShapeVal.Triangle, colorR: LIGHTNING_COLOR[0], colorG: LIGHTNING_COLOR[1], colorB: LIGHTNING_COLOR[2], size: 10 },
   4: { speed: 500, shape: ShapeVal.Circle,   colorR: LASER_COLOR[0],    colorG: LASER_COLOR[1],    colorB: LASER_COLOR[2],    size: 8 },
   5: { speed: 350, shape: ShapeVal.Triangle, colorR: BAT_COLOR[0],      colorG: BAT_COLOR[1],      colorB: BAT_COLOR[2],      size: 10 },
-  6: { speed: 280, shape: ShapeVal.Arrow,    colorR: 0xff,              colorG: 0x17,              colorB: 0x44,              size: 24 },
-  7: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
-  8: { speed: 0,   shape: ShapeVal.Circle,   colorR: 0,                 colorG: 0,                 colorB: 0,                 size: 0 },
+  6: { speed: 280, shape: ShapeVal.Arrow,    colorR: 0x1a,              colorG: 0x1a,              colorB: 0x1a,              size: 40 },
+  7: { speed: 350, shape: ShapeVal.Circle,   colorR: 0xff,              colorG: 0x57,              colorB: 0x22,              size: 10 },
+  8: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
   9: { speed: 500, shape: ShapeVal.Arrow,    colorR: BALLISTA_COLOR[0], colorG: BALLISTA_COLOR[1], colorB: BALLISTA_COLOR[2], size: 30 },
 };
 
@@ -109,6 +112,7 @@ const towerQuery = defineQuery([Position, Attack, Tower]);
 const potentialTargetQuery = defineQuery([Position, Health, UnitTag]);
 const chargingQuery = defineQuery([MissileCharge]);
 const targetingMarkQuery = defineQuery([TargetingMark, Position]);
+const projectileQueryForCleanup = defineQuery([Projectile]);
 
 // ============================================================
 // AttackSystem — towers find nearest enemy and fire
@@ -126,29 +130,87 @@ export class AttackSystem implements System {
     // Clean up orphaned targeting marks (tower destroyed during charging)
     this.cleanupOrphanedTargetingMarks(world);
 
-    // P4 R5+R6 (design/23 §0.7): 6 塔（basic/cannon/ice/lightning/laser/bat）+ missile 攻击逻辑
-    // 已全部迁移至 BT 节点（SpawnProjectileTowerNode / LightningChainNode / LaserBeamNode
-    // / SelectMissileTargetNode + ChargeAttackNode + LaunchMissileProjectileNode）。
-    // AttackSystem.update 本体退化为：仅 orphan cleanup + missile 蓄力遗留入口。
-    // cooldown tick 由 AISystem 负责，发射 cooldown 由各 BT 节点自行设置。
-
     const towers = towerQuery(world.world);
 
-    const validEnemies: number[] = [];
-    const allMatches = potentialTargetQuery(world.world);
-    for (const eid of allMatches) {
-      if (UnitTag.isEnemy[eid]! === 1 && Health.current[eid]! > 0) {
-        validEnemies.push(eid);
-      }
-    }
-
     for (const eid of towers) {
+      // 建造中的塔不参与攻击逻辑
+      if (hasComponent(world.world, BuildingTower, eid)) continue;
       const towerTypeVal = Tower.towerType[eid]!;
-      if (towerTypeVal === 6) {
-        // Missile: BT v1.0 已接管 (P3 R5)，handleMissileTower 已薄化为 no-op，保留入口兼容
-        this.handleMissileTower(world, eid, validEnemies, dt);
+
+      // 蝙蝠塔由 BatSwarmSystem 处理
+      if (towerTypeVal === 5) continue;
+
+      // Tick cooldown
+      if (Attack.cooldownTimer[eid]! > 0) {
+        Attack.cooldownTimer[eid]! -= dt;
+        continue;
       }
-      // 其余 6 塔: BT v2.0 全权接管，update 不干预（P4 R5+R6）
+
+      // Find enemies in range
+      const range = Attack.range[eid]!;
+      const enemies = findEnemiesInRange(world, eid, range);
+      if (enemies.length === 0) continue;
+
+      // Fire based on tower type
+      const level = Tower.level[eid] ?? 1;
+      const primaryTarget = enemies[0]!.id;
+      switch (towerTypeVal) {
+        case 0: {
+          // Arrow → multi-shot: L1: 1箭, L2: 2箭, L3: 3箭（可锁不同目标）
+          const arrowCfg = TOWER_CONFIGS[TowerType.Arrow];
+          const arrowCount = arrowCfg.projectileCount?.[level - 1]
+            ?? arrowCfg.projectileCount?.[arrowCfg.projectileCount.length - 1]
+            ?? 1;
+          for (let i = 0; i < arrowCount; i++) {
+            const target = enemies[i]?.id ?? primaryTarget;
+            spawnProjectile(world, eid, target, towerTypeVal);
+          }
+          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
+          break;
+        }
+        case 1: case 2: case 7: case 8: case 9:
+          // Cannon/Ice/Fire/Poison/Ballista → single projectile
+          spawnProjectile(world, eid, primaryTarget, towerTypeVal);
+          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
+          break;
+        case 3:
+          // Lightning → chain attack (damage + LightningBolt visual)
+          doLightningAttack(world, eid, primaryTarget, level);
+          break;
+        case 4:
+          // Laser → beam attack
+          doLaserAttack(world, eid, enemies, level);
+          Sound.play('tower_laser');
+          break;
+        case 6: {
+          // Missile → multi-shot: L1: 1枚, L2: 2枚, L3: 3枚
+          const missileCfg = TOWER_CONFIGS[TowerType.Missile];
+          const missileCount = missileCfg.projectileCount?.[level - 1]
+            ?? missileCfg.projectileCount?.[missileCfg.projectileCount.length - 1]
+            ?? 1;
+          // 使用塔的实际溅射半径作为预览标记半径（与弹体爆炸范围一致）
+          const actualSplashRadius = Attack.splashRadius[eid]
+            ?? ((missileCfg?.splashRadius as number) ?? 120);
+          for (let i = 0; i < missileCount; i++) {
+            const target = enemies[i]?.id ?? primaryTarget;
+            const tx = Position.x[target]!;
+            const ty = Position.y[target]!;
+            const markId = world.createEntity();
+            world.addComponent(markId, Position, { x: tx, y: ty });
+            world.addComponent(markId, TargetingMark, {
+              blastRadius: actualSplashRadius,
+              pulsePhase: 0,
+              ringRotation: 0,
+            });
+            spawnMissileProjectile(world, eid, markId, tx, ty);
+          }
+          Sound.play('tower_missile');
+          break;
+        }
+      }
+
+      // Reset cooldown
+      Attack.cooldownTimer[eid]! = 1.0 / Attack.attackSpeed[eid]!;
     }
   }
 
@@ -158,7 +220,6 @@ export class AttackSystem implements System {
     const marks = targetingMarkQuery(world.world);
     if (marks.length === 0) return;
 
-    // Collect all targeting mark IDs referenced by charging towers
     const referencedMarks = new Set<number>();
     const charging = chargingQuery(world.world);
     for (const towerId of charging) {
@@ -168,16 +229,18 @@ export class AttackSystem implements System {
       }
     }
 
-    // Also preserve marks targeted by active missile projectiles
-    for (let eid = 1; eid < Projectile.sourceTowerType.length; eid++) {
-      if (Projectile.sourceTowerType[eid] !== 6) continue;
-      const tgt = Projectile.targetId[eid];
+    // Walk live projectile entities via the active query (NOT the raw typed array —
+    // bitecs leaves stale data on destroyed eids, which would keep marks alive forever).
+    for (const pid of projectileQueryForCleanup(world.world)) {
+      if (!entityExists(world.world, pid)) continue;
+      if (!hasComponent(world.world, Projectile, pid)) continue;
+      if (Projectile.sourceTowerType[pid] !== 6) continue;
+      const tgt = Projectile.targetId[pid];
       if (tgt !== undefined && tgt !== 0) {
         referencedMarks.add(tgt);
       }
     }
 
-    // Destroy targeting marks not referenced by any charging tower or active missile
     for (const markId of marks) {
       if (!referencedMarks.has(markId)) {
         world.destroyEntity(markId);
@@ -304,6 +367,33 @@ export class AttackSystem implements System {
     return true;
   }
 
+  /**
+   * Validate whether attackerEid can target targetEid using the 4-faction system
+   * combined with alive check and layer reachability.
+   *
+   * Checks (in order):
+   *   1. Faction hostility via areHostile()
+   *   2. Target is alive (Health.current > 0)
+   *   3. Layer reachability via canAttackLayer()
+   *
+   * Returns false if either entity lacks Faction/Health/Layer components.
+   */
+  static isValidTarget(world: TowerWorld, attackerEid: number, targetEid: number): boolean {
+    const attackerFaction = Faction.value[attackerEid];
+    const targetFaction = Faction.value[targetEid];
+    if (attackerFaction === undefined || targetFaction === undefined) return false;
+    if (!areHostile(attackerFaction, targetFaction)) return false;
+
+    if ((Health.current[targetEid] ?? 0) <= 0) return false;
+
+    const attackerLayer = Layer.value[attackerEid] ?? LayerVal.Ground;
+    const targetLayer = Layer.value[targetEid] ?? LayerVal.Ground;
+    const isRanged = (Attack.isRanged[attackerEid] ?? 0) === 1;
+    if (!AttackSystem.canAttackLayer(attackerLayer, targetLayer, isRanged)) return false;
+
+    return true;
+  }
+
   // ---- Lightning Chain ----
 
   private doLightningAttack(
@@ -359,10 +449,12 @@ export class AttackSystem implements System {
         let nearestDist = chainRange;
 
         const allMatches = potentialTargetQuery(world.world);
+        const towerFaction = Faction.value[towerId]!;
         for (const eid of allMatches) {
           if (hit.has(eid)) continue;
-          if (UnitTag.isEnemy[eid]! !== 1) continue;
-          if (Health.current[eid]! <= 0) continue;
+          const tf = Faction.value[eid];
+          if (tf === undefined || !areHostile(towerFaction, tf)) continue;
+          if ((Health.current[eid] ?? 0) <= 0) continue;
 
           const ex = Position.x[eid]!;
           const ey = Position.y[eid]!;
@@ -441,13 +533,35 @@ export function getEffectiveDamage(eid: number): number {
   return (raw + buff.absolute) * (1 + buff.percent / 100);
 }
 
+/** 导弹塔抛物线物理常量：重力加速度（px/s²） */
+export const MISSILE_GRAVITY = 400;
+
+/**
+ * 计算导弹抛物线锁定参数（design/19-missile-tower §X/Y 参数化）。
+ *
+ * 推导：y(t) = fromY + vyInitial*t + 0.5*g*t²，令 y(totalTime)=targetY 反解 vyInitial。
+ * X 恒速 → totalTime = |dx|/speed；dx≈0 时退化为 |dx|=1 像素的最短飞行时间避免除零。
+ *
+ * 由 spawnMissileProjectile 与测试 helper 共用，保证测试与生产代码物理一致。
+ */
+export function computeMissileParabola(
+  fromX: number, fromY: number,
+  targetX: number, targetY: number,
+  speed: number,
+): { totalTime: number; vyInitial: number } {
+  const dx = targetX - fromX;
+  const totalTime = Math.max(Math.abs(dx), 1) / speed;
+  const vyInitial = (targetY - fromY - 0.5 * MISSILE_GRAVITY * totalTime * totalTime) / totalTime;
+  return { totalTime, vyInitial };
+}
+
 /**
  * 生成导弹塔抛物线投射物（design/23 §0.5 launch_missile_projectile 节点核心副作用）。
  *
  * 与 AttackSystem.spawnMissileProjectile 私有方法等价：使用 PROJ_VISUAL[6] 视觉配置，
  * 读取 BuffSystem 加成后的有效攻击力，挂载 Projectile + Visual + Layer 组件。
  * targetMarkId 指向 ChargeAttackNode spawn 的 TargetingMark 实体，ProjectileSystem
- * 据此计算抛物线终点并触发 AOE 爆炸（splashRadius 默认 120px / Missile 塔 130px）。
+ * 据此计算抛物线终点并触发 AOE 爆炸（splashRadius 从 Attack 组件读取，fallback 120px）。
  */
 export function spawnMissileProjectile(
   world: TowerWorld,
@@ -464,6 +578,10 @@ export function spawnMissileProjectile(
   const fromY = Position.y[towerId]!;
   const towerCfg = TOWER_CONFIGS[TowerType.Missile];
 
+  const targetX = Position.x[targetMarkId] ?? fromX;
+  const targetY = Position.y[targetMarkId] ?? fromY;
+  const { totalTime, vyInitial } = computeMissileParabola(fromX, fromY, targetX, targetY, visual.speed);
+
   const pid = world.createEntity();
   world.addComponent(pid, Position, { x: fromX, y: fromY });
   world.addComponent(pid, Projectile, {
@@ -479,7 +597,9 @@ export function spawnMissileProjectile(
     colorG: visual.colorG,
     colorB: visual.colorB,
     size: visual.size,
-    splashRadius: towerCfg?.splashRadius ?? 120,
+    splashRadius: (Attack.splashRadius[towerId] !== undefined && Attack.splashRadius[towerId]! > 0)
+      ? Attack.splashRadius[towerId]!
+      : (towerCfg?.splashRadius ?? 120),
     stunDuration: 0,
     slowPercent: 0,
     slowMaxStacks: 0,
@@ -488,6 +608,11 @@ export function spawnMissileProjectile(
     chainRange: 0,
     chainDecay: 0,
     sourceTowerType: 6,
+    targetX,
+    targetY,
+    flightTime: 0,
+    totalTime,
+    vyInitial,
   });
 
   world.addComponent(pid, Visual, {
@@ -651,9 +776,11 @@ export function doLightningAttack(
       let nearestDist = chainRange;
 
       const allMatches = potentialTargetQuery(world.world);
+      const towerFaction = Faction.value[towerId]!;
       for (const eid of allMatches) {
         if (hit.has(eid)) continue;
-        if (UnitTag.isEnemy[eid]! !== 1) continue;
+        const tf = Faction.value[eid];
+        if (tf === undefined || !areHostile(towerFaction, tf)) continue;
         if ((Health.current[eid] ?? 0) <= 0) continue;
 
         const ex = Position.x[eid]!;
@@ -675,7 +802,7 @@ export function doLightningAttack(
  * 扫描指定塔射程内的活敌，返回按距离升序排列的 {id, dist} 列表（design/23 §0.5 工具函数）。
  *
  * 服务 BT 层 LaserBeamNode（多束自扫）及 AttackSystem 内部 update / doLightningAttack 链跳目标搜索。
- * 用 potentialTargetQuery（Position + Health + UnitTag）+ UnitTag.isEnemy === 1 + Health.current > 0 过滤。
+ * 用 potentialTargetQuery（Position + Health + UnitTag）+ areHostile(towerFaction, targetFaction) + Health.current > 0 过滤。
  */
 export function findEnemiesInRange(
   world: TowerWorld,
@@ -684,10 +811,12 @@ export function findEnemiesInRange(
 ): Array<{ id: number; dist: number }> {
   const tx = Position.x[towerId]!;
   const ty = Position.y[towerId]!;
+  const towerFaction = Faction.value[towerId]!;
   const result: Array<{ id: number; dist: number }> = [];
   const allMatches = potentialTargetQuery(world.world);
   for (const eid of allMatches) {
-    if (UnitTag.isEnemy[eid]! !== 1) continue;
+    const tf = Faction.value[eid];
+    if (tf === undefined || !areHostile(towerFaction, tf)) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
     const ex = Position.x[eid]!;
     const ey = Position.y[eid]!;

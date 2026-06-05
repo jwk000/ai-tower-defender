@@ -5,8 +5,8 @@ import {
   Movement,
   UnitTag,
   Visual,
-  AI,
   Boss,
+  Elite,
   Attack,
   Category,
   CategoryVal,
@@ -18,25 +18,17 @@ import {
   DamageTypeVal,
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
-import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../types/index.js';
-import { generateEndlessWave } from './EndlessWaveGenerator.js';
+import { GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
+import { registerBossEntity } from './EnemySkillSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { Sound } from '../utils/Sound.js';
+import { shapeTypeToVal } from '../utils/visualHelpers.js';
+import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
+import type { SpawnPoint } from '../level/graph/types.js';
 
 // ---- bitecs query for alive enemy check ----
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
-
-// ---- AI config string → numeric index mapping ----
-// 索引必须与 ALL_AI_CONFIGS 注册顺序一致
-
-const ENEMY_AI_IDS: Record<string, number> = {
-  enemy_basic: 6,
-  enemy_ranged: 7,
-  enemy_boss: 8,
-  enemy_shaman: 17,
-  enemy_balloon: 18,
-};
 
 // ---- hex color → RGB helper ----
 
@@ -49,6 +41,21 @@ function hexToRGB(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+// ---- gold color constant for elite outline ----
+const GOLD_RGB = hexToRGB('#FFD700');
+
+// ---- spawn options ----
+
+export interface SpawnEnemyOptions {
+  hpMultiplier?: number;
+  atkMultiplier?: number;
+  visualScale?: number;
+  isElite?: boolean;
+  cardOptions?: number;
+  spawnPointIndex?: number;
+  spawnId?: string;
+}
+
 /** Manages wave progression and enemy spawning */
 export class WaveSystem implements System {
   readonly name = 'WaveSystem';
@@ -56,7 +63,7 @@ export class WaveSystem implements System {
   private world: TowerWorld;
   private waves: WaveConfig[];
   private currentWaveIndex: number = 0;
-  private spawnQueue: { enemyType: EnemyType; count: number; interval: number }[] = [];
+  private spawnQueue: { enemyType: string; count: number; interval: number; spawnId?: string }[] = [];
   private spawnTimer: number = 0;
   private spawnIntervalTimer: number = 0;
   private spawnedInWave: number = 0;
@@ -65,15 +72,34 @@ export class WaveSystem implements System {
   private isBossWave: boolean = false;
   private isEndless: boolean = false;
 
+  // v4.0: elite spawning
+  private eliteSpawned: boolean = false;
+  private eliteEid: number = 0;
+  private eliteEnemyType: string | null = null;
+
+  // v4.0: difficulty scaling multiplier for current wave
+  private currentDifficulty: { hpMult: number; atkMult: number } = { hpMult: 1.0, atkMult: 1.0 };
+
+  // v4.0: spawn point distribution
+  private waveSpawnPointIndex: number | undefined = undefined;
+  private spawnDistributionCounter: number = 0;
+
   /** Auto-countdown timer — ticks down to 0 then starts next wave */
   countdown: number = 0;
   private countdownDuration: number = 5;
+
+  /** v5.0: fixed-interval wave spawning — seconds between wave starts */
+  private waveInterval: number = 30;
+  /** v5.0: elapsed seconds since current wave started */
+  private waveElapsed: number = 0;
 
   /** Tracks last integer-second value of countdown for tick sound */
   private lastCountdownInt: number = 0;
 
   /** Throttle counter for enemy spawn sounds */
   private spawnSoundCounter: number = 0;
+
+  private readonly resolvedSpawns: readonly SpawnPoint[];
 
   constructor(
     world: TowerWorld,
@@ -82,9 +108,14 @@ export class WaveSystem implements System {
     private getPhase: () => GamePhase,
     private setPhase: (phase: GamePhase) => void,
     private onWaveComplete?: () => void,
+    /** v3.0 Roguelike: 每波正式开始时触发（设置 Battle phase 之后）。用于 RunContext.startWaveEffect。 */
+    private onWaveStart?: () => void,
+    /** v4.0: 波次通关奖励金币回调 */
+    private onWaveReward?: (gold: number) => void,
   ) {
     this.world = world;
     this.waves = waves;
+    this.resolvedSpawns = resolveGraphFromMap(map).spawns;
   }
 
   get currentWave(): number {
@@ -111,6 +142,16 @@ export class WaveSystem implements System {
     return this.isEndless;
   }
 
+  /** v4.0: 4-stage difficulty multiplier based on wave progression ratio */
+  static getDifficultyMultiplier(waveIndex: number, totalWaves: number): { hpMult: number; atkMult: number } {
+    if (totalWaves <= 0) return { hpMult: 1.0, atkMult: 1.0 };
+    const ratio = waveIndex / totalWaves;
+    if (ratio < 0.2) return { hpMult: 0.8, atkMult: 0.8 };  // 开局
+    if (ratio < 0.5) return { hpMult: 1.0, atkMult: 1.0 };  // 建设
+    if (ratio < 0.8) return { hpMult: 1.3, atkMult: 1.3 };  // 压力
+    return { hpMult: 1.5, atkMult: 1.5 };                    // 高潮
+  }
+
   startEndlessMode(): void {
     this.isEndless = true;
     this.waves = [];
@@ -130,27 +171,51 @@ export class WaveSystem implements System {
   skipCountdown(): void {
     this.countdown = 0;
     this.startWave();
+    // v5.0: spawn immediately — countdown was skipped, no need for spawnDelay
+    this.spawnTimer = 0;
+  }
+
+  /** Stub endless wave generator — Phase 3 will rewrite */
+  private generateEndlessWaveStub(waveNum: number): WaveConfig {
+    return {
+      waveNumber: waveNum,
+      spawnDelay: 2,
+      enemies: [{ enemyType: 'goblin', count: 5 + waveNum * 2, spawnInterval: 1.0 }],
+    };
   }
 
   /** Player clicks "start wave" — begin spawning */
   startWave(): void {
+    // v4.0: calculate difficulty multiplier for this wave
+    const totalWaves = this.isEndless ? 10 : this.waves.length;
+    this.currentDifficulty = WaveSystem.getDifficultyMultiplier(this.currentWaveIndex, totalWaves);
+
     if (this.isEndless) {
       Sound.play('wave_start');
-      const wave = generateEndlessWave(this.currentWaveIndex + 1);
+      const wave = this.generateEndlessWaveStub(this.currentWaveIndex + 1);
       this.isBossWave = wave.isBossWave ?? false;
       if (this.isBossWave) Sound.play('wave_boss');
       this.spawnQueue = wave.enemies.map((g) => ({
         enemyType: g.enemyType,
         count: g.count,
         interval: g.spawnInterval,
+        spawnId: g.spawnId,
       }));
-      this.spawnTimer = wave.spawnDelay;
-      this.spawnIntervalTimer = 0;
-      this.spawnedInWave = 0;
-      this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
-      this.waveActive = true;
-      this.setPhase(GamePhase.Battle);
-      return;
+    this.spawnTimer = wave.spawnDelay;
+    this.spawnIntervalTimer = 0;
+    this.spawnedInWave = 0;
+    this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
+    this.waveActive = true;
+    this.waveElapsed = 0; // v5.0: reset fixed-interval timer
+
+    // v4.0: reset elite tracking & spawn point
+    this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
+    this.waveSpawnPointIndex = wave.spawnPointIndex;
+    this.spawnDistributionCounter = 0;
+
+    this.setPhase(GamePhase.Battle);
+    this.onWaveStart?.();
+    return;
     }
 
     if (this.currentWaveIndex >= this.waves.length) return;
@@ -163,13 +228,33 @@ export class WaveSystem implements System {
       enemyType: g.enemyType,
       count: g.count,
       interval: g.spawnInterval,
+      spawnId: g.spawnId,
     }));
     this.spawnTimer = wave.spawnDelay;
     this.spawnIntervalTimer = 0;
     this.spawnedInWave = 0;
     this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
     this.waveActive = true;
+    this.waveElapsed = 0; // v5.0: reset fixed-interval timer
+
+    // v4.0: reset elite tracking & spawn point
+    this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
+    this.waveSpawnPointIndex = wave.spawnPointIndex;
+    this.spawnDistributionCounter = 0;
+
     this.setPhase(GamePhase.Battle);
+    this.onWaveStart?.();
+  }
+
+  /** v4.0: reset elite tracking state for a new wave */
+  private resetEliteTracking(enemyTypes: string[]): void {
+    this.eliteSpawned = false;
+    this.eliteEid = 0;
+    if (enemyTypes.length > 0) {
+      this.eliteEnemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] ?? null;
+    } else {
+      this.eliteEnemyType = null;
+    }
   }
 
   update(world: TowerWorld, dt: number): void {
@@ -192,11 +277,17 @@ export class WaveSystem implements System {
         this.lastCountdownInt = 0;
         Sound.play('countdown_go');
         this.startWave();
-        return;
+        // v5.0: zero out spawnDelay — the countdown already gave preparation time.
+        // Players expect enemies to appear immediately after countdown hits 0.
+        this.spawnTimer = 0;
+        // fall through to process spawning in this same frame
       }
     }
 
     if (!this.waveActive) return;
+
+    // v5.0: track elapsed time for fixed-interval spawning
+    this.waveElapsed += dt;
 
     // Wait for initial spawn delay
     if (this.spawnTimer > 0) {
@@ -209,7 +300,7 @@ export class WaveSystem implements System {
       this.spawnIntervalTimer -= dt;
       if (this.spawnIntervalTimer <= 0) {
         const group = this.spawnQueue[0]!;
-        this.spawnEnemy(group.enemyType);
+        this.spawnEnemy(group.enemyType, { spawnId: group.spawnId });
         group.count--;
         this.spawnedInWave++;
 
@@ -220,31 +311,73 @@ export class WaveSystem implements System {
       }
     }
 
-    // Check if wave is complete (all enemies spawned AND all dead)
+    // v4.0: spawn elite after all regular enemies are out (only once)
     if (
       this.spawnedInWave >= this.totalInWave &&
       this.spawnQueue.length === 0
     ) {
-      const hasAliveEnemies = this.hasAliveEnemies();
-      if (!hasAliveEnemies) {
-        this.waveActive = false;
-        Sound.play('wave_clear');
-        this.isBossWave = false;
-        this.currentWaveIndex++;
-
-        if (this.isEndless) {
-          this.onWaveComplete?.();
-          this.setPhase(GamePhase.WaveBreak);
-          this.startAutoCountdown(3); // 3s between endless waves
-        } else if (this.currentWaveIndex >= this.waves.length) {
-          this.setPhase(GamePhase.Victory);
-        } else {
-          this.onWaveComplete?.();
-          this.setPhase(GamePhase.WaveBreak);
-          this.startAutoCountdown(3); // 3s between waves
-        }
+      if (!this.eliteSpawned && this.eliteEnemyType !== null) {
+        this.spawnEliteEnemy();
       }
     }
+
+    // v5.0: fixed-interval wave spawning. Non-final waves advance on interval
+    // so surviving enemies can carry over; final wave must wait for full clear.
+    // Use epsilon comparison to avoid floating-point imprecision edge cases.
+    if (this.waveElapsed >= this.waveInterval - 0.001) {
+      const isFinalWave = !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
+      if (!isFinalWave || !this.hasAliveEnemies()) {
+        this.finishWave();
+      }
+    }
+
+    // v4.0: elite death → card draft is now handled in HealthSystem's onEnemyKilled
+    // callback (see main.ts) which checks UnitTag.isElite, avoiding pipeline
+    // ordering issues (damage sources after WaveSystem were missed).
+  }
+
+  /** v5.0: finish the current wave and transition to the next one (countdown → next wave).
+   *  Called when the fixed-interval timer expires, regardless of alive enemies. */
+  private finishWave(): void {
+    this.waveActive = false;
+    Sound.play('wave_clear');
+    this.isBossWave = false;
+
+    // v4.0: fire wave reward callback
+    const wave = this.isEndless
+      ? null
+      : (this.currentWaveIndex < this.waves.length ? this.waves[this.currentWaveIndex] : null);
+    if (wave?.reward && this.onWaveReward) {
+      this.onWaveReward(wave.reward);
+    }
+
+    this.currentWaveIndex++;
+
+    if (this.isEndless) {
+      this.onWaveComplete?.();
+      this.setPhase(GamePhase.WaveBreak);
+      this.startAutoCountdown(5); // 5s between endless waves
+    } else if (this.currentWaveIndex >= this.waves.length) {
+      this.setPhase(GamePhase.Victory);
+    } else {
+      this.onWaveComplete?.();
+      this.setPhase(GamePhase.WaveBreak);
+      this.startAutoCountdown(5); // 5s between waves
+    }
+  }
+
+  /** v5.0: set the fixed interval (seconds) between wave starts. Default 30s. */
+  setWaveInterval(seconds: number): void {
+    this.waveInterval = Math.max(1, seconds);
+  }
+
+  get waveIntervalSeconds(): number {
+    return this.waveInterval;
+  }
+
+  /** v5.0: get elapsed seconds in the current wave */
+  get waveElapsedSeconds(): number {
+    return this.waveElapsed;
   }
 
   /** Check if any enemy entities are still alive using bitecs query */
@@ -258,11 +391,12 @@ export class WaveSystem implements System {
     return false;
   }
 
-  private spawnEnemy(type: EnemyType): void {
+  private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {
     const config = ENEMY_CONFIGS[type];
-    if (!config) return;
+    if (!config) return 0;
 
-    const spawn = this.map.enemyPath[0]!;
+    // v4.0: resolve spawn point (options override, then wave config, then distribute)
+    const [spawn, spawnIdx] = this.resolveSpawnPoint(options?.spawnPointIndex, options?.spawnId);
     const ts = this.map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
@@ -271,115 +405,163 @@ export class WaveSystem implements System {
 
     const eid = this.world.createEntity();
     const rgb = hexToRGB(config.color);
+    const isElite = options?.isElite ?? false;
+
+    // v4.0: calculate effective multipliers
+    const hpMult = (options?.hpMultiplier ?? 1.0) * this.currentDifficulty.hpMult;
+    const atkMult = (options?.atkMultiplier ?? 1.0) * this.currentDifficulty.atkMult;
+    const visualScale = options?.visualScale ?? 1.0;
 
     this.world.addComponent(eid, Position, { x, y });
     this.world.addComponent(eid, Health, {
-      current: config.hp,
-      max: config.hp,
+      current: Math.round(config.hp * hpMult),
+      max: Math.round(config.hp * hpMult),
       armor: config.defense,
       magicResist: config.magicResist,
     });
     this.world.addComponent(eid, Movement, {
       speed: config.speed,
       moveMode: MoveModeVal.FollowPath,
+      spawnIdx: spawnIdx,
     });
+
+    const effectiveAtk = Math.max(1, Math.round(config.atk * atkMult));
     this.world.addComponent(eid, UnitTag, {
       isEnemy: 1,
+      isElite: isElite ? 1 : 0,
       rewardGold: config.rewardGold,
       canAttackBuildings: config.canAttackBuildings ? 1 : 0,
-      atk: config.atk,
+      atk: effectiveAtk,
     });
+
+    const shapeVal = shapeTypeToVal(config.shape ?? 'circle');
+    const partsId = config.visualParts
+      ? this.world.registerUnitVisualParts(config.visualParts)
+      : 0;
+
+    // v4.0: elite visual — gold outline, size × visualScale
+    const goldR = GOLD_RGB.r;
+    const goldG = GOLD_RGB.g;
+    const goldB = GOLD_RGB.b;
+
     this.world.addComponent(eid, Visual, {
-      shape: 1, // ShapeVal.Circle
-      colorR: rgb.r,
-      colorG: rgb.g,
-      colorB: rgb.b,
-      size: config.radius * 2,
+      shape: shapeVal,
+      colorR: isElite ? goldR : rgb.r,
+      colorG: isElite ? goldG : rgb.g,
+      colorB: isElite ? goldB : rgb.b,
+      size: config.radius * 2 * visualScale,
       alpha: 1,
+      facing: 1,
+      bobPhase: 0,
+      breathPhase: Math.random() * Math.PI * 2,
+      attackAnimTimer: 0,
+      attackAnimDuration: config.attackAnimDuration ?? 0.3,
+      partsId,
     });
     this.world.addComponent(eid, Category, {
       value: CategoryVal.Enemy,
     });
 
-    // HotAirBalloon uses LowAir layer (flies over ground)
-    if (type === EnemyType.HotAirBalloon) {
-      this.world.addComponent(eid, Layer, {
-        value: LayerVal.LowAir,
-      });
-      // Add Attack component for bomb dropping
-      this.world.addComponent(eid, Attack, {
-        damage: config.bombDamage ?? config.atk,
-        attackSpeed: 1 / (config.bombInterval ?? 3.5),
-        range: 32, // checks directly below
-        damageType: DamageTypeVal.Physical,
-        isRanged: 1,
-      });
-    } else {
-      this.world.addComponent(eid, Layer, {
-        value: LayerVal.Ground,
-      });
-    }
+    // Ground enemies — all default to Ground layer
+    this.world.addComponent(eid, Layer, {
+      value: LayerVal.Ground,
+    });
     this.world.addComponent(eid, Faction, {
-      value: FactionVal.Enemy,
+      value: FactionVal.Evil,
     });
 
-    // Ranged attackers get an Attack component (replaces old EnemyAttacker)
+    // Attackers get an Attack component (range > 0 means can attack)
     if (config.attackRange > 0) {
       this.world.addComponent(eid, Attack, {
-        damage: config.atk,
+        damage: effectiveAtk,
         attackSpeed: config.attackSpeed,
         range: config.attackRange,
         damageType: DamageTypeVal.Physical,
-        isRanged: 0,  // default enemies are melee (ranged enemies TBD via config)
+        isRanged: config.attackRange > 60 ? 1 : 0, // 远程阈值 60px
       });
     }
 
     // Boss component
     if (config.isBoss) {
       this.world.addComponent(eid, Boss, {
+        bossType: 0xFF, // data-driven boss
         phase: 1,
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
+        selfDestructTimer: -1, // inactive
+      });
+      registerBossEntity(eid, config.type);
+    }
+
+    // v4.0: Elite component
+    if (isElite) {
+      this.world.addComponent(eid, Elite, {
+        cardOptions: options?.cardOptions ?? 3,
+        hpMultiplier: options?.hpMultiplier ?? 2.0,
+        atkMultiplier: options?.atkMultiplier ?? 1.5,
+        visualScale: visualScale,
       });
     }
 
-    // AI component
-    const aiConfigId = this.getEnemyAIConfig(type);
-    this.world.addComponent(eid, AI, {
-      configId: ENEMY_AI_IDS[aiConfigId] ?? 0,
-      active: 1,
-      updateInterval: 0.1,
-    });
-
     // Display name for overhead HUD
-    this.world.setDisplayName(eid, config.name);
+    this.world.setDisplayName(eid, isElite ? `精英 ${config.name}` : config.name);
 
     // Throttled spawn sound — roughly 1 in 3 spawns
     this.spawnSoundCounter++;
     if (this.spawnSoundCounter % 3 === 0) {
       Sound.play('enemy_spawn');
     }
+
+    return eid;
   }
 
-  private getEnemyAIConfig(enemyType: EnemyType): string {
-    switch (enemyType) {
-      case EnemyType.Grunt:
-      case EnemyType.Runner:
-      case EnemyType.Heavy:
-      case EnemyType.Exploder:
-        return 'enemy_basic';
-      case EnemyType.Mage:
-        return 'enemy_ranged';
-      case EnemyType.BossCommander:
-      case EnemyType.BossBeast:
-        return 'enemy_boss';
-      case EnemyType.Shaman:
-        return 'enemy_shaman';
-      case EnemyType.HotAirBalloon:
-        return 'enemy_balloon';
-      case EnemyType.Juggernaut:
-        return 'enemy_basic';
-      default:
-        return 'enemy_basic';
+  /** v4.0: resolve which spawn point to use for an enemy.
+   *  Returns [spawnPoint, spawnIndex] */
+  private resolveSpawnPoint(overrideIndex?: number, spawnId?: string): [SpawnPoint, number] {
+    // spawnId string takes priority — resolve to index via map.spawns
+    if (spawnId !== undefined && this.map.spawns) {
+      const idx = this.map.spawns.findIndex((s) => s.id === spawnId);
+      if (idx >= 0 && idx < this.resolvedSpawns.length) {
+        return [this.resolvedSpawns[idx]!, idx];
+      }
     }
+    // Options override takes priority
+    if (overrideIndex !== undefined && overrideIndex >= 0 && overrideIndex < this.resolvedSpawns.length) {
+      return [this.resolvedSpawns[overrideIndex]!, overrideIndex];
+    }
+    // Wave config spawnPointIndex
+    const waveIndex = this.waveSpawnPointIndex;
+    if (waveIndex !== undefined && waveIndex >= 0 && waveIndex < this.resolvedSpawns.length) {
+      return [this.resolvedSpawns[waveIndex]!, waveIndex];
+    }
+    // -1 or undefined → distribute across all spawns (round-robin)
+    if (this.resolvedSpawns.length <= 1) {
+      return [this.resolvedSpawns[0]!, 0];
+    }
+    const idx = this.spawnDistributionCounter % this.resolvedSpawns.length;
+    this.spawnDistributionCounter++;
+    return [this.resolvedSpawns[idx]!, idx];
   }
-}
+
+  /** v4.0: spawn the elite enemy for the current wave */
+  private spawnEliteEnemy(): void {
+    if (this.eliteEnemyType === null || this.eliteSpawned) return;
+    this.eliteSpawned = true;
+
+    // Elite spawns at a random spawn point (if multiple)
+    const randomSpawnIdx = this.resolvedSpawns.length > 1
+      ? Math.floor(Math.random() * this.resolvedSpawns.length)
+      : undefined;
+
+    const options: SpawnEnemyOptions = {
+      hpMultiplier: 2.0,
+      atkMultiplier: 1.5,
+      visualScale: 1.2,
+      isElite: true,
+      cardOptions: 3,
+      spawnPointIndex: randomSpawnIdx,
+    };
+
+    this.eliteEid = this.spawnEnemy(this.eliteEnemyType, options);
+    Sound.play('enemy_spawn');
+  }
+  }

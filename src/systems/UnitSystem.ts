@@ -9,6 +9,8 @@ import {
   Projectile,
   DeathEffect,
   Trap,
+  UnitTag,
+  Soldier,
 } from '../core/components.js';
 import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
@@ -121,7 +123,7 @@ export class UnitSystem implements System {
 
     const rawSpeed = Movement.speed[eid]!;
     const buff = getEffectiveValue(eid, 'speed');
-    const speed = (rawSpeed + buff.absolute) * (1 + buff.percent / 100);
+    const speed = Math.max(rawSpeed * 0.5, (rawSpeed + buff.absolute) * (1 + buff.percent / 100));
     const moveDist = speed * dt;
     const stepX = (dx / dist) * Math.min(moveDist, dist);
     const stepY = (dy / dist) * Math.min(moveDist, dist);
@@ -155,6 +157,7 @@ export class UnitSystem implements System {
     // Entity collision + avoidance
     const collision = this.checkEntityCollision(world, eid, newX, newY, radius);
 
+    let finalDx = 0;
     if (collision.blocked) {
       const avoidance = this.findAvoidance(
         world, eid, px, py, radius, moveTargetX, moveTargetY,
@@ -188,6 +191,7 @@ export class UnitSystem implements System {
             if (!recheck.blocked) {
               Position.x[eid] = avoidX;
               Position.y[eid] = avoidY;
+              finalDx = avoidX - px;
             }
           }
         }
@@ -195,6 +199,19 @@ export class UnitSystem implements System {
     } else {
       Position.x[eid] = newX;
       Position.y[eid] = newY;
+      finalDx = newX - px;
+    }
+
+    this.advanceLocomotionAnim(eid, finalDx, speed, dt);
+  }
+
+  private advanceLocomotionAnim(eid: number, dx: number, speed: number, dt: number): void {
+    if (dx > 0.05) Visual.facing[eid] = 1;
+    else if (dx < -0.05) Visual.facing[eid] = -1;
+    const moving = Math.abs(dx) > 0.05;
+    if (moving) {
+      // 0.08 rad·s / px·s → 速度 80 px/s 时约 6.4 rad/s（≈ 1 步/秒）
+      Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
     }
   }
 
@@ -206,7 +223,7 @@ export class UnitSystem implements System {
     return (Visual.size[eid] ?? 32) / 2;
   }
 
-  /** Tile collision — checks if (x, y) with given radius overlaps blocked/path tiles */
+  /** Tile collision — soldiers may step onto Path to chase/intercept enemies; only Blocked tiles obstruct them. */
   private checkTileCollision(x: number, y: number, radius: number): boolean {
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
@@ -220,10 +237,10 @@ export class UnitSystem implements System {
     for (let row = minRow; row <= maxRow; row++) {
       for (let col = minCol; col <= maxCol; col++) {
         if (row < 0 || row >= this.map.rows || col < 0 || col >= this.map.cols) {
-          return true; // out of bounds = blocked
+          return true;
         }
         const tile = this.map.tiles[row]![col]!;
-        if (tile === TileType.Blocked || tile === TileType.Path) {
+        if (tile === TileType.Blocked) {
           const tileCenterX = col * ts + ts / 2 + ox;
           const tileCenterY = row * ts + ts / 2 + oy;
           const halfTs = ts / 2;
@@ -258,6 +275,7 @@ export class UnitSystem implements System {
       const otherId = others[i]!;
       if (otherId === selfId) continue;
 
+      if (this.canOverlap(world, selfId, otherId)) continue;
       if (this.isExcluded(world, otherId)) continue;
 
       const otherX = Position.x[otherId]!;
@@ -299,6 +317,7 @@ export class UnitSystem implements System {
       const otherId = others[i]!;
       if (otherId === selfId) continue;
 
+      if (this.canOverlap(world, selfId, otherId)) continue;
       if (this.isExcluded(world, otherId)) continue;
 
       const otherX = Position.x[otherId]!;
@@ -348,6 +367,15 @@ export class UnitSystem implements System {
       if (hasComponent(world.world, comp, eid)) return true;
     }
     return false;
+  }
+
+  private canOverlap(world: TowerWorld, selfId: number, otherId: number): boolean {
+    return this.isEnemyOrSoldier(world, selfId) && this.isEnemyOrSoldier(world, otherId);
+  }
+
+  private isEnemyOrSoldier(world: TowerWorld, eid: number): boolean {
+    if (hasComponent(world.world, Soldier, eid)) return true;
+    return hasComponent(world.world, UnitTag, eid) && UnitTag.isEnemy[eid] === 1;
   }
 }
 

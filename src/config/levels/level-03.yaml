@@ -1,201 +1,200 @@
 # ============================================================
-# Tower Defender — 关卡配置: 冰原 (L3 Tundra)
+# 第3关：黑暗古堡
+# 路径布局：Y型双路汇聚（上下对称合流于中心）
+# 出生口：右上(行2,列20) + 右下(行6,列20) | 水晶：中左(行4,列0)
+# 上路径：行2左→列10下→行4左→水晶
+# 下路径：行6左→列10上→行4左→水晶
+# 对称轴：行4（上下完全对称Y形）
+# 每个出生口每波均有精英怪
 # ============================================================
-# 设计文档: design/07-map-level-system.md
-# 源文件: src/data/levels/level-03.ts
-# ============================================================
+id: level_03
+name: 黑暗古堡
+theme: castle
+description: 森林古堡，暗夜笼罩
 
-# ---- 基本信息 ----
-id: L3_tundra
-name: 冰原
-theme: tundra
-description: 双路线冰原地形，路径上的敌人会被减速
-sceneDescription: 永冻之地的冰原战场。冰原斥候和冰面滑行者从两条路线同时进攻。第5波、第13波冰霜将领指挥作战，第15波冰原猛犸与将领联手。冰晶和冰封的树木散落在雪地中。
-
-# ---- 地图配置 ----
 map:
-  name: 冰原
   cols: 21
   rows: 9
   tileSize: 64
-
-  # Tile grid: 0=empty 1=path 2=blocked 3=spawn 4=base
   tiles:
-    - [0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 0: spawn at col1, col6
-    - [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 1: path vertical
-    - [0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 2: path branches
-    - [0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 3: path goes right
-    - [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 4: path vertical
-    - [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 5: path vertical
-    - [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 6: path goes right
-    - [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # row 7: path vertical
-    - [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4]  # row 8: path straight to base
-
-  # Enemy path waypoints (row, col)
-  enemyPath:
-    - { row: 0, col: 1 }
-    - { row: 3, col: 1 }
-    - { row: 3, col: 4 }
-    - { row: 6, col: 4 }
-    - { row: 6, col: 7 }
-    - { row: 8, col: 7 }
-    - { row: 8, col: 20 }
-
-  # Alternative spawn points (secondary entrance)
-  altSpawnPoints:
-    - { row: 0, col: 6 }
-
-  # Tile color theme
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [base, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, path, spawn]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
-    empty: '#cfd8dc'
-    path: '#90a4ae'
-    spawn: '#4dd0e1'
-    base: '#42a5f5'
-
-  # Scene decorations (obstacles, visual only)
+    empty: '#9e9e9e'
+    path: '#616161'
+    blocked: '#212121'
+    spawn: '#b8940a'
+    base: '#3288cc'
   obstacles:
-    - { type: ice_crystal,  row: 0, col: 3 }
-    - { type: ice_crystal,  row: 0, col: 10 }
-    - { type: ice_crystal,  row: 2, col: 15 }
-    - { type: ice_crystal,  row: 5, col: 10 }
-    - { type: ice_crystal,  row: 7, col: 2 }
-    - { type: snow_tree,    row: 1, col: 10 }
-    - { type: snow_tree,    row: 4, col: 16 }
-    - { type: snow_tree,    row: 6, col: 14 }
-    - { type: frozen_rock,  row: 0, col: 17 }
-    - { type: frozen_rock,  row: 2, col: 10 }
-    - { type: frozen_rock,  row: 5, col: 17 }
-    - { type: frozen_rock,  row: 7, col: 12 }
-    - { type: frozen_rock,  row: 8, col: 0 }
+    - { type: pillar, row: 0, col: 2 }
+    - { type: pillar, row: 0, col: 10 }
+    - { type: pillar, row: 0, col: 18 }
+    - { type: pillar, row: 6, col: 5 }
+    - { type: pillar, row: 8, col: 10 }
+    - { type: brazier, row: 1, col: 2 }
+    - { type: brazier, row: 2, col: 1 }
+    - { type: brazier, row: 5, col: 18 }
+    - { type: brazier, row: 6, col: 17 }
+    - { type: brazier, row: 7, col: 17 }
+    - { type: rubble, row: 2, col: 17 }
+    - { type: rubble, row: 3, col: 16 }
+    - { type: rubble, row: 5, col: 1 }
+    - { type: rubble, row: 8, col: 3 }
+    - { type: dead_tree, row: 0, col: 15 }
+    - { type: dead_tree, row: 4, col: 12 }
+    - { type: dead_tree, row: 8, col: 7 }
+    - { type: dead_tree, row: 8, col: 18 }
+  spawns:
+    - id: spawn_0
+      row: 2
+      col: 20
+    - id: spawn_1
+      row: 6
+      col: 20
+  pathGraph:
+    nodes:
+      - { id: n0, row: 2, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 2, col: 10, role: waypoint }
+      - { id: n2, row: 4, col: 10, role: waypoint }
+      - { id: n3, row: 6, col: 20, role: spawn, spawnId: spawn_1 }
+      - { id: n4, row: 6, col: 10, role: waypoint }
+      - { id: n5, row: 4, col: 0, role: crystal_anchor }
+    edges:
+      - { from: n0, to: n1 }
+      - { from: n1, to: n2 }
+      - { from: n3, to: n4 }
+      - { from: n4, to: n2 }
+      - { from: n2, to: n5 }
+  lighting:
+    fogOverlay:
+      enabled: true
 
-# ---- 波次配置 ----
+weather:
+  pool:
+    - Night
+  initial: Night
+
+crystal:
+  hp: 900
+
+starting:
+  gold: 300
+  energy: 50
+  maxPopulation: 10
+
+available:
+  towers:
+    - arrow
+    - laser
+    - bat
+  units:
+    - shield_guard
+    - mage
+    - priest
+
 waves:
-  # Wave 1 — 6 个步兵
+  # 波次1: 上口(狼人×3+蝙蝠精英×2) | 下口(狼人×3+蝙蝠精英×2)
   - waveNumber: 1
-    enemies:
-      - { enemyType: grunt, count: 6, spawnInterval: 1.3 }
     spawnDelay: 2
-
-  # Wave 2 — 8 个步兵
+    enemies:
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 30
+  # 波次2: 上口(狼人×3+巫师精英×2) | 下口(狼人×3+蝙蝠精英×3)
   - waveNumber: 2
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 8, spawnInterval: 1.1 }
-    spawnDelay: 2
-
-  # Wave 3 — 5 步兵 + 3 快速兵
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+    reward: 40
+  # 波次3: 上口(狼人×3+蝙蝠精英×2+巫师精英×1) | 下口(狼人×3+蝙蝠精英×2+牧师精英×1)
   - waveNumber: 3
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 5, spawnInterval: 1.0 }
-      - { enemyType: runner, count: 3, spawnInterval: 0.7 }
-    spawnDelay: 2
-
-  # Wave 4 — 10 个步兵
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 50
+  # 波次4: 上口(狼人×3+巫师精英×2+牧师精英×1) | 下口(狼人×3+蝙蝠精英×2+巫师精英×2)
   - waveNumber: 4
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 10, spawnInterval: 1.0 }
-    spawnDelay: 2
-
-  # Wave 5 — BOSS: 3 步兵 + 1 指挥官
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 60
+  # 波次5: 上口(狼人×3+蝙蝠精英×2+弗兰肯精英×1) | 下口(狼人×3+巫师精英×2+牧师精英×2)
   - waveNumber: 5
+    spawnDelay: 30
     enemies:
-      - { enemyType: grunt, count: 3, spawnInterval: 1.0 }
-      - { enemyType: boss_commander, count: 1, spawnInterval: 0 }
-    spawnDelay: 3
-    isBossWave: true
-
-  # Wave 6 — 7 快速兵 + 3 法师 (spawn alt)
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 70
+  # 波次6: 上口(狼人×3+巫师精英×3+牧师精英×1) | 下口(狼人×3+蝙蝠精英×3+弗兰肯精英×1)
   - waveNumber: 6
+    spawnDelay: 30
     enemies:
-      - { enemyType: runner, count: 7, spawnInterval: 0.6 }
-      - { enemyType: mage, count: 3, spawnInterval: 1.5 }
-    spawnDelay: 2
-    spawnPointIndex: 1
-
-  # Wave 7 — 8 快速兵
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+    reward: 80
+  # 波次7: 上口(BOSS路西法+蝙蝠精英×3) | 下口(狼人×4+巫师精英×3+牧师精英×2)
   - waveNumber: 7
+    spawnDelay: 30
     enemies:
-      - { enemyType: runner, count: 8, spawnInterval: 0.5 }
-    spawnDelay: 2
-
-  # Wave 8 — 5 重型兵 (spawn primary)
-  - waveNumber: 8
-    enemies:
-      - { enemyType: heavy, count: 5, spawnInterval: 1.8 }
-    spawnDelay: 2
-    spawnPointIndex: 0
-
-  # Wave 9 — 6 步兵 + 4 自爆兵 (spawn alt)
-  - waveNumber: 9
-    enemies:
-      - { enemyType: grunt, count: 6, spawnInterval: 1.0 }
-      - { enemyType: exploder, count: 4, spawnInterval: 1.2 }
-    spawnDelay: 2
-    spawnPointIndex: 1
-
-  # Wave 10 — 4 重型 + 4 法师 (spawn primary)
-  - waveNumber: 10
-    enemies:
-      - { enemyType: heavy, count: 4, spawnInterval: 1.8 }
-      - { enemyType: mage, count: 4, spawnInterval: 1.5 }
-    spawnDelay: 3
-    spawnPointIndex: 0
-
-  # Wave 11 — 6 快速兵 + 3 重型 (spawn alt)
-  - waveNumber: 11
-    enemies:
-      - { enemyType: runner, count: 6, spawnInterval: 0.5 }
-      - { enemyType: heavy, count: 3, spawnInterval: 2.0 }
-    spawnDelay: 2
-    spawnPointIndex: 1
-
-  # Wave 12 — 5 重型 + 5 自爆兵 (spawn primary)
-  - waveNumber: 12
-    enemies:
-      - { enemyType: heavy, count: 5, spawnInterval: 1.8 }
-      - { enemyType: exploder, count: 5, spawnInterval: 1.0 }
-    spawnDelay: 3
-    spawnPointIndex: 0
-
-  # Wave 13 — BOSS: 1 指挥官 + 4 快速兵 (spawn primary)
-  - waveNumber: 13
-    enemies:
-      - { enemyType: boss_commander, count: 1, spawnInterval: 0 }
-      - { enemyType: runner, count: 4, spawnInterval: 0.6 }
-    spawnDelay: 3
+      - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: werewolf, count: 4, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
     isBossWave: true
-    spawnPointIndex: 0
+    reward: 120
 
-  # Wave 14 — 4 法师 + 4 重型 + 3 自爆兵 (spawn alt)
-  - waveNumber: 14
-    enemies:
-      - { enemyType: mage, count: 4, spawnInterval: 1.5 }
-      - { enemyType: heavy, count: 4, spawnInterval: 1.8 }
-      - { enemyType: exploder, count: 3, spawnInterval: 1.2 }
-    spawnDelay: 2
-    spawnPointIndex: 1
+cardPool:
+  - card_arrow_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_shield_guard
+  - card_mage
+  - card_priest
+  - card_bear_trap
 
-  # Wave 15 — FINAL BOSS: 1 指挥官 + 1 猛犸 + 2 重型 (spawn primary)
-  - waveNumber: 15
-    enemies:
-      - { enemyType: boss_commander, count: 1, spawnInterval: 0 }
-      - { enemyType: boss_beast, count: 1, spawnInterval: 2.0 }
-      - { enemyType: heavy, count: 2, spawnInterval: 1.8 }
-    spawnDelay: 4
-    isBossWave: true
-    spawnPointIndex: 0
+draftPool:
+  - card_arrow_tower
+  - card_laser_tower
+  - card_bat_tower
+  - card_ice_tower
+  - card_shield_guard
+  - card_mage
+  - card_priest
+  - card_boulder
+  - card_blizzard
+  - card_emergency_shield
+  - card_arrow_boost
 
-# ---- 起始资源 ----
-startingGold: 300
-
-# ---- 可用单位 ----
-availableTowers: [arrow, ice, bat]
-availableUnits: []
-
-# ---- 解锁条件 ----
-unlockStarsRequired: 0
-unlockPrevLevelId: L2_desert
-
-# ---- 随机池 ----
-weatherPool: [snow, fog, night]
 banPool: []
 neutralPool: []
