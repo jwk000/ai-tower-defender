@@ -152,6 +152,7 @@ export class UISystem implements System {
   // requiredComponents removed — no entity iteration; queries run inline
 
   static readonly TOP_H = 36;
+  static readonly TOP_HUD_SIDE_MARGIN = 20;
   static readonly BTN_W = 80;
   static readonly BTN_H = 80;
   static readonly BTN_GAP = 8;
@@ -886,7 +887,7 @@ export class UISystem implements System {
     });
 
     this.infos.push({
-      x: 20, y: UISystem.TOP_H / 2,
+      x: UISystem.TOP_HUD_SIDE_MARGIN, y: UISystem.TOP_H / 2,
       text: `💰${gold}`,
       color: '#ffd54f', size: 20,
     });
@@ -947,6 +948,7 @@ export class UISystem implements System {
 
     // Viewport-right-anchored button positions (design-space)
     const rightEdgeD = this.viewportRightDesignX();
+    const rightControlsEdgeD = rightEdgeD - UISystem.TOP_HUD_SIDE_MARGIN;
 
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
       const cd = this.getCountdown();
@@ -956,7 +958,7 @@ export class UISystem implements System {
         color: '#ffd54f', size: 20,
       });
 
-      const skipBtnX = rightEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
+      const skipBtnX = rightControlsEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
       const skipBtnW = 50;
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
@@ -980,7 +982,7 @@ export class UISystem implements System {
       });
     }
 
-    const speedBtnX = rightEdgeD - 71;    // 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 71
+    const speedBtnX = rightControlsEdgeD - 71;    // 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 71
     const speedBtnW = 30;
     const speedBtnH = 28;
     const speedBtnY = (UISystem.TOP_H - speedBtnH) / 2;
@@ -1006,7 +1008,7 @@ export class UISystem implements System {
       onClick: () => { this.onToggleSpeed?.(); },
     });
 
-    const pauseBtnX = rightEdgeD - 29;    // touches viewport right edge
+    const pauseBtnX = rightControlsEdgeD - 29;
     const pauseBtnW = 29;
     const pauseBtnH = 28;
     const pauseBtnY = (UISystem.TOP_H - pauseBtnH) / 2;
