@@ -250,6 +250,7 @@ export class UISystem implements System {
      */
     private getRefundQuote: ((entityId: number) => { amount: number; reason: string } | null) | null = null,
     private onUpgradeUnit: ((entityId: number) => void) | null = null,
+    private getCrystalHealth: (() => { current: number; max: number } | null) | null = null,
   ) {}
 
   // ---- Selection getter/setter helpers (unchanged) ----
@@ -886,8 +887,14 @@ export class UISystem implements System {
       alpha: 0.9,
     });
 
+    const crystalHealth = this.getCrystalHealth?.() ?? null;
     this.infos.push({
       x: UISystem.TOP_HUD_SIDE_MARGIN, y: UISystem.TOP_H / 2,
+      text: crystalHealth ? `💎${Math.ceil(crystalHealth.current)}/${Math.ceil(crystalHealth.max)}` : '💎--/--',
+      color: '#4fc3f7', size: 20,
+    });
+    this.infos.push({
+      x: UISystem.TOP_HUD_SIDE_MARGIN + 150, y: UISystem.TOP_H / 2,
       text: `💰${gold}`,
       color: '#ffd54f', size: 20,
     });
@@ -952,16 +959,16 @@ export class UISystem implements System {
 
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
       const cd = this.getCountdown();
-      this.infos.push({
-        x: rightEdgeD - 270, y: UISystem.TOP_H / 2,
-        text: `⏱${formatNumber(cd)}s`,
-        color: '#ffd54f', size: 20,
-      });
-
       const skipBtnX = rightControlsEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
       const skipBtnW = 50;
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
+      this.infos.push({
+        x: skipBtnX - 12, y: UISystem.TOP_H / 2,
+        text: `⏱${formatNumber(cd)}s`,
+        color: '#ffd54f', size: 20,
+        align: 'right',
+      });
 
       this.renderer.push({
         shape: 'rect',

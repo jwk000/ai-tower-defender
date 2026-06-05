@@ -581,6 +581,13 @@ class TowerDefenderGame extends Game {
         return this.economy.computeRefund(entityId, curHp, maxHp);
       },
       upgradeUnit,
+      () => {
+        if (this.baseEntityId === null) return null;
+        const current = Health.current[this.baseEntityId];
+        const max = Health.max[this.baseEntityId];
+        if (current === undefined || max === undefined) return null;
+        return { current, max };
+      },
     );
 
     // ---- Hand System (card management) ----
