@@ -7,6 +7,10 @@ export default defineConfig({
   // GitHub Pages: 如果仓库名不是 TowerDefender，改成对应名称
   base: '/ai-tower-defender/',
   plugins: [preact(), editorFsApi()],
+  build: {
+    // 允许模块顶层 await（main.ts 使用 top-level await 加载 YAML 配置）
+    target: 'esnext',
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
