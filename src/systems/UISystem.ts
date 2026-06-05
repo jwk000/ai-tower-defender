@@ -178,6 +178,9 @@ export class UISystem implements System {
   private interLevelBuffSystem: InterLevelBuffSystem | null = null;
   private onOpenEncyclopedia: (() => void) | null = null;
 
+  /** 当前抽卡会话中骰子是否已被使用 */
+  private draftRerollUsed: boolean = false;
+
   setCardDraftSystem(sys: CardDraftSystem): void {
     this.cardDraftSystem = sys;
   }
@@ -295,6 +298,9 @@ export class UISystem implements System {
       this.buildTopHUD(phase);
       this.renderCardDraftOverlay();
       return;
+    } else {
+      // 抽卡会话结束时重置骰子状态
+      this.draftRerollUsed = false;
     }
 
     if (this.interLevelBuffSystem?.isActive()) {
@@ -1469,20 +1475,22 @@ export class UISystem implements System {
       },
     });
 
-    // Reroll button — "骰子" (blue)
+    // Reroll button — "🎲再抽一次" (blue, one-time use)
+    const rerollEnabled = !this.draftRerollUsed;
     this.renderer.push({
       shape: 'rect',
       x: rerollBtnX + btnW / 2, y: btnY + btnH / 2,
       size: btnW, h: btnH,
-      color: '#1565c0', alpha: 0.9,
+      color: rerollEnabled ? '#1565c0' : '#37474f', alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
     });
     this.buttons.push({
       x: rerollBtnX, y: btnY, w: btnW, h: btnH,
-      label: '骰子',
+      label: '🎲再抽一次',
       color: '#1565c0', textColor: '#ffffff',
-      enabled: true,
+      enabled: rerollEnabled,
       onClick: () => {
+        this.draftRerollUsed = true;
         Sound.play('ui_click');
         sys.reroll();
       },
