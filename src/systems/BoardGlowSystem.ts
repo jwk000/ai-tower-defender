@@ -62,8 +62,6 @@ void main() {
   vec2 px = vec2(v_uv.x * u_resolution.x, (1.0 - v_uv.y) * u_resolution.y);
   vec2 minB = u_board.xy;
   vec2 maxB = u_board.xy + u_board.zw;
-  vec2 center = u_board.xy + u_board.zw * 0.5;
-
   vec2 insideStep = step(minB, px) * step(px, maxB);
   float inside = insideStep.x * insideStep.y;
 
@@ -72,8 +70,7 @@ void main() {
   float haloBand = (1.0 - inside) * smoothstep(3.0, 22.0, outsideDist) * smoothstep(120.0, 18.0, outsideDist);
   float outerBloom = haloBand * exp(-outsideDist * 0.020) * 0.55;
 
-  vec2 q = (px - center) / max(u_board.zw, vec2(1.0));
-  float innerGlow = inside * smoothstep(0.72, 0.06, length(q));
+  float boardFill = inside;
 
   vec2 glowUv = (px - minB + vec2(96.0)) / max(u_board.zw + vec2(192.0), vec2(1.0));
   float particleMask = (1.0 - inside) * smoothstep(8.0, 24.0, outsideDist) * smoothstep(96.0, 34.0, outsideDist);
@@ -81,7 +78,7 @@ void main() {
   float particles = (particleLayer(driftUv, 11.0, 0.55) + particleLayer(driftUv + 9.3, 17.0, 0.9) * 0.55) * particleMask;
 
   vec3 color = vec3(0.72, 0.84, 1.0);
-  float alpha = innerGlow * u_ambientAlpha + outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
+  float alpha = boardFill * u_ambientAlpha + outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
   gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.65));
 }
 `;

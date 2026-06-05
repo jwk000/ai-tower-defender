@@ -98,6 +98,14 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
     expect(source).toContain('step(0.84, rnd)');
   });
 
+  it('shader 源码不绘制棋盘内部椭圆形径向遮罩', () => {
+    const source = BoardGlowSystem.getMoonlightFragmentShaderSource();
+
+    expect(source).toContain('float boardFill = inside');
+    expect(source).not.toContain('innerGlow');
+    expect(source).not.toContain('length(q)');
+  });
+
   it('默认不通过 Canvas 2D 绘制月光', () => {
     RenderSystem.sceneOffsetX = 10;
     RenderSystem.sceneOffsetY = 20;
