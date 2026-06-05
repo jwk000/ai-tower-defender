@@ -99,185 +99,787 @@ const CATEGORY_COLORS: Record<string, string> = {
   tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc', arcane: '#ffa726',
 };
 
-/** 在美术区绘制分类矢量图标（96×80 区域中心） */
-function drawCategoryIcon(
+/** 在美术区绘制卡牌专属矢量图标 */
+function drawCardIcon(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
   w: number, h: number,
-  category: string, color: string,
+  cardId: string, color: string,
 ): void {
   ctx.fillStyle = color;
   ctx.strokeStyle = '#0d1b2a';
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
 
-  switch (category) {
-    case 'tower':   drawTowerIcon(ctx, cx, cy, w, h); break;
-    case 'soldier': drawSoldierIcon(ctx, cx, cy, w, h); break;
-    case 'trap':    drawTrapIcon(ctx, cx, cy, w, h); break;
-    case 'spell':   drawSpellIcon(ctx, cx, cy, w, h); break;
-    case 'arcane':  drawArcaneIcon(ctx, cx, cy, w, h); break;
+  switch (cardId) {
+    // ============ 塔 (10) ============
+    case 'card_arrow_tower':     drawArrowTower(ctx, cx, cy, w, h); break;
+    case 'card_ballista_tower':  drawBallistaTower(ctx, cx, cy, w, h); break;
+    case 'card_cannon_tower':    drawCannonTower(ctx, cx, cy, w, h); break;
+    case 'card_laser_tower':     drawLaserTower(ctx, cx, cy, w, h); break;
+    case 'card_bat_tower':       drawBatTower(ctx, cx, cy, w, h); break;
+    case 'card_missile_tower':   drawMissileTower(ctx, cx, cy, w, h); break;
+    case 'card_ice_tower':       drawIceTower(ctx, cx, cy, w, h); break;
+    case 'card_fire_tower':      drawFireTower(ctx, cx, cy, w, h); break;
+    case 'card_poison_tower':    drawPoisonTower(ctx, cx, cy, w, h); break;
+    case 'card_lightning_tower': drawLightningTower(ctx, cx, cy, w, h); break;
+    // ============ 士兵 (4) ============
+    case 'card_shield_guard':    drawShieldGuard(ctx, cx, cy, w, h); break;
+    case 'card_archer':          drawArcher(ctx, cx, cy, w, h); break;
+    case 'card_mage':            drawMage(ctx, cx, cy, w, h); break;
+    case 'card_priest':          drawPriest(ctx, cx, cy, w, h); break;
+    // ============ 机关 (4) ============
+    case 'card_spike_trap':      drawSpikeTrap(ctx, cx, cy, w, h); break;
+    case 'card_bear_trap':       drawBearTrap(ctx, cx, cy, w, h); break;
+    case 'card_tar_pit':         drawTarPit(ctx, cx, cy, w, h); break;
+    case 'card_boulder':         drawBoulder(ctx, cx, cy, w, h); break;
+    // ============ 技能 (4) ============
+    case 'card_fireball':        drawFireball(ctx, cx, cy, w, h); break;
+    case 'card_arrow_rain':      drawArrowRain(ctx, cx, cy, w, h); break;
+    case 'card_blizzard':        drawBlizzard(ctx, cx, cy, w, h); break;
+    case 'card_bomb':            drawBomb(ctx, cx, cy, w, h); break;
+    // ============ 奥术 (5) ============
+    case 'card_emergency_shield': drawEmergencyShield(ctx, cx, cy, w, h); break;
+    case 'card_arrow_boost':      drawArrowBoost(ctx, cx, cy, w, h); break;
+    case 'card_shield_boost':     drawShieldBoost(ctx, cx, cy, w, h); break;
+    case 'card_gold_rush':        drawGoldRush(ctx, cx, cy, w, h); break;
+    case 'card_speed_boost':      drawSpeedBoost(ctx, cx, cy, w, h); break;
+    // fallback
+    default:
+      drawGenericIcon(ctx, cx, cy, w, h, color); break;
   }
 }
 
-/** 塔 — 堡垒剪影：主体 + 城垛 + 门洞 */
-function drawTowerIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
-  const tw = w * 0.52;        // 塔宽
-  const th = _h * 0.78;       // 塔高
-  const left = cx - tw / 2;
-  const top = cy - th / 2;
-  const btm = cy + th / 2;
+// ============================================================
+// 塔图标
+// ============================================================
 
-  // 塔身
+/** 箭塔 — 弓 + 箭 */
+function drawArrowTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 弓身弧
   ctx.beginPath();
-  ctx.moveTo(left + 4, btm);
-  ctx.lineTo(left + 4, top + 10);
-  ctx.lineTo(left, top + 10);
-  ctx.lineTo(left, top);
-  ctx.lineTo(cx - 6, top);
-  ctx.lineTo(cx - 6, top + 6);
-  ctx.lineTo(cx + 6, top + 6);
-  ctx.lineTo(cx + 6, top);
-  ctx.lineTo(cx + tw / 2, top);
-  ctx.lineTo(cx + tw / 2, top + 10);
-  ctx.lineTo(cx + tw / 2 - 4, top + 10);
-  ctx.lineTo(cx + tw / 2 - 4, btm);
+  ctx.arc(cx - s * 0.1, cy, s, Math.PI * 0.7, Math.PI * 1.3, false);
+  ctx.stroke();
+  // 弓弦
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy - s * 0.65);
+  ctx.lineTo(cx - s * 0.15, cy + s * 0.65);
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  // 箭
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.6, cy);
+  ctx.lineTo(cx + s * 0.7, cy);
+  ctx.stroke();
+  // 箭头
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.7, cy);
+  ctx.lineTo(cx + s * 0.4, cy - s * 0.2);
+  ctx.moveTo(cx + s * 0.7, cy);
+  ctx.lineTo(cx + s * 0.4, cy + s * 0.2);
+  ctx.stroke();
+  // 尾羽
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.5, cy - s * 0.15);
+  ctx.lineTo(cx - s * 0.5, cy + s * 0.15);
+  ctx.stroke();
+}
+
+/** 弩塔 — 弩机 */
+function drawBallistaTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  // 弩臂（水平）
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fillRect(cx - s, cy - s * 0.12, s * 2, s * 0.24);
+  // 弩身（垂直）
+  ctx.fillRect(cx - s * 0.1, cy - s * 0.7, s * 0.2, s * 1.2);
+  // 弓弧（上）
+  ctx.beginPath();
+  ctx.arc(cx, cy - s * 0.7, s * 0.6, Math.PI, 0, false);
+  ctx.fill();
+  // 弓弧（下）
+  ctx.beginPath();
+  ctx.arc(cx, cy + s * 0.5, s * 0.6, Math.PI, 0, true);
+  ctx.fill();
+}
+
+/** 炮塔 — 炮管 + 炮弹 */
+function drawCannonTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.36;
+  // 炮管
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fillRect(cx - s * 0.35, cy - s * 0.6, s * 1.0, s * 0.22);
+  // 炮口
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.65, cy - s * 0.49, s * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  // 炮座
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.25, cy + s * 0.1, s * 0.6, Math.PI * 0.4, Math.PI * 1.6, false);
+  ctx.fill();
+  ctx.fillRect(cx - s * 0.1, cy - s * 0.15, s * 0.5, s * 0.55);
+}
+
+/** 激光塔 — 三道激光束 */
+function drawLaserTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 发射器
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.6, cy, s * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  // 三道光束
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.4, cy + i * s * 0.25);
+    ctx.lineTo(cx + s * 0.8, cy + i * s * 0.12);
+    ctx.stroke();
+  }
+  // 目标点
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.8, cy, s * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** 蝙蝠塔 — 蝙蝠翅膀 */
+function drawBatTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 身体
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, s * 0.22, s * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 左翅
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy - s * 0.3);
+  ctx.quadraticCurveTo(cx - s * 0.8, cy - s * 0.7, cx - s * 0.9, cy - s * 0.2);
+  ctx.quadraticCurveTo(cx - s * 0.6, cy - s * 0.1, cx - s * 0.15, cy + s * 0.1);
+  ctx.fill();
+  // 右翅
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.15, cy - s * 0.3);
+  ctx.quadraticCurveTo(cx + s * 0.8, cy - s * 0.7, cx + s * 0.9, cy - s * 0.2);
+  ctx.quadraticCurveTo(cx + s * 0.6, cy - s * 0.1, cx + s * 0.15, cy + s * 0.1);
+  ctx.fill();
+  // 尖耳
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.12, cy - s * 0.45);
+  ctx.lineTo(cx - s * 0.05, cy - s * 0.65);
+  ctx.lineTo(cx + s * 0.05, cy - s * 0.65);
+  ctx.lineTo(cx + s * 0.12, cy - s * 0.45);
+  ctx.fill();
+}
+
+/** 导弹塔 — 导弹 + 尾焰 */
+function drawMissileTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.36;
+  // 弹体
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.8, cy);
+  ctx.lineTo(cx - s * 0.3, cy - s * 0.2);
+  ctx.lineTo(cx - s * 0.5, cy);
+  ctx.lineTo(cx - s * 0.3, cy + s * 0.2);
   ctx.closePath();
   ctx.fill();
-  ctx.stroke();
+  // 尾翼
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.3, cy - s * 0.25);
+  ctx.lineTo(cx - s * 0.6, cy - s * 0.45);
+  ctx.lineTo(cx - s * 0.3, cy - s * 0.1);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.3, cy + s * 0.25);
+  ctx.lineTo(cx - s * 0.6, cy + s * 0.45);
+  ctx.lineTo(cx - s * 0.3, cy + s * 0.1);
+  ctx.fill();
+  // 尾焰
+  ctx.fillStyle = '#ff9800';
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.5, cy - s * 0.12);
+  ctx.lineTo(cx - s * 0.85, cy);
+  ctx.lineTo(cx - s * 0.5, cy + s * 0.12);
+  ctx.fill();
+}
 
-  // 门洞
+/** 冰塔 — 雪花 */
+function drawIceTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  // 六瓣雪花
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    const x1 = cx + Math.cos(a) * s * 0.3;
+    const y1 = cy + Math.sin(a) * s * 0.3;
+    const x2 = cx + Math.cos(a) * s;
+    const y2 = cy + Math.sin(a) * s;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    // 分支
+    const ba = a + Math.PI / 6;
+    const bx = cx + Math.cos(a) * s * 0.65;
+    const by = cy + Math.sin(a) * s * 0.65;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + Math.cos(ba) * s * 0.2, by + Math.sin(ba) * s * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx - Math.cos(ba) * s * 0.2, by - Math.sin(ba) * s * 0.2);
+    ctx.stroke();
+  }
+  // 中心
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.arc(cx, cy, s * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** 火塔 — 火焰 */
+function drawFireTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 外焰
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.3, cy + s * 0.1);
+  ctx.quadraticCurveTo(cx - s * 0.6, cy - s * 0.3, cx, cy - s * 0.9);
+  ctx.quadraticCurveTo(cx + s * 0.6, cy - s * 0.3, cx + s * 0.3, cy + s * 0.1);
+  ctx.quadraticCurveTo(cx, cy + s * 0.15, cx - s * 0.3, cy + s * 0.1);
+  ctx.fill();
+  // 内焰（深色挖空）
   ctx.fillStyle = '#0d1b2a';
   ctx.beginPath();
-  const dw = 12, dh = 18;
-  ctx.moveTo(cx, btm);
-  ctx.arc(cx - dw / 2, btm - dh + dw / 2, dw / 2, Math.PI / 2, Math.PI * 1.5, true);
-  ctx.arc(cx + dw / 2, btm - dh + dw / 2, dw / 2, Math.PI * 1.5, Math.PI / 2, true);
-  ctx.closePath();
+  ctx.moveTo(cx - s * 0.15, cy);
+  ctx.quadraticCurveTo(cx - s * 0.3, cy - s * 0.15, cx, cy - s * 0.5);
+  ctx.quadraticCurveTo(cx + s * 0.3, cy - s * 0.15, cx + s * 0.15, cy);
+  ctx.quadraticCurveTo(cx, cy + s * 0.05, cx - s * 0.15, cy);
   ctx.fill();
 }
 
-/** 士兵 — 盾牌 + 十字 */
-function drawSoldierIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
-  const sw = w * 0.48;
-  const sh = _h * 0.72;
-  const left = cx - sw / 2;
-  const top = cy - sh / 2;
-  const right = cx + sw / 2;
-  const btm = cy + sh / 2;
-
-  // 盾形
+/** 毒塔 — 骷髅 */
+function drawPoisonTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.36;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 头骨
   ctx.beginPath();
-  ctx.moveTo(cx, top);
-  ctx.lineTo(right - 2, top + sh * 0.35);
-  ctx.lineTo(right - 2, cy + sh * 0.15);
-  ctx.quadraticCurveTo(right - 2, btm - 4, cx, btm);
-  ctx.quadraticCurveTo(left + 2, btm - 4, left + 2, cy + sh * 0.15);
-  ctx.lineTo(left + 2, top + sh * 0.35);
+  ctx.arc(cx, cy - s * 0.1, s * 0.55, 0, Math.PI);
+  ctx.lineTo(cx + s * 0.5, cy + s * 0.15);
+  ctx.quadraticCurveTo(cx, cy + s * 0.5, cx - s * 0.5, cy + s * 0.15);
   ctx.closePath();
   ctx.fill();
-  ctx.stroke();
-
-  // 十字纹
-  ctx.beginPath();
-  ctx.moveTo(cx, top + 8);
-  ctx.lineTo(cx, btm - 10);
-  ctx.moveTo(left + 8, cy - 2);
-  ctx.lineTo(right - 8, cy - 2);
-  ctx.stroke();
-}
-
-/** 机关 — 8 齿齿轮 */
-function drawTrapIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
-  const size = Math.min(w, _h) * 0.44;
-  const outerR = size;
-  const innerR = size * 0.55;
-  const teeth = 8;
-
-  ctx.beginPath();
-  for (let i = 0; i < teeth * 2; i++) {
-    const angle = (i * Math.PI) / teeth - Math.PI / 2;
-    const r = i % 2 === 0 ? outerR : innerR;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // 中心孔
+  // 眼洞
   ctx.fillStyle = '#0d1b2a';
   ctx.beginPath();
-  ctx.arc(cx, cy, size * 0.18, 0, Math.PI * 2);
+  ctx.arc(cx - s * 0.2, cy - s * 0.15, s * 0.13, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.2, cy - s * 0.15, s * 0.13, 0, Math.PI * 2);
+  ctx.fill();
+  // 毒滴
+  ctx.fillStyle = '#66bb6a';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + s * 0.55);
+  ctx.quadraticCurveTo(cx - s * 0.1, cy + s * 0.7, cx, cy + s * 0.85);
+  ctx.quadraticCurveTo(cx + s * 0.1, cy + s * 0.7, cx, cy + s * 0.55);
   ctx.fill();
 }
 
-/** 技能 — 五芒星 */
-function drawSpellIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
-  const outerR = Math.min(w, _h) * 0.45;
-  const innerR = outerR * 0.4;
-  const points = 5;
-
+/** 电塔 — 闪电 */
+function drawLightningTower(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const angle = (i * Math.PI) / points - Math.PI / 2;
-    const r = i % 2 === 0 ? outerR : innerR;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
+  ctx.moveTo(cx - s * 0.15, cy - s * 0.9);
+  ctx.lineTo(cx - s * 0.4, cy - s * 0.1);
+  ctx.lineTo(cx - s * 0.05, cy - s * 0.1);
+  ctx.lineTo(cx - s * 0.35, cy + s * 0.7);
+  ctx.lineTo(cx + s * 0.15, cy + s * 0.1);
+  ctx.lineTo(cx - s * 0.1, cy + s * 0.1);
+  ctx.lineTo(cx + s * 0.3, cy - s * 0.6);
+  ctx.lineTo(cx + s * 0.05, cy - s * 0.6);
   ctx.closePath();
   ctx.fill();
+}
 
-  // 星形光辉（外层半透明描边）
+// ============================================================
+// 士兵图标
+// ============================================================
+
+/** 盾卫 — 塔盾 */
+function drawShieldGuard(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy - s);
+  ctx.lineTo(cx + s * 0.6, cy - s * 0.4);
+  ctx.lineTo(cx + s * 0.6, cy + s * 0.3);
+  ctx.quadraticCurveTo(cx + s * 0.6, cy + s * 0.9, cx, cy + s * 0.85);
+  ctx.quadraticCurveTo(cx - s * 0.6, cy + s * 0.9, cx - s * 0.6, cy + s * 0.3);
+  ctx.lineTo(cx - s * 0.6, cy - s * 0.4);
+  ctx.closePath();
+  ctx.fill();
+  // 盾面竖纹
+  ctx.strokeStyle = '#0d1b2a';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s * 0.5);
+  ctx.lineTo(cx, cy + s * 0.6);
+  ctx.stroke();
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.3, cy - s * 0.15);
+  ctx.lineTo(cx + s * 0.3, cy - s * 0.15);
+  ctx.stroke();
+}
+
+/** 弓手 — 长弓 */
+function drawArcher(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  // 弓臂
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.1, cy - s);
+  ctx.quadraticCurveTo(cx - s * 0.6, cy, cx + s * 0.1, cy + s);
+  ctx.stroke();
+  // 弓弦
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.1, cy - s);
+  ctx.lineTo(cx + s * 0.1, cy + s);
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  // 箭
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.2, cy);
+  ctx.lineTo(cx + s * 0.6, cy);
+  ctx.stroke();
+  // 箭头
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.6, cy);
+  ctx.lineTo(cx + s * 0.35, cy - s * 0.2);
+  ctx.lineTo(cx + s * 0.35, cy + s * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  // 弦拉后
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.1, cy - s * 0.05);
+  ctx.lineTo(cx - s * 0.1, cy + s * 0.05);
+  ctx.lineTo(cx + s * 0.15, cy);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** 法师 — 法杖 + 宝珠 */
+function drawMage(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  // 杖杆
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy + s * 0.8);
+  ctx.lineTo(cx - s * 0.05, cy - s * 0.4);
+  ctx.stroke();
+  // 宝珠
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.1, cy - s * 0.55, s * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // 光芒
   ctx.globalAlpha = 0.35;
   ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const angle = (i * Math.PI) / points - Math.PI / 2;
-    const r = i % 2 === 0 ? outerR * 1.18 : innerR * 1.18;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  ctx.arc(cx - s * 0.1, cy - s * 0.55, s * 0.45, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 0.18;
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.1, cy - s * 0.55, s * 0.6, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  // 小星
+  const starPos: [number, number][] = [[cx + s * 0.4, cy - s * 0.5], [cx + s * 0.5, cy + s * 0.3], [cx - s * 0.5, cy + s * 0.4]];
+  for (const [sx, sy] of starPos) {
+    ctx.beginPath();
+    ctx.arc(sx, sy, s * 0.08, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.closePath();
+}
+
+/** 牧师 — 十字架 */
+function drawPriest(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 竖
+  ctx.fillRect(cx - s * 0.12, cy - s * 0.85, s * 0.24, s * 1.7);
+  // 横
+  ctx.fillRect(cx - s * 0.5, cy - s * 0.1, s * 1.0, s * 0.24);
+  // 顶部光环
+  ctx.fillStyle = '#ffe082';
+  ctx.beginPath();
+  ctx.arc(cx, cy - s * 0.9, s * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+// ============================================================
+// 机关图标
+// ============================================================
+
+/** 地刺 — 向上尖刺 */
+function drawSpikeTrap(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
+  for (let i = -2; i <= 2; i++) {
+    const height = 0.4 + Math.abs(i) * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx + i * s * 0.32, cy + s * 0.5);
+    ctx.lineTo(cx + i * s * 0.32 + s * 0.08, cy - s * height);
+    ctx.lineTo(cx + i * s * 0.32 + s * 0.16, cy + s * 0.5);
+    ctx.fill();
+  }
+}
+
+/** 捕兽夹 — 锯齿夹 */
+function drawBearTrap(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 左夹
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.5, cy - s * 0.3);
+  ctx.quadraticCurveTo(cx - s * 0.1, cy - s * 0.8, cx, cy - s * 0.2);
+  ctx.lineTo(cx - s * 0.02, cy);
+  ctx.lineTo(cx - s * 0.5, cy + s * 0.15);
+  ctx.fill();
+  // 右夹
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.5, cy - s * 0.3);
+  ctx.quadraticCurveTo(cx + s * 0.1, cy - s * 0.8, cx, cy - s * 0.2);
+  ctx.lineTo(cx + s * 0.02, cy);
+  ctx.lineTo(cx + s * 0.5, cy + s * 0.15);
+  ctx.fill();
+  // 齿
+  ctx.strokeStyle = '#0d1b2a';
+  for (let i = 0; i < 3; i++) {
+    const x = cx - s * 0.38 + i * s * 0.38;
+    ctx.beginPath();
+    ctx.moveTo(x, cy + s * 0.05);
+    ctx.lineTo(x, cy - s * 0.2);
+    ctx.stroke();
+  }
+}
+
+/** 焦油坑 — 液滴 */
+function drawTarPit(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 液坑
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 0.1, s * 0.7, s * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 气泡
+  ctx.fillStyle = '#0d1b2a';
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.2, cy - s * 0.05, s * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.25, cy - s * 0.15, s * 0.14, 0, Math.PI * 2);
+  ctx.fill();
+  // 黏连丝
   ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy - s * 0.25);
+  ctx.quadraticCurveTo(cx - s * 0.1, cy - s * 0.7, cx - s * 0.3, cy - s * 0.8);
+  ctx.stroke();
+}
+
+/** 巨石 — 岩块 */
+function drawBoulder(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 不规则岩体
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.6, cy + s * 0.15);
+  ctx.lineTo(cx - s * 0.5, cy - s * 0.55);
+  ctx.lineTo(cx + s * 0.15, cy - s * 0.75);
+  ctx.lineTo(cx + s * 0.65, cy - s * 0.35);
+  ctx.lineTo(cx + s * 0.5, cy + s * 0.45);
+  ctx.lineTo(cx - s * 0.2, cy + s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#0d1b2a';
   ctx.lineWidth = 1.5;
   ctx.stroke();
+  // 裂缝纹
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.15, cy - s * 0.3);
+  ctx.lineTo(cx + s * 0.1, cy);
+  ctx.lineTo(cx + s * 0.25, cy + s * 0.25);
+  ctx.stroke();
+}
+
+// ============================================================
+// 技能图标
+// ============================================================
+
+/** 火球术 — 火球 */
+function drawFireball(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 球体
+  ctx.beginPath();
+  ctx.arc(cx, cy, s * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+  // 火焰缠绕
+  ctx.fillStyle = '#ff9800';
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.5, cy + s * 0.1);
+  ctx.quadraticCurveTo(cx - s * 0.6, cy - s * 0.6, cx + s * 0.1, cy - s * 0.6);
+  ctx.quadraticCurveTo(cx + s * 0.4, cy - s * 0.3, cx + s * 0.55, cy);
+  ctx.quadraticCurveTo(cx + s * 0.3, cy + s * 0.3, cx - s * 0.2, cy + s * 0.4);
+  ctx.quadraticCurveTo(cx - s * 0.5, cy + s * 0.15, cx - s * 0.5, cy + s * 0.1);
+  ctx.fill();
+  // 高光
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.15, cy - s * 0.2, s * 0.12, 0, Math.PI * 2);
+  ctx.fill();
   ctx.globalAlpha = 1;
 }
 
-/** 奥术 — 菱形 + 内嵌圆 */
-function drawArcaneIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
-  const size = Math.min(w, _h) * 0.44;
+/** 剑雨 — 多箭下落 */
+function drawArrowRain(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  // 三支箭从不同位置下落
+  const arrows = [
+    { x: cx - s * 0.5, y: cy - s * 0.2 },
+    { x: cx,          y: cy - s * 0.5 },
+    { x: cx + s * 0.5, y: cy + s * 0.1 },
+  ];
+  for (const a of arrows) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y - s * 0.8);
+    ctx.lineTo(a.x, a.y + s * 0.5);
+    ctx.stroke();
+    // 箭头
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y + s * 0.5);
+    ctx.lineTo(a.x - s * 0.15, a.y + s * 0.2);
+    ctx.lineTo(a.x + s * 0.15, a.y + s * 0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
 
-  // 外菱形
+/** 暴风雪 — 风雪 */
+function drawBlizzard(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 风线
+  ctx.globalAlpha = 0.6;
+  for (let i = 0; i < 4; i++) {
+    const y = cy - s * 0.5 + i * s * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.5, y);
+    ctx.lineTo(cx + s * 0.5, y - s * 0.1);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // 雪花
+  ctx.fillStyle = ctx.strokeStyle;
+  const flakePositions: [number, number][] = [[cx - s * 0.3, cy - s * 0.6], [cx + s * 0.2, cy - s * 0.2], [cx + s * 0.4, cy + s * 0.5], [cx - s * 0.4, cy + s * 0.3]];
+  for (const [sx, sy] of flakePositions) {
+    drawMiniSnowflake(ctx, sx, sy, s * 0.18);
+  }
+}
+
+function drawMiniSnowflake(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a) * r * 0.15, y + Math.sin(a) * r * 0.15);
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    ctx.stroke();
+    const ba = a + Math.PI / 6;
+    const mx = x + Math.cos(a) * r * 0.55;
+    const my = y + Math.sin(a) * r * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.lineTo(mx + Math.cos(ba) * r * 0.2, my + Math.sin(ba) * r * 0.2);
+    ctx.stroke();
+  }
+}
+
+/** 炸弹 — 圆形炸弹 + 引信 */
+function drawBomb(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 弹体
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - size);
-  ctx.lineTo(cx + size, cy);
-  ctx.lineTo(cx, cy + size);
-  ctx.lineTo(cx - size, cy);
+  ctx.arc(cx, cy + s * 0.1, s * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  // 高光
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.arc(cx - s * 0.15, cy - s * 0.15, s * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 引信
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.2, cy - s * 0.45);
+  ctx.quadraticCurveTo(cx + s * 0.3, cy - s * 0.7, cx + s * 0.1, cy - s * 0.8);
+  ctx.stroke();
+  // 火花
+  ctx.fillStyle = '#ff9800';
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.1, cy - s * 0.85, s * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  // 星爆
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.08, cy - s * 0.85);
+    ctx.lineTo(cx + Math.cos(a) * s * 0.25, cy - s * 0.85 + Math.sin(a) * s * 0.25);
+    ctx.stroke();
+  }
+}
+
+// ============================================================
+// 奥术图标
+// ============================================================
+
+/** 紧急防护 — 防护罩 */
+function drawEmergencyShield(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 护罩弧
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  ctx.arc(cx, cy + s * 0.1, s * 0.7, Math.PI, 0);
   ctx.closePath();
   ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy + s * 0.1, s * 0.7, Math.PI, 0);
   ctx.stroke();
+  // 感叹号
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - s * 0.3);
+  ctx.lineTo(cx, cy + s * 0.15);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy + s * 0.35, s * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+}
 
-  // 内圆
+/** 箭术精通 — 弓 + 上箭头 */
+function drawArrowBoost(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  // 小弓
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.3, cy + s * 0.3);
+  ctx.quadraticCurveTo(cx - s * 0.5, cy, cx - s * 0.3, cy - s * 0.6);
+  ctx.stroke();
+  // 箭（斜上）
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + s * 0.2);
+  ctx.lineTo(cx + s * 0.5, cy - s * 0.5);
+  ctx.stroke();
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.5, cy - s * 0.5);
+  ctx.lineTo(cx + s * 0.25, cy - s * 0.55);
+  ctx.lineTo(cx + s * 0.35, cy - s * 0.3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** 坚韧守护 — 盾 + 上箭头 */
+function drawShieldBoost(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.38;
+  ctx.fillStyle = ctx.strokeStyle;
+  // 小盾
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.5, cy + s * 0.2);
+  ctx.lineTo(cx - s * 0.5, cy - s * 0.3);
+  ctx.quadraticCurveTo(cx, cy - s * 0.7, cx + s * 0.3, cy - s * 0.3);
+  ctx.lineTo(cx + s * 0.3, cy + s * 0.2);
+  ctx.quadraticCurveTo(cx, cy + s * 0.5, cx - s * 0.5, cy + s * 0.2);
+  ctx.fill();
+  // 上箭头
   ctx.fillStyle = '#0d1b2a';
   ctx.beginPath();
-  ctx.arc(cx, cy, size * 0.28, 0, Math.PI * 2);
+  ctx.moveTo(cx - s * 0.25, cy - s * 0.15);
+  ctx.lineTo(cx, cy - s * 0.5);
+  ctx.lineTo(cx + s * 0.25, cy - s * 0.15);
+  ctx.closePath();
   ctx.fill();
+}
 
-  // 内菱形
-  ctx.fillStyle = ctx.strokeStyle;
-  const innerS = size * 0.28;
+/** 淘金热 — 金币 */
+function drawGoldRush(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  // 金币主体
+  ctx.fillStyle = '#ffc107';
   ctx.beginPath();
-  ctx.moveTo(cx, cy - innerS);
-  ctx.lineTo(cx + innerS, cy);
-  ctx.lineTo(cx, cy + innerS);
-  ctx.lineTo(cx - innerS, cy);
+  ctx.arc(cx, cy, s * 0.65, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#0d1b2a';
+  ctx.stroke();
+  // $ 符号
+  ctx.fillStyle = '#0d1b2a';
+  ctx.font = 'bold ' + Math.round(s * 0.8) + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', cx, cy + s * 0.05);
+}
+
+/** 疾风步 — 速度线 */
+function drawSpeedBoost(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.4;
+  // 速度线（从左到右逐渐变长）
+  for (let i = 0; i < 4; i++) {
+    const y = cy - s * 0.5 + i * s * 0.35;
+    const len = s * (0.3 + i * 0.25);
+    ctx.beginPath();
+    ctx.moveTo(cx - len * 0.5, y);
+    ctx.lineTo(cx + len * 0.5, y);
+    ctx.stroke();
+  }
+  // 人物剪影
+  ctx.fillStyle = ctx.strokeStyle;
+  // 头
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.3, cy - s * 0.2, s * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  // 身体
+  ctx.beginPath();
+  ctx.moveTo(cx + s * 0.25, cy);
+  ctx.lineTo(cx + s * 0.2, cy + s * 0.5);
+  ctx.lineTo(cx + s * 0.4, cy + s * 0.5);
+  ctx.lineTo(cx + s * 0.35, cy);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ============================================================
+// 通用 fallback
+// ============================================================
+
+function drawGenericIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, color: string): void {
+  const s = Math.min(w, h) * 0.4;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  // 菱形
+  ctx.moveTo(cx, cy - s);
+  ctx.lineTo(cx + s, cy);
+  ctx.lineTo(cx, cy + s);
+  ctx.lineTo(cx - s, cy);
   ctx.closePath();
   ctx.fill();
 }
@@ -570,7 +1172,7 @@ export class CardEncyclopediaUI {
 
       // 图标
       ctx.save();
-      drawCategoryIcon(ctx, cardCenterX, artCY, ART_W, ART_H, getCardCategory(card), borderColor);
+      drawCardIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, borderColor);
       ctx.restore();
 
       // 名称
