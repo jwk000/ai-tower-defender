@@ -75,8 +75,8 @@ map:
 
 weather:
   pool:
-    - Night
-  initial: Night
+    - Fog
+  initial: Fog
 
 crystal:
   hp: 900
