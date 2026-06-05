@@ -50,6 +50,7 @@ function adaptMap(m: MapModel): MapConfig {
     spawns: m.spawns,
     pathGraph: m.pathGraph,
     tileColors: m.tileColors as MapConfig['tileColors'] | undefined,
+    lighting: m.lighting as MapConfig['lighting'] | undefined,
     obstaclePlacements: obstaclePlacements?.length ? obstaclePlacements : undefined,
   };
 }

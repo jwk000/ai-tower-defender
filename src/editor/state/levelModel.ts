@@ -25,6 +25,7 @@ export interface MapModel {
   tileSize: number;
   tiles: TileCell[][];
   tileColors?: Record<string, string>;
+  lighting?: Record<string, unknown>;
   obstacles?: Array<Record<string, unknown>>;
   spawns?: SpawnPoint[];
   pathGraph?: PathGraph;
@@ -95,6 +96,7 @@ const MAP_FIELD_ORDER: Array<keyof MapModel> = [
   'tileSize',
   'tiles',
   'tileColors',
+  'lighting',
   'obstacles',
   'spawns',
   'pathGraph',
@@ -122,6 +124,7 @@ const KNOWN_MAP_KEYS = new Set<string>([
   'tileSize',
   'tiles',
   'tileColors',
+  'lighting',
   'obstacles',
   'spawns',
   'pathGraph',
@@ -168,6 +171,7 @@ function parseMap(raw: unknown): MapModel {
     tiles: asTiles(rec.tiles),
   };
   if (rec.tileColors !== undefined) map.tileColors = rec.tileColors as Record<string, string>;
+  if (rec.lighting !== undefined) map.lighting = rec.lighting as Record<string, unknown>;
   if (rec.obstacles !== undefined) map.obstacles = rec.obstacles as Array<Record<string, unknown>>;
   if (rec.spawns !== undefined) map.spawns = rec.spawns as SpawnPoint[];
   if (rec.pathGraph !== undefined) map.pathGraph = rec.pathGraph as PathGraph;

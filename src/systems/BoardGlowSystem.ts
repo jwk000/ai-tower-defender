@@ -9,8 +9,14 @@
 // ============================================================
 
 import type { System, TowerWorld } from '../core/World.js';
-import type { MapConfig } from '../types/index.js';
+import type { MapConfig, MoonlightConfig } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
+
+const DEFAULT_MOONLIGHT: MoonlightConfig = {
+  enabled: false,
+  ambientAlpha: 0.1,
+  beamAlpha: 0.18,
+};
 
 export class BoardGlowSystem implements System {
   readonly name = 'BoardGlowSystem';
@@ -65,6 +71,7 @@ export class BoardGlowSystem implements System {
    * 在 onPostRender 中调用，此时 ctx 处于设计空间变换下。
    */
   render(ctx: CanvasRenderingContext2D): void {
+    this.renderMoonlight(ctx);
     if (!this.sweepActive) return;
 
     const ox = RenderSystem.sceneOffsetX;
@@ -128,5 +135,53 @@ export class BoardGlowSystem implements System {
   /** 随机冷却时长 3–8 秒 */
   private randomCooldown(): number {
     return 3.0 + Math.random() * 5.0;
+  }
+
+  private getMoonlight(): MoonlightConfig {
+    return {
+      ...DEFAULT_MOONLIGHT,
+      ...this.map.lighting?.moonlight,
+    };
+  }
+
+  private renderMoonlight(ctx: CanvasRenderingContext2D): void {
+    const moonlight = this.getMoonlight();
+    if (!moonlight.enabled) return;
+
+    const ox = RenderSystem.sceneOffsetX;
+    const oy = RenderSystem.sceneOffsetY;
+    const mapW = RenderSystem.sceneW;
+    const mapH = RenderSystem.sceneH;
+
+    if (mapW <= 0 || mapH <= 0) return;
+
+    const ambientAlpha = Math.max(0, Math.min(0.3, moonlight.ambientAlpha));
+    const beamAlpha = Math.max(0, Math.min(0.45, moonlight.beamAlpha));
+    const diagLen = Math.sqrt(mapW * mapW + mapH * mapH);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ox, oy, mapW, mapH);
+    ctx.clip();
+
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = `rgba(205, 225, 255, ${ambientAlpha})`;
+    ctx.fillRect(ox, oy, mapW, mapH);
+
+    ctx.translate(ox + mapW * 0.52, oy + mapH * 0.48);
+    ctx.rotate(-Math.PI / 5);
+
+    const beamWidth = Math.max(160, mapW * 0.22);
+    const grad = ctx.createLinearGradient(-beamWidth, 0, beamWidth, 0);
+    grad.addColorStop(0.0, 'rgba(190, 215, 255, 0)');
+    grad.addColorStop(0.28, `rgba(210, 230, 255, ${beamAlpha * 0.45})`);
+    grad.addColorStop(0.5, `rgba(235, 245, 255, ${beamAlpha})`);
+    grad.addColorStop(0.72, `rgba(210, 230, 255, ${beamAlpha * 0.45})`);
+    grad.addColorStop(1.0, 'rgba(190, 215, 255, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(-beamWidth, -diagLen / 2, beamWidth * 2, diagLen);
+
+    ctx.restore();
   }
 }
