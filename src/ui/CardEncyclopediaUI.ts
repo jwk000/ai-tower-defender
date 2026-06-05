@@ -98,9 +98,189 @@ const FILTER_TABS: FilterTab[] = [
 const CATEGORY_COLORS: Record<string, string> = {
   tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc', arcane: '#ffa726',
 };
-const CATEGORY_GLYPHS: Record<string, string> = {
-  tower: 'T', soldier: 'S', trap: 'X', spell: '*', arcane: 'A',
-};
+
+/** 在美术区绘制分类矢量图标（96×80 区域中心） */
+function drawCategoryIcon(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  w: number, h: number,
+  category: string, color: string,
+): void {
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#0d1b2a';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+
+  switch (category) {
+    case 'tower':   drawTowerIcon(ctx, cx, cy, w, h); break;
+    case 'soldier': drawSoldierIcon(ctx, cx, cy, w, h); break;
+    case 'trap':    drawTrapIcon(ctx, cx, cy, w, h); break;
+    case 'spell':   drawSpellIcon(ctx, cx, cy, w, h); break;
+    case 'arcane':  drawArcaneIcon(ctx, cx, cy, w, h); break;
+  }
+}
+
+/** 塔 — 堡垒剪影：主体 + 城垛 + 门洞 */
+function drawTowerIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
+  const tw = w * 0.52;        // 塔宽
+  const th = _h * 0.78;       // 塔高
+  const left = cx - tw / 2;
+  const top = cy - th / 2;
+  const btm = cy + th / 2;
+
+  // 塔身
+  ctx.beginPath();
+  ctx.moveTo(left + 4, btm);
+  ctx.lineTo(left + 4, top + 10);
+  ctx.lineTo(left, top + 10);
+  ctx.lineTo(left, top);
+  ctx.lineTo(cx - 6, top);
+  ctx.lineTo(cx - 6, top + 6);
+  ctx.lineTo(cx + 6, top + 6);
+  ctx.lineTo(cx + 6, top);
+  ctx.lineTo(cx + tw / 2, top);
+  ctx.lineTo(cx + tw / 2, top + 10);
+  ctx.lineTo(cx + tw / 2 - 4, top + 10);
+  ctx.lineTo(cx + tw / 2 - 4, btm);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 门洞
+  ctx.fillStyle = '#0d1b2a';
+  ctx.beginPath();
+  const dw = 12, dh = 18;
+  ctx.moveTo(cx, btm);
+  ctx.arc(cx - dw / 2, btm - dh + dw / 2, dw / 2, Math.PI / 2, Math.PI * 1.5, true);
+  ctx.arc(cx + dw / 2, btm - dh + dw / 2, dw / 2, Math.PI * 1.5, Math.PI / 2, true);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** 士兵 — 盾牌 + 十字 */
+function drawSoldierIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
+  const sw = w * 0.48;
+  const sh = _h * 0.72;
+  const left = cx - sw / 2;
+  const top = cy - sh / 2;
+  const right = cx + sw / 2;
+  const btm = cy + sh / 2;
+
+  // 盾形
+  ctx.beginPath();
+  ctx.moveTo(cx, top);
+  ctx.lineTo(right - 2, top + sh * 0.35);
+  ctx.lineTo(right - 2, cy + sh * 0.15);
+  ctx.quadraticCurveTo(right - 2, btm - 4, cx, btm);
+  ctx.quadraticCurveTo(left + 2, btm - 4, left + 2, cy + sh * 0.15);
+  ctx.lineTo(left + 2, top + sh * 0.35);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 十字纹
+  ctx.beginPath();
+  ctx.moveTo(cx, top + 8);
+  ctx.lineTo(cx, btm - 10);
+  ctx.moveTo(left + 8, cy - 2);
+  ctx.lineTo(right - 8, cy - 2);
+  ctx.stroke();
+}
+
+/** 机关 — 8 齿齿轮 */
+function drawTrapIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
+  const size = Math.min(w, _h) * 0.44;
+  const outerR = size;
+  const innerR = size * 0.55;
+  const teeth = 8;
+
+  ctx.beginPath();
+  for (let i = 0; i < teeth * 2; i++) {
+    const angle = (i * Math.PI) / teeth - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR : innerR;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 中心孔
+  ctx.fillStyle = '#0d1b2a';
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** 技能 — 五芒星 */
+function drawSpellIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
+  const outerR = Math.min(w, _h) * 0.45;
+  const innerR = outerR * 0.4;
+  const points = 5;
+
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (i * Math.PI) / points - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR : innerR;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 星形光辉（外层半透明描边）
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (i * Math.PI) / points - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR * 1.18 : innerR * 1.18;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+/** 奥术 — 菱形 + 内嵌圆 */
+function drawArcaneIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, _h: number): void {
+  const size = Math.min(w, _h) * 0.44;
+
+  // 外菱形
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - size);
+  ctx.lineTo(cx + size, cy);
+  ctx.lineTo(cx, cy + size);
+  ctx.lineTo(cx - size, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 内圆
+  ctx.fillStyle = '#0d1b2a';
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.28, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 内菱形
+  ctx.fillStyle = ctx.strokeStyle;
+  const innerS = size * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - innerS);
+  ctx.lineTo(cx + innerS, cy);
+  ctx.lineTo(cx, cy + innerS);
+  ctx.lineTo(cx - innerS, cy);
+  ctx.closePath();
+  ctx.fill();
+}
 
 function getCardCategory(card: CardInstance): Exclude<CardFilterCategory, 'all'> {
   if (card.type === 'spell') return 'spell';
@@ -390,9 +570,7 @@ export class CardEncyclopediaUI {
 
       // 图标
       ctx.save();
-      ctx.fillStyle = borderColor; ctx.font = getFont(36, true);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(CATEGORY_GLYPHS[getCardCategory(card)] ?? '?', cardCenterX, artCY);
+      drawCategoryIcon(ctx, cardCenterX, artCY, ART_W, ART_H, getCardCategory(card), borderColor);
       ctx.restore();
 
       // 名称
