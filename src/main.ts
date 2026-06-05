@@ -184,6 +184,14 @@ class TowerDefenderGame extends Game {
       onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
     });
 
+    // Wheel event for encyclopedia scroll
+    canvas.addEventListener('wheel', (e) => {
+      if (this.encyclopedia.isOpen) {
+        e.preventDefault();
+        this.encyclopedia.handleWheel(e.deltaY);
+      }
+    }, { passive: false });
+
     this.enterLevelSelect();
   }
 
@@ -226,7 +234,9 @@ class TowerDefenderGame extends Game {
         this.encyclopedia.handleMouseMove(e.x, e.y);
       }
     };
-    this.input.onPointerUp = null;
+    this.input.onPointerUp = (e: InputEvent) => {
+      this.encyclopedia.handleMouseUp(e.x, e.y);
+    };
   }
 
   startLevel(levelId: number): void {
@@ -852,6 +862,10 @@ class TowerDefenderGame extends Game {
     };
 
     this.input.onPointerUp = (e: InputEvent) => {
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleMouseUp(e.x, e.y);
+        return;
+      }
       console.log('[CardDrag] onPointerUp called - unitDragId:', this.unitDragId, 'dragState:', this.buildSystem.dragState);
       if (this.unitDragId !== null) {
         this.unitDragId = null;

@@ -1,8 +1,8 @@
 // ============================================================
-// CardEncyclopediaUI — 卡牌图鉴全屏遮照面板
+// CardEncyclopediaUI — 卡牌图鉴窗口
 //
-// 在主菜单和关卡内均可打开，显示所有 27 张卡牌的网格视图，
-// 支持按类型筛选。打开时游戏暂停，关闭后恢复。
+// 在主菜单和关卡内均可打开。大窗口（1400×850）+ 黑色半透背景，
+// 自适应列布局（7列），支持鼠标滚轮和拖拽滚动，内容裁剪到窗口内。
 // ============================================================
 
 import { LayoutManager } from './LayoutManager.js';
@@ -20,20 +20,19 @@ const CARD_H = 168;
 const CARD_GAP = 16;
 const ART_W = 96;
 const ART_H = 80;
-const COLS = 5;
-const PANEL_W = 950;
-const PANEL_H = 680;
+const COLS = 7;
+const PANEL_W = 1400;
+const PANEL_H = 850;
 const TAB_H = 40;
 const HEADER_H = 60;
+const PADDING = 20;
+const SCROLLBAR_W = 8;
+const SCROLL_SPEED = 40;
 
 // ============================================================
-// 工具：兼容性圆角矩形绘制
+// 圆角矩形 polyfill
 // ============================================================
 
-/**
- * 绘制圆角矩形（兼容不支持 ctx.roundRect 的环境）。
- * 优先使用原生 roundRect，不可用时降级为手动路径拼接。
- */
 function fillRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number, r: number,
@@ -42,10 +41,8 @@ function fillRoundedRect(
   if (typeof (ctx as any).roundRect === 'function') {
     (ctx as any).roundRect(x, y, w, h, r);
   } else {
-    // 手动绘制圆角矩形路径
     const rr = Math.min(r, w / 2, h / 2);
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
+    ctx.moveTo(x + rr, y); ctx.lineTo(x + w - rr, y);
     ctx.arcTo(x + w, y, x + w, y + rr, rr);
     ctx.lineTo(x + w, y + h - rr);
     ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
@@ -56,29 +53,6 @@ function fillRoundedRect(
     ctx.closePath();
   }
   ctx.fill();
-}
-
-function strokeRoundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number,
-): void {
-  ctx.beginPath();
-  if (typeof (ctx as any).roundRect === 'function') {
-    (ctx as any).roundRect(x, y, w, h, r);
-  } else {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
-    ctx.arcTo(x + w, y, x + w, y + rr, rr);
-    ctx.lineTo(x + w, y + h - rr);
-    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
-    ctx.lineTo(x + rr, y + h);
-    ctx.arcTo(x, y + h, x, y + h - rr, rr);
-    ctx.lineTo(x, y + rr);
-    ctx.arcTo(x, y, x + rr, y, rr);
-    ctx.closePath();
-  }
-  ctx.stroke();
 }
 
 function fillAndStrokeRoundedRect(
@@ -90,8 +64,7 @@ function fillAndStrokeRoundedRect(
     (ctx as any).roundRect(x, y, w, h, r);
   } else {
     const rr = Math.min(r, w / 2, h / 2);
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
+    ctx.moveTo(x + rr, y); ctx.lineTo(x + w - rr, y);
     ctx.arcTo(x + w, y, x + w, y + rr, rr);
     ctx.lineTo(x + w, y + h - rr);
     ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
@@ -106,21 +79,12 @@ function fillAndStrokeRoundedRect(
 }
 
 // ============================================================
-// 类型定义
+// 类型与常量
 // ============================================================
 
-/** 卡牌展示分类（用于筛选） */
 export type CardFilterCategory = 'all' | 'tower' | 'soldier' | 'trap' | 'spell' | 'arcane';
 
-interface FilterTab {
-  key: CardFilterCategory;
-  label: string;
-  color: string;
-}
-
-// ============================================================
-// 分类与颜色
-// ============================================================
+interface FilterTab { key: CardFilterCategory; label: string; color: string; }
 
 const FILTER_TABS: FilterTab[] = [
   { key: 'all',     label: '全部', color: '#ffffff' },
@@ -131,32 +95,17 @@ const FILTER_TABS: FilterTab[] = [
   { key: 'arcane',  label: '奥术', color: '#ffa726' },
 ];
 
-const CATEGORY_COLORS: Record<Exclude<CardFilterCategory, 'all'>, string> = {
-  tower:   '#42a5f5',
-  soldier: '#66bb6a',
-  trap:    '#ef5350',
-  spell:   '#ab47bc',
-  arcane:  '#ffa726',
+const CATEGORY_COLORS: Record<string, string> = {
+  tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc', arcane: '#ffa726',
+};
+const CATEGORY_GLYPHS: Record<string, string> = {
+  tower: 'T', soldier: 'S', trap: 'X', spell: '*', arcane: 'A',
 };
 
-const CATEGORY_GLYPHS: Record<Exclude<CardFilterCategory, 'all'>, string> = {
-  tower:   'T',
-  soldier: 'S',
-  trap:    'X',
-  spell:   '*',
-  arcane:  'A',
-};
-
-// ============================================================
-// 分类判断
-// ============================================================
-
-/** 根据 CardInstance 判断展示分类 */
 function getCardCategory(card: CardInstance): Exclude<CardFilterCategory, 'all'> {
   if (card.type === 'spell') return 'spell';
   if (card.type === 'arcane') return 'arcane';
   if (card.type === 'trap') return 'trap';
-  // unit 类型：按 id 区分塔和士兵
   if (card.id.includes('_tower')) return 'tower';
   return 'soldier';
 }
@@ -166,12 +115,15 @@ function getCardCategory(card: CardInstance): Exclude<CardFilterCategory, 'all'>
 // ============================================================
 
 export class CardEncyclopediaUI {
-  private _isOpen: boolean = false;
+  private _isOpen = false;
   private activeFilter: CardFilterCategory = 'all';
   private filteredCards: CardInstance[] = [];
-  private hoveredCardIndex: number = -1;
+  private hoveredCardIndex = -1;
+  private scrollOffset = 0;
+  private isDragging = false;
+  private dragStartY = 0;
+  private dragStartOffset = 0;
 
-  /** 打开/关闭状态变化回调（供外部暂停/恢复游戏） */
   onOpen?: () => void;
   onClose?: () => void;
 
@@ -179,37 +131,28 @@ export class CardEncyclopediaUI {
     this.applyFilter('all');
   }
 
-  // ---- 公共 API ----
-
   get isOpen(): boolean { return this._isOpen; }
 
   open(): void {
     this._isOpen = true;
     this.hoveredCardIndex = -1;
+    this.scrollOffset = 0;
     this.onOpen?.();
   }
 
   close(): void {
     this._isOpen = false;
-    this.hoveredCardIndex = -1;
     this.onClose?.();
   }
 
-  toggle(): void {
-    if (this._isOpen) this.close();
-    else this.open();
-  }
+  // ============================================================
+  // 渲染
+  // ============================================================
 
-  // ---- 渲染 ----
-
-  /** 每帧调用，绘制完整图鉴面板 */
   render(): void {
     if (!this._isOpen) return;
-
-    try {
-      this.renderImpl();
-    } catch (err) {
-      console.error('[CardEncyclopediaUI] render error:', err);
+    try { this.renderImpl(); } catch (err) {
+      console.error('[CardEncyclopediaUI]', err);
     }
   }
 
@@ -217,31 +160,28 @@ export class CardEncyclopediaUI {
     const ctx = this.renderer.context;
     if (!ctx) return;
 
-    // 设计空间中心
     const cx = LayoutManager.DESIGN_W / 2;
     const cy = LayoutManager.DESIGN_H / 2;
 
-    // ---- 保存当前变换状态 ----
-    ctx.save();
-
-    // ---- 全视口变暗遮罩（viewport-space） ----
+    // 半透明黑色遮罩（全视口）
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
     ctx.restore();
 
-    // ---- 面板背景 ----
     const panelLeft = cx - PANEL_W / 2;
     const panelTop = cy - PANEL_H / 2;
+
+    // 窗口背景
     ctx.save();
     ctx.fillStyle = '#1a1a2e';
-    ctx.strokeStyle = '#4a4a7a';
+    ctx.strokeStyle = '#5a5a8a';
     ctx.lineWidth = 2;
-    fillAndStrokeRoundedRect(ctx, panelLeft, panelTop, PANEL_W, PANEL_H, 12);
+    fillAndStrokeRoundedRect(ctx, panelLeft, panelTop, PANEL_W, PANEL_H, 14);
     ctx.restore();
 
-    // ---- 标题 ----
+    // 标题
     ctx.save();
     ctx.fillStyle = '#ffffff';
     ctx.font = FONTS.title;
@@ -250,48 +190,53 @@ export class CardEncyclopediaUI {
     ctx.fillText('卡牌图鉴', cx, panelTop + HEADER_H / 2);
     ctx.restore();
 
-    // ---- 关闭按钮 (X) ----
-    const closeX = panelLeft + PANEL_W - 46;
-    const closeY = panelTop + 14;
-    const closeW = 32;
-    const closeH = 32;
+    // 关闭按钮
+    const closeX = panelLeft + PANEL_W - 48;
+    const closeY = panelTop + 16;
     ctx.save();
     ctx.fillStyle = '#c62828';
-    fillRoundedRect(ctx, closeX, closeY, closeW, closeH, 6);
+    fillRoundedRect(ctx, closeX, closeY, 34, 34, 8);
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFont(18, true);
+    ctx.font = getFont(20, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('X', closeX + closeW / 2, closeY + closeH / 2);
+    ctx.fillText('X', closeX + 17, closeY + 17);
     ctx.restore();
 
-    // ---- 类型筛选标签 ----
+    // 筛选标签
     this.renderFilterTabs(ctx, cx, panelTop + HEADER_H);
 
-    // ---- 卡牌网格 ----
-    this.renderCardGrid(ctx, panelLeft, panelTop + HEADER_H + TAB_H);
+    // 卡牌网格区域（带裁剪）
+    const gridTop = panelTop + HEADER_H + TAB_H;
+    const gridLeft = panelLeft + PADDING;
+    const gridW = PANEL_W - PADDING * 2 - SCROLLBAR_W - 6;
+    const gridH = PANEL_H - HEADER_H - TAB_H - PADDING;
 
-    // ---- 卡牌总数 ----
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(gridLeft, gridTop, gridW, gridH);
+    ctx.clip();
+    this.renderCardGrid(ctx, gridLeft, gridTop, gridW, gridH);
+    ctx.restore();
+
+    // 滚动条
+    this.renderScrollbar(ctx, gridLeft + gridW + 4, gridTop, gridH);
+
+    // 计数
     ctx.save();
     ctx.fillStyle = '#8888aa';
     ctx.font = FONTS.body;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     const allCount = Array.isArray(ALL_CARDS) ? ALL_CARDS.length : 0;
-    ctx.fillText(
-      `${this.filteredCards.length} / ${allCount} 张`,
-      panelLeft + PANEL_W - 16,
-      panelTop + PANEL_H - 12,
-    );
-    ctx.restore();
-
-    // ---- 恢复变换 ----
+    ctx.fillText(`${this.filteredCards.length} / ${allCount} 张`, panelLeft + PANEL_W - 20, panelTop + PANEL_H - 14);
     ctx.restore();
   }
 
-  // ---- 输入 ----
+  // ============================================================
+  // 输入
+  // ============================================================
 
-  /** 处理点击，返回 true 表示事件已被消费 */
   handleClick(x: number, y: number): boolean {
     if (!this._isOpen) return false;
 
@@ -300,46 +245,40 @@ export class CardEncyclopediaUI {
     const panelLeft = cx - PANEL_W / 2;
     const panelTop = cy - PANEL_H / 2;
 
-    // 1. 关闭按钮
-    const closeX = panelLeft + PANEL_W - 46;
-    const closeY = panelTop + 14;
-    if (x >= closeX && x <= closeX + 32 && y >= closeY && y <= closeY + 32) {
+    // 关闭按钮
+    if (x >= panelLeft + PANEL_W - 48 && x <= panelLeft + PANEL_W - 14 && y >= panelTop + 16 && y <= panelTop + 50) {
       this.close();
       return true;
     }
 
-    // 2. 筛选标签
+    // 筛选标签
     const tabY = panelTop + HEADER_H;
-    const tabCount = FILTER_TABS.length;
-    const tabW = 108;
-    const tabGap = 8;
-    const totalTabW = tabCount * tabW + (tabCount - 1) * tabGap;
-    const tabStartX = cx - totalTabW / 2;
+    const tabW = 108; const tabGap = 8;
+    const totalW = FILTER_TABS.length * tabW + (FILTER_TABS.length - 1) * tabGap;
+    const tabStartX = cx - totalW / 2;
     for (let i = 0; i < FILTER_TABS.length; i++) {
       const tx = tabStartX + i * (tabW + tabGap);
       if (x >= tx && x <= tx + tabW && y >= tabY && y <= tabY + TAB_H) {
-        const tab = FILTER_TABS[i]!;
-        if (tab.key !== this.activeFilter) {
-          this.applyFilter(tab.key);
-        }
+        const key = FILTER_TABS[i]!.key;
+        if (key !== this.activeFilter) { this.applyFilter(key); this.scrollOffset = 0; }
         return true;
       }
     }
 
-    // 3. 卡牌点击（暂不处理详情，仅消费点击防止穿透）
-    const gridTop = panelTop + HEADER_H + TAB_H + 12;
-    const gridLeft = panelLeft + 16;
-    for (let i = 0; i < this.filteredCards.length; i++) {
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const cardLeft = gridLeft + col * (CARD_W + CARD_GAP);
-      const cardTop = gridTop + row * (CARD_H + CARD_GAP);
-      if (x >= cardLeft && x <= cardLeft + CARD_W && y >= cardTop && y <= cardTop + CARD_H) {
-        return true;
-      }
+    // 卡牌区域：开始拖拽滚动
+    const gridTop = panelTop + HEADER_H + TAB_H;
+    const gridLeft = panelLeft + PADDING;
+    const gridW = PANEL_W - PADDING * 2 - SCROLLBAR_W - 6;
+    const gridH = PANEL_H - HEADER_H - TAB_H - PADDING;
+
+    if (x >= gridLeft && x <= gridLeft + gridW && y >= gridTop && y <= gridTop + gridH) {
+      this.isDragging = true;
+      this.dragStartY = y;
+      this.dragStartOffset = this.scrollOffset;
+      return true;
     }
 
-    // 4. 面板外点击 → 关闭
+    // 窗口外 → 关闭
     if (x < panelLeft || x > panelLeft + PANEL_W || y < panelTop || y > panelTop + PANEL_H) {
       this.close();
       return true;
@@ -348,210 +287,232 @@ export class CardEncyclopediaUI {
     return true;
   }
 
-  /** 更新鼠标悬停位置 */
   handleMouseMove(x: number, y: number): void {
-    if (!this._isOpen) {
+    if (!this._isOpen) return;
+
+    if (this.isDragging) {
+      this.scrollOffset = this.clampScroll(this.dragStartOffset + (this.dragStartY - y));
       this.hoveredCardIndex = -1;
       return;
     }
 
-    const cx = LayoutManager.DESIGN_W / 2;
-    const cy = LayoutManager.DESIGN_H / 2;
-    const panelLeft = cx - PANEL_W / 2;
-    const panelTop = cy - PANEL_H / 2;
-    const gridTop = panelTop + HEADER_H + TAB_H + 12;
-    const gridLeft = panelLeft + 16;
+    this.updateHover(x, y);
+  }
 
-    this.hoveredCardIndex = -1;
-    for (let i = 0; i < this.filteredCards.length; i++) {
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const cardLeft = gridLeft + col * (CARD_W + CARD_GAP);
-      const cardTop = gridTop + row * (CARD_H + CARD_GAP);
-      if (x >= cardLeft && x <= cardLeft + CARD_W && y >= cardTop && y <= cardTop + CARD_H) {
-        this.hoveredCardIndex = i;
-        return;
-      }
-    }
+  handleMouseUp(_x: number, _y: number): void { this.isDragging = false; }
+
+  handleWheel(deltaY: number): boolean {
+    if (!this._isOpen) return false;
+    if (this.scrollNeeded() <= 0) return true;
+    this.scrollOffset = this.clampScroll(
+      this.scrollOffset + (deltaY > 0 ? SCROLL_SPEED : -SCROLL_SPEED) * Math.max(1, Math.abs(deltaY) / 100),
+    );
+    return true;
   }
 
   // ============================================================
-  // 私有渲染方法
+  // 子渲染
   // ============================================================
 
   private renderFilterTabs(ctx: CanvasRenderingContext2D, cx: number, tabY: number): void {
-    const tabCount = FILTER_TABS.length;
-    const tabW = 108;
-    const tabGap = 8;
-    const totalW = tabCount * tabW + (tabCount - 1) * tabGap;
+    const tabW = 108; const tabGap = 8;
+    const totalW = FILTER_TABS.length * tabW + (FILTER_TABS.length - 1) * tabGap;
     const startX = cx - totalW / 2;
 
     for (let i = 0; i < FILTER_TABS.length; i++) {
-      const tab = FILTER_TABS[i]!;
+      const t = FILTER_TABS[i]!;
       const tx = startX + i * (tabW + tabGap);
-      const isActive = tab.key === this.activeFilter;
+      const active = t.key === this.activeFilter;
 
       ctx.save();
-      ctx.fillStyle = isActive ? tab.color : '#2a2a4a';
-      ctx.strokeStyle = isActive ? tab.color : '#444466';
+      ctx.fillStyle = active ? t.color : '#2a2a4a';
+      ctx.strokeStyle = active ? t.color : '#444466';
       ctx.lineWidth = 1;
       fillAndStrokeRoundedRect(ctx, tx, tabY + 4, tabW, TAB_H - 8, 6);
-
-      ctx.fillStyle = isActive ? '#ffffff' : '#8888aa';
-      ctx.font = getFont(14, isActive);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(tab.label, tx + tabW / 2, tabY + TAB_H / 2);
+      ctx.fillStyle = active ? '#ffffff' : '#8888aa';
+      ctx.font = getFont(14, active);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(t.label, tx + tabW / 2, tabY + TAB_H / 2);
       ctx.restore();
     }
   }
 
   private renderCardGrid(
     ctx: CanvasRenderingContext2D,
-    panelLeft: number,
-    gridTop: number,
+    gridLeft: number, gridTop: number, gridW: number, gridH: number,
   ): void {
-    const gridLeft = panelLeft + 16;
     const cards = this.filteredCards;
     if (!cards || cards.length === 0) return;
 
+    const actualCols = Math.max(1, Math.floor((gridW + CARD_GAP) / (CARD_W + CARD_GAP)));
+    const totalRowW = actualCols * CARD_W + (actualCols - 1) * CARD_GAP;
+    const offsetX = (gridW - totalRowW) / 2;
+    const rowH = CARD_H + CARD_GAP;
+    const rows = Math.ceil(cards.length / actualCols);
+    const contentH = rows * rowH + 12;
+
+    this.scrollOffset = this.clampScroll(this.scrollOffset);
+    const startY = gridTop + 12 - this.scrollOffset;
+
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i]!;
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const cardLeft = gridLeft + col * (CARD_W + CARD_GAP);
-      const cardTop = gridTop + 12 + row * (CARD_H + CARD_GAP);
-      const cardCenterX = cardLeft + CARD_W / 2;
+      const col = i % actualCols;
+      const row = Math.floor(i / actualCols);
+      const cardLeft = gridLeft + offsetX + col * (CARD_W + CARD_GAP);
+      const cardTop = startY + row * rowH;
+
+      if (cardTop + CARD_H < gridTop || cardTop > gridTop + gridH) continue;
+
+      const borderColor = CATEGORY_COLORS[getCardCategory(card)] ?? '#ffffff';
       const isHovered = i === this.hoveredCardIndex;
+      const cardCenterX = cardLeft + CARD_W / 2;
 
-      const category = getCardCategory(card);
-      const borderColor = CATEGORY_COLORS[category] ?? '#ffffff';
-
-      // ---- 卡牌背景 ----
+      // 背景
       ctx.save();
-      ctx.fillStyle = '#1a2332';
-      ctx.strokeStyle = borderColor;
-      ctx.lineWidth = isHovered ? 3 : 2;
-      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = '#1a2332'; ctx.strokeStyle = borderColor;
+      ctx.lineWidth = isHovered ? 3 : 2; ctx.globalAlpha = 0.95;
       fillAndStrokeRoundedRect(ctx, cardLeft, cardTop, CARD_W, CARD_H, 8);
       ctx.restore();
 
-      // 悬停高亮
       if (isHovered) {
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
         fillRoundedRect(ctx, cardLeft, cardTop, CARD_W, CARD_H, 8);
         ctx.restore();
       }
 
-      // ---- 美术区域 ----
-      const artCenterY = cardTop + 14 + ART_H / 2;
+      // 美术区
+      const artCY = cardTop + 14 + ART_H / 2;
       ctx.save();
-      ctx.fillStyle = '#0d1b2a';
-      ctx.strokeStyle = '#37474f';
-      ctx.lineWidth = 1;
-      fillAndStrokeRoundedRect(ctx, cardCenterX - ART_W / 2, artCenterY - ART_H / 2, ART_W, ART_H, 4);
+      ctx.fillStyle = '#0d1b2a'; ctx.strokeStyle = '#37474f'; ctx.lineWidth = 1;
+      fillAndStrokeRoundedRect(ctx, cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H, 4);
       ctx.restore();
 
-      // ---- 符号图标 ----
+      // 图标
       ctx.save();
-      ctx.fillStyle = borderColor;
-      ctx.font = getFont(36, true);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const glyph = CATEGORY_GLYPHS[category] ?? '?';
-      ctx.fillText(glyph, cardCenterX, artCenterY);
+      ctx.fillStyle = borderColor; ctx.font = getFont(36, true);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(CATEGORY_GLYPHS[getCardCategory(card)] ?? '?', cardCenterX, artCY);
       ctx.restore();
 
-      // ---- 卡牌名称 ----
+      // 名称
       ctx.save();
-      ctx.fillStyle = '#ffffff';
-      ctx.font = getFont(12, true);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff'; ctx.font = getFont(12, true);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(card.name, cardCenterX, cardTop + 14 + ART_H + 14);
       ctx.restore();
 
-      // ---- 类型标签 ----
-      const typeLabels: Record<string, string> = {
-        tower: '塔', soldier: '兵', trap: '机关', spell: '技能', arcane: '奥术',
-      };
+      // 类型标签
+      const labels: Record<string, string> = { tower: '塔', soldier: '兵', trap: '机关', spell: '技能', arcane: '奥术' };
       ctx.save();
-      ctx.fillStyle = borderColor;
-      ctx.font = getFont(10, false);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(
-        typeLabels[category] ?? category,
-        cardCenterX,
-        cardTop + 14 + ART_H + 32,
-      );
+      ctx.fillStyle = borderColor; ctx.font = getFont(10, false);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(labels[getCardCategory(card)] ?? '', cardCenterX, cardTop + 14 + ART_H + 32);
       ctx.restore();
 
-      // ---- 描述（自动换行） ----
+      // 描述
       ctx.save();
-      ctx.fillStyle = '#90a4ae';
-      ctx.font = getFont(9, false);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-
-      const descLines = this.wrapText(ctx, card.description, CARD_W - 16, 9);
-      const descStartY = cardTop + 14 + ART_H + 48;
-      for (let li = 0; li < descLines.length && li < 3; li++) {
-        ctx.fillText(descLines[li]!, cardCenterX, descStartY + li * 12);
+      ctx.fillStyle = '#90a4ae'; ctx.font = getFont(9, false);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let li = 0; li < this.wrapText(ctx, card.description, CARD_W - 16, 9).length && li < 3; li++) {
+        ctx.fillText(this.wrapText(ctx, card.description, CARD_W - 16, 9)[li]!, cardCenterX, cardTop + 14 + ART_H + 48 + li * 12);
       }
       ctx.restore();
     }
   }
 
-  // ---- 工具函数 ----
+  private renderScrollbar(ctx: CanvasRenderingContext2D, sbX: number, gridTop: number, gridH: number): void {
+    const needed = this.scrollNeeded();
+    if (needed <= 0) return;
 
-  /** 简单文本换行（基于 Canvas 2D measureText） */
-  private wrapText(
-    ctx: CanvasRenderingContext2D,
-    text: string,
-    maxWidth: number,
-    fontSize: number,
-  ): string[] {
-    if (!text || maxWidth <= 0) return [text || ''];
-
-    // 一次性设置字体，避免循环内反复调用
+    // 轨道
     ctx.save();
-    ctx.font = getFont(fontSize, false);
+    ctx.fillStyle = '#2a2a4a';
+    ctx.fillRect(sbX, gridTop, SCROLLBAR_W, gridH);
 
-    const lines: string[] = [];
-    let current = '';
-    let currentW = 0;
+    const thumbH = Math.max(30, gridH * gridH / (gridH + needed));
+    const thumbY = gridTop + (gridH - thumbH) * this.scrollOffset / needed;
 
-    for (const ch of text) {
-      const metrics = ctx.measureText(ch);
-      const charW = metrics.width || fontSize * 0.6;
-      if (currentW + charW > maxWidth && current.length > 0) {
-        lines.push(current);
-        current = ch;
-        currentW = charW;
-      } else {
-        current += ch;
-        currentW += charW;
+    ctx.fillStyle = '#5a5a8a';
+    ctx.beginPath();
+    const r = SCROLLBAR_W / 2;
+    ctx.moveTo(sbX + r, thumbY); ctx.lineTo(sbX + SCROLLBAR_W - r, thumbY);
+    ctx.arcTo(sbX + SCROLLBAR_W, thumbY, sbX + SCROLLBAR_W, thumbY + r, r);
+    ctx.lineTo(sbX + SCROLLBAR_W, thumbY + thumbH - r);
+    ctx.arcTo(sbX + SCROLLBAR_W, thumbY + thumbH, sbX + SCROLLBAR_W - r, thumbY + thumbH, r);
+    ctx.lineTo(sbX + r, thumbY + thumbH);
+    ctx.arcTo(sbX, thumbY + thumbH, sbX, thumbY + thumbH - r, r);
+    ctx.lineTo(sbX, thumbY + r);
+    ctx.arcTo(sbX, thumbY, sbX + r, thumbY, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ============================================================
+  // 滚动 / 悬停
+  // ============================================================
+
+  private computeContentHeight(): number {
+    const cards = this.filteredCards;
+    if (!cards || cards.length === 0) return 0;
+    const gridW = PANEL_W - PADDING * 2 - SCROLLBAR_W - 6;
+    const actualCols = Math.max(1, Math.floor((gridW + CARD_GAP) / (CARD_W + CARD_GAP)));
+    return Math.ceil(cards.length / actualCols) * (CARD_H + CARD_GAP) + 12;
+  }
+
+  private visibleHeight(): number { return PANEL_H - HEADER_H - TAB_H - PADDING; }
+  private scrollNeeded(): number { return Math.max(0, this.computeContentHeight() - this.visibleHeight()); }
+  private clampScroll(v: number): number { return Math.max(0, Math.min(v, this.scrollNeeded())); }
+
+  private updateHover(x: number, y: number): void {
+    const cx = LayoutManager.DESIGN_W / 2;
+    const panelLeft = cx - PANEL_W / 2;
+    const panelTop = (LayoutManager.DESIGN_H - PANEL_H) / 2;
+    const gridTop = panelTop + HEADER_H + TAB_H;
+    const gridLeft = panelLeft + PADDING;
+    const gridW = PANEL_W - PADDING * 2 - SCROLLBAR_W - 6;
+    const gridH = PANEL_H - HEADER_H - TAB_H - PADDING;
+
+    if (x < gridLeft || x > gridLeft + gridW || y < gridTop || y > gridTop + gridH) {
+      this.hoveredCardIndex = -1; return;
+    }
+
+    const actualCols = Math.max(1, Math.floor((gridW + CARD_GAP) / (CARD_W + CARD_GAP)));
+    const totalRowW = actualCols * CARD_W + (actualCols - 1) * CARD_GAP;
+    const offsetX = (gridW - totalRowW) / 2;
+    const rowH = CARD_H + CARD_GAP;
+    const startY = gridTop + 12 - this.scrollOffset;
+    const cards = this.filteredCards;
+
+    for (let i = 0; i < cards.length; i++) {
+      const col = i % actualCols; const row = Math.floor(i / actualCols);
+      const cl = gridLeft + offsetX + col * (CARD_W + CARD_GAP);
+      const ct = startY + row * rowH;
+      if (x >= cl && x <= cl + CARD_W && y >= ct && y <= ct + CARD_H) {
+        this.hoveredCardIndex = i; return;
       }
     }
-    if (current.length > 0) lines.push(current);
+    this.hoveredCardIndex = -1;
+  }
 
+  private wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number, fs: number): string[] {
+    if (!text || maxW <= 0) return [text || ''];
+    ctx.save(); ctx.font = getFont(fs, false);
+    const lines: string[] = []; let cur = ''; let curW = 0;
+    for (const ch of text) {
+      const cw = ctx.measureText(ch).width || fs * 0.6;
+      if (curW + cw > maxW && cur.length > 0) { lines.push(cur); cur = ch; curW = cw; }
+      else { cur += ch; curW += cw; }
+    }
+    if (cur.length > 0) lines.push(cur);
     ctx.restore();
     return lines.length > 0 ? lines : [text];
   }
 
-  // ============================================================
-  // 筛选
-  // ============================================================
-
   private applyFilter(filter: CardFilterCategory): void {
     this.activeFilter = filter;
     const all = Array.isArray(ALL_CARDS) ? ALL_CARDS : [];
-    if (filter === 'all') {
-      this.filteredCards = [...all];
-    } else {
-      this.filteredCards = all.filter((c) => getCardCategory(c) === filter);
-    }
+    this.filteredCards = filter === 'all' ? [...all] : all.filter(c => getCardCategory(c) === filter);
   }
 }
