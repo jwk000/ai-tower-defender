@@ -25,11 +25,12 @@ import {
   DamageTypeVal,
   Category,
   CategoryVal,
+  Boss,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
-import { TileType } from '../types/index.js';
+import { GamePhase, TileType } from '../types/index.js';
 
 const TILE = 32;
 
@@ -69,7 +70,7 @@ function makeTower(world: TowerWorld, hp: number = 80): number {
 
 function makeEnemyAtEnd(
   world: TowerWorld,
-  opts: { atk: number; withAttackComponent?: boolean },
+  opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean },
 ): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x: TILE + TILE / 2, y: TILE / 2 });
@@ -103,6 +104,14 @@ function makeEnemyAtEnd(
       attackSpeed: 1,
       range: 0,
       damageType: DamageTypeVal.Physical,
+    });
+  }
+  if (opts.isBoss) {
+    world.addComponent(eid, Boss, {
+      bossType: 0xff,
+      phase: 1,
+      phase2HpRatio: 0.5,
+      selfDestructTimer: -1,
     });
   }
   return eid;
@@ -209,5 +218,17 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
 
     expect(Health.current[base], '基地正常扣血').toBe(70);
     expect(Health.current[tower], '塔不应因敌人到达基地而掉血').toBe(towerHp0);
+  });
+
+  it('Boss 到达水晶后立即判定失败', () => {
+    makeBase(world, 100);
+    makeEnemyAtEnd(world, { atk: 5, isBoss: true });
+    let phase = GamePhase.Battle;
+    const setPhase = (next: GamePhase): void => { phase = next; };
+    const bossReachSystem = new MovementSystem(makeMap(), setPhase);
+
+    bossReachSystem.update(world, 0.016);
+
+    expect(phase).toBe(GamePhase.Defeat);
   });
 });

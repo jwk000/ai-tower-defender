@@ -390,6 +390,10 @@ class TowerDefenderGame extends Game {
       colorG: baseRgb.g,
       colorB: baseRgb.b,
       size: ts * 0.6,
+      alpha: 1,
+      facing: 1,
+      bobPhase: 0,
+      breathPhase: 0,
     });
     this.world.addComponent(this.baseEntityId, Faction, { value: FactionVal.Justice });
     this.world.addComponent(this.baseEntityId, Category, { value: CategoryVal.Objective });
@@ -718,7 +722,7 @@ class TowerDefenderGame extends Game {
     this.screenShakeSystem = new ScreenShakeSystem();
     this.tileDamageSystem = new TileDamageSystem(map);
 
-    const movementSystem = new MovementSystem(map);
+    const movementSystem = new MovementSystem(map, (phase) => { this.phase = phase; });
     const attackSystem = new AttackSystem(this.weatherSystem, map);
     this.batSwarmSystem = new BatSwarmSystem(this.weatherSystem, this.renderer);
     const unitSystem = new UnitSystem(map);

@@ -3,6 +3,7 @@ import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, DeathEffect, Trap, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
+  Boss,
 } from '../core/components.js';
 import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -11,6 +12,7 @@ import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import { linearizeSpawnPaths } from '../level/graph/PathGraph.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
+import { GamePhase } from '../types/index.js';
 
 interface CollisionResult {
   blocked: boolean;
@@ -52,7 +54,10 @@ export class MovementSystem implements System {
   /** Static tile size — used by findNearestPathIndex */
   private static _tileSize = 0;
 
-  constructor(private map: MapConfig) {
+  constructor(
+    private map: MapConfig,
+    private setPhase?: (phase: GamePhase) => void,
+  ) {
     const resolved = resolveGraphFromMap(map);
     const spawnPaths = linearizeSpawnPaths({ pathGraph: resolved.pathGraph, spawns: resolved.spawns });
     this.paths = spawnPaths.map((sp) => sp.path);
@@ -108,6 +113,12 @@ export class MovementSystem implements System {
 
       // Reached end of path — attack animation + damage base
       if (pathIndex >= path.length - 1) {
+        if (hasComponent(world.world, Boss, eid)) {
+          this.setPhase?.(GamePhase.Defeat);
+          world.destroyEntity(eid);
+          continue;
+        }
+
         const attackDur = Visual.attackAnimDuration[eid]!;
 
         // Case 1: Attack animation just completed → destroy entity

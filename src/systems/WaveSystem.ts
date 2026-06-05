@@ -321,12 +321,14 @@ export class WaveSystem implements System {
       }
     }
 
-    // v5.0: fixed-interval wave spawning — end wave after waveInterval seconds,
-    // regardless of whether enemies are still alive. Enemies that survive
-    // carry over into the next wave alongside newly spawned enemies.
+    // v5.0: fixed-interval wave spawning. Non-final waves advance on interval
+    // so surviving enemies can carry over; final wave must wait for full clear.
     // Use epsilon comparison to avoid floating-point imprecision edge cases.
     if (this.waveElapsed >= this.waveInterval - 0.001) {
-      this.finishWave();
+      const isFinalWave = !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
+      if (!isFinalWave || !this.hasAliveEnemies()) {
+        this.finishWave();
+      }
     }
 
     // v4.0: elite death → card draft is now handled in HealthSystem's onEnemyKilled

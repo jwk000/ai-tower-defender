@@ -317,6 +317,12 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     ws.setWaveInterval(0.5);
     ws.startWave();
 
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+    const enemies = enemyQuery(world.world);
+    for (const eid of enemies) {
+      Health.current[eid] = 0;
+    }
+
     // v5.0: run enough updates for waveInterval timer to expire
     // Note: 10 × 0.1 = 0.9999... (floating point), so we need 11 iterations for >= 1.0
     for (let i = 0; i < 11; i++) {
@@ -351,9 +357,52 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     ws.setWaveInterval(0.5);
     ws.startWave();
 
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+    const enemies = enemyQuery(world.world);
+    for (const eid of enemies) {
+      Health.current[eid] = 0;
+    }
+
     for (let i = 0; i < 11; i++) ws.update(world, 0.1);
 
     expect(rewardCalled).toBe(false);
+  });
+
+  it('最后一波出怪结束后，仍有存活敌人时不能直接胜利', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves = makeSingleWave();
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 12; i++) ws.update(world, 0.1);
+
+    expect(phase).toBe(GamePhase.Battle);
+  });
+
+  it('最后一波出怪结束且所有敌人死亡后才判定胜利', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves = makeSingleWave();
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+    const enemies = enemyQuery(world.world);
+    for (const eid of enemies) {
+      Health.current[eid] = 0;
+    }
+    ws.update(world, 1.0);
+
+    expect(phase).toBe(GamePhase.Victory);
   });
 });
 
