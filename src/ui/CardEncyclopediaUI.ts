@@ -966,7 +966,7 @@ export class CardEncyclopediaUI {
     // 标题
     ctx.save();
     ctx.fillStyle = '#ffffff';
-    ctx.font = FONTS.title;
+    ctx.font = getFont(26, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('卡牌图鉴', cx, panelTop + HEADER_H / 2);
@@ -1111,7 +1111,7 @@ export class CardEncyclopediaUI {
       ctx.strokeStyle = active ? t.color : '#444466';
       ctx.lineWidth = 1;
       fillAndStrokeRoundedRect(ctx, tx, tabY + 4, tabW, TAB_H - 8, 6);
-      ctx.fillStyle = active ? '#ffffff' : '#8888aa';
+      ctx.fillStyle = active ? (t.key === 'all' ? '#1a1a2e' : '#ffffff') : '#8888aa';
       ctx.font = getFont(14, active);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(t.label, tx + tabW / 2, tabY + TAB_H / 2);
