@@ -72,11 +72,14 @@ map:
       - { from: n3, to: n4 }
       - { from: n4, to: n2 }
       - { from: n2, to: n5 }
+  lighting:
+    fogOverlay:
+      enabled: true
 
 weather:
   pool:
-    - Fog
-  initial: Fog
+    - Night
+  initial: Night
 
 crystal:
   hp: 900

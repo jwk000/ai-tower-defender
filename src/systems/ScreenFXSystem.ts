@@ -6,7 +6,7 @@
 // 非 ECS System，不参与 World.update 循环
 // ============================================================
 
-import { WeatherType } from '../types/index.js';
+import { WeatherType, type FogOverlayConfig } from '../types/index.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 
 export class ScreenFXSystem {
@@ -72,13 +72,18 @@ export class ScreenFXSystem {
    * @param dt     帧间隔（秒），用于驱动动画
    * @param weather 当前天气类型
    */
-  render(ctx: CanvasRenderingContext2D, dt: number, weather: WeatherType): void {
+  render(
+    ctx: CanvasRenderingContext2D,
+    dt: number,
+    weather: WeatherType,
+    options?: { fogOverlay?: Partial<FogOverlayConfig> },
+  ): void {
     this.time += dt;
 
     this.drawSun(ctx, weather);
     this.drawSunRays(ctx, weather);
     this.drawWindLines(ctx, weather);
-    this.drawFogParticles(ctx, weather);
+    this.drawFogParticles(ctx, weather, options?.fogOverlay);
     this.drawRainDrops(ctx, weather);
     this.drawSnowflakes(ctx, weather);
     this.drawDarkClouds(ctx, weather);
@@ -274,8 +279,12 @@ export class ScreenFXSystem {
    * 密集随机雾团 + 径向渐变实心 → 软边缘 + 无镂空
    * 双层：大团打底（18个）+ 小团叠加（30个）
    */
-  private drawFogParticles(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
-    if (weather !== WeatherType.Fog) return;
+  private drawFogParticles(
+    ctx: CanvasRenderingContext2D,
+    weather: WeatherType,
+    fogOverlay?: Partial<FogOverlayConfig>,
+  ): void {
+    if (weather !== WeatherType.Fog && !(weather === WeatherType.Night && fogOverlay?.enabled)) return;
 
     ctx.save();
 

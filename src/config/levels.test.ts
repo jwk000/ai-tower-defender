@@ -6,6 +6,13 @@ import { ENEMY_CONFIGS } from '../data/gameData.js';
 
 interface LevelWeatherConfig {
   id: string;
+  map: {
+    lighting?: {
+      fogOverlay?: {
+        enabled?: boolean;
+      };
+    };
+  };
   weather: {
     pool: string[];
     initial: string;
@@ -13,20 +20,22 @@ interface LevelWeatherConfig {
 }
 
 describe('关卡 YAML 配置', () => {
-  it('第3关 YAML 固定下雾天气', async () => {
+  it('第3关 YAML 固定夜晚天气并开启雾效', async () => {
     const level = await loadYamlConfig<LevelWeatherConfig>('./levels/level-03.yaml');
 
     expect(level.id).toBe('level_03');
-    expect(level.weather.pool).toEqual(['Fog']);
-    expect(level.weather.initial).toBe('Fog');
+    expect(level.weather.pool).toEqual(['Night']);
+    expect(level.weather.initial).toBe('Night');
+    expect(level.map.lighting?.fogOverlay?.enabled).toBe(true);
   });
 
-  it('第3关运行时天气解析为 Fog', () => {
+  it('第3关运行时天气解析为 Night 并保留雾效配置', () => {
     const level = loadLevelsFromYaml().find((cfg) => cfg.id === 'level_03');
 
     expect(level).toBeDefined();
-    expect(level!.weatherPool).toEqual([WeatherType.Fog]);
-    expect(level!.weatherFixed).toBe(WeatherType.Fog);
+    expect(level!.weatherPool).toEqual([WeatherType.Night]);
+    expect(level!.weatherFixed).toBe(WeatherType.Night);
+    expect(level!.map.lighting?.fogOverlay?.enabled).toBe(true);
   });
 
   it('第4关 YAML 固定下雪天气', async () => {

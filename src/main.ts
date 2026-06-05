@@ -775,7 +775,9 @@ class TowerDefenderGame extends Game {
           ctx.restore();
         }
         // Screen FX overlay (design-space — transform maps to design area)
-        this.screenFXSystem.render(ctx, 1 / 60, this.weatherSystem.currentWeather);
+        this.screenFXSystem.render(ctx, 1 / 60, this.weatherSystem.currentWeather, {
+          fogOverlay: map.lighting?.fogOverlay,
+        });
       }
       this.uiSystem.renderUI();
       if (this.encyclopedia.isOpen) {

@@ -175,8 +175,13 @@ export interface MoonlightConfig {
   bloomAlpha: number;
 }
 
+export interface FogOverlayConfig {
+  enabled: boolean;
+}
+
 export interface MapLightingConfig {
   moonlight?: Partial<MoonlightConfig>;
+  fogOverlay?: Partial<FogOverlayConfig>;
 }
 
 export interface MapConfig {
