@@ -107,7 +107,7 @@ function drawCardIcon(
   cardId: string, color: string,
 ): void {
   ctx.fillStyle = color;
-  ctx.strokeStyle = '#0d1b2a';
+  ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
