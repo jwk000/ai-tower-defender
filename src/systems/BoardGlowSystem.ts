@@ -49,12 +49,15 @@ float particleLayer(vec2 uv, float scale, float speed) {
   vec2 cell = floor(p);
   vec2 local = fract(p);
   float rnd = hash(cell);
+  float rnd2 = hash(cell + 19.41);
+  float rnd3 = hash(cell + 31.77);
   vec2 center = vec2(hash(cell + 3.17), hash(cell + 8.91));
-  center += 0.18 * vec2(sin(u_time * speed + rnd * 6.2831), cos(u_time * speed * 0.73 + rnd * 6.2831));
+  center += 0.24 * vec2(sin(u_time * speed + rnd * 6.2831), cos(u_time * speed * 0.73 + rnd2 * 6.2831));
   float d = length(local - center);
-  float sparkle = smoothstep(0.035, 0.0, d);
-  float twinkle = 0.45 + 0.55 * sin(u_time * (0.7 + rnd * 1.4) + rnd * 12.0);
-  return sparkle * twinkle * step(0.84, rnd);
+  float radius = mix(0.014, 0.032, rnd2);
+  float core = smoothstep(radius, 0.0, d);
+  float twinkle = 0.25 + 0.75 * smoothstep(-0.35, 1.0, sin(u_time * (0.45 + rnd * 0.85) + rnd3 * 12.0));
+  return core * twinkle * step(0.94, rnd);
 }
 
 void main() {
@@ -66,16 +69,17 @@ void main() {
 
   vec2 delta = max(max(minB - px, px - maxB), vec2(0.0));
   float outsideDist = length(delta);
-  float haloBand = (1.0 - inside) * smoothstep(3.0, 22.0, outsideDist) * smoothstep(120.0, 18.0, outsideDist);
-  float outerBloom = haloBand * exp(-outsideDist * 0.020) * 0.55;
+  float haloBand = (1.0 - inside) * smoothstep(4.0, 26.0, outsideDist) * smoothstep(150.0, 38.0, outsideDist);
+  float outerBloom = haloBand * exp(-outsideDist * 0.014) * 0.20;
 
   vec2 glowUv = (px - minB + vec2(96.0)) / max(u_board.zw + vec2(192.0), vec2(1.0));
-  float particleMask = (1.0 - inside) * smoothstep(8.0, 24.0, outsideDist) * smoothstep(96.0, 34.0, outsideDist);
-  vec2 driftUv = glowUv + vec2(0.012 * sin(u_time * 0.21), -u_time * 0.014);
-  float particles = (particleLayer(driftUv, 11.0, 0.55) + particleLayer(driftUv + 9.3, 17.0, 0.9) * 0.55) * particleMask;
+  float scatterNoise = step(0.58, hash(floor(glowUv * 18.0) + vec2(2.7, 6.1)));
+  float particleMask = (1.0 - inside) * smoothstep(10.0, 26.0, outsideDist) * smoothstep(118.0, 46.0, outsideDist) * scatterNoise;
+  vec2 driftUv = glowUv + vec2(0.014 * sin(u_time * 0.18), -u_time * 0.010);
+  float particles = particleLayer(driftUv, 9.0, 0.42) * particleMask;
 
   vec3 color = vec3(0.72, 0.84, 1.0);
-  float alpha = outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
+  float alpha = outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 1.25;
   gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.65));
 }
 `;

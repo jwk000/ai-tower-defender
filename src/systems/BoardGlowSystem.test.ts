@@ -95,13 +95,17 @@ describe('BoardGlowSystem — 月光棋盘外发光', () => {
     expect(source).toContain('(1.0 - v_uv.y) * u_resolution.y');
     expect(source).toContain('float haloBand = (1.0 - inside)');
     expect(source).toContain('float particleMask = (1.0 - inside)');
-    expect(source).toContain('step(0.84, rnd)');
+    expect(source).toContain('step(0.94, rnd)');
+    expect(source).toContain('float scatterNoise = step(0.58');
+    expect(source).toContain('float particles = particleLayer(driftUv, 9.0, 0.42) * particleMask');
+    expect(source).toContain('* 0.20');
+    expect(source).not.toContain('particleLayer(driftUv +');
   });
 
   it('shader 源码不绘制棋盘内部椭圆形径向遮罩，也不铺棋盘内部提亮层', () => {
     const source = BoardGlowSystem.getMoonlightFragmentShaderSource();
 
-    expect(source).toContain('float alpha = outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9');
+    expect(source).toContain('float alpha = outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 1.25');
     expect(source).not.toContain('innerGlow');
     expect(source).not.toContain('length(q)');
     expect(source).not.toContain('boardFill');
