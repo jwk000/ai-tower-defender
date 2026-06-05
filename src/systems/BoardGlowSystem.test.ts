@@ -45,7 +45,7 @@ function createMockContext(): CanvasRenderingContext2D & {
 }
 
 describe('BoardGlowSystem — 月光棋盘提亮', () => {
-  it('启用 moonlight 后使用 WebGL overlay shader 渲染外发光和粒子', () => {
+  it('启用 moonlight 后使用 WebGL overlay shader 渲染棋盘外发光和周围粒子', () => {
     RenderSystem.sceneOffsetX = 10;
     RenderSystem.sceneOffsetY = 20;
     RenderSystem.sceneW = 256;
@@ -87,6 +87,15 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
       getContext.mockRestore();
       baseCanvas.remove();
     }
+  });
+
+  it('shader 源码使用顶部原点坐标并把粒子限制在棋盘外侧', () => {
+    const source = BoardGlowSystem.getMoonlightFragmentShaderSource();
+
+    expect(source).toContain('(1.0 - v_uv.y) * u_resolution.y');
+    expect(source).toContain('float haloBand = (1.0 - inside)');
+    expect(source).toContain('float particleMask = (1.0 - inside)');
+    expect(source).toContain('step(0.84, rnd)');
   });
 
   it('默认不通过 Canvas 2D 绘制月光', () => {

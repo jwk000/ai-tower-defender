@@ -53,13 +53,13 @@ float particleLayer(vec2 uv, float scale, float speed) {
   vec2 center = vec2(hash(cell + 3.17), hash(cell + 8.91));
   center += 0.18 * vec2(sin(u_time * speed + rnd * 6.2831), cos(u_time * speed * 0.73 + rnd * 6.2831));
   float d = length(local - center);
-  float sparkle = smoothstep(0.085, 0.0, d);
+  float sparkle = smoothstep(0.035, 0.0, d);
   float twinkle = 0.45 + 0.55 * sin(u_time * (0.7 + rnd * 1.4) + rnd * 12.0);
-  return sparkle * twinkle * step(0.62, rnd);
+  return sparkle * twinkle * step(0.84, rnd);
 }
 
 void main() {
-  vec2 px = v_uv * u_resolution;
+  vec2 px = vec2(v_uv.x * u_resolution.x, (1.0 - v_uv.y) * u_resolution.y);
   vec2 minB = u_board.xy;
   vec2 maxB = u_board.xy + u_board.zw;
   vec2 center = u_board.xy + u_board.zw * 0.5;
@@ -69,19 +69,19 @@ void main() {
 
   vec2 delta = max(max(minB - px, px - maxB), vec2(0.0));
   float outsideDist = length(delta);
-  float outerBloom = exp(-outsideDist * 0.030) * (1.0 - inside);
+  float haloBand = (1.0 - inside) * smoothstep(3.0, 22.0, outsideDist) * smoothstep(120.0, 18.0, outsideDist);
+  float outerBloom = haloBand * exp(-outsideDist * 0.020) * 0.55;
 
   vec2 q = (px - center) / max(u_board.zw, vec2(1.0));
   float innerGlow = inside * smoothstep(0.72, 0.06, length(q));
 
-  vec2 boardUv = (px - minB) / max(u_board.zw, vec2(1.0));
-  float particleMask = inside * smoothstep(0.0, 0.08, boardUv.x) * smoothstep(1.0, 0.92, boardUv.x)
-    * smoothstep(0.0, 0.08, boardUv.y) * smoothstep(1.0, 0.92, boardUv.y);
-  vec2 driftUv = boardUv + vec2(0.018 * sin(u_time * 0.17), -u_time * 0.018);
-  float particles = (particleLayer(driftUv, 8.0, 0.8) + particleLayer(driftUv + 9.3, 13.0, 1.2) * 0.65) * particleMask;
+  vec2 glowUv = (px - minB + vec2(96.0)) / max(u_board.zw + vec2(192.0), vec2(1.0));
+  float particleMask = (1.0 - inside) * smoothstep(8.0, 24.0, outsideDist) * smoothstep(96.0, 34.0, outsideDist);
+  vec2 driftUv = glowUv + vec2(0.012 * sin(u_time * 0.21), -u_time * 0.014);
+  float particles = (particleLayer(driftUv, 11.0, 0.55) + particleLayer(driftUv + 9.3, 17.0, 0.9) * 0.55) * particleMask;
 
   vec3 color = vec3(0.72, 0.84, 1.0);
-  float alpha = innerGlow * u_ambientAlpha + outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 1.15;
+  float alpha = innerGlow * u_ambientAlpha + outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
   gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.65));
 }
 `;
@@ -103,6 +103,10 @@ interface MoonlightGLResources {
 
 export class BoardGlowSystem implements System {
   readonly name = 'BoardGlowSystem';
+
+  static getMoonlightFragmentShaderSource(): string {
+    return FRAGMENT_SHADER;
+  }
 
   /** 距下次触发的冷却时间（秒） */
   private cooldown = 0;
