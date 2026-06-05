@@ -52,7 +52,7 @@ import type {
   ResolvedCardEntity,
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
-import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
+import { drawCardIcon, drawMiniCard } from '../ui/CardEncyclopediaUI.js';
 
 // Re-export for backward compatibility
 export {
@@ -79,7 +79,7 @@ export type {
 // ============================================================
 
 interface CardIconDraw {
-  cx: number; cy: number; w: number; h: number; cardId: string; color: string;
+  cx: number; cy: number; cardId: string; name: string; description: string; color: string;
 }
 
 // ============================================================
@@ -578,9 +578,9 @@ export class UISystem implements System {
     }
 
     // Draw vector card icons (hand zone + draft overlay)
-    for (const icon of this.cardIconDraws) {
+    for (const cd of this.cardIconDraws) {
       ctx.save();
-      drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
+      drawMiniCard(ctx, cd.cx, cd.cy, cd.cardId, cd.name, cd.description, cd.color);
       ctx.restore();
     }
 
@@ -747,8 +747,11 @@ export class UISystem implements System {
 
       const glyph = cardTypeGlyph(config.type);
       this.cardIconDraws.push({
-        cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
-        cardId: card.cardId, color: borderColor,
+        cx: cardCenterX, cy: cardCenterY,
+        cardId: card.cardId,
+        name: config.name,
+        description: config.description ?? '',
+        color: borderColor,
       });
 
       this.infos.push({
@@ -1424,46 +1427,25 @@ export class UISystem implements System {
       const config = runContext?.registry.get(opt.id);
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
 
-      // Card background — hand-card style
-      this.renderer.push({
-        shape: 'rect', x: cx, y: cardCenterY,
-        size: cardW, h: cardH,
-        color: '#1a2332', alpha: 0.95,
-        stroke: borderColor, strokeWidth: 2,
+      // Card draw via drawMiniCard
+      this.cardIconDraws.push({
+        cx, cy: cardCenterY,
+        cardId: opt.id, name: opt.name, description: opt.description, color: borderColor,
       });
 
-      // Art area — hand-card style
-      const artCenterY = cardTop + 12 + artH / 2;
-      this.renderer.push({
-        shape: 'rect', x: cx, y: artCenterY,
-        size: artW, h: artH,
-        color: '#0d1b2a', alpha: 1,
-        stroke: '#37474f', strokeWidth: 1,
+      // Ghost click target over entire card
+      this.buttons.push({
+        x: cx - cardW / 2, y: cardTop,
+        w: cardW, h: cardH,
+        label: '',
+        color: '#000000', textColor: '#ffffff',
+        enabled: true,
+        ghost: true,
+        onClick: () => {
+          Sound.play('draft_select');
+          sys.selectOption(i);
+        },
       });
-
-      // Glyph — hand-card style
-      if (config) {
-        this.cardIconDraws.push({
-          cx, cy: artCenterY, w: artW, h: artH,
-          cardId: opt.id, color: borderColor,
-        });
-      }
-
-      // Card name — hand-card style
-      this.infos.push({
-        x: cx, y: cardTop + 12 + artH + 14,
-        text: opt.name, color: '#ffffff', size: 12, align: 'center',
-      });
-
-      // Description — compact, below name, auto-wrapped within card
-      const descLines = this.wrapText(opt.description, cardW - 16, 9);
-      for (let li = 0; li < descLines.length && li < 3; li++) {
-        this.infos.push({
-          x: cx, y: cardTop + 12 + artH + 34 + li * 12,
-          text: descLines[li]!,
-          color: '#90a4ae', size: 9, align: 'center',
-        });
-      }
     }
 
     // Action buttons — "确定" and "🎲再抽一次"

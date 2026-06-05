@@ -884,6 +884,71 @@ function drawGenericIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
   ctx.fill();
 }
 
+// ============================================================
+// drawMiniCard — 统一卡牌渲染（手牌区 / 抽卡 / 图鉴共用）
+// ============================================================
+const MC_W = 120, MC_H = 168, MC_AW = 96, MC_AH = 80;
+
+export function drawMiniCard(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  cardId: string, name: string, description: string, borderColor: string,
+): void {
+  const left = cx - MC_W / 2, top = cy - MC_H / 2;
+
+  ctx.save();
+  ctx.fillStyle = '#1a2332'; ctx.strokeStyle = borderColor; ctx.lineWidth = 2; ctx.globalAlpha = 0.95;
+  fillAndStrokeRoundedRect(ctx, left, top, MC_W, MC_H, 8);
+  ctx.restore();
+
+  const artCY = top + 14 + MC_AH / 2;
+  ctx.save();
+  ctx.fillStyle = '#0d1b2a'; ctx.strokeStyle = '#37474f'; ctx.lineWidth = 1;
+  fillAndStrokeRoundedRect(ctx, cx - MC_AW / 2, artCY - MC_AH / 2, MC_AW, MC_AH, 4);
+  ctx.restore();
+
+  ctx.save();
+  drawCardIcon(ctx, cx, artCY, MC_AW, MC_AH, cardId, borderColor);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#ffffff'; ctx.font = getFont(12, true);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, cx, top + 14 + MC_AH + 14);
+  ctx.restore();
+
+  const cat = getCardCategory({ id: cardId, name, type: 'unit', description } as CardInstance);
+  const labels: Record<string, string> = { tower: '塔', soldier: '兵', trap: '机关', spell: '技能', arcane: '奥术' };
+  ctx.save();
+  ctx.fillStyle = borderColor; ctx.font = getFont(10, false);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(labels[cat] ?? '', cx, top + 14 + MC_AH + 30);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#90a4ae'; ctx.font = getFont(9, false);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const lines = wrapMiniText(ctx, description, MC_W - 16, 9);
+  for (let i = 0; i < Math.min(lines.length, 3); i++) {
+    ctx.fillText(lines[i]!, cx, top + 14 + MC_AH + 46 + i * 12);
+  }
+  ctx.restore();
+}
+
+function wrapMiniText(ctx: CanvasRenderingContext2D, text: string, maxW: number, fs: number): string[] {
+  if (!text || maxW <= 0) return [text || ''];
+  ctx.save(); ctx.font = getFont(fs, false);
+  const lns: string[] = []; let cur = ''; let cw = 0;
+  for (const ch of text) {
+    const w = ctx.measureText(ch).width || fs * 0.6;
+    if (cw + w > maxW && cur.length > 0) { lns.push(cur); cur = ch; cw = w; }
+    else { cur += ch; cw += w; }
+  }
+  if (cur.length > 0) lns.push(cur);
+  ctx.restore();
+  return lns.length > 0 ? lns : [text];
+}
+
 function getCardCategory(card: CardInstance): Exclude<CardFilterCategory, 'all'> {
   if (card.type === 'spell') return 'spell';
   if (card.type === 'arcane') return 'arcane';
