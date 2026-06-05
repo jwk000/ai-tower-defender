@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadYamlConfig } from './loader.js';
 import { loadLevelsFromYaml } from '../data/levels/yamlBridge.js';
 import { WeatherType } from '../types/index.js';
+import { ENEMY_CONFIGS } from '../data/gameData.js';
 
 interface LevelWeatherConfig {
   id: string;
@@ -42,5 +43,11 @@ describe('关卡 YAML 配置', () => {
     expect(level).toBeDefined();
     expect(level!.weatherPool).toEqual([WeatherType.Snow]);
     expect(level!.weatherFixed).toBe(WeatherType.Snow);
+  });
+
+  it('所有运行时敌人配置至少有 1 点攻击力', () => {
+    for (const [id, config] of Object.entries(ENEMY_CONFIGS)) {
+      expect(config.atk, `${id} 的 atk 必须 >= 1，避免进入水晶后不掉血`).toBeGreaterThanOrEqual(1);
+    }
   });
 });

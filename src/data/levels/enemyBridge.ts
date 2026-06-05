@@ -39,7 +39,7 @@ export function injectEnemyConfigsFromRegistry(): number {
       description: typeof u['description'] === 'string' ? (u['description'] as string) : '',
       hp: stats?.hp ?? 50,
       speed: stats?.speed ?? 80,
-      atk: stats?.atk ?? 5,
+      atk: Math.max(1, stats?.atk ?? 5),
       defense: stats?.armor ?? 0,
       magicResist: stats?.mr ?? 0,
       attackRange: stats?.range ?? 0,

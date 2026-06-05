@@ -425,7 +425,7 @@ export class WaveSystem implements System {
       spawnIdx: spawnIdx,
     });
 
-    const effectiveAtk = Math.round(config.atk * atkMult);
+    const effectiveAtk = Math.max(1, Math.round(config.atk * atkMult));
     this.world.addComponent(eid, UnitTag, {
       isEnemy: 1,
       isElite: isElite ? 1 : 0,

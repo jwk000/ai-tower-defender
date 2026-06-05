@@ -1251,7 +1251,7 @@ e_revival_idol:
 
   stats:
     hp: 180
-    atk: 0
+    atk: 1
     attackSpeed: 1.0
     range: 40
     speed: 35
@@ -2244,7 +2244,7 @@ e_brood_mother:
 
   stats:
     hp: 380
-    atk: 0
+    atk: 1
     attackSpeed: 0
     range: 0
     speed: 0
@@ -2351,7 +2351,7 @@ e_mycelial_core:
 
   stats:
     hp: 2000
-    atk: 0
+    atk: 1
     attackSpeed: 0
     range: 0
     speed: 0
@@ -3217,7 +3217,7 @@ dark_priest:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 120, atk: 0, attackSpeed: 0, range: 150, speed: 25, armor: 10, mr: 15, damageType: physical }
+  stats: { hp: 120, atk: 1, attackSpeed: 0, range: 150, speed: 25, armor: 10, mr: 15, damageType: physical }
   reward: { gold: 18 }
   visual: { shape: hexagon, color: "#311b92", size: 30, outline: true }
   behavior: { targetSelection: nearest, attackMode: none, movementMode: follow_path }

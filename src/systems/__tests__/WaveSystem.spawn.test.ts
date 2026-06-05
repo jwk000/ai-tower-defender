@@ -6,6 +6,7 @@ import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../typ
 import { Position, UnitTag, Health, Elite, Visual } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
+import { ENEMY_CONFIGS } from '../../data/gameData.js';
 
 const enemyQuery = defineQuery([Position, UnitTag]);
 const eliteQuery = defineQuery([Position, UnitTag, Elite]);
@@ -281,6 +282,28 @@ describe('WaveSystem v4.0 — difficulty scaling', () => {
     expect(Health.max[regularEid]).toBe(14);
     // Goblin base ATK=8, ×0.8 = 6.4 → 6 (floored)
     expect(UnitTag.atk[regularEid]).toBe(6);
+  });
+
+  it('敌人配置攻击力为 0 时，生成实体的 UnitTag.atk 兜底为 1', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const oldAtk = ENEMY_CONFIGS[EnemyType.Goblin]!.atk;
+    ENEMY_CONFIGS[EnemyType.Goblin]!.atk = 0;
+
+    try {
+      const ws = new WaveSystem(world, map, makeSingleWave(), getPhase, setPhase);
+      ws.startWave();
+      for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+      const allEnemies = enemyQuery(world.world);
+      const regularEid = allEnemies.find((eid) => UnitTag.isElite[eid] === 0)!;
+      expect(UnitTag.atk[regularEid]).toBe(1);
+    } finally {
+      ENEMY_CONFIGS[EnemyType.Goblin]!.atk = oldAtk;
+    }
   });
 });
 

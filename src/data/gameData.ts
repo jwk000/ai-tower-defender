@@ -483,7 +483,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     canAttackBuildings: true, rewardGold: 15, color: '#7b1fa2', radius: 14, attackAnimDuration: 0.5,
   },
   [EnemyType.Priest]: {
-    type: EnemyType.Priest, name: '黑暗牧师', hp: 120, speed: 25, atk: 0,
+    type: EnemyType.Priest, name: '黑暗牧师', hp: 120, speed: 25, atk: 1,
     defense: 10, magicResist: 15, attackRange: 150, attackSpeed: 0,
     canAttackBuildings: false, rewardGold: 18, color: '#e0e0e0', radius: 16, attackAnimDuration: 0.45,
   },
