@@ -19,7 +19,7 @@ describe('level-05 月光配置', () => {
     expect(config.map.lighting?.moonlight).toEqual({
       enabled: true,
       ambientAlpha: 0.16,
-      beamAlpha: 0.28,
+      bloomAlpha: 0.22,
     });
   });
 });

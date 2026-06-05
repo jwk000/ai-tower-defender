@@ -21,8 +21,10 @@ function createMap(lighting?: MapConfig['lighting']): MapConfig {
 function createMockContext(): CanvasRenderingContext2D & {
   gradient: { addColorStop: ReturnType<typeof vi.fn> };
   fillRect: ReturnType<typeof vi.fn>;
+  strokeRect: ReturnType<typeof vi.fn>;
   rect: ReturnType<typeof vi.fn>;
   clip: ReturnType<typeof vi.fn>;
+  rotate: ReturnType<typeof vi.fn>;
 } {
   const gradient = { addColorStop: vi.fn() };
   return {
@@ -35,14 +37,22 @@ function createMockContext(): CanvasRenderingContext2D & {
     translate: vi.fn(),
     rotate: vi.fn(),
     fillRect: vi.fn(),
+    strokeRect: vi.fn(),
     createLinearGradient: vi.fn(() => gradient),
+    createRadialGradient: vi.fn(() => gradient),
     fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    shadowColor: '',
+    shadowBlur: 0,
     globalCompositeOperation: 'source-over',
   } as unknown as CanvasRenderingContext2D & {
     gradient: { addColorStop: ReturnType<typeof vi.fn> };
     fillRect: ReturnType<typeof vi.fn>;
+    strokeRect: ReturnType<typeof vi.fn>;
     rect: ReturnType<typeof vi.fn>;
     clip: ReturnType<typeof vi.fn>;
+    rotate: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -59,7 +69,7 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
     expect(ctx.fillRect).not.toHaveBeenCalled();
   });
 
-  it('启用 moonlight 后在棋盘范围内绘制冷白提亮和斜向光束', () => {
+  it('启用 moonlight 后整体提亮棋盘并绘制 bloom 光晕', () => {
     RenderSystem.sceneOffsetX = 10;
     RenderSystem.sceneOffsetY = 20;
     RenderSystem.sceneW = 256;
@@ -67,12 +77,14 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
 
     const ctx = createMockContext();
     new BoardGlowSystem(createMap({
-      moonlight: { enabled: true, ambientAlpha: 0.16, beamAlpha: 0.28 },
+      moonlight: { enabled: true, ambientAlpha: 0.16, bloomAlpha: 0.22 },
     })).render(ctx);
 
     expect(ctx.rect).toHaveBeenCalledWith(10, 20, 256, 192);
     expect(ctx.clip).toHaveBeenCalled();
     expect(ctx.fillRect).toHaveBeenCalledWith(10, 20, 256, 192);
-    expect(ctx.gradient.addColorStop).toHaveBeenCalledWith(0.5, 'rgba(235, 245, 255, 0.28)');
+    expect(ctx.strokeRect).toHaveBeenCalledWith(12, 22, 252, 188);
+    expect(ctx.gradient.addColorStop).toHaveBeenCalledWith(0, 'rgba(235, 245, 255, 0.165)');
+    expect(ctx.rotate).not.toHaveBeenCalled();
   });
 });

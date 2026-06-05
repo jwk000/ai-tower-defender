@@ -35,7 +35,7 @@ map:
     moonlight:
       enabled: true
       ambientAlpha: 0.16
-      beamAlpha: 0.28
+      bloomAlpha: 0.22
   obstacles:
     - { type: floating_rock, row: 0, col: 2 }
     - { type: floating_rock, row: 0, col: 8 }

@@ -171,8 +171,8 @@ export interface MoonlightConfig {
   enabled: boolean;
   /** 棋盘整体冷白提亮强度，建议 0.05-0.20 */
   ambientAlpha: number;
-  /** 月光斜向光束峰值透明度，建议 0.10-0.35 */
-  beamAlpha: number;
+  /** 棋盘 bloom 光晕强度，建议 0.08-0.30 */
+  bloomAlpha: number;
 }
 
 export interface MapLightingConfig {
@@ -200,7 +200,7 @@ export interface MapConfig {
   ambientCreatures?: AmbientCreatureConfig;
   /** 全屏环境特效开关 */
   environmentFX?: EnvironmentFXConfig;
-  /** 棋盘局部光照配置 */
+  /** 棋盘光照配置 */
   lighting?: MapLightingConfig;
   /** 生物活动预设路径 */
   creaturePaths?: CreaturePath[];

@@ -15,7 +15,7 @@ import { RenderSystem } from './RenderSystem.js';
 const DEFAULT_MOONLIGHT: MoonlightConfig = {
   enabled: false,
   ambientAlpha: 0.1,
-  beamAlpha: 0.18,
+  bloomAlpha: 0.18,
 };
 
 export class BoardGlowSystem implements System {
@@ -156,8 +156,7 @@ export class BoardGlowSystem implements System {
     if (mapW <= 0 || mapH <= 0) return;
 
     const ambientAlpha = Math.max(0, Math.min(0.3, moonlight.ambientAlpha));
-    const beamAlpha = Math.max(0, Math.min(0.45, moonlight.beamAlpha));
-    const diagLen = Math.sqrt(mapW * mapW + mapH * mapH);
+    const bloomAlpha = Math.max(0, Math.min(0.35, moonlight.bloomAlpha));
 
     ctx.save();
     ctx.beginPath();
@@ -168,19 +167,26 @@ export class BoardGlowSystem implements System {
     ctx.fillStyle = `rgba(205, 225, 255, ${ambientAlpha})`;
     ctx.fillRect(ox, oy, mapW, mapH);
 
-    ctx.translate(ox + mapW * 0.52, oy + mapH * 0.48);
-    ctx.rotate(-Math.PI / 5);
+    ctx.shadowColor = `rgba(190, 215, 255, ${bloomAlpha})`;
+    ctx.shadowBlur = Math.max(24, Math.min(mapW, mapH) * 0.16);
+    ctx.strokeStyle = `rgba(210, 230, 255, ${bloomAlpha * 0.75})`;
+    ctx.lineWidth = Math.max(18, Math.min(mapW, mapH) * 0.08);
+    ctx.strokeRect(ox + 2, oy + 2, mapW - 4, mapH - 4);
 
-    const beamWidth = Math.max(160, mapW * 0.22);
-    const grad = ctx.createLinearGradient(-beamWidth, 0, beamWidth, 0);
-    grad.addColorStop(0.0, 'rgba(190, 215, 255, 0)');
-    grad.addColorStop(0.28, `rgba(210, 230, 255, ${beamAlpha * 0.45})`);
-    grad.addColorStop(0.5, `rgba(235, 245, 255, ${beamAlpha})`);
-    grad.addColorStop(0.72, `rgba(210, 230, 255, ${beamAlpha * 0.45})`);
+    const grad = ctx.createRadialGradient(
+      ox + mapW / 2,
+      oy + mapH / 2,
+      Math.min(mapW, mapH) * 0.18,
+      ox + mapW / 2,
+      oy + mapH / 2,
+      Math.max(mapW, mapH) * 0.68,
+    );
+    grad.addColorStop(0.0, `rgba(235, 245, 255, ${bloomAlpha * 0.75})`);
+    grad.addColorStop(0.55, `rgba(210, 230, 255, ${bloomAlpha * 0.34})`);
     grad.addColorStop(1.0, 'rgba(190, 215, 255, 0)');
 
     ctx.fillStyle = grad;
-    ctx.fillRect(-beamWidth, -diagLen / 2, beamWidth * 2, diagLen);
+    ctx.fillRect(ox, oy, mapW, mapH);
 
     ctx.restore();
   }
