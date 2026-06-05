@@ -1530,41 +1530,45 @@ class TowerDefenderGame extends Game {
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas element not found');
 
-// 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
-const { loadAllUnitConfigs } = await import('./config/loader.js');
-await loadAllUnitConfigs();
+async function bootstrapGame(): Promise<void> {
+  // 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
+  const { loadAllUnitConfigs } = await import('./config/loader.js');
+  await loadAllUnitConfigs();
 
-// 从 YAML 配置注入到硬编码配置对象
-const { injectEnemyConfigsFromRegistry } = await import('./data/levels/enemyBridge.js');
-const { injectTowerConfigsFromRegistry } = await import('./data/levels/towerBridge.js');
-const { injectSoldierConfigsFromRegistry } = await import('./data/levels/soldierBridge.js');
-const { injectSkillConfigsFromRegistry } = await import('./data/levels/skillBridge.js');
-const { injectTrapConfigsFromRegistry } = await import('./data/levels/trapBridge.js');
-const enemyCount = injectEnemyConfigsFromRegistry();
-const towerCount = injectTowerConfigsFromRegistry();
-const soldierCount = injectSoldierConfigsFromRegistry();
-const skillCount = injectSkillConfigsFromRegistry();
-const trapCount = injectTrapConfigsFromRegistry();
-console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills, ${trapCount} traps`);
+  // 从 YAML 配置注入到硬编码配置对象
+  const { injectEnemyConfigsFromRegistry } = await import('./data/levels/enemyBridge.js');
+  const { injectTowerConfigsFromRegistry } = await import('./data/levels/towerBridge.js');
+  const { injectSoldierConfigsFromRegistry } = await import('./data/levels/soldierBridge.js');
+  const { injectSkillConfigsFromRegistry } = await import('./data/levels/skillBridge.js');
+  const { injectTrapConfigsFromRegistry } = await import('./data/levels/trapBridge.js');
+  const enemyCount = injectEnemyConfigsFromRegistry();
+  const towerCount = injectTowerConfigsFromRegistry();
+  const soldierCount = injectSoldierConfigsFromRegistry();
+  const skillCount = injectSkillConfigsFromRegistry();
+  const trapCount = injectTrapConfigsFromRegistry();
+  console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills, ${trapCount} traps`);
 
-const game = new TowerDefenderGame(canvas);
-game.start();
+  const game = new TowerDefenderGame(canvas);
+  game.start();
 
-if (import.meta.env.DEV) {
-  const { bootstrapEditor, attachF2Hotkey } = await import('./editor/index.js');
-  const { LevelEditor } = await import('./editor/LevelEditor.js');
-  const { mountEditorRoot } = await import('./editor/mount.js');
-  const host = document.createElement('div');
-  host.id = 'level-editor-host';
-  document.body.appendChild(host);
-  const levelEditor = new LevelEditor({ fetch: window.fetch.bind(window), baseUrl: '/__editor' });
-  const handle = bootstrapEditor({ game, hostElement: host, levelEditor, mountUi: mountEditorRoot });
-  attachF2Hotkey(handle, window);
-  game.debugManager.setOpenLevelEditorCallback(() => handle.open());
-  (window as unknown as Record<string, unknown>).levelEditor = levelEditor;
-  (window as unknown as Record<string, unknown>).editorHandle = handle;
+  if (import.meta.env.DEV) {
+    const { bootstrapEditor, attachF2Hotkey } = await import('./editor/index.js');
+    const { LevelEditor } = await import('./editor/LevelEditor.js');
+    const { mountEditorRoot } = await import('./editor/mount.js');
+    const host = document.createElement('div');
+    host.id = 'level-editor-host';
+    document.body.appendChild(host);
+    const levelEditor = new LevelEditor({ fetch: window.fetch.bind(window), baseUrl: '/__editor' });
+    const handle = bootstrapEditor({ game, hostElement: host, levelEditor, mountUi: mountEditorRoot });
+    attachF2Hotkey(handle, window);
+    game.debugManager.setOpenLevelEditorCallback(() => handle.open());
+    (window as unknown as Record<string, unknown>).levelEditor = levelEditor;
+    (window as unknown as Record<string, unknown>).editorHandle = handle;
+  }
+
+  window.addEventListener('resize', () => game.resize());
+  (window as unknown as Record<string, unknown>).game = game;
+  (window as unknown as Record<string, unknown>).Sound = Sound;
 }
 
-window.addEventListener('resize', () => game.resize());
-(window as unknown as Record<string, unknown>).game = game;
-(window as unknown as Record<string, unknown>).Sound = Sound;
+void bootstrapGame();
