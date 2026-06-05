@@ -1,6 +1,7 @@
 import { UnitType, type UnitConfig, type ShapeType, type UnitVisualParts } from '../../types/index.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { UNIT_CONFIGS } from '../gameData.js';
+import { getProceduralVisualParts } from '../../utils/proceduralArt.js';
 
 const VALID_UNIT_TYPES = new Set<string>(Object.values(UnitType));
 
@@ -63,8 +64,8 @@ export function injectSoldierConfigsFromRegistry(): number {
     const upgradeHpBonus = [40, 60]; // 默认值
     const upgradeAtkBonus = [5, 8]; // 默认值
 
-    // 解析 visualParts
-    const visualParts = (u as Record<string, unknown>)['visualParts'] as UnitVisualParts | undefined;
+    // 解析 visualParts；未显式配置时按程序化美术规范生成默认复合外观。
+    const visualParts = getProceduralVisualParts(u) as UnitVisualParts | undefined;
 
     const cfg: UnitConfig = {
       type,

@@ -151,6 +151,10 @@ export class UnitFactory {
       attackAnimDuration: (cfg.attackAnimDuration as number) ?? 0.3,
       partsId: 0,
     });
+    const visualParts = cfg.visualParts as UnitVisualParts | undefined;
+    if (visualParts) {
+      Visual.partsId[eid] = this.world.registerUnitVisualParts(visualParts);
+    }
 
     // UnitTag
     const cost = (cfg.cost as number) ?? 0;
@@ -370,8 +374,9 @@ export class UnitFactory {
     UnitTag.unitTypeNum[eid] = opts.unitTypeNum;
 
     // 更新 Visual 的 partsId、outline
-    if (opts.visualParts && opts.registerVisualParts) {
-      Visual.partsId[eid] = opts.registerVisualParts(opts.visualParts);
+    const visualParts = opts.visualParts ?? (cfg.visualParts as UnitVisualParts | undefined);
+    if (visualParts && opts.registerVisualParts) {
+      Visual.partsId[eid] = opts.registerVisualParts(visualParts);
     }
     Visual.outline[eid] = 1;
 

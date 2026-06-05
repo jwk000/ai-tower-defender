@@ -239,6 +239,9 @@ export interface TowerConfig {
   upgradeAtkBonus: number[];
   upgradeRangeBonus: number[];
   color: string;
+  size?: number;
+  shape?: ShapeType;
+  visualParts?: UnitVisualParts;
   /** 建造耗时（秒）— 安装后到可攻击之间的延迟。省略则按默认值 2.0s。 */
   buildTime?: number;
   splashRadius?: number;
@@ -364,7 +367,7 @@ export interface EnemyConfig {
   freezeResist?: number;
   /** 基础几何形状：'circle' / 'rect' / 'hexagon' 等。默认 'circle'（敌人历史上是圆形） */
   shape?: ShapeType;
-  /** 视觉部件配置（眼睛/武器/身体细节）— 不填则只画基础 shape，无装饰 */
+  /** 视觉部件配置（武器/身体细节/徽记）— 不填则由程序化美术生成器补齐 */
   visualParts?: UnitVisualParts;
   /** 攻击动画时长（秒）— 用于挥砍/拉弓等武器动作。默认 0.3 秒；0 则不播放武器挥砍 */
   attackAnimDuration?: number;
@@ -408,7 +411,7 @@ export interface UnitConfig {
   upgradeTauntCapacityBonus?: readonly number[]; // 每级升级增加的嘲讽容量（与 tauntCapacityPerLevel 二选一；优先此字段）
   /** 基础几何形状：'circle' / 'rect' / 'hexagon' 等。默认 'rect'（士兵历史上是方块） */
   shape?: ShapeType;
-  /** 视觉部件配置（眼睛/武器/身体细节）— 不填则只画基础 shape，无装饰 */
+  /** 视觉部件配置（武器/身体细节/徽记）— 不填则由程序化美术生成器补齐 */
   visualParts?: UnitVisualParts;
   /** 攻击动画时长（秒）— 用于挥砍/拉弓等武器动作。默认 0.3 秒；0 则不播放武器挥砍 */
   attackAnimDuration?: number;
@@ -430,6 +433,7 @@ export interface TrapConfig {
   size: number;
   cost: number;
   shape?: ShapeType;
+  visualParts?: UnitVisualParts;
   layer?: string;
   // 机关特有可选属性
   rootDuration?: number;
@@ -644,16 +648,16 @@ export interface CompositePart {
 }
 
 /**
- * 可移动单位的视觉部件配置 — 描述身体之上的装饰元素（眼睛、武器、肩甲等）。
+ * 可移动单位的视觉部件配置 — 描述身体之上的装饰元素（武器、肩甲、徽记等）。
  *
- * 渲染规则（详见 RenderSystem.drawSoldierComposite）：
- * - eyes：两个对称圆点，pupil 描绘瞳孔；位置随 facing 沿 X 轴翻转
+ * 渲染规则（详见 RenderSystem.drawUnitComposite）：
+ * - eyes：历史兼容字段，新程序化美术规范不再生成眼睛
  * - weapon：从单位 anchor 偏移出发的矩形武器，攻击时沿 pivot 旋转挥砍
  * - bodyParts：附加身体几何（围巾/护甲条纹等），随 facing 翻转
  * - bobbing/breathing 由 RenderSystem 统一应用，无需在配置中指定
  */
 export interface UnitVisualParts {
-  /** 眼睛：两个对称圆点，沿单位 X 轴对称分布 */
+  /** @deprecated 历史兼容字段；新程序化美术规范使用装备/轮廓/核心部件识别单位，不再绘制眼睛。 */
   eyes?: {
     /** 眼睛距单位中心的 X 偏移（绝对像素，左右对称）；默认 size * 0.18 */
     offsetX?: number;
@@ -707,8 +711,9 @@ export interface UnitVisualParts {
    * 移动晃动风格：
    * - 'walking'（默认）：地面单位 — 浅 Y bob (±2px) + X 摇摆 (±0.6px)
    * - 'floating'：空中单位 — 较深 Y bob (±4px)，无 X 摇摆（气球类）
+   * - 'static'：塔/机关 — 不做行走晃动，仅保留轻微呼吸
    */
-  bobStyle?: 'walking' | 'floating';
+  bobStyle?: 'walking' | 'floating' | 'static';
 }
 
 /** Per-level upgrade visual configuration */
@@ -887,7 +892,7 @@ export interface UnitTypeConfig {
   color: string;
   size: number;
   shape: ShapeType;
-  visualParts?: UnitVisualParts; // 视觉部件配置（眼睛/武器/身体细节）
+  visualParts?: UnitVisualParts; // 视觉部件配置（武器/身体细节/徽记）
 
   // AI behavior
   aiConfig: string; // AI preset ID

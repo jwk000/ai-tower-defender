@@ -1,6 +1,7 @@
 import { TowerType, type TowerConfig, type ShapeType } from '../../types/index.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { TOWER_CONFIGS } from '../gameData.js';
+import { getProceduralVisualParts } from '../../utils/proceduralArt.js';
 
 const VALID_TOWER_TYPES = new Set<string>(Object.values(TowerType));
 
@@ -92,6 +93,9 @@ export function injectTowerConfigsFromRegistry(): number {
       upgradeAtkBonus: atkGrowth,
       upgradeRangeBonus: rangeGrowth,
       color: visual?.color ?? '#ffffff',
+      size: visual?.size,
+      shape: mapShape(visual?.shape),
+      visualParts: getProceduralVisualParts(u),
       buildTime: 1.5,
     };
 

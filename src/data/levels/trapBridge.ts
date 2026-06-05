@@ -1,6 +1,7 @@
 import type { TrapConfig } from '../../types/index.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { TRAP_CONFIGS } from '../gameData.js';
+import { getProceduralVisualParts } from '../../utils/proceduralArt.js';
 
 export function injectTrapConfigsFromRegistry(): number {
   const traps = unitConfigRegistry.getByCategory('Trap');
@@ -26,6 +27,7 @@ export function injectTrapConfigsFromRegistry(): number {
       size: (visual?.size as number) ?? 28,
       cost: (cost?.build as number) ?? 40,
       shape: (visual?.shape as string) as TrapConfig['shape'],
+      visualParts: getProceduralVisualParts(u),
       layer: u.layer as string | undefined,
     };
 

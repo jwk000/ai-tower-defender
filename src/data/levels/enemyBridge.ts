@@ -1,6 +1,7 @@
 import type { EnemyConfig, ShapeType } from '../../types/index.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { ENEMY_CONFIGS } from '../gameData.js';
+import { getProceduralVisualParts } from '../../utils/proceduralArt.js';
 
 function mapShape(yamlShape: string | undefined): ShapeType {
   switch (yamlShape) {
@@ -48,6 +49,7 @@ export function injectEnemyConfigsFromRegistry(): number {
       color: visual?.color ?? '#ef5350',
       radius: visual?.size != null ? Math.max(8, Math.floor(visual.size / 2)) : 14,
       shape: mapShape(visual?.shape),
+      visualParts: getProceduralVisualParts(u),
       attackAnimDuration: 0.3,
       isBoss: u['isBoss'] === true,
       bossPhase2HpRatio: typeof u['bossPhase2HpRatio'] === 'number' ? u['bossPhase2HpRatio'] as number : undefined,

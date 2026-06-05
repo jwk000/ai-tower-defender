@@ -300,12 +300,12 @@ export class RenderSystem implements System {
   }
 
   /**
-   * 士兵 composite 渲染：身体 + 装饰部件 + 眼睛 + 武器，应用 bob/breath/挥砍动画。
+   * 单位 composite 渲染：身体 + 装饰部件 + 武器 + 徽记/高光，应用 bob/breath/挥砍动画。
    *
-   * 绘制顺序（z 自下而上）：武器光晕 → 身体（带 breathing scale）→ bodyParts → 武器 → 眼睛
+   * 绘制顺序（z 自下而上）：武器光晕 → 身体（带 breathing scale）→ bodyParts → 武器 → 兼容旧 eyes
    * facing 决定 X 翻转；attackAnimTimer/Duration 驱动武器摆角；bobPhase 决定 bobY 偏移；breathPhase 决定身体 scale
    */
-  private drawSoldierComposite(
+  private drawUnitComposite(
     eid: number,
     posX: number,
     posY: number,
@@ -324,9 +324,10 @@ export class RenderSystem implements System {
     const attackTimer = Visual.attackAnimTimer[eid] ?? 0;
 
     const floating = parts.bobStyle === 'floating';
-    const bobY = floating ? Math.sin(bobPhase) * 4 : Math.sin(bobPhase) * 2;
-    const swayX = floating ? 0 : Math.sin(bobPhase * 0.5) * 0.6 * facing;
-    const breathScale = 1 + Math.sin(breathPhase) * 0.04;
+    const isStatic = parts.bobStyle === 'static';
+    const bobY = isStatic ? 0 : floating ? Math.sin(bobPhase) * 4 : Math.sin(bobPhase) * 2;
+    const swayX = isStatic || floating ? 0 : Math.sin(bobPhase * 0.5) * 0.6 * facing;
+    const breathScale = 1 + Math.sin(breathPhase) * (isStatic ? 0.015 : 0.04);
     const bodySize = drawSize * breathScale;
 
     const bodyX = posX + swayX;
@@ -656,6 +657,25 @@ export class RenderSystem implements System {
         // 动画进度（0→1）
         const animProgress = animTimer > 0 ? (1 - animTimer / animDuration) : 0;
         const animFactor = Math.sin(animProgress * Math.PI);
+
+        const trapPartsId = Visual.partsId[eid] ?? 0;
+        const trapParts = trapPartsId !== 0 ? world.getUnitVisualParts(trapPartsId) : undefined;
+        if (trapParts) {
+          const trapSize = Visual.size[eid]! * (1 + animFactor * 0.08);
+          this.drawUnitComposite(
+            eid,
+            posX,
+            posY - animFactor * 3,
+            trapSize,
+            rgbFromVisual(eid),
+            Visual.alpha[eid]!,
+            Visual.outline[eid] ? '#ffffff' : undefined,
+            Visual.outline[eid] ? 2 : undefined,
+            LAYER_TO_Z[Layer.value[eid] ?? LayerVal.AboveGrid] ?? 2,
+            trapParts,
+          );
+          continue;
+        }
 
         switch (trapType) {
           case 0: // SpikeTrap - 地刺：灰色三角形尖刺从地面冒出
@@ -1056,10 +1076,10 @@ export class RenderSystem implements System {
       // 1. Entity body (bottom layer — drawn first)
       // ========================================
       const unitPartsId = Visual.partsId[eid] ?? 0;
-      if ((isUnit || isEnemy) && unitPartsId !== 0) {
+      if (unitPartsId !== 0) {
         const parts = world.getUnitVisualParts(unitPartsId);
         if (parts) {
-          this.drawSoldierComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
+          this.drawUnitComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
         } else {
           // Use attack-animated position/size for simple-shape enemies
           this.renderer.push({

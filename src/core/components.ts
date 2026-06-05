@@ -178,7 +178,7 @@ export const Visual = defineComponent({
   /**
    * 视觉部件配置索引（关联 World.unitVisualParts 表）。
    * 0 = 无配置（按基础 shape 单层绘制，兼容塔/敌人/特效）
-   * 非 0 = 渲染层走 composite 多部件路径，绘制身体 + 装备 + 武器 + 眼睛
+   * 非 0 = 渲染层走 composite 多部件路径，绘制身体 + 装备 + 武器 + 徽记/高光
    */
   partsId: Types.ui16,
 });
