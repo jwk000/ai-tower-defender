@@ -106,10 +106,6 @@ export const TrapTypeVal = {
   BearTrap: 1,
   TarPit: 2,
   Boulder: 3,
-  Fan: 4,
-  WaterPit: 5,
-  BoxingGlove: 6,
-  MechanicalArm: 7,
 } as const;
 export type TrapTypeVal = (typeof TrapTypeVal)[keyof typeof TrapTypeVal];
 

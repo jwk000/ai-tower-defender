@@ -112,8 +112,6 @@ export class WaveSystem implements System {
     private onWaveStart?: () => void,
     /** v4.0: 波次通关奖励金币回调 */
     private onWaveReward?: (gold: number) => void,
-    /** v4.0: 精英敌人击杀回调 → 触发 3选1 抽卡 */
-    private onEliteKilled?: () => void,
   ) {
     this.world = world;
     this.waves = waves;
@@ -331,14 +329,9 @@ export class WaveSystem implements System {
       this.finishWave();
     }
 
-    // v4.0: check if elite was killed (must check every frame while elite is alive)
-    if (this.eliteEid > 0) {
-      const eliteHp = Health.current[this.eliteEid];
-      if (eliteHp !== undefined && eliteHp <= 0) {
-        this.onEliteKilled?.();
-        this.eliteEid = 0; // prevent repeated triggers
-      }
-    }
+    // v4.0: elite death → card draft is now handled in HealthSystem's onEnemyKilled
+    // callback (see main.ts) which checks UnitTag.isElite, avoiding pipeline
+    // ordering issues (damage sources after WaveSystem were missed).
   }
 
   /** v5.0: finish the current wave and transition to the next one (countdown → next wave).

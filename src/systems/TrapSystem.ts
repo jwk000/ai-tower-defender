@@ -28,17 +28,13 @@ function getEnemyGridPos(
 }
 
 /**
- * Grid-based trap system supporting 8 trap types per design/03-units.md §4.
+ * Grid-based trap system supporting 4 trap types per design/03-units.md §4.
  *
  * Each trap type has unique mechanics:
  *   0 SpikeTrap   — persistent damage/sec on same tile (layer gated)
  *   1 BearTrap    — single-use stun + damage, boss immune, then self-destruct
  *   2 TarPit      — persistent 20% slow on same tile
  *   3 Boulder     — has HP, blocks path, destroyed when HP≤0
- *   4 Fan         — 20% slow on front 3 tiles (directional)
- *   5 WaterPit    — 50% instant kill on adjacent path tiles
- *   6 BoxingGlove — push enemy 1 grid away, 3s cooldown (directional)
- *   7 MechanicalArm — pull enemy 1 grid toward, 4s cooldown (directional)
  */
 export class TrapSystem implements System {
   readonly name = 'TrapSystem';
@@ -87,22 +83,6 @@ export class TrapSystem implements System {
 
         case TrapTypeVal.Boulder:
           this.tickBoulder(world, trapId);
-          break;
-
-        case TrapTypeVal.Fan:
-          this.tickFan(world, trapId, enemies, ox, oy, trapRow, trapCol, dir);
-          break;
-
-        case TrapTypeVal.WaterPit:
-          this.tickWaterPit(world, trapId, enemies, ox, oy, trapRow, trapCol);
-          break;
-
-        case TrapTypeVal.BoxingGlove:
-          this.tickBoxingGlove(world, trapId, enemies, ox, oy, trapRow, trapCol, dir, cdTimer, cooldown, dt);
-          break;
-
-        case TrapTypeVal.MechanicalArm:
-          this.tickMechanicalArm(world, trapId, enemies, ox, oy, trapRow, trapCol, dir, cdTimer, cooldown, dt);
           break;
 
         default:
@@ -252,171 +232,6 @@ export class TrapSystem implements System {
     const hp = Health.current[trapId];
     if (hp !== undefined && hp <= 0) {
       world.destroyEntity(trapId);
-    }
-  }
-
-  // ============================================================
-  // Fan (4) — 20% slow on front 3 tiles (directional)
-  // ============================================================
-  private tickFan(
-    world: TowerWorld,
-    trapId: number,
-    enemies: readonly number[],
-    ox: number,
-    oy: number,
-    trapRow: number,
-    trapCol: number,
-    dir: number,
-  ): void {
-    const dc = DIR_DC[dir] ?? 0;
-    const dr = DIR_DR[dir] ?? 0;
-    let anyTriggered = false;
-
-    for (const enemyId of enemies) {
-      // Skip traps — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
-
-      const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
-
-      // Check if enemy is in front 1-3 tiles in the facing direction
-      for (let dist = 1; dist <= 3; dist++) {
-        if (pos.row === trapRow + dr * dist && pos.col === trapCol + dc * dist) {
-          world.addComponent(enemyId, Slowed, {
-            percent: 20,
-            timer: 0.3,
-            stacks: 1,
-            maxStacks: 1,
-          });
-          anyTriggered = true;
-          break;
-        }
-      }
-    }
-
-    if (anyTriggered) {
-      Trap.animTimer[trapId] = Trap.animDuration[trapId]!;
-    }
-  }
-
-  // ============================================================
-  // WaterPit (5) — 50% instant kill on adjacent path tiles
-  // ============================================================
-  private tickWaterPit(
-    world: TowerWorld,
-    _trapId: number,
-    enemies: readonly number[],
-    ox: number,
-    oy: number,
-    trapRow: number,
-    trapCol: number,
-  ): void {
-    // Cannot verify path tiles without map — skip
-    if (!this.map) return;
-
-    for (const enemyId of enemies) {
-      // Skip traps — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
-
-      const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
-
-      // Check if enemy is on an adjacent tile (4-directional)
-      const dr = Math.abs(pos.row - trapRow);
-      const dc = Math.abs(pos.col - trapCol);
-      if (!((dr === 1 && dc === 0) || (dr === 0 && dc === 1))) continue;
-
-      // Check if that tile is a path tile
-      if (!this.isPathTile(pos.row, pos.col)) continue;
-
-      // 50% instant kill
-      if (Math.random() < 0.5) {
-        Health.current[enemyId] = 0;
-      }
-    }
-  }
-
-  // ============================================================
-  // BoxingGlove (6) — push enemy 1 grid away, 3s cooldown
-  // ============================================================
-  private tickBoxingGlove(
-    world: TowerWorld,
-    trapId: number,
-    enemies: readonly number[],
-    ox: number,
-    oy: number,
-    trapRow: number,
-    trapCol: number,
-    dir: number,
-    cdTimer: number,
-    _cooldown: number,
-    _dt: number,
-  ): void {
-    if (cdTimer > 0) return;
-
-    const dc = DIR_DC[dir] ?? 0;
-    const dr = DIR_DR[dir] ?? 0;
-    const frontTile = { row: trapRow + dr, col: trapCol + dc };
-
-    for (const enemyId of enemies) {
-      // Skip traps — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
-
-      const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
-      if (pos.row !== frontTile.row || pos.col !== frontTile.col) continue;
-
-      // Push enemy 1 grid further away in the facing direction
-      const ts = this.tileSize;
-      Position.x[enemyId]! += dc * ts;
-      Position.y[enemyId]! += dr * ts;
-
-      // Set 3-second cooldown
-      Trap.cooldownTimer[trapId] = 3.0;
-      Trap.animTimer[trapId] = Trap.animDuration[trapId]!;
-      return;
-    }
-  }
-
-  // ============================================================
-  // MechanicalArm (7) — pull enemy 1 grid toward, 4s cooldown
-  // ============================================================
-  private tickMechanicalArm(
-    world: TowerWorld,
-    trapId: number,
-    enemies: readonly number[],
-    ox: number,
-    oy: number,
-    trapRow: number,
-    trapCol: number,
-    dir: number,
-    cdTimer: number,
-    _cooldown: number,
-    _dt: number,
-  ): void {
-    if (cdTimer > 0) return;
-
-    const dc = DIR_DC[dir] ?? 0;
-    const dr = DIR_DR[dir] ?? 0;
-
-    // Check front 1-2 tiles for enemies
-    for (let dist = 2; dist >= 1; dist--) {
-      const checkTile = { row: trapRow + dr * dist, col: trapCol + dc * dist };
-
-      for (const enemyId of enemies) {
-        // Skip traps — damageableQuery includes all Position+Health entities
-        if (hasComponent(world.world, Trap, enemyId)) continue;
-
-        const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
-        if (pos.row !== checkTile.row || pos.col !== checkTile.col) continue;
-
-        // Pull enemy 1 grid toward the trap (opposite of facing direction)
-        const ts = this.tileSize;
-        Position.x[enemyId]! -= dc * ts;
-        Position.y[enemyId]! -= dr * ts;
-
-        // Set 4-second cooldown
-        Trap.cooldownTimer[trapId] = 4.0;
-        Trap.animTimer[trapId] = Trap.animDuration[trapId]!;
-        return;
-      }
     }
   }
 

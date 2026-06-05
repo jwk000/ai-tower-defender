@@ -53,46 +53,4 @@ boulder_card:
     targetType: tile
     range: path
 
-fan_card:
-  name: 风扇
-  description: 前方3格路径上的敌人减速20%
-  type: trap
-  rarity: rare
-  energyCost: 3
-  unitConfigId: fan
-  placement:
-    targetType: tile
-    range: path_adjacent
 
-water_pit_card:
-  name: 水坑
-  description: 50%概率直接秒杀经过的敌人
-  type: trap
-  rarity: epic
-  energyCost: 5
-  unitConfigId: water_pit
-  placement:
-    targetType: tile
-    range: path_adjacent
-
-boxing_glove_card:
-  name: 拳击套
-  description: 击退前方1格路径上的敌人，3秒冷却
-  type: trap
-  rarity: rare
-  energyCost: 4
-  unitConfigId: boxing_glove
-  placement:
-    targetType: tile
-    range: path_adjacent
-
-mechanical_arm_card:
-  name: 机械臂
-  description: 拉回前方2格路径上的敌人，4秒冷却
-  type: trap
-  rarity: rare
-  energyCost: 4
-  unitConfigId: mechanical_arm
-  placement:
-    targetType: tile
-    range: path_adjacent

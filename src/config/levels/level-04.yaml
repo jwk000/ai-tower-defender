@@ -255,7 +255,6 @@ cardPool:
   - card_ice_tower
   - card_archer
   - card_mage
-  - card_water_pit
 
 draftPool:
   - card_missile_tower
@@ -266,8 +265,6 @@ draftPool:
   - card_poison_tower
   - card_archer
   - card_mage
-  - card_mechanical_arm
-  - card_fan
   - card_bomb
   - card_gold_rush
   - card_shield_boost

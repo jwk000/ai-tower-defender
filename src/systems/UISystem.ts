@@ -52,6 +52,7 @@ import type {
   ResolvedCardEntity,
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
+import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 
 // Re-export for backward compatibility
 export {
@@ -72,6 +73,14 @@ export type {
   ResolvedCardEntity,
   CardTooltipLine,
 };
+
+// ============================================================
+// Card icon draw data (for direct Canvas 2D drawing)
+// ============================================================
+
+interface CardIconDraw {
+  cx: number; cy: number; w: number; h: number; cardId: string; color: string;
+}
 
 // ============================================================
 // TowerType numeric ID → enum mapping (matches BuildSystem)
@@ -163,6 +172,9 @@ export class UISystem implements System {
   /** v5.0: modal backdrop alpha drawn in viewport-space (0 = hidden, 0.6 = visible) */
   private modalBackdropAlpha: number = 0;
 
+  /** Card icon draws — collected during update(), drawn directly in renderUI() */
+  private cardIconDraws: CardIconDraw[] = [];
+
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
 
@@ -176,6 +188,10 @@ export class UISystem implements System {
 
   private cardDraftSystem: CardDraftSystem | null = null;
   private interLevelBuffSystem: InterLevelBuffSystem | null = null;
+  private onOpenEncyclopedia: (() => void) | null = null;
+
+  /** 当前抽卡会话中骰子是否已被使用 */
+  private draftRerollUsed: boolean = false;
 
   setCardDraftSystem(sys: CardDraftSystem): void {
     this.cardDraftSystem = sys;
@@ -183,6 +199,10 @@ export class UISystem implements System {
 
   setInterLevelBuffSystem(sys: InterLevelBuffSystem): void {
     this.interLevelBuffSystem = sys;
+  }
+
+  setEncyclopediaCallback(cb: () => void): void {
+    this.onOpenEncyclopedia = cb;
   }
 
   selectEnemy(id: number): void {
@@ -277,6 +297,7 @@ export class UISystem implements System {
     this.infos = [];
     this.overlay = null;
     this.modalBackdropAlpha = 0;
+    this.cardIconDraws = [];
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -290,6 +311,9 @@ export class UISystem implements System {
       this.buildTopHUD(phase);
       this.renderCardDraftOverlay();
       return;
+    } else {
+      // 抽卡会话结束时重置骰子状态
+      this.draftRerollUsed = false;
     }
 
     if (this.interLevelBuffSystem?.isActive()) {
@@ -553,6 +577,13 @@ export class UISystem implements System {
       ctx.restore();
     }
 
+    // Draw vector card icons (hand zone + draft overlay)
+    for (const icon of this.cardIconDraws) {
+      ctx.save();
+      drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
+      ctx.restore();
+    }
+
     if (this.overlay) {
       const cx = LayoutManager.DESIGN_W / 2;
       const cy = LayoutManager.DESIGN_H / 2;
@@ -715,10 +746,9 @@ export class UISystem implements System {
       });
 
       const glyph = cardTypeGlyph(config.type);
-      this.infos.push({
-        x: cardCenterX, y: artCenterY,
-        text: glyph,
-        color: borderColor, size: 36, align: 'center',
+      this.cardIconDraws.push({
+        cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
+        cardId: card.cardId, color: borderColor,
       });
 
       this.infos.push({
@@ -1206,8 +1236,9 @@ export class UISystem implements System {
 
     this.modalBackdropAlpha = 0.6;
 
+    const hasEncyclopedia = this.onOpenEncyclopedia !== null;
     const menuW = 500;
-    const menuH = 380;
+    const menuH = hasEncyclopedia ? 450 : 380;
     const menuX = mapCenterX - menuW / 2;
     const menuY = mapCenterY - menuH / 2;
 
@@ -1257,7 +1288,31 @@ export class UISystem implements System {
       onClick: () => { this.onResume?.(); },
     });
 
-    const restartY = menuY + 180;
+    // Encyclopedia button (conditionally shown)
+    const encY = menuY + 180;
+    if (hasEncyclopedia) {
+      this.renderer.push({
+        shape: 'rect',
+        x: mapCenterX,
+        y: encY + btnH / 2,
+        size: btnW,
+        h: btnH,
+        color: '#37474f',
+        alpha: 0.9,
+        stroke: '#78909c',
+        strokeWidth: 1,
+      });
+      this.buttons.push({
+        x: btnX, y: encY, w: btnW, h: btnH,
+        label: '📖 卡牌图鉴',
+        color: '#37474f',
+        textColor: '#ffffff',
+        enabled: true,
+        onClick: () => { this.onOpenEncyclopedia?.(); },
+      });
+    }
+
+    const restartY = hasEncyclopedia ? menuY + 250 : menuY + 180;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1278,7 +1333,7 @@ export class UISystem implements System {
       onClick: () => { this.onRestart?.(); },
     });
 
-    const exitY = menuY + 250;
+    const exitY = hasEncyclopedia ? menuY + 320 : menuY + 250;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1303,7 +1358,7 @@ export class UISystem implements System {
     const total = this.getTotalWaves();
     this.infos.push({
       x: mapCenterX,
-      y: menuY + 320,
+      y: hasEncyclopedia ? menuY + 390 : menuY + 320,
       text: total === -1 ? `当前波次: ${wave}` : `当前波次: ${wave} / ${total}`,
       color: '#aaaaaa',
       size: 24,
@@ -1331,7 +1386,7 @@ export class UISystem implements System {
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
     const panelW = 560;
-    const panelH = 300;
+    const panelH = 340;
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
@@ -1346,12 +1401,12 @@ export class UISystem implements System {
 
     // Title at top
     this.infos.push({
-      x: mapCenterX, y: panelY + 35,
-      text: '✨ 选择一张卡牌加入手牌 ✨',
+      x: mapCenterX, y: panelY + 32,
+      text: '🎲 抽卡奖励',
       color: '#ffffff', size: 24, align: 'center',
     });
 
-    // v5.0: card layout unified with hand-card style (120×168)
+    // v5.0: card layout — 3 columns, centered, 120×168 cards
     const cardW = 120;
     const cardH = 168;
     const artW = 96;
@@ -1359,13 +1414,12 @@ export class UISystem implements System {
     const gap = 24;
     const totalW = options.length * cardW + (options.length - 1) * gap;
     const startX = mapCenterX - totalW / 2 + cardW / 2;
-    const cardCenterY = panelY + 85 + cardH / 2;
+    const cardCenterY = panelY + 100 + cardH / 2; // card top at panelY + 100
 
     for (let i = 0; i < options.length; i++) {
       const opt = options[i]!;
       const cx = startX + i * (cardW + gap);
       const cardTop = cardCenterY - cardH / 2;
-      const cardLeft = cx - cardW / 2;
       const runContext = this._world?.runContext;
       const config = runContext?.registry.get(opt.id);
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
@@ -1389,10 +1443,9 @@ export class UISystem implements System {
 
       // Glyph — hand-card style
       if (config) {
-        const glyph = cardTypeGlyph(config.type as CardType);
-        this.infos.push({
-          x: cx, y: artCenterY,
-          text: glyph, color: borderColor, size: 36, align: 'center',
+        this.cardIconDraws.push({
+          cx, cy: artCenterY, w: artW, h: artH,
+          cardId: opt.id, color: borderColor,
         });
       }
 
@@ -1411,21 +1464,55 @@ export class UISystem implements System {
           color: '#90a4ae', size: 9, align: 'center',
         });
       }
-
-      // Invisible click target over entire card (ghost button)
-      this.buttons.push({
-        x: cardLeft, y: cardTop,
-        w: cardW, h: cardH,
-        label: '',
-        color: '#000000', textColor: '#ffffff',
-        enabled: true,
-        ghost: true,
-        onClick: () => {
-          Sound.play('draft_select');
-          sys.selectOption(i);
-        },
-      });
     }
+
+    // Action buttons — "确定" and "🎲再抽一次"
+    const btnW = 120;
+    const btnH = 36;
+    const btnGap = 24;
+    const btnY = panelY + panelH - btnH - 20;
+    const confirmBtnX = mapCenterX - btnW - btnGap / 2;
+    const rerollBtnX = mapCenterX + btnGap / 2;
+
+    // Confirm button — "确定" (green)
+    this.renderer.push({
+      shape: 'rect',
+      x: confirmBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: '#2e7d32', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+    });
+    this.buttons.push({
+      x: confirmBtnX, y: btnY, w: btnW, h: btnH,
+      label: '确定',
+      color: '#2e7d32', textColor: '#ffffff',
+      enabled: true,
+      onClick: () => {
+        Sound.play('draft_select');
+        sys.confirmDraft();
+      },
+    });
+
+    // Reroll button — "🎲再抽一次" (blue, one-time use)
+    const rerollEnabled = !this.draftRerollUsed;
+    this.renderer.push({
+      shape: 'rect',
+      x: rerollBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: rerollEnabled ? '#1565c0' : '#37474f', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+    });
+    this.buttons.push({
+      x: rerollBtnX, y: btnY, w: btnW, h: btnH,
+      label: '🎲再抽一次',
+      color: '#1565c0', textColor: '#ffffff',
+      enabled: rerollEnabled,
+      onClick: () => {
+        this.draftRerollUsed = true;
+        Sound.play('ui_click');
+        sys.reroll();
+      },
+    });
   }
 
   // ============================================================
