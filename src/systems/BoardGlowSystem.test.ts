@@ -1,3 +1,5 @@
+// @vitest-environment happy-dom
+
 import { describe, expect, it, vi } from 'vitest';
 import { TileType, type MapConfig } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -19,16 +21,10 @@ function createMap(lighting?: MapConfig['lighting']): MapConfig {
 }
 
 function createMockContext(): CanvasRenderingContext2D & {
-  gradient: { addColorStop: ReturnType<typeof vi.fn> };
   fillRect: ReturnType<typeof vi.fn>;
-  strokeRect: ReturnType<typeof vi.fn>;
-  rect: ReturnType<typeof vi.fn>;
-  clip: ReturnType<typeof vi.fn>;
-  rotate: ReturnType<typeof vi.fn>;
 } {
   const gradient = { addColorStop: vi.fn() };
   return {
-    gradient,
     save: vi.fn(),
     restore: vi.fn(),
     beginPath: vi.fn(),
@@ -39,25 +35,61 @@ function createMockContext(): CanvasRenderingContext2D & {
     fillRect: vi.fn(),
     strokeRect: vi.fn(),
     createLinearGradient: vi.fn(() => gradient),
-    createRadialGradient: vi.fn(() => gradient),
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 1,
-    shadowColor: '',
-    shadowBlur: 0,
     globalCompositeOperation: 'source-over',
   } as unknown as CanvasRenderingContext2D & {
-    gradient: { addColorStop: ReturnType<typeof vi.fn> };
     fillRect: ReturnType<typeof vi.fn>;
-    strokeRect: ReturnType<typeof vi.fn>;
-    rect: ReturnType<typeof vi.fn>;
-    clip: ReturnType<typeof vi.fn>;
-    rotate: ReturnType<typeof vi.fn>;
   };
 }
 
 describe('BoardGlowSystem — 月光棋盘提亮', () => {
-  it('默认不绘制月光', () => {
+  it('启用 moonlight 后使用 WebGL overlay shader 渲染外发光和粒子', () => {
+    RenderSystem.sceneOffsetX = 10;
+    RenderSystem.sceneOffsetY = 20;
+    RenderSystem.sceneW = 256;
+    RenderSystem.sceneH = 192;
+
+    const baseCanvas = document.createElement('canvas');
+    baseCanvas.width = 800;
+    baseCanvas.height = 600;
+    baseCanvas.style.width = '800px';
+    baseCanvas.style.height = '600px';
+    document.body.appendChild(baseCanvas);
+
+    const gl = createMockWebGLContext();
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement,
+      contextId: string,
+    ) {
+      if (this !== baseCanvas && contextId === 'webgl') return gl as unknown as WebGLRenderingContext;
+      return null;
+    } as HTMLCanvasElement['getContext']);
+
+    try {
+      const system = new BoardGlowSystem(createMap({
+        moonlight: { enabled: true, ambientAlpha: 0.16, bloomAlpha: 0.22 },
+      }));
+
+      system.renderMoonlightShader(baseCanvas);
+
+      const overlay = document.querySelector<HTMLCanvasElement>('[data-testid="board-moonlight-webgl"]');
+      expect(overlay).not.toBeNull();
+      expect(overlay!.style.pointerEvents).toBe('none');
+      expect(overlay!.style.mixBlendMode).toBe('screen');
+      expect(gl.drawArrays).toHaveBeenCalledWith(gl.TRIANGLE_STRIP, 0, 4);
+      expect(gl.uniform4f).toHaveBeenCalledWith(expect.anything(), 10, 20, 256, 192);
+      expect(getContext).toHaveBeenCalled();
+      system.dispose();
+      expect(document.querySelector('[data-testid="board-moonlight-webgl"]')).toBeNull();
+    } finally {
+      getContext.mockRestore();
+      baseCanvas.remove();
+    }
+  });
+
+  it('默认不通过 Canvas 2D 绘制月光', () => {
     RenderSystem.sceneOffsetX = 10;
     RenderSystem.sceneOffsetY = 20;
     RenderSystem.sceneW = 256;
@@ -69,7 +101,7 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
     expect(ctx.fillRect).not.toHaveBeenCalled();
   });
 
-  it('启用 moonlight 后整体提亮棋盘并绘制 bloom 光晕', () => {
+  it('启用 moonlight 后 Canvas 2D render 仍不绘制 bloom 图形', () => {
     RenderSystem.sceneOffsetX = 10;
     RenderSystem.sceneOffsetY = 20;
     RenderSystem.sceneW = 256;
@@ -80,11 +112,59 @@ describe('BoardGlowSystem — 月光棋盘提亮', () => {
       moonlight: { enabled: true, ambientAlpha: 0.16, bloomAlpha: 0.22 },
     })).render(ctx);
 
-    expect(ctx.rect).toHaveBeenCalledWith(10, 20, 256, 192);
-    expect(ctx.clip).toHaveBeenCalled();
-    expect(ctx.fillRect).toHaveBeenCalledWith(10, 20, 256, 192);
-    expect(ctx.strokeRect).toHaveBeenCalledWith(12, 22, 252, 188);
-    expect(ctx.gradient.addColorStop).toHaveBeenCalledWith(0, 'rgba(235, 245, 255, 0.165)');
-    expect(ctx.rotate).not.toHaveBeenCalled();
+    expect(ctx.fillRect).not.toHaveBeenCalled();
   });
 });
+
+function createMockWebGLContext(): WebGLRenderingContext & {
+  drawArrays: ReturnType<typeof vi.fn>;
+  uniform4f: ReturnType<typeof vi.fn>;
+} {
+  const shader = {};
+  const program = {};
+  const buffer = {};
+  return {
+    VERTEX_SHADER: 0x8b31,
+    FRAGMENT_SHADER: 0x8b30,
+    COMPILE_STATUS: 0x8b81,
+    LINK_STATUS: 0x8b82,
+    ARRAY_BUFFER: 0x8892,
+    STATIC_DRAW: 0x88e4,
+    FLOAT: 0x1406,
+    TRIANGLE_STRIP: 0x0005,
+    COLOR_BUFFER_BIT: 0x4000,
+    BLEND: 0x0be2,
+    SRC_ALPHA: 0x0302,
+    ONE: 1,
+    createShader: vi.fn(() => shader),
+    shaderSource: vi.fn(),
+    compileShader: vi.fn(),
+    getShaderParameter: vi.fn(() => true),
+    getShaderInfoLog: vi.fn(() => ''),
+    createProgram: vi.fn(() => program),
+    attachShader: vi.fn(),
+    linkProgram: vi.fn(),
+    getProgramParameter: vi.fn(() => true),
+    getProgramInfoLog: vi.fn(() => ''),
+    createBuffer: vi.fn(() => buffer),
+    bindBuffer: vi.fn(),
+    bufferData: vi.fn(),
+    enable: vi.fn(),
+    blendFunc: vi.fn(),
+    getAttribLocation: vi.fn(() => 0),
+    getUniformLocation: vi.fn((_program, name: string) => ({ name })),
+    viewport: vi.fn(),
+    clearColor: vi.fn(),
+    clear: vi.fn(),
+    useProgram: vi.fn(),
+    enableVertexAttribArray: vi.fn(),
+    vertexAttribPointer: vi.fn(),
+    uniform2f: vi.fn(),
+    uniform4f: vi.fn(),
+    uniform1f: vi.fn(),
+    drawArrays: vi.fn(),
+  } as unknown as WebGLRenderingContext & {
+    drawArrays: ReturnType<typeof vi.fn>;
+    uniform4f: ReturnType<typeof vi.fn>;
+  };
+}

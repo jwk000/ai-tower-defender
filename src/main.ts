@@ -200,6 +200,7 @@ class TowerDefenderGame extends Game {
   // ================================================================
 
   private enterLevelSelect(): void {
+    this.boardGlowSystem?.dispose();
     if (this.editorOnExit) {
       const cb = this.editorOnExit;
       this.editorOnExit = null;
@@ -346,6 +347,7 @@ class TowerDefenderGame extends Game {
   // ================================================================
 
   private initBattle(config: LevelConfig): void {
+    this.boardGlowSystem?.dispose();
     const runSeed = generateSeed();
     initGlobalRandom(runSeed);
     this.battleGameTime = 0;
@@ -747,6 +749,7 @@ class TowerDefenderGame extends Game {
       this.tileDamageSystem.render(this.renderer, this.world);
       // Board glow — flowing light band across the map (design-space)
       if (this.currentScreen === GameScreen.Battle) {
+        this.boardGlowSystem.renderMoonlightShader(this.renderer.view);
         this.boardGlowSystem.render(this.renderer.context);
       }
       // Weather screen tint (viewport-space — covers entire window)

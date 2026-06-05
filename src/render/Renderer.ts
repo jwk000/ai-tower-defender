@@ -401,6 +401,10 @@ export class Renderer {
     return this.ctx;
   }
 
+  get view(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
   get designWidth(): number {
     return Renderer.DESIGN_W;
   }
