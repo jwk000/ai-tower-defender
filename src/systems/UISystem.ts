@@ -1367,7 +1367,7 @@ export class UISystem implements System {
     const mapCenterY = RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2;
 
     const panelW = 560;
-    const panelH = 300;
+    const panelH = 340;
     const panelX = mapCenterX - panelW / 2;
     const panelY = mapCenterY - panelH / 2;
 
@@ -1382,12 +1382,12 @@ export class UISystem implements System {
 
     // Title at top
     this.infos.push({
-      x: mapCenterX, y: panelY + 35,
+      x: mapCenterX, y: panelY + 32,
       text: '🎲 抽卡奖励',
       color: '#ffffff', size: 24, align: 'center',
     });
 
-    // v5.0: card layout unified with hand-card style (120×168)
+    // v5.0: card layout — 3 columns, centered, 120×168 cards
     const cardW = 120;
     const cardH = 168;
     const artW = 96;
@@ -1395,7 +1395,7 @@ export class UISystem implements System {
     const gap = 24;
     const totalW = options.length * cardW + (options.length - 1) * gap;
     const startX = mapCenterX - totalW / 2 + cardW / 2;
-    const cardCenterY = panelY + 85 + cardH / 2;
+    const cardCenterY = panelY + 100 + cardH / 2; // card top at panelY + 100
 
     for (let i = 0; i < options.length; i++) {
       const opt = options[i]!;
@@ -1448,11 +1448,11 @@ export class UISystem implements System {
       }
     }
 
-    // Action buttons — "确定" and "骰子"
+    // Action buttons — "确定" and "🎲再抽一次"
     const btnW = 120;
     const btnH = 36;
     const btnGap = 24;
-    const btnY = panelY + panelH - btnH - 18;
+    const btnY = panelY + panelH - btnH - 20;
     const confirmBtnX = mapCenterX - btnW - btnGap / 2;
     const rerollBtnX = mapCenterX + btnGap / 2;
 
