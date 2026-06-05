@@ -1377,7 +1377,7 @@ export class UISystem implements System {
     // Title at top
     this.infos.push({
       x: mapCenterX, y: panelY + 35,
-      text: '✨ 选择一张卡牌加入手牌 ✨',
+      text: '🎲 抽卡奖励',
       color: '#ffffff', size: 24, align: 'center',
     });
 
@@ -1395,7 +1395,6 @@ export class UISystem implements System {
       const opt = options[i]!;
       const cx = startX + i * (cardW + gap);
       const cardTop = cardCenterY - cardH / 2;
-      const cardLeft = cx - cardW / 2;
       const runContext = this._world?.runContext;
       const config = runContext?.registry.get(opt.id);
       const borderColor = config ? rarityBorderColor(config.rarity) : '#ffffff';
@@ -1441,21 +1440,53 @@ export class UISystem implements System {
           color: '#90a4ae', size: 9, align: 'center',
         });
       }
-
-      // Invisible click target over entire card (ghost button)
-      this.buttons.push({
-        x: cardLeft, y: cardTop,
-        w: cardW, h: cardH,
-        label: '',
-        color: '#000000', textColor: '#ffffff',
-        enabled: true,
-        ghost: true,
-        onClick: () => {
-          Sound.play('draft_select');
-          sys.selectOption(i);
-        },
-      });
     }
+
+    // Action buttons — "确定" and "骰子"
+    const btnW = 120;
+    const btnH = 36;
+    const btnGap = 24;
+    const btnY = panelY + panelH - btnH - 18;
+    const confirmBtnX = mapCenterX - btnW - btnGap / 2;
+    const rerollBtnX = mapCenterX + btnGap / 2;
+
+    // Confirm button — "确定" (green)
+    this.renderer.push({
+      shape: 'rect',
+      x: confirmBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: '#2e7d32', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+    });
+    this.buttons.push({
+      x: confirmBtnX, y: btnY, w: btnW, h: btnH,
+      label: '确定',
+      color: '#2e7d32', textColor: '#ffffff',
+      enabled: true,
+      onClick: () => {
+        Sound.play('draft_select');
+        sys.confirmDraft();
+      },
+    });
+
+    // Reroll button — "骰子" (blue)
+    this.renderer.push({
+      shape: 'rect',
+      x: rerollBtnX + btnW / 2, y: btnY + btnH / 2,
+      size: btnW, h: btnH,
+      color: '#1565c0', alpha: 0.9,
+      stroke: '#ffffff', strokeWidth: 1,
+    });
+    this.buttons.push({
+      x: rerollBtnX, y: btnY, w: btnW, h: btnH,
+      label: '骰子',
+      color: '#1565c0', textColor: '#ffffff',
+      enabled: true,
+      onClick: () => {
+        Sound.play('ui_click');
+        sys.reroll();
+      },
+    });
   }
 
   // ============================================================

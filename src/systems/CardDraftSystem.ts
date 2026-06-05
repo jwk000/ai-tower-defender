@@ -1,14 +1,14 @@
 // ============================================================
-// CardDraftSystem — 精英击杀后 3选1 抽卡（纯逻辑，无 UI 渲染）
+// CardDraftSystem — 精英击杀后 3选3 抽卡（纯逻辑，无 UI 渲染）
 //
 // 职责：
-//   - 精英被击杀时触发 3 选 1 抽卡
-//   - 从关卡 draftPool 随机抽 3 张供玩家选择
-//   - 手牌未满 → 直接加入手牌
-//   - 手牌已满 → 玩家必须替换手牌中 1 张
+//   - 精英被击杀时触发抽卡
+//   - 从关卡 draftPool 随机抽 3 张供玩家预览
+//   - 玩家可点击"确定"将 3 张全部加入手牌
+//   - 玩家可点击"骰子"重新随机 3 张
 //   - 发射 onDraftStart / onDraftComplete 回调
 //
-// 设计参考：design/02-gameplay.md §3.4 3选1抽卡
+// 设计参考：design/02-gameplay.md §3.4 抽卡
 // ============================================================
 
 import type { TowerWorld, System } from '../core/World.js';
@@ -23,7 +23,7 @@ const DRAFT_OPTIONS_COUNT = 3;
 // ---- CardDraftSystem ----
 
 /**
- * 3 选 1 抽卡管理器。
+ * 抽卡管理器（3张全部进入手牌模式）。
  * 实现 System 接口以注册到管线，但本帧 update 不执行逻辑（纯方法驱动）。
  */
 export class CardDraftSystem implements System {
@@ -35,17 +35,17 @@ export class CardDraftSystem implements System {
   /** 当前 3 张候选卡牌 */
   private options: CardInstance[] = [];
 
-  /** 关联的 HandSystem（用于加入/替换手牌） */
+  /** 关联的 HandSystem（用于加入手牌） */
   private handSystem: HandSystem | null = null;
 
-  /** 当前被选中的 option index（暂存，等待玩家选择替换目标） */
-  private pendingOptionIndex: number = -1;
+  /** 抽卡池引用（用于骰子重抽） */
+  private draftPool: CardInstance[] = [];
 
   /** 抽卡开始回调 */
   onDraftStart?: () => void;
 
-  /** 抽卡完成回调 */
-  onDraftComplete?: (selectedCard: string, replacedCard?: string) => void;
+  /** 抽卡完成回调 — addedCardIds 为实际加入手牌的卡牌 ID 列表 */
+  onDraftComplete?: (addedCardIds: string[]) => void;
 
   // ============================================================
   // System interface
@@ -60,7 +60,7 @@ export class CardDraftSystem implements System {
   // ============================================================
 
   /**
-   * 启动 3 选 1 抽卡。
+   * 启动抽卡。
    * 从 draftPool 中随机选取 3 张候选卡牌。
    *
    * @param draftPool 可用卡池
@@ -73,72 +73,51 @@ export class CardDraftSystem implements System {
 
     this.handSystem = handSystem;
     this.active = true;
-    this.pendingOptionIndex = -1;
+    this.draftPool = [...draftPool];
 
-    // 将 draft pool 中的卡牌注册到 HandSystem 的卡库中（以便后续抽牌/替换）
+    // 将 draft pool 中的卡牌注册到 HandSystem 的卡库中（以便后续抽牌）
     handSystem.addCardsToLibrary(draftPool);
 
     // Fisher-Yates shuffle，取前 DRAFT_OPTIONS_COUNT 张
-    const shuffled = [...draftPool];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-    }
-    this.options = shuffled.slice(0, DRAFT_OPTIONS_COUNT);
+    this.options = this.pickRandom(draftPool);
 
     this.onDraftStart?.();
   }
 
   /**
-   * 玩家选择候选卡牌中的一张。
+   * 确认抽卡：将当前 3 张候选卡牌全部加入手牌。
+   * 能放几张放几张（若手牌空位不足，剩余的忽略）。
    *
-   * - 手牌未满：直接加入手牌，抽卡完成，返回 true。
-   * - 手牌已满：暂存选项，返回 false（等待 replaceHandCard 调用）。
-   *
-   * @param index 候选卡牌索引 (0-2)
-   * @returns true 若抽卡完成，false 若手牌已满需替换
+   * @returns 实际加入手牌的卡牌数量
    */
-  selectOption(index: number): boolean {
-    if (!this.active) return false;
-    if (index < 0 || index >= this.options.length) return false;
-    if (!this.handSystem) return false;
+  confirmDraft(): number {
+    if (!this.active) return 0;
+    if (!this.handSystem) return 0;
 
-    const selected = this.options[index]!;
+    const addedIds: string[] = [];
 
-    // 手牌未满 → 直接加入
-    if (!this.handSystem.isFull()) {
-      this.handSystem.drawCard(selected.id);
-      const completedCard = selected.id;
-      this.reset();
-      this.onDraftComplete?.(completedCard, undefined);
-      return true;
+    for (const card of this.options) {
+      if (!this.handSystem.isFull()) {
+        const success = this.handSystem.drawCard(card.id);
+        if (success) {
+          addedIds.push(card.id);
+        }
+      }
     }
 
-    // 手牌已满 → 暂存选项，等待 replaceHandCard
-    this.pendingOptionIndex = index;
-    return false;
+    this.reset();
+    this.onDraftComplete?.(addedIds);
+    return addedIds.length;
   }
 
   /**
-   * 手牌已满时，玩家选择替换手牌中哪个槽位。
-   *
-   * @param handIndex 手牌中要被替换的槽位 (0-3)
-   * @returns true 若替换成功并完成抽卡
+   * 骰子重抽：从 draftPool 中重新随机抽取 3 张卡牌替换当前候选。
    */
-  replaceHandCard(handIndex: number): boolean {
-    if (!this.active) return false;
-    if (this.pendingOptionIndex < 0) return false;
-    if (!this.handSystem) return false;
+  reroll(): void {
+    if (!this.active) return;
+    if (this.draftPool.length === 0) return;
 
-    const selected = this.options[this.pendingOptionIndex];
-    if (!selected) return false;
-
-    const replacedCardId = this.handSystem.replaceCard(handIndex, selected.id);
-    const completedCard = selected.id;
-    const replacedCard = replacedCardId || undefined;
-    this.reset();
-    this.onDraftComplete?.(completedCard, replacedCard);
-    return true;
+    this.options = this.pickRandom(this.draftPool);
   }
 
   /**
@@ -166,10 +145,23 @@ export class CardDraftSystem implements System {
   // Private
   // ============================================================
 
+  /**
+   * 从卡池中随机选取指定数量的卡牌（Fisher-Yates shuffle）。
+   */
+  private pickRandom(pool: CardInstance[]): CardInstance[] {
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+    }
+    const count = Math.min(DRAFT_OPTIONS_COUNT, shuffled.length);
+    return shuffled.slice(0, count);
+  }
+
   private reset(): void {
     this.active = false;
     this.options = [];
     this.handSystem = null;
-    this.pendingOptionIndex = -1;
+    this.draftPool = [];
   }
 }

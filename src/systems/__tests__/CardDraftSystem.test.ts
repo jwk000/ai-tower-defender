@@ -34,7 +34,7 @@ function makeSmallPool(): CardInstance[] {
   return makeDraftPool().slice(0, 4);
 }
 
-describe('CardDraftSystem — 3选1抽卡', () => {
+describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
   let draftSystem: CardDraftSystem;
   let handSystem: HandSystem;
   let world: TowerWorld;
@@ -93,125 +93,149 @@ describe('CardDraftSystem — 3选1抽卡', () => {
     });
   });
 
-  describe('selectOption — 选择候选卡', () => {
-    it('手牌未满时直接加入手牌并完成抽卡', () => {
-      // 手牌只有 2 张（不满）
+  describe('confirmDraft — 确定抽取（全部加入手牌）', () => {
+    it('手牌有空位时全部加入并完成抽卡', () => {
+      // 手牌只有 1 张（3 个空位）
+      handSystem.initialize(makeSmallPool());
+      handSystem.playCard(0);
+      handSystem.playCard(1);
+      handSystem.playCard(2);
+      expect(handSystem.getCount()).toBe(1);
+
+      draftSystem.startDraft(makeDraftPool(), handSystem);
+      expect(draftSystem.isActive()).toBe(true);
+
+      const options = draftSystem.getOptions();
+      const addedCount = draftSystem.confirmDraft();
+
+      expect(addedCount).toBe(3);
+      expect(draftSystem.isActive()).toBe(false);
+      expect(handSystem.isFull()).toBe(true);
+      // 3 张候选卡都在手牌中
+      const handIds = handSystem.getHand().filter((c) => c !== null).map((c) => c!.id);
+      for (const opt of options) {
+        expect(handIds).toContain(opt.id);
+      }
+    });
+
+    it('手牌空位不足时只放入能放的数量', () => {
+      // 手牌有 2 张，只剩 2 个空位
       handSystem.initialize(makeSmallPool());
       handSystem.playCard(0);
       handSystem.playCard(1);
       expect(handSystem.getCount()).toBe(2);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      expect(draftSystem.isActive()).toBe(true);
+      const addedCount = draftSystem.confirmDraft();
 
-      const options = draftSystem.getOptions();
-      const selectedId = options[0]!.id;
-
-      const result = draftSystem.selectOption(0);
-      expect(result).toBe(true);
-      expect(draftSystem.isActive()).toBe(false);
-      expect(handSystem.getCount()).toBe(3);
-      // 选中的卡在手牌中
-      const handIds = handSystem.getHand().filter((c) => c !== null).map((c) => c!.id);
-      expect(handIds).toContain(selectedId);
-    });
-
-    it('手牌已满时返回 false，等待替换', () => {
-      handSystem.initialize(makeSmallPool());
-      expect(handSystem.isFull()).toBe(true);
-
-      draftSystem.startDraft(makeDraftPool(), handSystem);
-      const result = draftSystem.selectOption(0);
-      expect(result).toBe(false);
-      // 抽卡仍活跃
-      expect(draftSystem.isActive()).toBe(true);
-      // 手牌未变化
+      expect(addedCount).toBe(2);
       expect(handSystem.isFull()).toBe(true);
       expect(handSystem.getCount()).toBe(4);
     });
 
-    it('越界 index 返回 false', () => {
+    it('手牌满时什么也不加入，仍完成抽卡', () => {
+      handSystem.initialize(makeSmallPool());
+      expect(handSystem.isFull()).toBe(true);
+
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      expect(draftSystem.selectOption(-1)).toBe(false);
-      expect(draftSystem.selectOption(3)).toBe(false);
-      expect(draftSystem.selectOption(100)).toBe(false);
+      const addedCount = draftSystem.confirmDraft();
+
+      expect(addedCount).toBe(0);
+      expect(draftSystem.isActive()).toBe(false);
+      expect(handSystem.getCount()).toBe(4);
     });
 
-    it('抽卡未激活时返回 false', () => {
-      expect(draftSystem.selectOption(0)).toBe(false);
+    it('抽卡未激活时返回 0', () => {
+      expect(draftSystem.confirmDraft()).toBe(0);
     });
 
-    it('抽卡完成时触发 onDraftComplete（无替换情况）', () => {
+    it('触发 onDraftComplete 回调（含实际加入的卡牌 ID 列表）', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
-      // 手牌不满
+      // 手牌有空位
       handSystem.initialize(makeSmallPool());
       handSystem.playCard(0);
       handSystem.playCard(1);
+      handSystem.playCard(2);
+      expect(handSystem.getCount()).toBe(1);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
       const options = draftSystem.getOptions();
-      draftSystem.selectOption(0);
+      draftSystem.confirmDraft();
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(options[0]!.id, undefined);
-    });
-  });
-
-  describe('replaceHandCard — 手牌满时替换', () => {
-    it('替换指定槽位后完成抽卡', () => {
-      handSystem.initialize(makeSmallPool());
-      expect(handSystem.isFull()).toBe(true);
-
-      draftSystem.startDraft(makeDraftPool(), handSystem);
-      const options = draftSystem.getOptions();
-      const selectedId = options[0]!.id;
-
-      // 第一步：选卡 → 返回 false（手牌满）
-      const selectResult = draftSystem.selectOption(0);
-      expect(selectResult).toBe(false);
-
-      // 第二步：选替换哪个手牌槽位
-      const oldHand = handSystem.getHand();
-      const replacedCardId = oldHand[2]!.id;
-
-      const replaceResult = draftSystem.replaceHandCard(2);
-      expect(replaceResult).toBe(true);
-      // 抽卡完成
-      expect(draftSystem.isActive()).toBe(false);
-      // 手牌槽位 2 现在是新卡
-      expect(handSystem.getHand()[2]!.id).toBe(selectedId);
-      // 手牌总数不变
-      expect(handSystem.getCount()).toBe(4);
+      const addedIds = callback.mock.calls[0]![0] as string[];
+      expect(addedIds).toHaveLength(3);
+      // 确认回调中的 ID 与候选卡一致
+      const optionIds = options.map((o) => o.id);
+      for (const id of addedIds) {
+        expect(optionIds).toContain(id);
+      }
     });
 
-    it('触发 onDraftComplete 含被替换卡牌信息', () => {
+    it('手牌满时 onDraftComplete 收到空数组', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
       handSystem.initialize(makeSmallPool());
-      const oldHand = handSystem.getHand();
-      const replacedId = oldHand[1]!.id;
+      expect(handSystem.isFull()).toBe(true);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      const options = draftSystem.getOptions();
-      draftSystem.selectOption(0);
-      draftSystem.replaceHandCard(1);
+      draftSystem.confirmDraft();
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(options[0]!.id, replacedId);
+      expect(callback).toHaveBeenCalledWith([]);
     });
+  });
 
-    it('无 pending option 时返回 false', () => {
-      handSystem.initialize(makeSmallPool());
+  describe('reroll — 骰子重抽', () => {
+    it('重新随机后候选卡发生变化（大概率）', () => {
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      // 未先调用 selectOption
-      expect(draftSystem.replaceHandCard(0)).toBe(false);
+      const firstOptions = draftSystem.getOptions();
+      const firstIds = firstOptions.map((c) => c.id);
+
+      // 多次 reroll 确保至少有一次不同（概率极低会完全相同）
+      let changed = false;
+      for (let i = 0; i < 5; i++) {
+        draftSystem.reroll();
+        const newIds = draftSystem.getOptions().map((c) => c.id);
+        if (newIds.join(',') !== firstIds.join(',')) {
+          changed = true;
+          break;
+        }
+      }
+      expect(changed).toBe(true);
     });
 
-    it('抽卡未激活时返回 false', () => {
-      expect(draftSystem.replaceHandCard(0)).toBe(false);
+    it('reroll 后的卡仍来自原卡池', () => {
+      const draftPool = makeDraftPool();
+      draftSystem.startDraft(draftPool, handSystem);
+      draftSystem.reroll();
+
+      const poolIds = new Set(draftPool.map((c) => c.id));
+      for (const opt of draftSystem.getOptions()) {
+        expect(poolIds.has(opt.id)).toBe(true);
+      }
+    });
+
+    it('reroll 不改变抽卡激活状态', () => {
+      draftSystem.startDraft(makeDraftPool(), handSystem);
+      expect(draftSystem.isActive()).toBe(true);
+      draftSystem.reroll();
+      expect(draftSystem.isActive()).toBe(true);
+    });
+
+    it('抽卡未激活时 reroll 无效', () => {
+      // 不应抛异常
+      expect(() => draftSystem.reroll()).not.toThrow();
+      expect(draftSystem.getOptions()).toEqual([]);
+    });
+
+    it('reroll 后仍有 3 张候选卡', () => {
+      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.reroll();
+      expect(draftSystem.getOptions()).toHaveLength(3);
     });
   });
 
@@ -222,9 +246,9 @@ describe('CardDraftSystem — 3选1抽卡', () => {
       expect(draftSystem.isActive()).toBe(true);
     });
 
-    it('完成抽卡后为 false', () => {
+    it('确认后为 false', () => {
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      draftSystem.selectOption(0);
+      draftSystem.confirmDraft();
       expect(draftSystem.isActive()).toBe(false);
     });
 
@@ -260,42 +284,46 @@ describe('CardDraftSystem — 3选1抽卡', () => {
       expect(draftSystem.getOptions()).toEqual([]);
     });
 
-    it('取消后 selectOption 返回 false', () => {
+    it('取消后 confirmDraft 返回 0', () => {
       draftSystem.startDraft(makeDraftPool(), handSystem);
       draftSystem.cancelDraft();
-      expect(draftSystem.selectOption(0)).toBe(false);
+      expect(draftSystem.confirmDraft()).toBe(0);
     });
   });
 
   describe('集成场景', () => {
-    it('完整 3 选 1 流程（手牌不满）', () => {
+    it('完整流程：抽卡 → 骰子重抽 → 确定全部放入', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
-      // 手牌只初始化 2 张
+      // 手牌只初始化 1 张（有 3 个空位）
       handSystem.initialize(makeSmallPool());
       handSystem.playCard(0);
       handSystem.playCard(1);
-      expect(handSystem.getCount()).toBe(2);
+      handSystem.playCard(2);
+      expect(handSystem.getCount()).toBe(1);
 
       // 触发抽卡
       draftSystem.startDraft(makeDraftPool(), handSystem);
       expect(draftSystem.isActive()).toBe(true);
       expect(draftSystem.getOptions()).toHaveLength(3);
 
-      // 选第 2 张
-      const options = draftSystem.getOptions();
-      const result = draftSystem.selectOption(1);
-      expect(result).toBe(true);
+      // 骰子重抽
+      draftSystem.reroll();
+      const finalOptions = draftSystem.getOptions();
+      expect(finalOptions).toHaveLength(3);
+
+      // 确定全部放入
+      const addedCount = draftSystem.confirmDraft();
+      expect(addedCount).toBe(3);
       expect(draftSystem.isActive()).toBe(false);
 
-      // 回调含正确的 cardId
-      expect(callback).toHaveBeenCalledWith(options[1]!.id, undefined);
-      // 手牌有 3 张
-      expect(handSystem.getCount()).toBe(3);
+      // 手牌满了
+      expect(handSystem.isFull()).toBe(true);
+      expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('完整 3 选 1 流程（手牌满，需替换）', () => {
+    it('完整流程：抽卡 → 确定（手牌满时什么也不加）', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
@@ -303,46 +331,28 @@ describe('CardDraftSystem — 3选1抽卡', () => {
       handSystem.initialize(makeSmallPool());
       expect(handSystem.isFull()).toBe(true);
 
-      // 触发抽卡
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      const options = draftSystem.getOptions();
+      const addedCount = draftSystem.confirmDraft();
 
-      // 选择失败 → 手牌满
-      const selectResult = draftSystem.selectOption(2);
-      expect(selectResult).toBe(false);
-
-      // 替换槽位 0
-      const oldSlot0Id = handSystem.getHand()[0]!.id;
-      const replaceResult = draftSystem.replaceHandCard(0);
-      expect(replaceResult).toBe(true);
-      expect(draftSystem.isActive()).toBe(false);
-
-      // 回调含被替换的卡牌
-      expect(callback).toHaveBeenCalledWith(options[2]!.id, oldSlot0Id);
-      expect(handSystem.getCount()).toBe(4);
+      expect(addedCount).toBe(0);
+      expect(callback).toHaveBeenCalledWith([]);
     });
 
     it('连续两次抽卡', () => {
-      const callback = vi.fn();
-      draftSystem.onDraftComplete = callback;
-
-      handSystem.initialize(makeSmallPool());
-      handSystem.playCard(0);
-      handSystem.playCard(1);
-      expect(handSystem.getCount()).toBe(2);
+      // 清空手牌
+      handSystem.reset();
+      expect(handSystem.getCount()).toBe(0);
 
       // 第一次抽卡
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      draftSystem.selectOption(0);
-      expect(callback).toHaveBeenCalledTimes(1);
-
-      // 此时手牌有 3 张
+      const added1 = draftSystem.confirmDraft();
+      expect(added1).toBe(3);
       expect(handSystem.getCount()).toBe(3);
 
-      // 第二次抽卡（手牌仍不满）
+      // 第二次抽卡（只剩 1 个空位）
       draftSystem.startDraft(makeDraftPool(), handSystem);
-      draftSystem.selectOption(0);
-      expect(callback).toHaveBeenCalledTimes(2);
+      const added2 = draftSystem.confirmDraft();
+      expect(added2).toBe(1);
       expect(handSystem.isFull()).toBe(true);
     });
   });
