@@ -39,3 +39,4 @@ tmp/
 /playwright-report/
 /playwright/.cache/
 .tmp-debug
+.codegraph/
