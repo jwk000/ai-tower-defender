@@ -27,6 +27,85 @@ const TAB_H = 40;
 const HEADER_H = 60;
 
 // ============================================================
+// 工具：兼容性圆角矩形绘制
+// ============================================================
+
+/**
+ * 绘制圆角矩形（兼容不支持 ctx.roundRect 的环境）。
+ * 优先使用原生 roundRect，不可用时降级为手动路径拼接。
+ */
+function fillRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+): void {
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    // 手动绘制圆角矩形路径
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.arcTo(x + w, y, x + w, y + rr, rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+    ctx.lineTo(x + rr, y + h);
+    ctx.arcTo(x, y + h, x, y + h - rr, rr);
+    ctx.lineTo(x, y + rr);
+    ctx.arcTo(x, y, x + rr, y, rr);
+    ctx.closePath();
+  }
+  ctx.fill();
+}
+
+function strokeRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+): void {
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.arcTo(x + w, y, x + w, y + rr, rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+    ctx.lineTo(x + rr, y + h);
+    ctx.arcTo(x, y + h, x, y + h - rr, rr);
+    ctx.lineTo(x, y + rr);
+    ctx.arcTo(x, y, x + rr, y, rr);
+    ctx.closePath();
+  }
+  ctx.stroke();
+}
+
+function fillAndStrokeRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+): void {
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.arcTo(x + w, y, x + w, y + rr, rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+    ctx.lineTo(x + rr, y + h);
+    ctx.arcTo(x, y + h, x, y + h - rr, rr);
+    ctx.lineTo(x, y + rr);
+    ctx.arcTo(x, y, x + rr, y, rr);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.stroke();
+}
+
+// ============================================================
 // 类型定义
 // ============================================================
 
@@ -61,11 +140,11 @@ const CATEGORY_COLORS: Record<Exclude<CardFilterCategory, 'all'>, string> = {
 };
 
 const CATEGORY_GLYPHS: Record<Exclude<CardFilterCategory, 'all'>, string> = {
-  tower:   '🗼',
-  soldier: '⚔',
-  trap:    '⛓',
-  spell:   '✦',
-  arcane:  '◇',
+  tower:   'T',
+  soldier: 'S',
+  trap:    'X',
+  spell:   '*',
+  arcane:  'A',
 };
 
 // ============================================================
@@ -126,13 +205,26 @@ export class CardEncyclopediaUI {
   /** 每帧调用，绘制完整图鉴面板 */
   render(): void {
     if (!this._isOpen) return;
+
+    try {
+      this.renderImpl();
+    } catch (err) {
+      console.error('[CardEncyclopediaUI] render error:', err);
+    }
+  }
+
+  private renderImpl(): void {
     const ctx = this.renderer.context;
+    if (!ctx) return;
 
     // 设计空间中心
     const cx = LayoutManager.DESIGN_W / 2;
     const cy = LayoutManager.DESIGN_H / 2;
 
-    // ---- 全视口变暗遮罩 ----
+    // ---- 保存当前变换状态 ----
+    ctx.save();
+
+    // ---- 全视口变暗遮罩（viewport-space） ----
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -146,36 +238,31 @@ export class CardEncyclopediaUI {
     ctx.fillStyle = '#1a1a2e';
     ctx.strokeStyle = '#4a4a7a';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(panelLeft, panelTop, PANEL_W, PANEL_H, 12);
-    ctx.fill();
-    ctx.stroke();
+    fillAndStrokeRoundedRect(ctx, panelLeft, panelTop, PANEL_W, PANEL_H, 12);
     ctx.restore();
 
     // ---- 标题 ----
     ctx.save();
     ctx.fillStyle = '#ffffff';
-    ctx.font = getFont(28, true);
+    ctx.font = FONTS.title;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('📖 卡牌图鉴', cx, panelTop + HEADER_H / 2);
+    ctx.fillText('卡牌图鉴', cx, panelTop + HEADER_H / 2);
     ctx.restore();
 
     // ---- 关闭按钮 (X) ----
-    const closeX = panelLeft + PANEL_W - 40;
-    const closeY = panelTop + 12;
-    const closeW = 30;
-    const closeH = 30;
+    const closeX = panelLeft + PANEL_W - 46;
+    const closeY = panelTop + 14;
+    const closeW = 32;
+    const closeH = 32;
     ctx.save();
     ctx.fillStyle = '#c62828';
-    ctx.beginPath();
-    ctx.roundRect(closeX, closeY, closeW, closeH, 6);
-    ctx.fill();
+    fillRoundedRect(ctx, closeX, closeY, closeW, closeH, 6);
     ctx.fillStyle = '#ffffff';
     ctx.font = getFont(18, true);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('✕', closeX + closeW / 2, closeY + closeH / 2);
+    ctx.fillText('X', closeX + closeW / 2, closeY + closeH / 2);
     ctx.restore();
 
     // ---- 类型筛选标签 ----
@@ -190,11 +277,15 @@ export class CardEncyclopediaUI {
     ctx.font = FONTS.body;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
+    const allCount = Array.isArray(ALL_CARDS) ? ALL_CARDS.length : 0;
     ctx.fillText(
-      `${this.filteredCards.length} / ${ALL_CARDS.length} 张`,
+      `${this.filteredCards.length} / ${allCount} 张`,
       panelLeft + PANEL_W - 16,
       panelTop + PANEL_H - 12,
     );
+    ctx.restore();
+
+    // ---- 恢复变换 ----
     ctx.restore();
   }
 
@@ -210,9 +301,9 @@ export class CardEncyclopediaUI {
     const panelTop = cy - PANEL_H / 2;
 
     // 1. 关闭按钮
-    const closeX = panelLeft + PANEL_W - 40;
-    const closeY = panelTop + 12;
-    if (x >= closeX && x <= closeX + 30 && y >= closeY && y <= closeY + 30) {
+    const closeX = panelLeft + PANEL_W - 46;
+    const closeY = panelTop + 14;
+    if (x >= closeX && x <= closeX + 32 && y >= closeY && y <= closeY + 32) {
       this.close();
       return true;
     }
@@ -244,7 +335,6 @@ export class CardEncyclopediaUI {
       const cardLeft = gridLeft + col * (CARD_W + CARD_GAP);
       const cardTop = gridTop + row * (CARD_H + CARD_GAP);
       if (x >= cardLeft && x <= cardLeft + CARD_W && y >= cardTop && y <= cardTop + CARD_H) {
-        // 消费点击，暂不显示详情
         return true;
       }
     }
@@ -255,7 +345,6 @@ export class CardEncyclopediaUI {
       return true;
     }
 
-    // 面板内其他区域也消费点击
     return true;
   }
 
@@ -303,16 +392,11 @@ export class CardEncyclopediaUI {
       const isActive = tab.key === this.activeFilter;
 
       ctx.save();
-      // 标签背景
       ctx.fillStyle = isActive ? tab.color : '#2a2a4a';
       ctx.strokeStyle = isActive ? tab.color : '#444466';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(tx, tabY + 4, tabW, TAB_H - 8, 6);
-      ctx.fill();
-      ctx.stroke();
+      fillAndStrokeRoundedRect(ctx, tx, tabY + 4, tabW, TAB_H - 8, 6);
 
-      // 标签文字
       ctx.fillStyle = isActive ? '#ffffff' : '#8888aa';
       ctx.font = getFont(14, isActive);
       ctx.textAlign = 'center';
@@ -328,9 +412,11 @@ export class CardEncyclopediaUI {
     gridTop: number,
   ): void {
     const gridLeft = panelLeft + 16;
+    const cards = this.filteredCards;
+    if (!cards || cards.length === 0) return;
 
-    for (let i = 0; i < this.filteredCards.length; i++) {
-      const card = this.filteredCards[i]!;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i]!;
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const cardLeft = gridLeft + col * (CARD_W + CARD_GAP);
@@ -339,7 +425,7 @@ export class CardEncyclopediaUI {
       const isHovered = i === this.hoveredCardIndex;
 
       const category = getCardCategory(card);
-      const borderColor = CATEGORY_COLORS[category];
+      const borderColor = CATEGORY_COLORS[category] ?? '#ffffff';
 
       // ---- 卡牌背景 ----
       ctx.save();
@@ -347,19 +433,14 @@ export class CardEncyclopediaUI {
       ctx.strokeStyle = borderColor;
       ctx.lineWidth = isHovered ? 3 : 2;
       ctx.globalAlpha = 0.95;
-      ctx.beginPath();
-      ctx.roundRect(cardLeft, cardTop, CARD_W, CARD_H, 8);
-      ctx.fill();
-      ctx.stroke();
+      fillAndStrokeRoundedRect(ctx, cardLeft, cardTop, CARD_W, CARD_H, 8);
       ctx.restore();
 
       // 悬停高亮
       if (isHovered) {
         ctx.save();
         ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.beginPath();
-        ctx.roundRect(cardLeft, cardTop, CARD_W, CARD_H, 8);
-        ctx.fill();
+        fillRoundedRect(ctx, cardLeft, cardTop, CARD_W, CARD_H, 8);
         ctx.restore();
       }
 
@@ -369,10 +450,7 @@ export class CardEncyclopediaUI {
       ctx.fillStyle = '#0d1b2a';
       ctx.strokeStyle = '#37474f';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(cardCenterX - ART_W / 2, artCenterY - ART_H / 2, ART_W, ART_H, 4);
-      ctx.fill();
-      ctx.stroke();
+      fillAndStrokeRoundedRect(ctx, cardCenterX - ART_W / 2, artCenterY - ART_H / 2, ART_W, ART_H, 4);
       ctx.restore();
 
       // ---- 符号图标 ----
@@ -381,7 +459,8 @@ export class CardEncyclopediaUI {
       ctx.font = getFont(36, true);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(CATEGORY_GLYPHS[category], cardCenterX, artCenterY);
+      const glyph = CATEGORY_GLYPHS[category] ?? '?';
+      ctx.fillText(glyph, cardCenterX, artCenterY);
       ctx.restore();
 
       // ---- 卡牌名称 ----
@@ -395,7 +474,7 @@ export class CardEncyclopediaUI {
 
       // ---- 类型标签 ----
       const typeLabels: Record<string, string> = {
-        tower: '塔', soldier: '士兵', trap: '机关', spell: '技能', arcane: '奥术',
+        tower: '塔', soldier: '兵', trap: '机关', spell: '技能', arcane: '奥术',
       };
       ctx.save();
       ctx.fillStyle = borderColor;
@@ -427,21 +506,26 @@ export class CardEncyclopediaUI {
 
   // ---- 工具函数 ----
 
-  /** 简单文本换行 */
+  /** 简单文本换行（基于 Canvas 2D measureText） */
   private wrapText(
     ctx: CanvasRenderingContext2D,
     text: string,
     maxWidth: number,
     fontSize: number,
   ): string[] {
+    if (!text || maxWidth <= 0) return [text || ''];
+
+    // 一次性设置字体，避免循环内反复调用
+    ctx.save();
+    ctx.font = getFont(fontSize, false);
+
     const lines: string[] = [];
     let current = '';
     let currentW = 0;
 
     for (const ch of text) {
-      ctx.font = getFont(fontSize, false);
       const metrics = ctx.measureText(ch);
-      const charW = metrics.width;
+      const charW = metrics.width || fontSize * 0.6;
       if (currentW + charW > maxWidth && current.length > 0) {
         lines.push(current);
         current = ch;
@@ -452,6 +536,8 @@ export class CardEncyclopediaUI {
       }
     }
     if (current.length > 0) lines.push(current);
+
+    ctx.restore();
     return lines.length > 0 ? lines : [text];
   }
 
@@ -461,10 +547,11 @@ export class CardEncyclopediaUI {
 
   private applyFilter(filter: CardFilterCategory): void {
     this.activeFilter = filter;
+    const all = Array.isArray(ALL_CARDS) ? ALL_CARDS : [];
     if (filter === 'all') {
-      this.filteredCards = [...ALL_CARDS];
+      this.filteredCards = [...all];
     } else {
-      this.filteredCards = ALL_CARDS.filter((c) => getCardCategory(c) === filter);
+      this.filteredCards = all.filter((c) => getCardCategory(c) === filter);
     }
   }
 }
