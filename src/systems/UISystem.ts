@@ -36,6 +36,11 @@ import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
 import { Sound } from '../utils/Sound.js';
 import {
   computeCardSlotsLayout,
+  computeHandZoneSlotRects,
+  HAND_ZONE_CARD_WIDTH,
+  HAND_ZONE_CARD_HEIGHT,
+  HAND_ZONE_DEFAULT_SLOT_COUNT,
+  HAND_ZONE_GAP,
   RARITY_BORDER_COLORS,
   rarityBorderColor,
   getHandZoneBounds,
@@ -57,6 +62,11 @@ import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 // Re-export for backward compatibility
 export {
   computeCardSlotsLayout,
+  computeHandZoneSlotRects,
+  HAND_ZONE_CARD_WIDTH,
+  HAND_ZONE_CARD_HEIGHT,
+  HAND_ZONE_DEFAULT_SLOT_COUNT,
+  HAND_ZONE_GAP,
   RARITY_BORDER_COLORS,
   rarityBorderColor,
   getHandZoneBounds,
@@ -727,27 +737,57 @@ export class UISystem implements System {
    *   - 底部：◇ 能量消耗（蓝色菱形）
    *   - 右上角：persistAcrossWaves=true 画金色 ✦ 角标（design/14 §3.2 line 72）
    *   - 能量不足整卡 alpha=0.4 并叠加"能量不足"红字
-   *   - runContext 未装配时静默跳过（主菜单/编辑器流程）
+   *   - 灰色底板与 4 个空槽始终绘制，保证手牌区域存在感
+   *   - runContext 未装配时仅绘制底板/空槽，主菜单/编辑器流程保持无交互
    */
   private renderHandZone(): void {
+    const bounds = getHandZoneBounds();
+    const slotRects = computeHandZoneSlotRects(HAND_ZONE_DEFAULT_SLOT_COUNT);
+    this.renderer.push({
+      shape: 'rect',
+      x: bounds.centerX, y: bounds.centerY,
+      size: bounds.width, h: bounds.height,
+      color: '#2b3038',
+      alpha: 0.72,
+      stroke: '#6d737d', strokeWidth: 2,
+      z: UI_Z.NORMAL_UI - 2,
+    });
+    this.renderer.push({
+      shape: 'rect',
+      x: bounds.centerX, y: bounds.centerY + bounds.height / 2 - 6,
+      size: bounds.width - 24, h: 2,
+      color: '#9aa0a8',
+      alpha: 0.28,
+      z: UI_Z.NORMAL_UI - 1,
+    });
+    for (const slot of slotRects) {
+      this.renderer.push({
+        shape: 'rect',
+        x: slot.centerX, y: slot.centerY,
+        size: slot.width, h: slot.height,
+        color: '#111820',
+        alpha: 0.62,
+        stroke: '#737b85', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI - 1,
+      });
+      this.renderer.push({
+        shape: 'rect',
+        x: slot.centerX, y: slot.centerY - 10,
+        size: slot.width - 18, h: slot.height - 28,
+        color: '#202833',
+        alpha: 0.38,
+        stroke: '#3f4853', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI - 1,
+      });
+    }
+
     const runContext = this._world?.runContext;
     if (!runContext) return;
 
     const cards = runContext.hand.state.hand;
     if (cards.length === 0) return;
 
-    const REGION_W = 800;
-    const REGION_H = 180;
-    const CARD_W = 120;
-    const CARD_H = 168;
-    const GAP = 16;
-
-    const regionCenterX = LayoutManager.DESIGN_W / 2;
-    const regionCenterY = LayoutManager.DESIGN_H - 130;
-    const regionLeft = regionCenterX - REGION_W / 2;
-    const regionTop = regionCenterY - REGION_H / 2;
-
-    const slots = computeCardSlotsLayout(cards.length, REGION_W, CARD_W, GAP);
+    const slots = computeCardSlotsLayout(cards.length, bounds.width, HAND_ZONE_CARD_WIDTH, HAND_ZONE_GAP);
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
@@ -756,10 +796,10 @@ export class UISystem implements System {
       const config = runContext.registry.get(card.cardId);
       if (!config) continue;
 
-      const cardLeft = regionLeft + slot.x;
-      const cardTop = regionTop + (REGION_H - CARD_H) / 2;
-      const cardCenterX = cardLeft + CARD_W / 2;
-      const cardCenterY = cardTop + CARD_H / 2;
+      const cardLeft = bounds.left + slot.x;
+      const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
+      const cardCenterX = cardLeft + HAND_ZONE_CARD_WIDTH / 2;
+      const cardCenterY = cardTop + HAND_ZONE_CARD_HEIGHT / 2;
 
       const cardAlpha = 1;
       const borderColor = rarityBorderColor(config.rarity);
@@ -767,7 +807,7 @@ export class UISystem implements System {
       this.renderer.push({
         shape: 'rect',
         x: cardCenterX, y: cardCenterY,
-        size: CARD_W, h: CARD_H,
+        size: HAND_ZONE_CARD_WIDTH, h: HAND_ZONE_CARD_HEIGHT,
         color: '#1a2332',
         alpha: cardAlpha * 0.95,
         stroke: borderColor, strokeWidth: 2,
@@ -803,7 +843,7 @@ export class UISystem implements System {
       // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
       if (config.persistAcrossWaves) {
         this.infos.push({
-          x: cardLeft + CARD_W - 12, y: cardTop + 14,
+          x: cardLeft + HAND_ZONE_CARD_WIDTH - 12, y: cardTop + 14,
           text: '✦',
           color: '#ffc107',
           size: 18, align: 'center',

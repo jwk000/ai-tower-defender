@@ -4,7 +4,9 @@ import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
 import { Position, Tower, Attack } from '../core/components.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
+import { computeHandZoneSlotRects, getHandZoneBounds, handZoneOverlapsBoard } from '../ui/LayoutConstants.js';
 import { UISystem } from './UISystem.js';
+import { RenderSystem } from './RenderSystem.js';
 import { CardDraftSystem } from './CardDraftSystem.js';
 import { HandSystem } from './HandSystem.js';
 import { LEVEL_1_CARD_POOL } from '../data/cards.js';
@@ -211,5 +213,40 @@ describe('UISystem UI 层级', () => {
     const draftTitle = infosOf(ui).find((info) => info.text.includes('抽卡奖励'));
     expect(draftTitle).toBeDefined();
     expect((draftTitle as { layer?: string }).layer).toBe('fullscreen');
+  });
+});
+
+describe('UISystem 手牌区底板与空槽布局', () => {
+  beforeEach(() => {
+    LayoutManager.update(1920, 1080);
+  });
+
+  it('手牌区固定在棋盘下方，不与当前棋盘矩形重叠', () => {
+    RenderSystem.sceneOffsetX = 288;
+    RenderSystem.sceneOffsetY = 234;
+    RenderSystem.sceneW = 1344;
+    RenderSystem.sceneH = 576;
+
+    expect(getHandZoneBounds()).toMatchObject({
+      left: 560,
+      top: 860,
+      width: 800,
+      height: 180,
+    });
+    expect(handZoneOverlapsBoard({
+      left: RenderSystem.sceneOffsetX,
+      top: RenderSystem.sceneOffsetY,
+      width: RenderSystem.sceneW,
+      height: RenderSystem.sceneH,
+    })).toBe(false);
+  });
+
+  it('空槽背景始终按 4 槽绘制，与已有卡牌坐标对齐', () => {
+    const slots = computeHandZoneSlotRects();
+
+    expect(slots).toHaveLength(4);
+    expect(slots.map((slot) => slot.left)).toEqual([696, 832, 968, 1104]);
+    expect(slots.every((slot) => slot.top === 866)).toBe(true);
+    expect(slots.every((slot) => slot.width === 120 && slot.height === 168)).toBe(true);
   });
 });

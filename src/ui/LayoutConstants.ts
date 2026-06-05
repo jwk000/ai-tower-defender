@@ -47,6 +47,61 @@ export function computeCardSlotsLayout(
   return slots;
 }
 
+export const HAND_ZONE_CARD_WIDTH = 120;
+export const HAND_ZONE_CARD_HEIGHT = 168;
+export const HAND_ZONE_GAP = 16;
+export const HAND_ZONE_DEFAULT_SLOT_COUNT = 4;
+
+export interface HandZoneSlotRect {
+  index: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+export function computeHandZoneSlotRects(
+  slotCount: number = HAND_ZONE_DEFAULT_SLOT_COUNT,
+): HandZoneSlotRect[] {
+  const bounds = getHandZoneBounds();
+  const slots = computeCardSlotsLayout(
+    slotCount,
+    bounds.width,
+    HAND_ZONE_CARD_WIDTH,
+    HAND_ZONE_GAP,
+  );
+  const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
+  return slots.map((slot, index) => {
+    const left = bounds.left + slot.x;
+    return {
+      index,
+      left,
+      top: cardTop,
+      width: HAND_ZONE_CARD_WIDTH,
+      height: HAND_ZONE_CARD_HEIGHT,
+      centerX: left + HAND_ZONE_CARD_WIDTH / 2,
+      centerY: cardTop + HAND_ZONE_CARD_HEIGHT / 2,
+    };
+  });
+}
+
+export function handZoneOverlapsBoard(board: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): boolean {
+  const hand = getHandZoneBounds();
+  return (
+    hand.left < board.left + board.width &&
+    hand.left + hand.width > board.left &&
+    hand.top < board.top + board.height &&
+    hand.top + hand.height > board.top
+  );
+}
+
 // ============================================================
 // 稀有度边框
 // ============================================================
@@ -105,18 +160,15 @@ export function hitTestHandCard(
 ): number {
   if (handCount <= 0) return -1;
   const bounds = getHandZoneBounds();
-  const CARD_W = 120;
-  const CARD_H = 168;
-  const GAP = 16;
 
-  const cardTop = bounds.top + (bounds.height - CARD_H) / 2;
-  const cardBottom = cardTop + CARD_H;
+  const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
+  const cardBottom = cardTop + HAND_ZONE_CARD_HEIGHT;
   if (py < cardTop || py >= cardBottom) return -1;
 
-  const slots = computeCardSlotsLayout(handCount, bounds.width, CARD_W, GAP);
+  const slots = computeCardSlotsLayout(handCount, bounds.width, HAND_ZONE_CARD_WIDTH, HAND_ZONE_GAP);
   for (let i = 0; i < slots.length; i++) {
     const cardLeft = bounds.left + slots[i]!.x;
-    const cardRight = cardLeft + CARD_W;
+    const cardRight = cardLeft + HAND_ZONE_CARD_WIDTH;
     if (px >= cardLeft && px < cardRight) return i;
   }
   return -1;
@@ -270,4 +322,3 @@ export function computeTooltipAnchor(
   const y = bounds.top - CARD_TOOLTIP_HEIGHT - 12;
   return { x, y };
 }
-
