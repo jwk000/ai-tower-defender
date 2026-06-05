@@ -10,7 +10,7 @@
 id: level_04
 name: 末日废土
 theme: wasteland
-description: 废弃城市，浓雾弥漫
+description: 废弃城市，雪幕覆盖
 
 map:
   cols: 21
@@ -121,8 +121,8 @@ map:
 
 weather:
   pool:
-    - Fog
-  initial: Fog
+    - Snow
+  initial: Snow
 
 crystal:
   hp: 1200

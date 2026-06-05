@@ -27,4 +27,20 @@ describe('关卡 YAML 配置', () => {
     expect(level!.weatherPool).toEqual([WeatherType.Fog]);
     expect(level!.weatherFixed).toBe(WeatherType.Fog);
   });
+
+  it('第4关 YAML 固定下雪天气', async () => {
+    const level = await loadYamlConfig<LevelWeatherConfig>('./levels/level-04.yaml');
+
+    expect(level.id).toBe('level_04');
+    expect(level.weather.pool).toEqual(['Snow']);
+    expect(level.weather.initial).toBe('Snow');
+  });
+
+  it('第4关运行时天气解析为 Snow', () => {
+    const level = loadLevelsFromYaml().find((cfg) => cfg.id === 'level_04');
+
+    expect(level).toBeDefined();
+    expect(level!.weatherPool).toEqual([WeatherType.Snow]);
+    expect(level!.weatherFixed).toBe(WeatherType.Snow);
+  });
 });
