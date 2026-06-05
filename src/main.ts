@@ -207,11 +207,12 @@ class TowerDefenderGame extends Game {
     Music.play('main_menu');
     this.onUpdate = (dt) => {
       this.levelSelectUI?.update?.(dt);
+    };
+    this.onPostRender = () => {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.render();
       }
     };
-    this.onPostRender = null;
     this.onAfterUpdate = null;
     this.input.onPointerDown = (e: InputEvent) => {
       if (this.encyclopedia.isOpen) {
@@ -620,7 +621,7 @@ class TowerDefenderGame extends Game {
     this.cardDraftSystem.onDraftStart = () => {
       this.paused = true;
     };
-    this.cardDraftSystem.onDraftComplete = (_selectedCard, _replacedCard) => {
+    this.cardDraftSystem.onDraftComplete = (_addedCardIds) => {
       this.paused = false;
     };
 
