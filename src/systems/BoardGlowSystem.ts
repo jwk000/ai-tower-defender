@@ -36,7 +36,6 @@ varying vec2 v_uv;
 uniform vec2 u_resolution;
 uniform vec4 u_board;
 uniform float u_time;
-uniform float u_ambientAlpha;
 uniform float u_bloomAlpha;
 
 float hash(vec2 p) {
@@ -70,15 +69,13 @@ void main() {
   float haloBand = (1.0 - inside) * smoothstep(3.0, 22.0, outsideDist) * smoothstep(120.0, 18.0, outsideDist);
   float outerBloom = haloBand * exp(-outsideDist * 0.020) * 0.55;
 
-  float boardFill = inside;
-
   vec2 glowUv = (px - minB + vec2(96.0)) / max(u_board.zw + vec2(192.0), vec2(1.0));
   float particleMask = (1.0 - inside) * smoothstep(8.0, 24.0, outsideDist) * smoothstep(96.0, 34.0, outsideDist);
   vec2 driftUv = glowUv + vec2(0.012 * sin(u_time * 0.21), -u_time * 0.014);
   float particles = (particleLayer(driftUv, 11.0, 0.55) + particleLayer(driftUv + 9.3, 17.0, 0.9) * 0.55) * particleMask;
 
   vec3 color = vec3(0.72, 0.84, 1.0);
-  float alpha = boardFill * u_ambientAlpha + outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
+  float alpha = outerBloom * u_bloomAlpha + particles * u_bloomAlpha * 0.9;
   gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.65));
 }
 `;
@@ -93,7 +90,6 @@ interface MoonlightGLResources {
     resolution: WebGLUniformLocation;
     board: WebGLUniformLocation;
     time: WebGLUniformLocation;
-    ambientAlpha: WebGLUniformLocation;
     bloomAlpha: WebGLUniformLocation;
   };
 }
@@ -250,7 +246,6 @@ export class BoardGlowSystem implements System {
     this.syncOverlayCanvas(resources.canvas, baseCanvas);
     resources.canvas.style.display = 'block';
 
-    const ambientAlpha = Math.max(0, Math.min(0.3, moonlight.ambientAlpha));
     const bloomAlpha = Math.max(0, Math.min(0.35, moonlight.bloomAlpha));
     const sx = LayoutManager.designOffsetX + ox * LayoutManager.scale;
     const sy = LayoutManager.designOffsetY + oy * LayoutManager.scale;
@@ -268,7 +263,6 @@ export class BoardGlowSystem implements System {
     gl.uniform2f(resources.uniforms.resolution, resources.canvas.width, resources.canvas.height);
     gl.uniform4f(resources.uniforms.board, sx, sy, sw, sh);
     gl.uniform1f(resources.uniforms.time, this.elapsed);
-    gl.uniform1f(resources.uniforms.ambientAlpha, ambientAlpha);
     gl.uniform1f(resources.uniforms.bloomAlpha, bloomAlpha);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
@@ -329,9 +323,8 @@ export class BoardGlowSystem implements System {
     const resolution = gl.getUniformLocation(program, 'u_resolution');
     const board = gl.getUniformLocation(program, 'u_board');
     const time = gl.getUniformLocation(program, 'u_time');
-    const ambientAlpha = gl.getUniformLocation(program, 'u_ambientAlpha');
     const bloomAlpha = gl.getUniformLocation(program, 'u_bloomAlpha');
-    if (attribPosition < 0 || !resolution || !board || !time || !ambientAlpha || !bloomAlpha) {
+    if (attribPosition < 0 || !resolution || !board || !time || !bloomAlpha) {
       canvas.remove();
       return null;
     }
@@ -342,7 +335,7 @@ export class BoardGlowSystem implements System {
       program,
       buffer,
       attribPosition,
-      uniforms: { resolution, board, time, ambientAlpha, bloomAlpha },
+      uniforms: { resolution, board, time, bloomAlpha },
     };
     return this.moonlightGL;
   }

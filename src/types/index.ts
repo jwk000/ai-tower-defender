@@ -169,7 +169,7 @@ export interface EnvironmentFXConfig {
 
 export interface MoonlightConfig {
   enabled: boolean;
-  /** 棋盘整体冷白提亮强度，建议 0.05-0.20 */
+  /** 兼容旧配置；当前 shader 不使用该值绘制棋盘内部提亮层 */
   ambientAlpha: number;
   /** 棋盘 bloom 光晕强度，建议 0.08-0.30 */
   bloomAlpha: number;
