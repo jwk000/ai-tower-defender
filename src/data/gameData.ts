@@ -888,7 +888,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     popCost: 2,
     color: '#ab47bc',
     size: 20,
-    skillId: 'backstab',
+    skillId: 'assassinate',
     cost: 65,
     moveRange: 200,
     maxLevel: 3,

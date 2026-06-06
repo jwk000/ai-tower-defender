@@ -108,6 +108,13 @@ const priest: CardInstance = {
   description: '治疗单位，持续恢复友方HP',
 };
 
+const assassin: CardInstance = {
+  id: 'card_assassin',
+  name: '刺客',
+  type: 'unit',
+  description: '高爆发刺杀位，瞬移到最弱敌人旁造成高伤害',
+};
+
 // ---- 机关（4种）----
 
 const spikeTrap: CardInstance = {
@@ -227,6 +234,7 @@ export const UNIT_CARDS: CardInstance[] = [
   archer,
   mage,
   priest,
+  assassin,
   spikeTrap,
   bearTrap,
   tarPit,
@@ -278,7 +286,7 @@ export const LEVEL_2_CARD_POOL: CardInstance[] = [
   fireball,
 ];
 
-/** 第3关卡池：黑暗古堡（激光 + 蝙蝠 + 盾 + 牧师 + 治疗 + 控制） */
+/** 第3关卡池：黑暗古堡（激光 + 蝙蝠 + 盾 + 牧师 + 刺客 + 控制） */
 export const LEVEL_3_CARD_POOL: CardInstance[] = [
   arrowTower,
   laserTower,
@@ -286,10 +294,11 @@ export const LEVEL_3_CARD_POOL: CardInstance[] = [
   shieldGuard,
   mage,
   priest,
+  assassin,
   bearTrap,
 ];
 
-/** 第4关卡池：末日废土（导弹 + 闪电 + 炮塔 + 冰塔 + 远程） */
+/** 第4关卡池：末日废土（导弹 + 闪电 + 炮塔 + 冰塔 + 远程 + 刺客） */
 export const LEVEL_4_CARD_POOL: CardInstance[] = [
   missileTower,
   lightningTower,
@@ -297,6 +306,7 @@ export const LEVEL_4_CARD_POOL: CardInstance[] = [
   iceTower,
   archer,
   mage,
+  assassin,
 ];
 
 /** 第5关卡池：深渊裂隙（全部卡牌可用） */

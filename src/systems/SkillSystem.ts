@@ -1,5 +1,5 @@
 import { TowerWorld, type System, defineQuery } from '../core/World.js';
-import { Skill, Position, Health, UnitTag, Taunted, enemyQuery, DamageTypeVal } from '../core/components.js';
+import { Skill, Position, Health, UnitTag, Taunted, Attack, Visual, enemyQuery, DamageTypeVal } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { SKILL_CONFIGS } from '../data/gameData.js';
 import { SkillTrigger } from '../types/index.js';
@@ -11,13 +11,14 @@ import { Sound } from '../utils/Sound.js';
 const SkillIdNum: Record<string, number> = {
   taunt: 0,
   whirlwind: 1,
+  assassinate: 2,
 };
 
 /** Reverse lookup: ui8 → string skill key */
-const SKILL_ID_MAP: string[] = ['taunt', 'whirlwind'];
+const SKILL_ID_MAP: string[] = ['taunt', 'whirlwind', 'assassinate'];
 
 // ============================================================
-// SkillSystem — 玩家技能执行（嘲讽、旋风斩）
+// SkillSystem — 玩家技能执行（嘲讽、旋风斩、暗杀）
 // ============================================================
 
 export class SkillSystem implements System {
@@ -124,6 +125,9 @@ export class SkillSystem implements System {
       case 'whirlwind':
         this.executeWhirlwind(world, x, y, { range: config.range, value: config.value });
         return true;
+      case 'assassinate':
+        this.executeAssassinate(world, entityId, { range: config.range, value: config.value });
+        return true;
       default:
         return true;
     }
@@ -135,6 +139,64 @@ export class SkillSystem implements System {
     if (skillIdNum === undefined) return false;
     if (Skill.skillId[entityId] !== skillIdNum) return false;
     return Skill.currentCooldown[entityId]! <= 0;
+  }
+
+  /** Execute assassinate — teleport to weakest enemy in range and deal high damage */
+  executeAssassinate(world: TowerWorld, sourceId: number, config: { range: number; value: number }): void {
+    Sound.play('skill_taunt'); // TODO: add assassinate SFX
+    const enemies = enemyQuery(world.world);
+    const sx = Position.x[sourceId];
+    const sy = Position.y[sourceId];
+    if (sx === undefined || sy === undefined) return;
+
+    // Find weakest enemy (lowest HP percentage) within range
+    let weakestId = 0;
+    let weakestHpPercent = 1.0;
+
+    for (let i = 0; i < enemies.length; i++) {
+      const eid = enemies[i]!;
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      const ex = Position.x[eid];
+      const ey = Position.y[eid];
+      if (ex === undefined || ey === undefined) continue;
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > config.range) continue;
+
+      const currentHp = Health.current[eid] ?? 0;
+      const maxHp = Health.max[eid] ?? 1;
+      const hpPercent = currentHp / maxHp;
+      if (hpPercent < weakestHpPercent) {
+        weakestHpPercent = hpPercent;
+        weakestId = eid;
+      }
+    }
+
+    if (weakestId === 0) return; // No valid target
+
+    // Teleport soldier adjacent to target
+    const tx = Position.x[weakestId]!;
+    const ty = Position.y[weakestId]!;
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Place assassin at a small offset from the target (attack range)
+    const approachDist = Math.min(dist - 30, dist - 5);
+    const ratio = dist > 0.01 ? approachDist / dist : 0;
+    Position.x[sourceId] = tx - dx * ratio;
+    Position.y[sourceId] = ty - dy * ratio;
+
+    // Deal damage: base ATK × value multiplier
+    const baseAtk = Attack.damage[sourceId] ?? 0;
+    const damage = Math.round(baseAtk * config.value);
+    applyDamageToTarget(world, weakestId, damage, DamageTypeVal.Physical);
+
+    // Hit flash on target
+    if (Visual.hitFlashTimer[weakestId] !== undefined) {
+      Visual.hitFlashTimer[weakestId] = 0.15;
+    }
   }
 
   // ---- Private ----
