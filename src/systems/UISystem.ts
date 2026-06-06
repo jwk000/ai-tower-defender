@@ -11,8 +11,8 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS } from '../data/gameData.js';
-import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType } from '../types/index.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS } from '../data/gameData.js';
+import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type UnitVisualParts } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { FONTS, getFont } from '../config/fonts.js';
 import { formatNumber } from '../utils/formatNumber.js';
@@ -146,6 +146,7 @@ interface DragState {
   towerType?: TowerType;
   unitType?: UnitType;
   productionType?: ProductionType;
+  trapTypeId?: string;
   spellCardId?: string;
 }
 
@@ -1146,7 +1147,7 @@ export class UISystem implements System {
   }
 
   // ============================================================
-  // Drag Ghost (unchanged — no component access)
+  // Drag Ghost — 渲染与实体一致的复合外观 + 攻击范围
   // ============================================================
 
   private buildDragGhost(): void {
@@ -1155,10 +1156,12 @@ export class UISystem implements System {
     const ptr = this.getPointerPosition?.();
     if (!ptr) return;
 
-    let color = '#ffffff';
     let shape: ShapeType = 'circle';
     let size = 32;
+    let color = '#ffffff';
     let label = '';
+    let visualParts: UnitVisualParts | undefined;
+    let range: number | undefined;
 
     switch (ds.entityType) {
       case 'tower': {
@@ -1166,10 +1169,12 @@ export class UISystem implements System {
         if (tt) {
           const cfg = TOWER_CONFIGS[tt];
           if (cfg) {
+            shape = cfg.shape ?? 'circle';
+            size = cfg.size ?? 32;
             color = cfg.color;
-            shape = 'circle';
-            size = 32;
             label = cfg.name;
+            visualParts = cfg.visualParts;
+            range = cfg.range;
           }
         }
         break;
@@ -1179,11 +1184,33 @@ export class UISystem implements System {
         if (ut) {
           const cfg = UNIT_CONFIGS[ut];
           if (cfg) {
-            color = cfg.color;
-            shape = 'circle';
+            shape = cfg.shape ?? 'circle';
             size = cfg.size;
+            color = cfg.color;
             label = cfg.name;
+            visualParts = cfg.visualParts;
+            range = cfg.attackRange;
           }
+        }
+        break;
+      }
+      case 'trap': {
+        const tid = ds.trapTypeId;
+        if (tid) {
+          const cfg = TRAP_CONFIGS[tid];
+          if (cfg) {
+            shape = cfg.shape ?? 'circle';
+            size = cfg.size;
+            color = cfg.color;
+            label = cfg.name;
+            visualParts = cfg.visualParts;
+            range = cfg.radius ?? cfg.range;
+          }
+        } else {
+          color = '#e53935';
+          shape = 'triangle';
+          size = 24;
+          label = '陷阱';
         }
         break;
       }
@@ -1192,19 +1219,12 @@ export class UISystem implements System {
         if (pt) {
           const cfg = PRODUCTION_CONFIGS[pt];
           if (cfg) {
-            color = cfg.color;
             shape = 'circle';
             size = 30;
+            color = cfg.color;
             label = cfg.name;
           }
         }
-        break;
-      }
-      case 'trap': {
-        color = '#e53935';
-        shape = 'triangle';
-        size = 24;
-        label = '陷阱';
         break;
       }
       case 'spell': {
@@ -1216,16 +1236,125 @@ export class UISystem implements System {
       }
     }
 
-    this.renderer.push({
-      shape,
-      x: ptr.x, y: ptr.y,
-      size,
-      color,
-      alpha: 0.5,
-      label,
-      labelColor: '#ffffff',
-      labelSize: 14,
-    });
+    const ghostAlpha = 0.5;
+    const z = UI_Z.BOARD_TIPS;
+
+    // 1. 攻击范围圆圈（先渲染，显示在底层）
+    if (range !== undefined && range > 0) {
+      this.renderer.push({
+        shape: 'circle',
+        x: ptr.x, y: ptr.y,
+        size: range * 2,
+        color,
+        alpha: 0.1,
+        z,
+      });
+      this.renderer.push({
+        shape: 'circle',
+        x: ptr.x, y: ptr.y,
+        size: range * 2,
+        color,
+        alpha: 0.35,
+        stroke: color,
+        strokeWidth: 2,
+        z,
+      });
+    }
+
+    // 2. 复合外观渲染（主体 + bodyParts + 武器 + 眼睛）
+    if (visualParts) {
+      // 主体形状
+      this.renderer.push({
+        shape,
+        x: ptr.x, y: ptr.y,
+        size,
+        color,
+        alpha: ghostAlpha,
+        z,
+      });
+
+      // 身体部件
+      if (visualParts.bodyParts) {
+        for (const part of visualParts.bodyParts) {
+          this.renderer.push({
+            shape: part.shape,
+            x: ptr.x + part.offsetX,
+            y: ptr.y + part.offsetY,
+            size: part.size,
+            h: part.h,
+            color: part.color,
+            alpha: (part.alpha ?? 1) * ghostAlpha,
+            stroke: part.stroke,
+            strokeWidth: part.strokeWidth,
+            rotation: part.rotation,
+            z,
+          });
+        }
+      }
+
+      // 武器（静态，无挥砍动画）
+      if (visualParts.weapon) {
+        const w = visualParts.weapon;
+        const ax = ptr.x + w.anchorX;
+        const ay = ptr.y + w.anchorY;
+        const angle = w.restAngle;
+        const midX = ax + Math.cos(angle) * (w.length * 0.5);
+        const midY = ay + Math.sin(angle) * (w.length * 0.5);
+
+        if (w.glowColor !== undefined && w.glowRadius !== undefined && w.glowRadius > 0) {
+          this.renderer.push({
+            shape: 'circle',
+            x: ax + (w.length * 0.5),
+            y: ay,
+            size: w.glowRadius * 2,
+            color: w.glowColor,
+            alpha: (w.glowAlpha ?? 0.4) * ghostAlpha,
+            z: z - 1,
+          });
+        }
+
+        this.renderer.push({
+          shape: 'rect',
+          x: midX, y: midY,
+          size: w.length, h: w.width,
+          color: w.color,
+          alpha: ghostAlpha,
+          stroke: w.stroke,
+          strokeWidth: w.strokeWidth,
+          rotation: angle,
+          z: z + 1,
+        });
+      }
+
+      // 眼睛
+      if (visualParts.eyes) {
+        const e = visualParts.eyes;
+        const eyeOffsetX = e.offsetX ?? size * 0.18;
+        const eyeOffsetY = e.offsetY ?? -size * 0.12;
+        const eyeY = ptr.y + eyeOffsetY;
+        const leftX = ptr.x - eyeOffsetX;
+        const rightX = ptr.x + eyeOffsetX;
+
+        if (e.scleraRadius && e.scleraRadius > 0) {
+          this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: ghostAlpha, z: z + 2 });
+          this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: ghostAlpha, z: z + 2 });
+        }
+        this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: ghostAlpha, z: z + 3 });
+        this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: ghostAlpha, z: z + 3 });
+      }
+    } else {
+      // 无复合外观时回退到简单形状 + 名称标签
+      this.renderer.push({
+        shape,
+        x: ptr.x, y: ptr.y,
+        size,
+        color,
+        alpha: ghostAlpha,
+        label,
+        labelColor: '#ffffff',
+        labelSize: 14,
+      });
+    }
   }
 
   // ============================================================
