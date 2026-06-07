@@ -419,7 +419,7 @@ class TowerDefenderGame extends Game {
     this.world.addComponent(this.baseEntityId, Health, { current: 100, max: 100 });
     const baseRgb = hexToRgb('#7c3aed');  // 紫水晶色（高贵/优雅/神秘主题）
     this.world.addComponent(this.baseEntityId, Visual, {
-      shape: ShapeVal.Diamond,  // 菱形（设计文档 §5）
+      shape: ShapeVal.Hexagon,  // 六边形（紫水晶主体）
       colorR: baseRgb.r,
       colorG: baseRgb.g,
       colorB: baseRgb.b,

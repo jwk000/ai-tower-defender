@@ -1820,7 +1820,7 @@ export class RenderSystem implements System {
   // ============================================
   // Crystal (Objective 水晶) 视觉渲染
   // 设计语言: 高贵 / 优雅 / 神秘
-  // 紫色宝石主体 + 金色点缀 + 多层光效 + 旋转光点 + 射线 + 闪光粒子
+  // 六边形紫水晶主体 + 金色六角点缀 + 多层光效 + 旋转光点 + 射线 + 闪光粒子
   // 低血量 (<30%): 转为红色警戒 + 加速动画 + 更强烈的脉冲
   // ============================================
   private drawCrystal(eid: number, posX: number, posY: number, dt: number): void {
@@ -1834,11 +1834,11 @@ export class RenderSystem implements System {
     const isLowHp = hpRatio < 0.3;
 
     // ── 主题色 (低血量时转红) ──
-    const bodyDeep   = isLowHp ? '#b91c1c' : '#5b21b6'; // 深紫 → 深红
+    const bodyDeep   = isLowHp ? '#b91c1c' : '#4a1d8f'; // 深紫 → 深红
     const bodyMid    = isLowHp ? '#ef4444' : '#7c3aed'; // 紫罗兰 → 红
     const bodyLight  = isLowHp ? '#fca5a5' : '#a78bfa'; // 浅紫 → 浅红
     const glowAura   = isLowHp ? '#fecaca' : '#c4b5fd'; // 辉光紫 → 辉光红
-    const innerCore  = isLowHp ? '#fef2f2' : '#ede9fe'; // 白紫 → 白粉
+    const innerCore  = isLowHp ? '#dc2626' : '#4c1d95'; // 深紫内核 → 深红 (六边形脉冲)
     const goldAccent = '#fcd34d';                        // 金色点缀 (不变)
     const whitePure  = '#ffffff';
 
@@ -1909,12 +1909,12 @@ export class RenderSystem implements System {
     }
 
     // ============================================
-    // Layer 4: 水晶主体 — 外层切面 (深色)
+    // Layer 4: 水晶主体 — 外层六边形 (深色)
     // ============================================
     this.renderer.push({
-      shape: 'diamond',
+      shape: 'hexagon',
       x: cx, y: cy,
-      size: 36,
+      size: 38,
       color: bodyDeep,
       alpha: 1,
       stroke: isLowHp ? '#f87171' : '#8b5cf6',
@@ -1923,24 +1923,24 @@ export class RenderSystem implements System {
     });
 
     // ============================================
-    // Layer 5: 水晶主体 — 内层切面 (浅色, 偏移营造宝石切割感)
+    // Layer 5: 水晶主体 — 内层六边形 (浅色, 偏移营造宝石切割感)
     // ============================================
     this.renderer.push({
-      shape: 'diamond',
-      x: cx, y: cy - 4,
-      size: 22,
+      shape: 'hexagon',
+      x: cx, y: cy - 3,
+      size: 24,
       color: bodyMid,
       alpha: 0.88,
       z: renderZ,
     });
 
     // ============================================
-    // Layer 6: 金色边缘点缀 (4颗小菱形在主体四角)
+    // Layer 6: 金色六边形顶点点缀 (6颗小菱形在六边形顶点)
     // ============================================
-    for (let i = 0; i < 4; i++) {
-      const edgeAngle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const ex = cx + Math.cos(edgeAngle) * 15;
-      const ey = cy + Math.sin(edgeAngle) * 15;
+    for (let i = 0; i < 6; i++) {
+      const edgeAngle = (i / 6) * Math.PI * 2 + Math.PI / 6;
+      const ex = cx + Math.cos(edgeAngle) * 16;
+      const ey = cy + Math.sin(edgeAngle) * 16;
       this.renderer.push({
         shape: 'diamond',
         x: ex, y: ey,
@@ -1953,22 +1953,23 @@ export class RenderSystem implements System {
     }
 
     // ============================================
-    // Layer 7: 内核光源 (脉冲亮白中心)
+    // Layer 7: 内核脉冲 (六边形, 深紫色)
     // ============================================
     this.renderer.push({
-      shape: 'circle',
+      shape: 'hexagon',
       x: cx, y: cy,
       size: 10 + innerPulse * 8,
       color: innerCore,
-      alpha: 0.6 + innerPulse * 0.35,
+      alpha: 0.7 + innerPulse * 0.25,
       z: renderZ,
     });
+    // 中心白点亮核
     this.renderer.push({
       shape: 'circle',
       x: cx, y: cy,
-      size: 4 + innerPulse * 2,
+      size: 3 + innerPulse * 2,
       color: whitePure,
-      alpha: 0.5 + innerPulse * 0.45,
+      alpha: 0.4 + innerPulse * 0.5,
       z: renderZ,
     });
 

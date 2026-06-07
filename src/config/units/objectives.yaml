@@ -17,9 +17,9 @@ base:
     mr: 0
 
   visual:
-    shape: diamond
+    shape: hexagon
     color: "#7c3aed"
-    size: 36
+    size: 38
     outline: true
 
   behavior:
