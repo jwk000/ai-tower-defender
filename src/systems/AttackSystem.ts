@@ -90,7 +90,7 @@ const LIGHTNING_COLOR = hexToRgb('#fff176');
 const LASER_COLOR    = hexToRgb('#e040fb');
 const BAT_COLOR      = hexToRgb('#7c4dff');
 
-const BALLISTA_COLOR = hexToRgb('#8d6e63');
+const BALLISTA_COLOR = hexToRgb('#2196f3'); // 蓝色脉冲弩箭
 
 const PROJ_VISUAL: Record<number, ProjectileVisual> = {
   0: { speed: 420, shape: ShapeVal.Arrow,    colorR: ARROW_COLOR[0],    colorG: ARROW_COLOR[1],    colorB: ARROW_COLOR[2],    size: 24 },
@@ -102,7 +102,7 @@ const PROJ_VISUAL: Record<number, ProjectileVisual> = {
   6: { speed: 280, shape: ShapeVal.Arrow,    colorR: 0x1a,              colorG: 0x1a,              colorB: 0x1a,              size: 40 },
   7: { speed: 350, shape: ShapeVal.Circle,   colorR: 0xff,              colorG: 0x57,              colorB: 0x22,              size: 10 },
   8: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
-  9: { speed: 500, shape: ShapeVal.Arrow,    colorR: BALLISTA_COLOR[0], colorG: BALLISTA_COLOR[1], colorB: BALLISTA_COLOR[2], size: 30 },
+  9: { speed: 280, shape: ShapeVal.Arrow,    colorR: BALLISTA_COLOR[0], colorG: BALLISTA_COLOR[1], colorB: BALLISTA_COLOR[2], size: 90 },
 };
 
 // ============================================================

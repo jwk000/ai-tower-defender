@@ -241,6 +241,10 @@ export const Projectile = defineComponent({
   flightTime: Types.f32,
   totalTime: Types.f32,
   vyInitial: Types.f32,
+  /** Ballista piercing: locked normalized direction (X component) */
+  dirX: Types.f32,
+  /** Ballista piercing: locked normalized direction (Y component) */
+  dirY: Types.f32,
 });
 
 // ============================================================

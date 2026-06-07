@@ -284,7 +284,7 @@ Fantasy tower defense card art: an arrow tower with twin bow arms and a glowing 
 
 **弩塔**:
 ```
-Fantasy tower defense card art: a heavy ballista siege weapon, wide crossbow arms, a massive bolt loaded and ready to fire, steel grey (#78909c) metallic body, faint gear details rotating around the base, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
+Fantasy tower defense card art: a heavy ballista siege weapon, wide crossbow arms glowing with blue (#2196f3) energy, a massive glowing blue bolt loaded and ready to fire, blue-white gradient energy pulse along the arms, faint blue gear details rotating around the base, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
 ```
 
 **炮塔**:

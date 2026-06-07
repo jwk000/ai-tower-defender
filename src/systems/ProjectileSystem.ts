@@ -86,6 +86,9 @@ export class ProjectileSystem implements System {
   /** Vine tower DOT entries: targetId → DOT state */
   private dotEntries = new Map<number, VineDOT>();
 
+  /** Ballista piercing: projectile eid → set of hit enemy eids (prevent double-hit) */
+  private ballistaHits = new Map<number, Set<number>>();
+
   /** P0-1: 伤害飘字系统引用（由 main.ts 注入） */
   damageNumbers: DamageNumberSystem | null = null;
 
@@ -137,6 +140,95 @@ export class ProjectileSystem implements System {
           const vyNow = vyInitial + g * newT;
           const vxNow = (ttx - fromX) / totalTime;
           Visual.idlePhase[eid] = Math.atan2(vyNow, vxNow);
+        }
+      } else if (sourceTowerType === 9) {
+        // ── Ballista piercing arrow: locked direction, pierce all enemies, die at map edge ──
+        const px = Position.x[eid]!;
+        const py = Position.y[eid]!;
+        const speed = Projectile.speed[eid]!;
+        const moveDist = speed * dt;
+
+        // Lock direction on first frame (once dirX/dirY are set, they never change)
+        let dx = Projectile.dirX[eid]!;
+        let dy = Projectile.dirY[eid]!;
+        if (dx === 0 && dy === 0) {
+          const tx = Position.x[targetId];
+          const ty = Position.y[targetId];
+          if (tx !== undefined && ty !== undefined) {
+            const d = Math.sqrt((tx - px) ** 2 + (ty - py) ** 2);
+            if (d > 1) {
+              dx = (tx - px) / d;
+              dy = (ty - py) / d;
+            }
+          }
+          // Fallback: fly right
+          if (dx === 0 && dy === 0) { dx = 1; dy = 0; }
+          Projectile.dirX[eid] = dx;
+          Projectile.dirY[eid] = dy;
+        }
+
+        // Move in locked direction
+        const newX = px + dx * moveDist;
+        const newY = py + dy * moveDist;
+        Position.x[eid] = newX;
+        Position.y[eid] = newY;
+
+        // Check map edge bounds (with generous margin)
+        const mapW = this.map.cols * this.map.tileSize;
+        const mapH = this.map.rows * this.map.tileSize;
+        if (newX < -60 || newX > mapW + 60 || newY < -60 || newY > mapH + 60) {
+          this.ballistaHits.delete(eid);
+          world.destroyEntity(eid);
+          continue;
+        }
+
+        // Check collision with enemies along path (line-segment vs circle)
+        const damage = Projectile.damage[eid]!;
+        const damageType = Projectile.damageType[eid]!;
+        const hitRadius = 28; // ballista arrow is 3x size → wider hit box
+        let hitSet = this.ballistaHits.get(eid);
+        if (!hitSet) {
+          hitSet = new Set<number>();
+          this.ballistaHits.set(eid, hitSet);
+        }
+
+        const enemies = enemyQuery(world.world);
+        for (const enemyId of enemies) {
+          if (hitSet.has(enemyId)) continue;
+          if (!isAlive(enemyId)) continue;
+          const ex = Position.x[enemyId];
+          const ey = Position.y[enemyId];
+          if (ex === undefined || ey === undefined) continue;
+
+          // Point-to-line-segment distance
+          const segDx = newX - px;
+          const segDy = newY - py;
+          const segLenSq = segDx * segDx + segDy * segDy;
+          if (segLenSq < 0.01) continue;
+
+          let t = ((ex - px) * segDx + (ey - py) * segDy) / segLenSq;
+          t = Math.max(0, Math.min(1, t));
+          const closestX = px + t * segDx;
+          const closestY = py + t * segDy;
+          const distSq = (ex - closestX) ** 2 + (ey - closestY) ** 2;
+
+          if (distSq <= hitRadius * hitRadius) {
+            // Hit this enemy — deal damage + visual
+            hitSet.add(enemyId);
+            applyDamageToTarget(world, enemyId, damage, damageType);
+            Sound.play('ballista_hit');
+
+            // Hit flash
+            if (hasComponent(world.world, Visual, enemyId)) {
+              Visual.hitFlashTimer[enemyId] = 0.1;
+            }
+
+            // Small blood splash at intersection point
+            this.spawnBloodSplash(world, closestX, closestY, 4);
+
+            // Explosion ring at hit point
+            this.spawnExplosion(world, closestX, closestY, 20);
+          }
         }
       } else {
         // ── 直线弹道（敌人投射物 / 链式弹道 / 其他塔） ──

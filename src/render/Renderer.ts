@@ -204,15 +204,22 @@ export class Renderer {
         const tipX = s * 0.7;          // head tip — extends forward
         const shaftStart = -s * 0.4;   // shaft tail — extends backward
 
-        // Arrow shaft
-        ctx.fillStyle = cmd.color;
+        // Arrow shaft — gradient when arrowGradientTail is set
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(angle);
+        if (cmd.arrowGradientTail) {
+          const grad = ctx.createLinearGradient(shaftStart, 0, tipX, 0);
+          grad.addColorStop(0, cmd.arrowGradientTail);
+          grad.addColorStop(1, cmd.color);
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = cmd.color;
+        }
         ctx.fillRect(shaftStart, -shaftW / 2, tipX - shaftStart, shaftW);
         ctx.restore();
 
-        // Arrow head (triangle)
+        // Arrow head (triangle) — always solid head color
         ctx.fillStyle = cmd.color;
         ctx.save();
         ctx.translate(cx, cy);

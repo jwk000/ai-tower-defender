@@ -1060,11 +1060,22 @@ export class RenderSystem implements System {
         if (isProjectile) {
           // 箭头形状的投射物需要 targetX/targetY 来确定朝向
           if (shape === 'arrow') {
-            const projTargetId = Projectile.targetId[eid]!;
-            if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
-              targetX = Position.x[projTargetId];
-              targetY = Position.y[projTargetId];
+            const isBallista = Projectile.sourceTowerType[eid] === 9;
+            if (isBallista && (Projectile.dirX[eid] !== 0 || Projectile.dirY[eid] !== 0)) {
+              // 弩箭使用锁定方向，避免击中目标后箭头反转
+              targetX = posX + (Projectile.dirX[eid] ?? 0) * 50;
+              targetY = posY + (Projectile.dirY[eid] ?? 0) * 50;
+            } else {
+              const projTargetId = Projectile.targetId[eid]!;
+              if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
+                targetX = Position.x[projTargetId];
+                targetY = Position.y[projTargetId];
+              }
             }
+          }
+          // 弩箭：白→蓝渐变箭杆
+          if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
+            (extras as any).arrowGradientTail = '#ffffff';
           }
         }
 

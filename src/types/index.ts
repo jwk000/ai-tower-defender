@@ -619,6 +619,8 @@ export interface RenderCommand {
   labelSize?: number;
   targetX?: number;
   targetY?: number;
+  /** Arrow gradient tail color — when set, arrow shaft renders gradient from this color to `color` */
+  arrowGradientTail?: string;
   h?: number;           // height for rect (defaults to size = square)
   /** 渲染层级 (z-index)，值越大越靠前。默认 5 (Ground 层) */
   z?: number;
