@@ -437,9 +437,6 @@ class TowerDefenderGame extends Game {
     this.world.addComponent(this.baseEntityId, Category, { value: CategoryVal.Objective });
     this.world.addComponent(this.baseEntityId, PlayerOwned);
 
-    // v4.1: 连接入场动画系统到水晶实体
-    this.levelIntroSystem.setBaseEntityId(this.baseEntityId);
-
     // Spawn neutral units from map config (stub)
     this.spawnNeutralUnits(map);
 
@@ -797,6 +794,7 @@ class TowerDefenderGame extends Game {
       this.currentLevelId,
     );
     this.levelIntroSystem = new LevelIntroSystem(this.renderer, map);
+    this.levelIntroSystem.setBaseEntityId(this.baseEntityId!);
     this.boardGlowSystem = new BoardGlowSystem(map);
     this.screenFXSystem = new ScreenFXSystem();
     this.screenShakeSystem = new ScreenShakeSystem();
