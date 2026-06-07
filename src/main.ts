@@ -1239,6 +1239,14 @@ class TowerDefenderGame extends Game {
     this.phase = GamePhase.Defeat;
     SaveManager.clearBattleSnapshot();
     this.levelSelectUI?.refresh?.();
+
+    // 显示失败故事覆盖层
+    const levelConfig = LEVELS[this.currentLevelId - 1];
+    if (levelConfig?.victory?.defeatStory) {
+      this.victoryScreenSystem.activateDefeat(levelConfig.victory.defeatStory, levelConfig.victory.typography);
+      return;
+    }
+    // 没有失败故事配则直接返回关卡选择
     setTimeout(() => this.enterLevelSelect(), 1500);
   }
 

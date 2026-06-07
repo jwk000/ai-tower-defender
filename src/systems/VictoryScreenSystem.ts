@@ -11,7 +11,7 @@
 // ============================================================
 
 import type { TowerWorld, System } from '../core/World.js';
-import type { VictoryConfig, ConfettiShape, ConfettiBurst } from '../types/index.js';
+import type { VictoryConfig, ConfettiShape, ConfettiBurst, VictoryStory } from '../types/index.js';
 import type { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { getFont } from '../config/fonts.js';
@@ -47,9 +47,13 @@ export class VictoryScreenSystem implements System {
 
   private renderer: Renderer;
   private active: boolean = false;
+  private mode: 'victory' | 'defeat' = 'victory';
   private config: VictoryConfig | null = null;
   private timesCleared: number = 0;
   private stars: number = 1;
+
+  /** 失败时的故事文本 */
+  private defeatStory: VictoryStory | null = null;
 
   /** 彩带粒子 */
   private particles: ConfettiParticle[] = [];
@@ -94,6 +98,7 @@ export class VictoryScreenSystem implements System {
   // ============================================================
 
   activate(config: VictoryConfig, stars: number, timesCleared: number): void {
+    this.mode = 'victory';
     this.config = config;
     this.stars = stars;
     this.timesCleared = timesCleared;
@@ -103,6 +108,29 @@ export class VictoryScreenSystem implements System {
     this.confettiSpawned = false;
     this.continueButtonVisible = false;
     this.continueBtnRect = null;
+    this.defeatStory = null;
+  }
+
+  /** 启动失败覆盖层 */
+  activateDefeat(defeatStory: VictoryStory, typography: VictoryConfig['typography']): void {
+    this.mode = 'defeat';
+    this.defeatStory = defeatStory;
+    this.active = true;
+    this.elapsed = 0;
+    this.particles = [];
+    this.confettiSpawned = true; // 失败不生成彩带
+    this.continueButtonVisible = false;
+    this.continueBtnRect = null;
+    this.timesCleared = 0;
+    this.stars = 0;
+    // 创建临时 config 用于渲染面板（只用 typography）
+    this.config = {
+      story: { title: '', paragraphs: [], summary: '', showFullStoryOnlyFirst: false },
+      background: { filter: 'gray_tint', gradient: { top: '', mid: '', bottom: '' }, particles: [] },
+      confetti: { count: 0, burst: 'top_fall', colors: [], shapes: {}, duration: 0, spread: 0 },
+      audio: { bgm: '', sfx: '' },
+      typography,
+    };
   }
 
   deactivate(): void {
@@ -266,32 +294,75 @@ export class VictoryScreenSystem implements System {
   public render(): void {
     if (!this.active) return;
     const ctx = this.renderer.context;
-    if (!ctx || !this.config) return;
+    if (!ctx) return;
 
-    const config = this.config;
     const designW = LayoutManager.DESIGN_W;
     const designH = LayoutManager.DESIGN_H;
 
-    this.ensureConfettiSpawned();
+    if (this.mode === 'victory') {
+      if (!this.config) return;
+      this.ensureConfettiSpawned();
+      this.renderVictory(ctx, designW, designH);
+    } else {
+      this.renderDefeat(ctx, designW, designH);
+    }
+  }
 
-    // 1. 全屏暗色遮罩（viewport-space）
+  private renderVictory(ctx: CanvasRenderingContext2D, designW: number, designH: number): void {
+    const config = this.config!;
+
+    // 暗色遮罩
     this.renderer.resetTransform();
     ctx.save();
     ctx.fillStyle = `rgba(0, 0, 0, ${OVERLAY_ALPHA})`;
     ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
     ctx.restore();
 
-    // 2. 设计空间绘制
     this.renderer.applyDesignTransform();
 
-    // 3. 彩带粒子
+    // 彩带
     this.drawConfettiParticles();
 
-    // 4. 星星评定
+    // 星星
     this.drawStars(designW / 2, designH * 0.32);
 
-    // 5. 故事文字 + 继续按钮
+    // 故事
     this.drawStoryPanel(config, designW / 2, designH * 0.68);
+  }
+
+  private renderDefeat(ctx: CanvasRenderingContext2D, designW: number, designH: number): void {
+    const config = this.config!;
+
+    // 暗红色遮罩
+    this.renderer.resetTransform();
+    ctx.save();
+    ctx.fillStyle = `rgba(40, 10, 10, ${OVERLAY_ALPHA + 0.1})`;
+    ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
+    ctx.restore();
+
+    this.renderer.applyDesignTransform();
+
+    // 失败标题
+    ctx.save();
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = `bold 48px ${getFont(48, true)}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 16;
+    ctx.fillText('DEFEAT', designW / 2, designH * 0.22);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // 失败故事
+    if (this.defeatStory) {
+      // 临时构造一个只含 defeat story 的 config 用于 drawStoryPanel
+      const storyConfig: VictoryConfig = {
+        ...config,
+        story: this.defeatStory,
+      };
+      this.drawStoryPanel(storyConfig, designW / 2, designH * 0.62);
+    }
   }
 
   private drawStars(cx: number, cy: number): void {
@@ -456,7 +527,8 @@ export class VictoryScreenSystem implements System {
       ctx.font = `bold 18px ${getFont(18, true)}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('继续', btnX + btnW / 2, btnY + btnH / 2);
+      const btnLabel = this.mode === 'defeat' ? '返回' : '继续';
+      ctx.fillText(btnLabel, btnX + btnW / 2, btnY + btnH / 2);
     }
 
     ctx.restore();

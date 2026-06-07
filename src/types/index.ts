@@ -901,6 +901,8 @@ export interface VictoryConfig {
   confetti: VictoryConfetti;
   audio: VictoryAudio;
   typography: VictoryTypography;
+  /** v6.0: 失败时的故事文本（可选） */
+  defeatStory?: VictoryStory;
 }
 
 // ============================================================

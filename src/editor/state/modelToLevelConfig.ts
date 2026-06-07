@@ -107,7 +107,12 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
 
   // v6.0: 过关界面配置（来自 __extras）
   if (model.__extras?.victory) {
-    config.victory = model.__extras.victory as LevelConfig['victory'];
+    const victoryRaw = model.__extras.victory as Record<string, unknown>;
+    const defeatRaw = model.__extras?.defeat as Record<string, unknown> | undefined;
+    if (defeatRaw?.story) {
+      victoryRaw.defeatStory = defeatRaw.story;
+    }
+    config.victory = victoryRaw as unknown as LevelConfig['victory'];
   }
 
   return config;
