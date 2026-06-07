@@ -684,8 +684,14 @@ class TowerDefenderGame extends Game {
         // v4.0: 精英敌人死亡 → 触发 3选1 抽卡
         // 在 HealthSystem 回调中检测，覆盖所有死因（塔伤/陷阱/DOT等），
         // 不受系统执行顺序影响（原先在 WaveSystem 轮询可能导致漏检）。
+        // v6.0: 若为最终波次且无其他存活敌人，跳过抽卡 → 直接胜利
         if (UnitTag.isElite[enemyId] === 1 && !this.cardDraftSystem.isActive()) {
-          this.cardDraftSystem.startDraft(initialPool, this.handSystem);
+          const isFinalWave = this.waveSystem.currentWave >= this.waveSystem.totalWaves;
+          if (isFinalWave && !this.waveSystem.hasAliveEnemies()) {
+            this.phase = GamePhase.Victory;
+          } else {
+            this.cardDraftSystem.startDraft(initialPool, this.handSystem);
+          }
         }
       },
       (unitId) => {

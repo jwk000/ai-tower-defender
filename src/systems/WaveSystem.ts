@@ -380,8 +380,8 @@ export class WaveSystem implements System {
     return this.waveElapsed;
   }
 
-  /** Check if any enemy entities are still alive using bitecs query */
-  private hasAliveEnemies(): boolean {
+  /** Check if any enemy entities are still alive (HP > 0) using bitecs query */
+  hasAliveEnemies(): boolean {
     const enemies = aliveEnemyQuery(this.world.world);
     for (const eid of enemies) {
       if (UnitTag.isEnemy[eid] === 1 && Health.current[eid]! > 0) {
