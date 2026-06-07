@@ -548,6 +548,289 @@ const generators: Partial<Record<SfxKey, () => Float32Array>> = {
     const dry = mix2(bolt, hum, 0.6, 0.4);
     return reverb(dry, 0.3, 0.45, 45);
   },
+
+  // ── v3.0 Card Draft & Buff ──────────────────────────────
+
+  draft_select: () => {
+    const chime = sequence([
+      { freq: 660, dur: 0.08 }, { freq: 880, dur: 0.12 },
+    ], 'triangle', 0.3);
+    return reverb(chime, 0.2, 0.3, 25);
+  },
+
+  buff_select: () => {
+    const chime = sequence([
+      { freq: 440, dur: 0.08 }, { freq: 660, dur: 0.08 },
+      { freq: 880, dur: 0.16 },
+    ], 'triangle', 0.32);
+    return reverb(chime, 0.25, 0.35, 30);
+  },
+
+  // ── Boss abilities ──────────────────────────────────────
+
+  // Boss split: sharp tearing sound with deep echo
+  boss_split: () => {
+    const tear = sweep(800, 200, 0.4, 'triangle', 0.4, 0.003, 0.06, 0.3, 0.15);
+    const thud = tone(80, 0.3, 'sine', 0.35, 0.002, 0.04, 0.15, 0.2);
+    lowpass(thud, 200);
+    const dry = mix2(tear, thud, 0.55, 0.5);
+    return reverb(dry, 0.35, 0.55, 60);
+  },
+
+  // Boss summon: deep dark horn with rising tension
+  boss_summon: () => {
+    const horn = tone(100, 0.8, 'triangle', 0.45, 0.02, 0.15, 0.5, 0.3);
+    const rise = sweep(200, 400, 0.7, 'triangle', 0.25, 0.01, 0.1, 0.3, 0.25);
+    const dry = mix2(horn, rise, 0.65, 0.35);
+    return reverb(dry, 0.4, 0.6, 80);
+  },
+
+  // Boss devour: vast consuming vortex
+  boss_devour: () => {
+    const vortex = sweep(300, 40, 1.0, 'triangle', 0.5, 0.01, 0.2, 0.4, 0.3);
+    const noiseLayer = bandNoise(0.6, 100, 500, 0.3);
+    const dry = mix2(vortex, noiseLayer, 0.7, 0.3);
+    return reverb(dry, 0.4, 0.5, 90);
+  },
+
+  // Boss missile: heavy explosive launch + reverb
+  boss_missile: () => {
+    const dry = impact(30, 0.8, 0.9, 0.6);
+    const rumble = tone(20, 0.6, 'sine', 0.35, 0.01, 0.15, 0.3, 0.35);
+    lowpass(rumble, 60);
+    const full = mix2(dry, rumble, 0.7, 0.35);
+    return reverb(full, 0.45, 0.55, 100);
+  },
+
+  // ── Victory themes (per level) ──────────────────────────
+
+  victory_meadow: () => sequence([
+    { freq: 330, dur: 0.2 }, { freq: 392, dur: 0.2 },
+    { freq: 523, dur: 0.2 }, { freq: 659, dur: 0.2 },
+    { freq: 784, dur: 0.4 },
+  ], 'triangle', 0.3),
+
+  victory_desert: () => {
+    const seq = sequence([
+      { freq: 349, dur: 0.15 }, { freq: 440, dur: 0.15 },
+      { freq: 554, dur: 0.15 }, { freq: 698, dur: 0.25 },
+    ], 'triangle', 0.3);
+    return reverb(seq, 0.2, 0.35, 35);
+  },
+
+  victory_castle: () => sequence([
+    { freq: 294, dur: 0.2 }, { freq: 392, dur: 0.2 },
+    { freq: 466, dur: 0.2 }, { freq: 587, dur: 0.3 },
+  ], 'triangle', 0.32),
+
+  victory_waste: () => {
+    const seq = sequence([
+      { freq: 311, dur: 0.15 }, { freq: 415, dur: 0.15 },
+      { freq: 466, dur: 0.15 }, { freq: 622, dur: 0.3 },
+    ], 'triangle', 0.3);
+    const noiseLayer = bandNoise(0.35, 600, 2000, 0.12);
+    return mix2(seq, noiseLayer, 0.8, 0.2);
+  },
+
+  victory_abyss: () => sequence([
+    { freq: 277, dur: 0.2 }, { freq: 370, dur: 0.2 },
+    { freq: 415, dur: 0.2 }, { freq: 554, dur: 0.3 },
+  ], 'triangle', 0.35),
+
+  // ── Tower: Fire ─────────────────────────────────────────
+
+  // Fire tower: warm flame burst
+  tower_fire: () => {
+    const flame = sweep(400, 150, 0.3, 'triangle', 0.4, 0.003, 0.05, 0.3, 0.12);
+    const crackle = bandNoise(0.25, 300, 1500, 0.25);
+    const dry = mix2(flame, crackle, 0.65, 0.35);
+    return reverb(dry, 0.2, 0.3, 35);
+  },
+
+  // ── Tower: Poison ───────────────────────────────────────
+
+  // Poison tower: liquid squirt + gurgle
+  tower_poison: () => {
+    const squirt = sweep(500, 250, 0.25, 'triangle', 0.35, 0.002, 0.04, 0.25, 0.1);
+    const bubble = tone(120, 0.2, 'sine', 0.2, 0.005, 0.04, 0.15, 0.08);
+    lowpass(bubble, 300);
+    const dry = mix2(squirt, bubble, 0.65, 0.35);
+    return reverb(dry, 0.2, 0.3, 30);
+  },
+
+  // ── Tower: Ballista ─────────────────────────────────────
+
+  // Ballista tower: heavy mechanism release + bolt whoosh
+  tower_ballista: () => {
+    const mechanism = tone(180, 0.15, 'triangle', 0.45, 0.001, 0.02, 0.15, 0.06);
+    lowpass(mechanism, 400);
+    const whoosh = sweep(600, 200, 0.2, 'triangle', 0.3, 0.003, 0.04, 0.25, 0.08);
+    return mix2(mechanism, whoosh, 0.6, 0.5);
+  },
+
+  // ── Hit: Fire ───────────────────────────────────────────
+
+  fire_hit: () => {
+    const sizzle = bandNoise(0.2, 500, 3000, 0.3);
+    const thud = tone(150, 0.08, 'triangle', 0.35, 0.001, 0.015, 0.1, 0.05);
+    return mix2(sizzle, thud, 0.6, 0.4);
+  },
+
+  // ── Hit: Poison ─────────────────────────────────────────
+
+  poison_hit: () => {
+    const splash = noise(0.18, 0.3);
+    bandpass(splash, 300, 800);
+    const hiss = bandNoise(0.15, 800, 3000, 0.2);
+    return mix2(splash, hiss, 0.6, 0.4);
+  },
+
+  // ── Hit: Ballista ───────────────────────────────────────
+
+  ballista_hit: () => {
+    const heavy = tone(120, 0.15, 'triangle', 0.5, 0.001, 0.02, 0.1, 0.08);
+    lowpass(heavy, 300);
+    const crack = noise(0.08, 0.2);
+    lowpass(crack, 600);
+    return mix2(heavy, crack, 0.7, 0.3);
+  },
+
+  // ── Skills ──────────────────────────────────────────────
+
+  // Fireball: explosive fire burst
+  skill_fireball: () => {
+    const dry = impact(60, 0.4, 0.7, 0.5);
+    const flame = sweep(300, 100, 0.3, 'triangle', 0.3, 0.005, 0.04, 0.2, 0.1);
+    const full = mix2(dry, flame, 0.65, 0.35);
+    return reverb(full, 0.3, 0.4, 50);
+  },
+
+  // Arrow rain: multiple arrow whooshes
+  skill_arrow_rain: () => {
+    const whoosh = sweep(800, 300, 0.5, 'triangle', 0.35, 0.01, 0.08, 0.3, 0.15);
+    const impacts = noise(0.3, 0.25);
+    lowpass(impacts, 500);
+    return mix2(whoosh, impacts, 0.6, 0.4);
+  },
+
+  // Blizzard: cold wind howl
+  skill_blizzard: () => {
+    const wind = bandNoise(0.6, 200, 800, 0.3);
+    const howl = sweep(400, 150, 0.5, 'sine', 0.25, 0.01, 0.1, 0.3, 0.15);
+    const dry = mix2(wind, howl, 0.55, 0.45);
+    return reverb(dry, 0.35, 0.5, 60);
+  },
+
+  // Bomb: tick + explosion
+  skill_bomb: () => {
+    const tick = tone(1000, 0.04, 'triangle', 0.2, 0.001, 0.005, 0.1, 0.02);
+    const boom = impact(45, 0.5, 0.8, 0.6);
+    const dry = mix2(boom, tick, 0.85, 0.15);
+    return reverb(dry, 0.35, 0.5, 70);
+  },
+
+  // ── Arcane cards ────────────────────────────────────────
+
+  arcane_shield: () => {
+    const pulse = tone(600, 0.4, 'sine', 0.3, 0.01, 0.08, 0.5, 0.2);
+    const shimmer = tone(1200, 0.3, 'triangle', 0.15, 0.005, 0.04, 0.2, 0.15);
+    const dry = mix2(pulse, shimmer, 0.7, 0.3);
+    return reverb(dry, 0.3, 0.4, 40);
+  },
+
+  arcane_boost: () => {
+    const rise = sweep(300, 800, 0.5, 'triangle', 0.35, 0.01, 0.1, 0.4, 0.2);
+    const sparkle = tone(1600, 0.3, 'triangle', 0.15, 0.005, 0.04, 0.15, 0.1);
+    const dry = mix2(rise, sparkle, 0.75, 0.25);
+    return reverb(dry, 0.3, 0.45, 45);
+  },
+
+  arcane_gold: () => {
+    const coins = sequence([
+      { freq: 1400, dur: 0.06 }, { freq: 1600, dur: 0.06 },
+      { freq: 1800, dur: 0.08 }, { freq: 2000, dur: 0.1 },
+    ], 'triangle', 0.25);
+    return reverb(coins, 0.2, 0.25, 20);
+  },
+
+  // ── Status effects ──────────────────────────────────────
+
+  freeze_apply: () => {
+    const crystal = sweep(2500, 1000, 0.3, 'sine', 0.35, 0.002, 0.04, 0.2, 0.12);
+    const tinkle = tone(4000, 0.1, 'triangle', 0.15, 0.001, 0.01, 0.05, 0.05);
+    const dry = mix2(crystal, tinkle, 0.7, 0.3);
+    return reverb(dry, 0.25, 0.35, 30);
+  },
+
+  stun_apply: () => {
+    const bonk = tone(250, 0.1, 'triangle', 0.45, 0.001, 0.015, 0.1, 0.05);
+    lowpass(bonk, 500);
+    const ring = tone(800, 0.2, 'sine', 0.15, 0.001, 0.01, 0.05, 0.15);
+    return mix2(bonk, ring, 0.7, 0.3);
+  },
+
+  poison_tick: () => {
+    const drip = tone(300, 0.06, 'triangle', 0.2, 0.001, 0.01, 0.1, 0.04);
+    lowpass(drip, 400);
+    const fizz = bandNoise(0.08, 500, 2000, 0.08);
+    return mix2(drip, fizz, 0.7, 0.3);
+  },
+
+  burn_tick: () => {
+    const sizzle = bandNoise(0.08, 800, 3000, 0.15);
+    const pop = tone(200, 0.04, 'triangle', 0.12, 0.001, 0.005, 0.05, 0.02);
+    return mix2(sizzle, pop, 0.6, 0.4);
+  },
+
+  // ── Soldier events ──────────────────────────────────────
+
+  soldier_deploy: () => {
+    const thud = tone(200, 0.15, 'triangle', 0.4, 0.001, 0.02, 0.15, 0.08);
+    lowpass(thud, 400);
+    const clink = tone(800, 0.08, 'triangle', 0.2, 0.001, 0.005, 0.1, 0.04);
+    return mix2(thud, clink, 0.7, 0.3);
+  },
+
+  soldier_death: () => {
+    const fall = sweep(400, 100, 0.4, 'triangle', 0.4, 0.005, 0.06, 0.2, 0.2);
+    const clatter = noise(0.2, 0.2);
+    lowpass(clatter, 400);
+    return mix2(fall, clatter, 0.65, 0.3);
+  },
+
+  soldier_heal: () => {
+    const warm = tone(500, 0.3, 'sine', 0.25, 0.01, 0.08, 0.4, 0.15);
+    const shimmer = tone(1000, 0.2, 'triangle', 0.1, 0.005, 0.04, 0.15, 0.1);
+    const dry = mix2(warm, shimmer, 0.7, 0.3);
+    return reverb(dry, 0.25, 0.35, 35);
+  },
+
+  // ── Legacy (synth fallback) ─────────────────────────────
+
+  tower_shoot: () => {
+    const shoot = sweep(600, 300, 0.2, 'triangle', 0.35, 0.003, 0.04, 0.25, 0.08);
+    lowpass(shoot, 600);
+    return shoot;
+  },
+
+  wave_start: () => {
+    const horn = tone(200, 0.5, 'triangle', 0.4, 0.01, 0.1, 0.5, 0.2);
+    const overtone = tone(400, 0.45, 'sine', 0.2, 0.01, 0.08, 0.3, 0.18);
+    const dry = mix2(horn, overtone, 0.6, 0.4);
+    return reverb(dry, 0.3, 0.5, 60);
+  },
+
+  build_place: () => {
+    const clunk = tone(300, 0.12, 'triangle', 0.45, 0.001, 0.015, 0.1, 0.06);
+    lowpass(clunk, 500);
+    const click = tone(600, 0.06, 'triangle', 0.2, 0.001, 0.005, 0.1, 0.03);
+    return mix2(clunk, click, 0.7, 0.3);
+  },
+
+  defeat: () => sequence([
+    { freq: 294, dur: 0.3 }, { freq: 277, dur: 0.3 },
+    { freq: 247, dur: 0.3 }, { freq: 220, dur: 0.6 },
+  ], 'triangle', 0.35),
 };
 
 // ─── Public API ────────────────────────────────────────────────

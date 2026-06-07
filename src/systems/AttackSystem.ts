@@ -56,9 +56,9 @@ export const TOWER_SHOOT_SOUNDS: SfxKey[] = [
   'tower_laser',     // 4
   'tower_bat',       // 5
   'tower_missile',   // 6
-  'tower_arrow',     // 7  fire (reuse arrow sound)
-  'tower_arrow',     // 8  poison (reuse arrow sound)
-  'tower_arrow',     // 9  ballista (reuse arrow sound)
+  'tower_fire',      // 7  fire — dedicated synth
+  'tower_poison',    // 8  poison — dedicated synth
+  'tower_ballista',  // 9  ballista — dedicated synth
 ];
 
 // ============================================================

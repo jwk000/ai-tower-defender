@@ -1,3 +1,5 @@
+import { getSynthUrl } from './SoundSynth.js';
+
 export type SfxKey =
   // ═══ Legacy (5 keys — audio files need replacement for style consistency) ═══
   | 'tower_shoot'   // fallback when towerTypeVal out of range (rarely hit)
@@ -5,7 +7,7 @@ export type SfxKey =
   | 'build_place'   // building/unit placement confirm — mechanical lock clunk
   | 'wave_start'    // wave start alarm/horn
   | 'defeat'        // defeat descending melody
-  // Tower attack sounds (7 types)
+  // Tower attack sounds (10 types — fire/poison/ballista synth-only)
   | 'tower_arrow'
   | 'tower_cannon'
   | 'tower_ice'
@@ -13,12 +15,18 @@ export type SfxKey =
   | 'tower_laser'
   | 'tower_bat'
   | 'tower_missile'
-  // Projectile hit sounds
+  | 'tower_fire'
+  | 'tower_poison'
+  | 'tower_ballista'
+  // Projectile hit sounds (8 types)
   | 'arrow_hit'
   | 'cannon_hit'
   | 'ice_hit'
   | 'lightning_hit'
   | 'missile_impact'
+  | 'fire_hit'
+  | 'poison_hit'
+  | 'ballista_hit'
   // Game phase events
   | 'victory'
   | 'victory_meadow'
@@ -45,9 +53,26 @@ export type SfxKey =
   // Economy
   | 'gold_earn'
   | 'gold_spend'
-  // Skills
+  // Skills (6 total)
   | 'skill_taunt'
   | 'skill_whirlwind'
+  | 'skill_fireball'
+  | 'skill_arrow_rain'
+  | 'skill_blizzard'
+  | 'skill_bomb'
+  // Arcane cards (3 total)
+  | 'arcane_shield'
+  | 'arcane_boost'
+  | 'arcane_gold'
+  // Status effects (4 total)
+  | 'freeze_apply'
+  | 'stun_apply'
+  | 'poison_tick'
+  | 'burn_tick'
+  // Soldier events (3 total)
+  | 'soldier_deploy'
+  | 'soldier_death'
+  | 'soldier_heal'
   // Weather
   | 'weather_change'
   // Enemy attack
@@ -69,6 +94,31 @@ const BASE = import.meta.env.BASE_URL;
 function sfxUrl(key: SfxKey): string {
   return `${BASE}sfx/${key}.ogg`;
 }
+
+/**
+ * Keys that have NO OGG audio file and rely entirely on SoundSynth.
+ * All other keys have a corresponding .ogg file in public/sfx/.
+ */
+const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>([
+  // v3.0 CardDraft & Buff
+  'draft_select', 'buff_select',
+  // v3.0 Boss abilities
+  'boss_split', 'boss_summon', 'boss_devour', 'boss_missile',
+  // Victory theme variants
+  'victory_meadow', 'victory_desert', 'victory_castle', 'victory_waste', 'victory_abyss',
+  // New tower attacks
+  'tower_fire', 'tower_poison', 'tower_ballista',
+  // New projectile hits
+  'fire_hit', 'poison_hit', 'ballista_hit',
+  // Skill cards
+  'skill_fireball', 'skill_arrow_rain', 'skill_blizzard', 'skill_bomb',
+  // Arcane cards
+  'arcane_shield', 'arcane_boost', 'arcane_gold',
+  // Status effects
+  'freeze_apply', 'stun_apply', 'poison_tick', 'burn_tick',
+  // Soldier events
+  'soldier_deploy', 'soldier_death', 'soldier_heal',
+]);
 
 const SFX_PATH: Record<SfxKey, string> = {
   // Legacy
@@ -133,6 +183,32 @@ const SFX_PATH: Record<SfxKey, string> = {
   boss_summon: '/sfx/boss_summon.ogg',
   boss_devour: '/sfx/boss_devour.ogg',
   boss_missile: '/sfx/boss_missile.ogg',
+  // New tower attacks (synth-only, paths for type completeness)
+  tower_fire: '/sfx/tower_fire.ogg',
+  tower_poison: '/sfx/tower_poison.ogg',
+  tower_ballista: '/sfx/tower_ballista.ogg',
+  // New projectile hits (synth-only)
+  fire_hit: '/sfx/fire_hit.ogg',
+  poison_hit: '/sfx/poison_hit.ogg',
+  ballista_hit: '/sfx/ballista_hit.ogg',
+  // Skill cards (synth-only)
+  skill_fireball: '/sfx/skill_fireball.ogg',
+  skill_arrow_rain: '/sfx/skill_arrow_rain.ogg',
+  skill_blizzard: '/sfx/skill_blizzard.ogg',
+  skill_bomb: '/sfx/skill_bomb.ogg',
+  // Arcane cards (synth-only)
+  arcane_shield: '/sfx/arcane_shield.ogg',
+  arcane_boost: '/sfx/arcane_boost.ogg',
+  arcane_gold: '/sfx/arcane_gold.ogg',
+  // Status effects (synth-only)
+  freeze_apply: '/sfx/freeze_apply.ogg',
+  stun_apply: '/sfx/stun_apply.ogg',
+  poison_tick: '/sfx/poison_tick.ogg',
+  burn_tick: '/sfx/burn_tick.ogg',
+  // Soldier events (synth-only)
+  soldier_deploy: '/sfx/soldier_deploy.ogg',
+  soldier_death: '/sfx/soldier_death.ogg',
+  soldier_heal: '/sfx/soldier_heal.ogg',
 };
 
 const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
@@ -186,6 +262,32 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   boss_summon: 0,
   boss_devour: 0,
   boss_missile: 0,
+  // New tower attacks — moderate throttle
+  tower_fire: 80,
+  tower_poison: 80,
+  tower_ballista: 120,
+  // New hits
+  fire_hit: 60,
+  poison_hit: 60,
+  ballista_hit: 100,
+  // Skills — no throttle (infrequent)
+  skill_fireball: 0,
+  skill_arrow_rain: 0,
+  skill_blizzard: 0,
+  skill_bomb: 0,
+  // Arcane — no throttle (infrequent)
+  arcane_shield: 0,
+  arcane_boost: 0,
+  arcane_gold: 0,
+  // Status effects — heavy throttle (DOT ticks can be frequent)
+  freeze_apply: 0,
+  stun_apply: 0,
+  poison_tick: 200,
+  burn_tick: 200,
+  // Soldier events — no throttle
+  soldier_deploy: 0,
+  soldier_death: 0,
+  soldier_heal: 0,
 };
 
 /** Global concurrent sound cap: sliding-window limit to prevent audio chaos when many units fire simultaneously. */
@@ -265,8 +367,17 @@ export class Sound {
     if (now - last < throttle) return;
     Sound.lastPlayedAt[key] = now;
 
-    // Create fresh Audio element — more reliable than cloneNode for media elements
-    const audio = new Audio(sfxUrl(key));
+    // Create fresh Audio element — more reliable than cloneNode for media elements.
+    // Use synth URL for keys that have no OGG file; fall back to OGG otherwise.
+    let src: string;
+    if (SYNTH_ONLY_KEYS.has(key)) {
+      const synthUrl = getSynthUrl(key);
+      if (!synthUrl) return; // synth generation failed, silently skip
+      src = synthUrl;
+    } else {
+      src = sfxUrl(key);
+    }
+    const audio = new Audio(src);
     audio.volume = Sound.volume;
     void audio.play().catch(() => {});
   }
