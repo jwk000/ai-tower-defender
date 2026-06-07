@@ -72,6 +72,9 @@ interface BirdState {
 export class DecorationSystem implements System {
   readonly name = 'DecorationSystem';
 
+  /** v4.1: 入场动画期间隐藏装饰物（Phase 1 棋盘掉落时不显示） */
+  static introHideDecorations = false;
+
   private renderer: Renderer;
   private map: MapConfig;
   private getWeather: () => WeatherType;
@@ -130,6 +133,9 @@ export class DecorationSystem implements System {
 
     // Phase 3: 背景层（天空渐变 + 远景 + 云）
     this.drawBackground();
+
+    // v4.1: 入场动画 Phase 1 期间隐藏装饰物
+    if (DecorationSystem.introHideDecorations) return;
 
     // Phase 2: 静态装饰物（复合几何体 + 微动）
     this.drawStaticDecorations();

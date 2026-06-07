@@ -43,6 +43,7 @@ import { UnitFactory } from './systems/UnitFactory.js';
 import { UnitSystem } from './systems/UnitSystem.js';
 import { WaveSystem } from './systems/WaveSystem.js';
 import { WeatherSystem } from './systems/WeatherSystem.js';
+import { LevelIntroSystem } from './systems/LevelIntroSystem.js';
 import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig, type VictoryConfig } from './types/index.js';
 import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
@@ -141,6 +142,7 @@ class TowerDefenderGame extends Game {
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
+  private levelIntroSystem!: LevelIntroSystem;
   private boardGlowSystem!: BoardGlowSystem;
   private screenFXSystem!: ScreenFXSystem;
   private screenShakeSystem!: ScreenShakeSystem;
@@ -434,6 +436,9 @@ class TowerDefenderGame extends Game {
     this.world.addComponent(this.baseEntityId, Faction, { value: FactionVal.Justice });
     this.world.addComponent(this.baseEntityId, Category, { value: CategoryVal.Objective });
     this.world.addComponent(this.baseEntityId, PlayerOwned);
+
+    // v4.1: 连接入场动画系统到水晶实体
+    this.levelIntroSystem.setBaseEntityId(this.baseEntityId);
 
     // Spawn neutral units from map config (stub)
     this.spawnNeutralUnits(map);
@@ -791,6 +796,7 @@ class TowerDefenderGame extends Game {
       () => this.debugManager.isBackgroundImageEnabled(),
       this.currentLevelId,
     );
+    this.levelIntroSystem = new LevelIntroSystem(this.renderer, map);
     this.boardGlowSystem = new BoardGlowSystem(map);
     this.screenFXSystem = new ScreenFXSystem();
     this.screenShakeSystem = new ScreenShakeSystem();
@@ -1128,6 +1134,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(spellProjectileSystem);
     this.world.registerSystem(slashEffectSystem);
     this.world.registerSystem(this.decorationSystem);
+    this.world.registerSystem(this.levelIntroSystem);   // v4.1: 入场动画（装饰物之后、棋盘之前）
     this.world.registerSystem(this.boardGlowSystem);
     this.world.registerSystem(this.screenShakeSystem);
     this.world.registerSystem(unitAnimationSystem);
@@ -1136,8 +1143,11 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.uiSystem);
     this.world.registerSystem(this.victoryScreenSystem);
 
-    // Start auto-countdown for first wave
-    this.waveSystem.startAutoCountdown(5);
+    // v4.1: 入场动画完成后启动第一波倒计时
+    this.levelIntroSystem.onComplete = () => {
+      this.waveSystem.startAutoCountdown(5);
+    };
+    this.levelIntroSystem.start();
 
     // Attempt restore (PRNG/economy only — entity state is not snapshotted in v1.1).
     // Wave progression keeps fresh; on success we just preserve random determinism

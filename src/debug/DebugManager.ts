@@ -32,8 +32,8 @@ export class DebugManager {
 
   private selectedEntityId: EntityId | null = null;
 
-  /** 调试开关：是否显示关卡背景图（替代天气天空渐变） */
-  showBackgroundImage: boolean = false;
+  /** 调试开关：是否显示关卡背景图（替代天气天空渐变）。默认开启。 */
+  showBackgroundImage: boolean = true;
 
   private getEconomyFn: (() => EconomySystem | null) | null = null;
   private getHandSystemFn: (() => HandSystem | null) | null = null;

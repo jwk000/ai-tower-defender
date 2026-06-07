@@ -651,3 +651,157 @@ interface ConfettiParticle {
 | `victory_abyss` | `bgm/victory_abyss.ogg` | `victory_abyss` | `sfx/victory_abyss.ogg` |
 
 原有的 `victory` BGM/SFX key 保留，作为无主题配置时的回退默认值。
+
+---
+
+## 11. 关卡入场动画（Level Intro）
+
+> **v4.1 新增** — 关卡启动的仪式感动画序列，在部署阶段之前播放。
+> **依赖**: 04-levels（关卡配置）、06-technical（系统管线）
+> **实现**: `src/systems/LevelIntroSystem.ts`
+
+### 11.1 设计目标
+
+玩家选择关卡后不直接进入冰冷的部署画面，而是通过一段 **4阶段仪式感动画** 建立"战场正在形成"的沉浸感：
+
+1. 棋盘从天而降
+2. 水晶（防守目标）显现
+3. 敌人生成口（传送门）开启
+4. 敌军进攻路线从生成口向水晶铺展开
+
+动画结束后无缝衔接第一波倒计时。
+
+### 11.2 动画阶段时间线
+
+```
+t=0.00          t=1.20     t=1.80     t=2.40     t=2.90        t=3.90          t=3.90+5s
+  │  Phase 1      │ Phase 2  │ Phase 3  │ Phase 4  │  Phase 5     │  Countdown    │ Wave 1
+  │  棋盘掉落      │ 装饰显现 │ 水晶显现 │ 传送门   │  路径铺展    │  5秒准备      │ 开始！
+  │  (1.2s)       │ (0.6s)  │ (0.6s)   │ (0.5s)   │  (1.0s)      │              │
+  ▼               ▼          ▼          ▼          ▼              ▼              ▼
+```
+
+| 时间 | 阶段 | 行为 |
+|------|------|------|
+| 0.00s | Phase 1 开始 | 棋盘瓦片从屏幕上方（-200~-600px 随机）坠落，装饰物不可见 |
+| 0.00~1.20s | 棋盘掉落 | 瓦片按二次缓入（ease-in）坠落到目标位置，延迟+速度差异形成自然层次感 |
+| 1.20s | Phase 1→2 | 最后一个瓦片着地，装饰物开始显现 |
+| 1.20~1.80s | 装饰显现 | 树、岩石、灌木、草丛等静态装饰物 alpha 从 0→1 淡入（0.6s）；云朵、飞鸟同步显现 |
+| 1.80s | Phase 2→3 | 场景装饰就绪，水晶开始显现 |
+| 1.80~2.40s | 水晶显现 | 水晶 alpha 从 0→1 线性淡入（0.6s），scale 从 0.3→1.0 弹性缩放 |
+| 2.40s | Phase 3→4 | 水晶完全显现，传送门开启 |
+| 2.40~2.90s | 传送门显现 | 所有 Spawn 格子的传送门 alpha 从 0→1 淡入（0.5s），伴随暗红脉冲 |
+| 2.90s | Phase 4→5 | 传送门就绪，路径开始铺展 |
+| 2.90~3.90s | 路径铺展 | 从每个 Spawn 出发 BFS 逐格揭示路径瓦片（每格 ~40ms） |
+| 3.90s | 动画完成 | 恢复正常渲染 |
+| 3.90~8.90s | 部署倒计时 | 玩家可拖卡布阵 |
+| 8.90s | Wave 1 | 第一波敌人涌出 |
+
+### 11.3 瓦片掉落物理
+
+- **起始 Y**: `-200 + random(-400)`（棋盘上方 200~600px 视口外）
+- **缓动函数**: `progress²`（二次 ease-in），模拟重力加速
+- **随机延迟**: 每个瓦片 `random(0, 0.5)` 秒，首尾交错形成"层层叠落"效果
+- **目标位置**: 同正常棋盘渲染坐标（`col * ts + ts/2 + ox`, `row * ts + ts/2 + oy`）
+- **视觉**: 瓦片 alpha=1.0，颜色同正常渲染，z=0
+
+### 11.4 水晶显现
+
+- 水晶实体已在 `initBattle()` 中创建，但入场动画期间 alpha 从 0 开始
+- **Alpha**: 0→1 线性过渡（0.6s）
+- **Scale**: 0.3→1.0 弹性缓出（overshoot），增强"降世"仪式感
+- 水晶的 Visual 组件数据在动画期间被 `LevelIntroSystem` 临时覆写
+
+### 11.5 传送门显现
+
+- Spawn 格子使用现有的 `drawSpawnPortal()` 渲染逻辑
+- 入场动画期间，传送门 alpha 从 0→1 淡入
+- 传送门的旋转菱形环从静止开始逐渐加速（0→正常速度，0.5s ease-in）
+- 暗红脉冲效果同步增强
+
+### 11.6 路径铺展（BFS 流水蔓延）
+
+- 从每个 Spawn 节点出发，对路径图做 BFS
+- 路径瓦片按 `{row, col, distance}` 排序（距离近的先揭示）
+- 每格间隔约 40ms（25 格/秒），产生"水银泻地"般的蔓延感
+- 已揭示路径瓦片 alpha=1，未揭示 alpha=0（不可见）
+- 多 Spawn 点同时 BFS，交汇处自然融合
+
+### 11.7 BFS 流水算法
+
+```
+输入: 地图 tiles[][]、Spawn 节点坐标列表
+输出: pathRevealOrder[{row, col, distance}][]
+
+对每个 Spawn (sr, sc):
+  queue.enqueue({r: sr, c: sc, dist: 0})
+  while queue 非空:
+    {r, c, dist} = queue.dequeue()
+    若 (r, c) 已访问: continue
+    标记已访问
+    若 tiles[r][c] === Path: 记录到 order
+    对四个相邻方向 (nr, nc):
+      若在地图范围内且 tiles[nr][nc] === Path:
+        queue.enqueue({r: nr, c: nc, dist: dist + 1})
+
+按 dist 升序排序 order → pathRevealOrder[]
+```
+
+### 11.8 实现架构
+
+```
+LevelIntroSystem (新 System，PHASE_CREATION 阶段注册)
+  ├── state: IntroPhase { TilesFalling, CrystalAppear, SpawnAppear, PathReveal, Complete }
+  ├── timer: 阶段内计时器
+  ├── tileAnimData[]: 每个瓦片的起始/目标/当前 Y + 延迟
+  ├── pathRevealOrder[]: BFS 排序后的路径瓦片列表
+  ├── pathRevealIndex: 当前揭示进度
+  │
+  ├── update(): 推进状态机 → 更新各相位的动画参数
+  ├── render(): 直接绘制到 Canvas 2D context
+  │     ├── Phase 1: 按 currentY 绘制每个瓦片
+  │     ├── Phase 2: 绘制水晶（替身 alpha+scale）
+  │     ├── Phase 3: 绘制传送门（替身 alpha）
+  │     └── Phase 4: 按 pathRevealIndex 绘制已揭示路径瓦片
+  │
+  └── onComplete(): 
+        ├── RenderSystem.suppressMapRender = false (恢复正常渲染)
+        └── WaveSystem.startAutoCountdown(5) (启动部署倒计时)
+```
+
+### 11.9 与现有系统的交互
+
+| 系统 | 入场动画期间行为 |
+|------|----------------|
+| `RenderSystem` | `drawMap()` 检查 `suppressMapRender` 标志，为 `true` 时跳过瓦片绘制；实体绘制照常（但水晶/传送门 alpha 被 LevelIntroSystem 覆写） |
+| `DecorationSystem` | 照常运行（天空渐变/背景图 + 远景 + 飞鸟），作为动画的背景层 |
+| `WaveSystem` | 不启动（`startAutoCountdown` 在动画完成后才调用） |
+| `UISystem` | 照常运行（但波次按钮/金币/手牌等在 Deployment 阶段自然显示） |
+| `EconomySystem` | 照常初始化 |
+| `HandSystem` | 照常发牌，玩家可在倒计时期间拖卡布阵 |
+
+### 11.10 配置项
+
+```yaml
+# 关卡 YAML 中新增可选配置节（有默认值，无需每个关卡单独配置）
+intro:
+  enabled: true              # 是否播放入场动画
+  tileFallDuration: 1.2      # 瓦片掉落总时长（秒）
+  tileFallStagger: 0.5       # 瓦片交错延迟范围（秒）
+  crystalFadeDuration: 0.6   # 水晶淡入时长（秒）
+  spawnFadeDuration: 0.5     # 传送门淡入时长（秒）
+  pathRevealInterval: 0.04   # 路径每格揭示间隔（秒）
+  skipOnClick: true          # 点击任意位置跳过动画
+```
+
+### 11.11 音效设计
+
+| 阶段 | SFX Key | 描述 |
+|------|---------|------|
+| Phase 1 开始 | `intro_tiles_drop` | 低沉撞击音，多瓦片同时落地时的厚重感 |
+| Phase 2 开始 | `intro_crystal_appear` | 水晶显现：高音音效 + 持续共鸣声 |
+| Phase 3 开始 | `intro_portal_open` | 传送门开启：低频嗡鸣 + 暗红脉冲节奏 |
+| Phase 4 开始 | `intro_path_spread` | 路径铺展：快速连续轻击音（类似多米诺骨牌） |
+| 动画完成 | `wave_countdown_start` | ~~已有~~ 倒计时滴答声（复用） |
+
+> 注：以上 SFX key 暂未实现，当前 Phase 1 仅视觉动画，音效为后续迭代留接口。

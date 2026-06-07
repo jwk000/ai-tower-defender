@@ -131,6 +131,11 @@ export class RenderSystem implements System {
   static sceneW = 0;
   static sceneH = 0;
 
+  /** v4.1: 入场动画期间抑制正常棋盘绘制 */
+  static introActive = false;
+  /** v4.1: 入场动画系统引用（用于水晶 alpha 动画） */
+  static introSystem: { crystalRenderAlpha: number } | null = null;
+
   constructor(
     private renderer: Renderer,
     private map: MapConfig,
@@ -162,6 +167,9 @@ export class RenderSystem implements System {
   }
 
   private drawMap(map: MapConfig): void {
+    // v4.1: 入场动画期间由 LevelIntroSystem 接管棋盘渲染
+    if (RenderSystem.introActive) return;
+
     const ts = map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
