@@ -416,7 +416,9 @@ class TowerDefenderGame extends Game {
     const baseY = crystalAnchor.row * ts + ts / 2 + oy;
     this.baseEntityId = this.world.createEntity();
     this.world.addComponent(this.baseEntityId, Position, { x: baseX, y: baseY });
-    this.world.addComponent(this.baseEntityId, Health, { current: 100, max: 100 });
+    // 使用关卡配置中的水晶 HP，默认为 500（兜底值）
+    const crystalHp = config.crystal?.hp ?? 500;
+    this.world.addComponent(this.baseEntityId, Health, { current: crystalHp, max: crystalHp });
     const baseRgb = hexToRgb('#7c3aed');  // 紫水晶色（高贵/优雅/神秘主题）
     this.world.addComponent(this.baseEntityId, Visual, {
       shape: ShapeVal.Hexagon,  // 六边形（紫水晶主体）

@@ -823,6 +823,10 @@ export interface LevelConfig {
   weatherChangeInterval?: number;
   /** v6.0: 过关界面配置（可选，缺失时使用默认值） */
   victory?: VictoryConfig;
+  /** v4.0: 水晶属性配置 */
+  crystal?: {
+    hp: number;
+  };
 }
 
 // ============================================================
