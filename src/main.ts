@@ -786,6 +786,8 @@ class TowerDefenderGame extends Game {
     this.decorationSystem = new DecorationSystem(
       this.renderer, map,
       () => this.weatherSystem.currentWeather,
+      () => this.debugManager.isBackgroundImageEnabled(),
+      this.currentLevelId,
     );
     this.boardGlowSystem = new BoardGlowSystem(map);
     this.screenFXSystem = new ScreenFXSystem();

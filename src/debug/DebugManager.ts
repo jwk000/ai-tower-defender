@@ -32,6 +32,9 @@ export class DebugManager {
 
   private selectedEntityId: EntityId | null = null;
 
+  /** 调试开关：是否显示关卡背景图（替代天气天空渐变） */
+  showBackgroundImage: boolean = false;
+
   private getEconomyFn: (() => EconomySystem | null) | null = null;
   private getHandSystemFn: (() => HandSystem | null) | null = null;
   private onLevelProgressChangedFn: (() => void) | null = null;
@@ -70,8 +73,28 @@ export class DebugManager {
     this.debugPanel.setActions(this.buildActions());
   }
 
+  toggleBackgroundImage(): void {
+    this.showBackgroundImage = !this.showBackgroundImage;
+    this.debugPanel.flashButton(
+      'toggle_bg_image',
+      this.showBackgroundImage ? '🖼️ 背景图：开' : '🖼️ 背景图：关',
+      1500,
+    );
+  }
+
+  isBackgroundImageEnabled(): boolean {
+    return this.showBackgroundImage;
+  }
+
   private buildActions(): DebugAction[] {
     const actions: DebugAction[] = [
+      {
+        id: 'toggle_bg_image',
+        label: '关卡背景图切换',
+        icon: '🖼️',
+        isEnabled: () => true,
+        onClick: () => this.toggleBackgroundImage(),
+      },
       {
         id: 'complete_all_levels',
         label: '一键通关（全部 3 星）',

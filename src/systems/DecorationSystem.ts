@@ -75,6 +75,8 @@ export class DecorationSystem implements System {
   private renderer: Renderer;
   private map: MapConfig;
   private getWeather: () => WeatherType;
+  private getShowBgImage: () => boolean;
+  private levelId: number;
 
   /** 场景布局偏移 */
   private ox = 0;
@@ -95,14 +97,23 @@ export class DecorationSystem implements System {
   private birds: BirdState[] = [];
   private birdsInitialized = false;
 
+  /** 关卡背景图缓存 */
+  private bgImage: HTMLImageElement | null = null;
+  private bgImageLoaded: boolean = false;
+  private lastBgLevelId: number = -1;
+
   constructor(
     renderer: Renderer,
     map: MapConfig,
     getWeather: () => WeatherType,
+    getShowBgImage: () => boolean,
+    levelId: number,
   ) {
     this.renderer = renderer;
     this.map = map;
     this.getWeather = getWeather;
+    this.getShowBgImage = getShowBgImage;
+    this.levelId = levelId;
 
     const layout = computeSceneLayout(map, LayoutManager.DESIGN_W, LayoutManager.DESIGN_H);
     this.ox = layout.offsetX;
@@ -496,11 +507,17 @@ export class DecorationSystem implements System {
   /**
    * 绘制天空渐变 + 远景
    * 直接使用 Canvas 2D context 绘制渐变（命令缓冲不支持渐变）
+   *
+   * 当调试开关开启时，绘制关卡背景图替代天空渐变。
    */
   private drawBackground(): void {
+    if (this.getShowBgImage()) {
+      this.drawBackgroundImage();
+      return;
+    }
+
     const ctx = this.renderer.context;
     const mapW = this.map.cols * this.ts;
-    const mapH = this.map.rows * this.ts;
     const theme = this.detectTheme();
 
     // Full-screen sky gradient — covers entire viewport
@@ -522,6 +539,75 @@ export class DecorationSystem implements System {
     if (distantFn) {
       distantFn(this.ox, this.oy, mapW, this.renderer);
     }
+  }
+
+  /**
+   * 加载并绘制关卡背景图（调试开关）
+   * 图片按 cover 模式缩放填充视口，居中裁剪。
+   */
+  private drawBackgroundImage(): void {
+    // 关卡切换时重新加载背景图
+    if (this.lastBgLevelId !== this.levelId) {
+      this.loadBgImage();
+      this.lastBgLevelId = this.levelId;
+    }
+
+    const ctx = this.renderer.context;
+
+    // 图片未加载完成时，回退到深色背景
+    if (!this.bgImageLoaded || !this.bgImage) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
+      ctx.restore();
+      return;
+    }
+
+    const vw = LayoutManager.viewportW;
+    const vh = LayoutManager.viewportH;
+    const imgW = this.bgImage.naturalWidth;
+    const imgH = this.bgImage.naturalHeight;
+
+    // cover 模式：保持宽高比，填满视口，居中裁剪
+    const imgRatio = imgW / imgH;
+    const viewRatio = vw / vh;
+    let dw: number, dh: number, dx: number, dy: number;
+
+    if (imgRatio > viewRatio) {
+      // 图片更宽 → 按高度对齐，宽度居中裁剪
+      dh = vh;
+      dw = vh * imgRatio;
+      dx = (vw - dw) / 2;
+      dy = 0;
+    } else {
+      // 图片更高 → 按宽度对齐，高度居中裁剪
+      dw = vw;
+      dh = vw / imgRatio;
+      dx = 0;
+      dy = (vh - dh) / 2;
+    }
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.bgImage, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  /** 加载关卡背景图（异步，加载完成后下次帧可见） */
+  private loadBgImage(): void {
+    const path = `/art/bg/bg${String(this.levelId).padStart(2, '0')}.png`;
+    this.bgImageLoaded = false;
+    const img = new Image();
+    img.onload = () => {
+      this.bgImage = img;
+      this.bgImageLoaded = true;
+    };
+    img.onerror = () => {
+      console.warn(`[DecorationSystem] 背景图加载失败: ${path}`);
+      this.bgImageLoaded = false;
+    };
+    img.src = path;
   }
 
   /** 通过地图主题色推断当前主题 */
