@@ -688,6 +688,35 @@ export const SwayAnimation = defineComponent({
 });
 
 // ============================================================
+// 飘字组件（伤害/治疗数字）
+// ============================================================
+
+/** 飘字类型 */
+export const DamageNumberStyle = {
+  Physical: 0,
+  Magic: 1,
+  True: 2,
+  Heal: 3,
+  Critical: 4,
+} as const;
+export type DamageNumberStyle = (typeof DamageNumberStyle)[keyof typeof DamageNumberStyle];
+
+/** 飘字动画实体 — 浮起+淡出 */
+export const DamageNumber = defineComponent({
+  style: Types.ui8,       // DamageNumberStyle
+  value: Types.f32,       // 显示的数值
+  lifetime: Types.f32,    // 已存活时间 (s)
+  maxLifetime: Types.f32, // 最大存活时间 (s)
+  velocityY: Types.f32,   // 浮起速度 (px/s)
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+});
+
+/** 飘字实体查询 */
+export const damageNumberQuery = defineQuery([Position, DamageNumber]);
+
+// ============================================================
 // 常用查询组合
 // ============================================================
 

@@ -1,46 +1,59 @@
 // ============================================================
-// VictoryScreenSystem — 过关覆盖层（轻量，在战斗画面上叠加）
+// VictoryScreenSystem — 过关覆盖层（3阶段动画序列）
 //
-// 职责：
-//   - 在定格战斗画面上叠加半透明暗色遮罩
-//   - 彩带粒子特效（配置驱动颜色/形状/发射方式）
-//   - 星星评定 + 故事文字 + "继续"按钮
-//   - 音频由外部 handleVictory() 触发，本系统不再播放
+// Phase 1 (0 ~ 1.5s): "VICTORY" 大字弹出 + 屏幕震动
+// Phase 2 (1.5 ~ 4.5s): 彩带飘落 + 星星评定逐个闪烁
+// Phase 3 (4.5s+): 故事面板滑入 + "继续"按钮
 //
-// 设计参考：design/04-levels.md §9, design/05-presentation.md §10
+// 设计文档: design/05-presentation.md §10, design/04-levels.md §9
+// P0-2: 补充 VICTORY 大字 + 屏幕震动 + 3阶段动画
 // ============================================================
 
-import type { TowerWorld, System } from '../core/World.js';
-import type { VictoryConfig, ConfettiShape, ConfettiBurst, VictoryStory } from '../types/index.js';
-import type { Renderer } from '../render/Renderer.js';
+import { TowerWorld, type System } from '../core/World.js';
+import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { getFont } from '../config/fonts.js';
+import type { VictoryConfig, VictoryStory } from '../types/index.js';
 
-// ---- 彩带粒子 ----
+// ============================================================
+// Constants
+// ============================================================
+
+const OVERLAY_ALPHA = 0.65;
+const STAR_SIZE = 48;
+const STAR_SPACING = 60;
+
+// Phase timing
+const PHASE1_DURATION = 1.5;  // VICTORY pop-in
+const PHASE2_DURATION = 3.0;  // confetti + stars
+// Phase 3 starts at PHASE1 + PHASE2, runs until player clicks
+
+// ============================================================
+// Confetti types
+// ============================================================
+
+type ConfettiShape = 'ribbon' | 'petal' | 'sparkle' | 'fragment';
 
 interface ConfettiParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  rotation: number;
-  rotSpeed: number;
-  width: number;
-  height: number;
+  x: number; y: number;
+  vx: number; vy: number;
+  rotation: number; rotSpeed: number;
+  width: number; height: number;
   color: string;
   alpha: number;
-  life: number;
-  maxLife: number;
+  life: number; maxLife: number;
   shape: ConfettiShape;
 }
 
-// ---- 常量 ----
+enum VictoryPhase {
+  Phase1 = 1,
+  Phase2 = 2,
+  Phase3 = 3,
+}
 
-const STAR_SPACING = 40;
-const STAR_SIZE = 48;
-const OVERLAY_ALPHA = 0.55;
-
-// ---- VictoryScreenSystem ----
+// ============================================================
+// System
+// ============================================================
 
 export class VictoryScreenSystem implements System {
   readonly name = 'VictoryScreenSystem';
@@ -51,26 +64,38 @@ export class VictoryScreenSystem implements System {
   private config: VictoryConfig | null = null;
   private timesCleared: number = 0;
   private stars: number = 1;
-
-  /** 失败时的故事文本 */
   private defeatStory: VictoryStory | null = null;
+
+  /** 当前动画阶段 */
+  private phase: VictoryPhase = VictoryPhase.Phase1;
+  /** 激活后的累计时间 */
+  private elapsed: number = 0;
+  /** 阶段内计时（从进入当前阶段开始） */
+  private phaseElapsed: number = 0;
 
   /** 彩带粒子 */
   private particles: ConfettiParticle[] = [];
-  /** 彩带是否已生成 */
   private confettiSpawned: boolean = false;
-  /** 激活后的累计时间 */
-  private elapsed: number = 0;
 
   /** "继续"按钮可交互标记 */
   private continueButtonVisible: boolean = false;
-  /** "继续"按钮命中区域 */
   private continueBtnRect: { x: number; y: number; w: number; h: number } | null = null;
+
+  /** VICTORY 文字弹出的弹性缓动状态 */
+  private victoryTextScale: number = 3.0;
+  private victoryTextAlpha: number = 0;
+
+  /** 星星闪烁状态：每颗星的亮度 (0=未亮, 1=全亮) */
+  private starBrightness: number[] = [0, 0, 0];
+  /** 星星逐个点亮时的计时 */
+  private starRevealTimer: number = 0;
+  private starsRevealed: number = 0;
+
+  /** 故事面板滑动偏移 */
+  private panelSlideOffset: number = 300;
 
   /** 完成回调 */
   onComplete?: () => void;
-
-  /** 外部注入胜利回调（由 main.ts 设置，用于在点击继续后保存数据） */
   onContinue?: () => void;
 
   constructor(renderer: Renderer) {
@@ -85,11 +110,73 @@ export class VictoryScreenSystem implements System {
     if (!this.active) return;
 
     this.elapsed += dt;
-    this.updateParticles(dt);
+    this.phaseElapsed += dt;
 
-    // 0.8s 后显示"继续"按钮
-    if (this.elapsed >= 0.8 && !this.continueButtonVisible) {
-      this.continueButtonVisible = true;
+    this.updatePhaseTransitions();
+    this.updateParticles(dt);
+    this.updateAnimations(dt);
+  }
+
+  private updatePhaseTransitions(): void {
+    if (this.mode !== 'victory') return;
+
+    switch (this.phase) {
+      case VictoryPhase.Phase1:
+        if (this.phaseElapsed >= PHASE1_DURATION) {
+          this.phase = VictoryPhase.Phase2;
+          this.phaseElapsed = 0;
+          this.ensureConfettiSpawned();
+        }
+        break;
+      case VictoryPhase.Phase2:
+        if (this.phaseElapsed >= PHASE2_DURATION) {
+          this.phase = VictoryPhase.Phase3;
+          this.phaseElapsed = 0;
+        }
+        break;
+      case VictoryPhase.Phase3:
+        if (this.phaseElapsed >= 0.5 && !this.continueButtonVisible) {
+          this.continueButtonVisible = true;
+        }
+        break;
+    }
+  }
+
+  private updateAnimations(dt: number): void {
+    if (this.mode !== 'victory') return;
+
+    // Phase 1: VICTORY text elastic pop-in
+    if (this.phase === VictoryPhase.Phase1) {
+      const t = this.phaseElapsed / PHASE1_DURATION;
+      // Elastic ease-out: overshoot then settle
+      if (t < 0.8) {
+        const p = t / 0.8;
+        this.victoryTextScale = 3.0 + (1.0 - 3.0) * elasticOut(p);
+        this.victoryTextAlpha = Math.min(1, p * 1.2);
+      } else {
+        this.victoryTextScale = 1.0;
+        this.victoryTextAlpha = 1.0;
+      }
+    }
+
+    // Phase 2: stars reveal one by one
+    if (this.phase === VictoryPhase.Phase2) {
+      this.starRevealTimer += dt;
+      const revealInterval = 0.5; // each star 0.5s apart
+      while (
+        this.starsRevealed < 3 &&
+        this.starRevealTimer >= this.starsRevealed * revealInterval
+      ) {
+        this.starBrightness[this.starsRevealed] = 1.0;
+        this.starsRevealed++;
+      }
+    }
+
+    // Phase 3: panel slide in
+    if (this.phase === VictoryPhase.Phase3) {
+      const slideDuration = 0.5;
+      const t = Math.min(1, this.phaseElapsed / slideDuration);
+      this.panelSlideOffset = 300 * (1 - easeOutCubic(t));
     }
   }
 
@@ -104,26 +191,36 @@ export class VictoryScreenSystem implements System {
     this.timesCleared = timesCleared;
     this.active = true;
     this.elapsed = 0;
+    this.phaseElapsed = 0;
+    this.phase = VictoryPhase.Phase1;
     this.particles = [];
     this.confettiSpawned = false;
     this.continueButtonVisible = false;
     this.continueBtnRect = null;
     this.defeatStory = null;
+
+    // Reset animation state
+    this.victoryTextScale = 3.0;
+    this.victoryTextAlpha = 0;
+    this.starBrightness = [0, 0, 0];
+    this.starRevealTimer = 0;
+    this.starsRevealed = 0;
+    this.panelSlideOffset = 300;
   }
 
-  /** 启动失败覆盖层 */
   activateDefeat(defeatStory: VictoryStory, typography: VictoryConfig['typography']): void {
     this.mode = 'defeat';
     this.defeatStory = defeatStory;
     this.active = true;
     this.elapsed = 0;
+    this.phaseElapsed = 0;
+    this.phase = VictoryPhase.Phase3;
     this.particles = [];
-    this.confettiSpawned = true; // 失败不生成彩带
+    this.confettiSpawned = true;
     this.continueButtonVisible = false;
     this.continueBtnRect = null;
     this.timesCleared = 0;
     this.stars = 0;
-    // 创建临时 config 用于渲染面板（只用 typography）
     this.config = {
       story: { title: '', paragraphs: [], summary: '', showFullStoryOnlyFirst: false },
       background: { filter: 'gray_tint', gradient: { top: '', mid: '', bottom: '' }, particles: [] },
@@ -131,6 +228,10 @@ export class VictoryScreenSystem implements System {
       audio: { bgm: '', sfx: '' },
       typography,
     };
+
+    // Show continue button after brief delay
+    this.continueButtonVisible = false;
+    this.panelSlideOffset = 0;
   }
 
   deactivate(): void {
@@ -139,9 +240,7 @@ export class VictoryScreenSystem implements System {
     this.particles = [];
   }
 
-  isActive(): boolean {
-    return this.active;
-  }
+  isActive(): boolean { return this.active; }
 
   handleClick(x: number, y: number): boolean {
     if (!this.active) return false;
@@ -154,7 +253,6 @@ export class VictoryScreenSystem implements System {
       }
     }
 
-    // 重复通关可点击任意位置跳过故事
     if (this.shouldSkipStory()) {
       this.onContinueClick();
       return true;
@@ -288,7 +386,7 @@ export class VictoryScreenSystem implements System {
   }
 
   // ============================================================
-  // Render（在 onPostRender 中调用，位于所有场景/UI 之上）
+  // Render
   // ============================================================
 
   public render(): void {
@@ -301,7 +399,6 @@ export class VictoryScreenSystem implements System {
 
     if (this.mode === 'victory') {
       if (!this.config) return;
-      this.ensureConfettiSpawned();
       this.renderVictory(ctx, designW, designH);
     } else {
       this.renderDefeat(ctx, designW, designH);
@@ -320,14 +417,25 @@ export class VictoryScreenSystem implements System {
 
     this.renderer.applyDesignTransform();
 
-    // 彩带
-    this.drawConfettiParticles();
+    // Phase 1: VICTORY 大字 + 屏幕震动（震动由 main.ts 在 activate 时触发）
+    if (this.phase === VictoryPhase.Phase1) {
+      this.drawVictoryText(designW / 2, designH * 0.33);
+    }
 
-    // 星星
-    this.drawStars(designW / 2, designH * 0.32);
+    // Phase 2+: 彩带
+    if (this.phase >= VictoryPhase.Phase2) {
+      this.drawConfettiParticles();
+    }
 
-    // 故事
-    this.drawStoryPanel(config, designW / 2, designH * 0.68);
+    // Phase 2+: 星星（在 phase 2 中逐个点亮）
+    if (this.phase >= VictoryPhase.Phase2) {
+      this.drawStars(designW / 2, designH * 0.33);
+    }
+
+    // Phase 3: 故事面板
+    if (this.phase >= VictoryPhase.Phase3) {
+      this.drawStoryPanel(config, designW / 2, designH * 0.68);
+    }
   }
 
   private renderDefeat(ctx: CanvasRenderingContext2D, designW: number, designH: number): void {
@@ -344,6 +452,7 @@ export class VictoryScreenSystem implements System {
 
     // 失败标题
     ctx.save();
+    ctx.globalAlpha = Math.min(1, this.elapsed * 3);
     ctx.fillStyle = '#ff6b6b';
     ctx.font = `bold 48px ${getFont(48, true)}`;
     ctx.textAlign = 'center';
@@ -356,7 +465,6 @@ export class VictoryScreenSystem implements System {
 
     // 失败故事
     if (this.defeatStory) {
-      // 临时构造一个只含 defeat story 的 config 用于 drawStoryPanel
       const storyConfig: VictoryConfig = {
         ...config,
         story: this.defeatStory,
@@ -365,8 +473,45 @@ export class VictoryScreenSystem implements System {
     }
   }
 
+  // ============================================================
+  // Draw helpers
+  // ============================================================
+
+  private drawVictoryText(cx: number, cy: number): void {
+    const ctx = this.renderer.context;
+    const config = this.config;
+    if (!ctx || !config) return;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // 光晕
+    ctx.shadowColor = config.typography.accentColor;
+    ctx.shadowBlur = 30 * this.victoryTextAlpha;
+
+    // 文字
+    const baseSize = 96;
+    const scale = this.victoryTextScale;
+    ctx.font = `bold ${Math.round(baseSize * scale)}px ${getFont(Math.round(baseSize * scale), true)}`;
+
+    // 渐变填充
+    const gradient = ctx.createLinearGradient(cx, cy - 50, cx, cy + 50);
+    const titleColors = config.typography.titleColor;
+    gradient.addColorStop(0, titleColors[0] ?? '#ffd700');
+    gradient.addColorStop(1, titleColors[1] ?? '#ffffff');
+    ctx.fillStyle = gradient;
+
+    ctx.globalAlpha = this.victoryTextAlpha;
+    ctx.fillText('VICTORY', cx, cy);
+
+    ctx.restore();
+  }
+
   private drawStars(cx: number, cy: number): void {
     const ctx = this.renderer.context;
+    if (!ctx) return;
+
     const brightColor = '#ffcc00';
     const dimColor = '#555555';
 
@@ -378,9 +523,17 @@ export class VictoryScreenSystem implements System {
     for (let i = 0; i < 3; i++) {
       const x = cx + (i - 1) * STAR_SPACING;
       const lit = i < this.stars;
+      const brightness = lit ? (this.starBrightness[i] ?? 0) : 0;
 
-      ctx.fillStyle = lit ? brightColor : dimColor;
-      ctx.fillText('⭐', x, cy);
+      if (brightness <= 0) {
+        ctx.fillStyle = dimColor;
+        ctx.fillText('☆', x, cy);
+      } else {
+        ctx.globalAlpha = brightness;
+        ctx.fillStyle = brightColor;
+        ctx.fillText('⭐', x, cy);
+        ctx.globalAlpha = 1;
+      }
     }
 
     ctx.restore();
@@ -388,6 +541,7 @@ export class VictoryScreenSystem implements System {
 
   private drawConfettiParticles(): void {
     const ctx = this.renderer.context;
+    if (!ctx) return;
 
     ctx.save();
     for (const p of this.particles) {
@@ -437,14 +591,14 @@ export class VictoryScreenSystem implements System {
 
   private drawStoryPanel(config: VictoryConfig, cx: number, cy: number): void {
     const ctx = this.renderer.context;
+    if (!ctx) return;
 
     const shouldSkip = this.shouldSkipStory();
 
     const panelW = 900;
-    // 跳过故事时面板高度缩小
     const panelH = shouldSkip ? 90 : 240;
     const px = cx - panelW / 2;
-    const py = cy - panelH / 2;
+    const py = cy - panelH / 2 + this.panelSlideOffset;
 
     ctx.save();
 
@@ -458,7 +612,6 @@ export class VictoryScreenSystem implements System {
     ctx.stroke();
 
     if (shouldSkip) {
-      // 只显示简短 summary
       ctx.fillStyle = config.typography.storyColor;
       ctx.font = `18px ${getFont(18)}`;
       ctx.textAlign = 'center';
@@ -490,7 +643,7 @@ export class VictoryScreenSystem implements System {
 
       const paraStartY = py + 58;
       const paraLineH = 24;
-      const maxCharsPerLine = Math.floor((panelW - 80) / 16); // 中文约16px/字
+      const maxCharsPerLine = Math.floor((panelW - 80) / 16);
 
       let lineY = paraStartY;
       for (const para of config.story.paragraphs) {
@@ -533,4 +686,17 @@ export class VictoryScreenSystem implements System {
 
     ctx.restore();
   }
+}
+
+// ============================================================
+// Easing functions
+// ============================================================
+
+function elasticOut(t: number): number {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t - 1) * (2 * Math.PI) / 0.3) + 1;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
 }

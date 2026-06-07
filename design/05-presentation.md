@@ -446,6 +446,21 @@ Abyss（深渊层）    — 最低，预留
 | 血粒子 | 受击或死亡 | `BloodParticleSystem` 驱动小粒子 |
 | 屏幕震动 | 爆炸、Boss 技能等 | `ScreenShakeSystem.state` 被 `RenderSystem` 消费为 Canvas 平移 |
 
+### 8.4 伤害飘字系统（Damage Numbers）
+
+伤害飘字是战斗反馈的核心——每次攻击命中敌人时，在受击位置上方显示浮动伤害数字，让玩家直观感受到输出效果。系统通过 `DamageObserver` 模式自动捕获所有伤害事件。
+
+| 属性 | 说明 |
+|------|------|
+| 触发时机 | 任何 `applyDamageToTarget()` 调用时自动触发（含弹道命中、AOE溅射、DOT跳伤） |
+| 飘字样式 | Physical=橙色, Magic=紫色, True=金色, Heal=绿色, Critical=红色 |
+| 动画 | 向上浮动 50±20 px/s，1.2s 存活，前半段保持不透明、后半段线性淡出 |
+| 缩放入场 | 初始 0.6× → 0.3s 内放大到 1.0× |
+| 水平偏移 | ±15px 随机偏移（避免重叠） |
+| 渲染层 | 在场景实体之上、UI 之下绘制（post-render pipeline） |
+| 实现 | `DamageNumberSystem` (ECS System) + `DamageNumber` 组件 (bitecs) |
+| 位置 | `src/systems/DamageNumberSystem.ts` |
+
 ---
 
 ## 9. 音效系统
@@ -482,12 +497,17 @@ Abyss（深渊层）    — 最低，预留
 ```
 VictoryScreenSystem (implement System)
   ├── 内部状态机: Phase1 → Phase2 → Phase3 → Done
-  ├── 粒子数组: ConfettiParticle[] (每帧 update 位置/旋转/alpha)
-  ├── 读取入口: 关卡 LevelConfig.victory: VictoryConfig
+  ├── Phase1 (0~1.5s): "VICTORY" 大字弹性弹出 (scale 3→1, elastic-out)
+  │   └── 同步触发 ScreenShakeSystem (震幅6px, 持续0.5s, 频率25Hz)
+  ├── Phase2 (1.5~4.5s): 彩带飘落 + 星星评定逐个闪烁 (每颗0.5s间隔)
+  ├── Phase3 (4.5s+): 故事面板从底部滑入 (ease-out 0.5s)
+  │   └── 面板就绪后显示 "继续" 按钮
   └── 绘制: 在 UISystem.renderUI() 之后，直接写 Canvas 2D
 ```
 
-VictoryScreenSystem 实现 `System` 接口，注册到 `PHASE_RENDER` 阶段后（渲染顺序在 RenderSystem 之后）。当未激活时 `update()` 直接返回，无性能开销。
+VICTORY 文字使用 `typography.titleColor` 渐变填充，baseSize=96px。光晕随 alpha 从 0 → 30px 渐变。屏幕震动在 `main.ts:handleVictory()` 中通过 `ScreenShakeSystem.triggerShake()` 触发。
+
+Defeat 模式跳过 Phase1/2，直接进入 Phase3 显示红色 "DEFEAT" 文字 + 失败故事面板。
 
 ### 10.3 彩带粒子系统
 

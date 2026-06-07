@@ -51,6 +51,7 @@ import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
 import { EnemyCodexUI } from './ui/EnemyCodexUI.js';
 import type { EnemyCodexEntry } from './ui/EnemyCodexUI.js';
 import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
+import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
 import { Music } from './utils/Music.js';
 import {
   captureStreamState,
@@ -136,6 +137,7 @@ class TowerDefenderGame extends Game {
   private victoryScreenSystem!: VictoryScreenSystem;
   private soldierAISystem!: SoldierAISystem;
   private bossSystem!: BossSystem;
+  private damageNumberSystem!: DamageNumberSystem;
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
@@ -442,6 +444,12 @@ class TowerDefenderGame extends Game {
     registerDamageObserver((targetId, sourceId, _actual) => {
       this.economy.notifyDamaged(targetId);
       if (sourceId !== undefined) this.economy.notifyAttacked(sourceId);
+    });
+
+    // P0-1: 伤害数字飘字 — 注册 DamageNumberSystem 的观察者
+    this.damageNumberSystem = new DamageNumberSystem();
+    registerDamageObserver((targetId, _sourceId, actualDamage) => {
+      this.damageNumberSystem.enqueueDamage(targetId, actualDamage);
     });
 
     // ---- Wave system ----
@@ -784,6 +792,7 @@ class TowerDefenderGame extends Game {
     const unitSystem = new UnitSystem(map);
     const unitAnimationSystem = new UnitAnimationSystem();
     const projectileSystem = new ProjectileSystem(map);
+    projectileSystem.damageNumbers = this.damageNumberSystem; // P0-1: DOT 飘字
 
     this.skillSystem = new SkillSystem(
       () => true,
@@ -827,6 +836,13 @@ class TowerDefenderGame extends Game {
         this.screenFXSystem.render(ctx, 1 / 60, this.weatherSystem.currentWeather, {
           fogOverlay: map.lighting?.fogOverlay,
         });
+      }
+      // P0-1: 伤害飘字渲染（在场景之上、UI 之下）
+      if (this.currentScreen === GameScreen.Battle) {
+        const ctx = this.renderer.context;
+        if (ctx) {
+          this.damageNumberSystem.renderAll(this.world, ctx);
+        }
       }
       this.uiSystem.renderUI();
       this.victoryScreenSystem.render();
@@ -1095,6 +1111,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(fadingMarkSystem);
     this.world.registerSystem(this.tileDamageSystem);
     this.world.registerSystem(this.healthSystem);
+    this.world.registerSystem(this.damageNumberSystem); // P0-1: 伤害飘字（必须在伤害系统之后）
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
     this.world.registerSystem(this.soldierAISystem);
@@ -1229,7 +1246,10 @@ class TowerDefenderGame extends Game {
     Sound.play(victoryConfig.audio.sfx as never);
     Music.play(victoryConfig.audio.bgm as never, 0.5);
 
-    // 启动胜利覆盖层（在战斗画面上叠加暗色遮罩+彩带+星星+故事）
+    // P0-2: 胜利屏幕震动
+    ScreenShakeSystem.triggerShake(this.world, 6, 0.5, 25);
+
+    // 启动胜利覆盖层（3阶段动画序列：VICTORY大字 → 彩带星星 → 故事面板）
     this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared);
   }
 

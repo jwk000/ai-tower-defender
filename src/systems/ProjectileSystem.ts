@@ -25,6 +25,8 @@ import { TowerType, type MapConfig } from '../types/index.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 import { TileDamageSystem } from './TileDamageSystem.js';
+import type { DamageNumberSystem } from './DamageNumberSystem.js';
+import { DamageNumberStyle } from '../core/components.js';
 
 // ============================================================
 // Queries
@@ -83,6 +85,9 @@ export class ProjectileSystem implements System {
 
   /** Vine tower DOT entries: targetId → DOT state */
   private dotEntries = new Map<number, VineDOT>();
+
+  /** P0-1: 伤害飘字系统引用（由 main.ts 注入） */
+  damageNumbers: DamageNumberSystem | null = null;
 
   constructor(map: MapConfig) {
     this.map = map;
@@ -188,6 +193,14 @@ export class ProjectileSystem implements System {
         const tickDamage = dot.stackCount * dot.damagePerTick;
         const current = Health.current[targetId] ?? 0;
         Health.current[targetId] = current - tickDamage;
+        // P0-1: DOT 飘字
+        if (this.damageNumbers && tickDamage > 0) {
+          const px = Position.x[targetId];
+          const py = Position.y[targetId];
+          if (px !== undefined && py !== undefined) {
+            this.damageNumbers.spawnAtPos(world, px, py, tickDamage, DamageNumberStyle.Magic);
+          }
+        }
         dot.timer += 1.0;
         dot.ticksRemaining--;
         if (dot.ticksRemaining <= 0) {
