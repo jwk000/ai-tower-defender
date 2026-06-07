@@ -80,9 +80,7 @@ export class ScreenFXSystem {
   ): void {
     this.time += dt;
 
-    this.drawRedMistMountains(ctx, weather);
     this.drawSun(ctx, weather);
-    this.drawRedMistSunEye(ctx, weather);
     this.drawSunRays(ctx, weather);
     this.drawWindLines(ctx, weather);
     this.drawFogParticles(ctx, weather, options?.fogOverlay);
@@ -355,52 +353,8 @@ export class ScreenFXSystem {
   }
 
   // ============================================================
-  // 红雾：眼睛夕阳、火山灰云、背景远山与黑烟
+  // 红雾：火山灰云
   // ============================================================
-
-  private drawRedMistSunEye(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
-    if (weather !== WeatherType.RedMist) return;
-
-    const x = LayoutManager.DESIGN_W * 0.82;
-    const y = 105;
-    const pulse = Math.sin(this.time * 0.9) * 0.06 + 0.94;
-
-    ctx.save();
-
-    const outer = ctx.createRadialGradient(x, y, 40, x, y, 230);
-    outer.addColorStop(0, `rgba(255,72,34,${0.34 * pulse})`);
-    outer.addColorStop(0.48, `rgba(170,20,18,${0.18 * pulse})`);
-    outer.addColorStop(1, 'rgba(80,0,0,0)');
-    ctx.fillStyle = outer;
-    ctx.beginPath();
-    ctx.arc(x, y, 230, 0, Math.PI * 2);
-    ctx.fill();
-
-    const body = ctx.createRadialGradient(x - 18, y - 16, 4, x, y, 82);
-    body.addColorStop(0, '#ffb05a');
-    body.addColorStop(0.35, '#ff3f24');
-    body.addColorStop(0.78, '#8f0908');
-    body.addColorStop(1, '#3a0000');
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 112, 72, -0.1, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = 0.78;
-    ctx.fillStyle = '#1b0000';
-    ctx.beginPath();
-    ctx.ellipse(x, y + 2, 28, 58, -0.08, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = 0.45;
-    ctx.strokeStyle = '#ff2a18';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 116, 74, -0.1, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.restore();
-  }
 
   private drawRedMistAshClouds(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
     if (weather !== WeatherType.RedMist) return;
@@ -437,103 +391,6 @@ export class ScreenFXSystem {
       ctx.arc(0, 0, radiusX, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
-  private drawRedMistMountains(ctx: CanvasRenderingContext2D, weather: WeatherType): void {
-    if (weather !== WeatherType.RedMist) return;
-
-    const layers = [
-      {
-        baseY: 330,
-        alphaTop: 0.09,
-        alphaBottom: 0.15,
-        peaks: [
-          { x: -120, y: 330 }, { x: 160, y: 264 }, { x: 360, y: 316 },
-          { x: 620, y: 250 }, { x: 900, y: 322 }, { x: 1160, y: 270 },
-          { x: 1480, y: 318 }, { x: 1760, y: 258 }, { x: 2040, y: 330 },
-        ],
-      },
-      {
-        baseY: 356,
-        alphaTop: 0.13,
-        alphaBottom: 0.22,
-        peaks: [
-          { x: -120, y: 356 }, { x: 95, y: 282 }, { x: 250, y: 342 },
-          { x: 500, y: 270 }, { x: 720, y: 350 }, { x: 980, y: 238 },
-          { x: 1220, y: 348 }, { x: 1470, y: 288 }, { x: 1660, y: 340 },
-          { x: 1880, y: 276 }, { x: 2040, y: 356 },
-        ],
-      },
-      {
-        baseY: 386,
-        alphaTop: 0.18,
-        alphaBottom: 0.30,
-        peaks: [
-          { x: -120, y: 386 }, { x: 70, y: 320 }, { x: 220, y: 370 },
-          { x: 420, y: 298 }, { x: 640, y: 382 }, { x: 875, y: 330 },
-          { x: 1060, y: 198 }, { x: 1240, y: 382 }, { x: 1460, y: 320 },
-          { x: 1665, y: 372 }, { x: 1840, y: 304 }, { x: 2040, y: 386 },
-        ],
-      },
-    ];
-    const volcano = { x: 1060, y: 198 };
-
-    ctx.save();
-
-    for (const layer of layers) {
-      const silhouette = ctx.createLinearGradient(0, layer.baseY - 170, 0, layer.baseY + 115);
-      silhouette.addColorStop(0, `rgba(12,12,13,${layer.alphaTop})`);
-      silhouette.addColorStop(0.62, `rgba(5,5,6,${layer.alphaBottom})`);
-      silhouette.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = silhouette;
-      ctx.beginPath();
-      ctx.moveTo(layer.peaks[0]!.x, layer.peaks[0]!.y);
-      for (const peak of layer.peaks.slice(1)) ctx.lineTo(peak.x, peak.y);
-      ctx.lineTo(LayoutManager.DESIGN_W + 120, layer.baseY + 120);
-      ctx.lineTo(-120, layer.baseY + 120);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    const glowPulse = 0.52 + Math.sin(this.time * 1.2) * 0.08;
-    const peakGlow = ctx.createRadialGradient(volcano.x, volcano.y + 7, 0, volcano.x, volcano.y + 7, 62);
-    peakGlow.addColorStop(0, `rgba(185,34,22,${0.18 * glowPulse})`);
-    peakGlow.addColorStop(0.45, `rgba(112,15,12,${0.08 * glowPulse})`);
-    peakGlow.addColorStop(1, 'rgba(50,0,0,0)');
-    ctx.fillStyle = peakGlow;
-    ctx.beginPath();
-    ctx.arc(volcano.x, volcano.y + 7, 62, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = '#7b120d';
-    ctx.beginPath();
-    ctx.ellipse(volcano.x, volcano.y + 9, 18, 4, -0.05, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    for (let i = 0; i < 12; i++) {
-      let s = (((i + 9000) * 2654435761) >>> 0);
-      const baseX = volcano.x - 26 + this.hashToFloat(s = this.nextHash(s)) * 52;
-      const baseY = volcano.y - 12 - this.hashToFloat(s = this.nextHash(s)) * 70;
-      const radius = 24 + this.hashToFloat(s = this.nextHash(s)) * 44;
-      const driftX = Math.sin(this.time * 0.22 + i * 0.8) * (10 + i * 0.8);
-      const driftY = Math.sin(this.time * 0.16 + i * 0.55) * 7 - this.time * 2;
-      const alpha = 0.08 + this.hashToFloat(s = this.nextHash(s)) * 0.08;
-      const x = baseX + driftX + i * 4;
-      const y = baseY + driftY - i * 6;
-
-      const smoke = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      smoke.addColorStop(0, `rgba(8,8,8,${alpha})`);
-      smoke.addColorStop(0.58, `rgba(5,5,5,${alpha * 0.62})`);
-      smoke.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = smoke;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
     }
 
     ctx.restore();

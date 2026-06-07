@@ -169,31 +169,6 @@ describe('ScreenFXSystem 夜晚雾效叠加', () => {
 });
 
 describe('ScreenFXSystem 红雾天气特效', () => {
-  it('红雾绘制右上角眼睛夕阳', () => {
-    const fx = new ScreenFXSystem();
-    const ctx = createMockContext();
-
-    fx.render(ctx, 0, WeatherType.RedMist);
-
-    const sunEye = ctx.ellipses.find((ellipse) =>
-      ellipse.radiusX > 100 &&
-      ellipse.radiusY > 60 &&
-      ellipse.x > 1500 &&
-      ellipse.y < 180
-    );
-    const pupil = ctx.ellipses.find((ellipse) =>
-      ellipse.radiusX >= 20 &&
-      ellipse.radiusX <= 35 &&
-      ellipse.radiusY >= 50 &&
-      ellipse.radiusY <= 65 &&
-      ellipse.x > 1500 &&
-      ellipse.y < 180
-    );
-
-    expect(sunEye).toBeDefined();
-    expect(pupil).toBeDefined();
-  });
-
   it('红雾绘制快速移动的暗红云/火山灰', () => {
     const fx = new ScreenFXSystem();
     const first = createMockContext();
@@ -208,53 +183,5 @@ describe('ScreenFXSystem 红雾天气特效', () => {
     expect(firstAshClouds.length).toBe(36);
     expect(secondAshClouds.length).toBe(36);
     expect(secondAshClouds[0]!.x - firstAshClouds[0]!.x).toBeGreaterThan(120);
-  });
-
-  it('红雾绘制多层淡黑渐变背景远山', () => {
-    const fx = new ScreenFXSystem();
-    const ctx = createMockContext();
-
-    fx.render(ctx, 0, WeatherType.RedMist);
-
-    const mountainLayers = ctx.pathFills.filter((path) =>
-      hasGradientStop(path, '12,12,13') &&
-      hasGradientStop(path, '0,0,0,0') &&
-      Math.max(...path.points.map((point) => point.y)) <= 506
-    );
-
-    expect(mountainLayers.length).toBe(3);
-    expect(mountainLayers.map((path) => Math.min(...path.points.map((point) => point.y)))).toEqual([
-      250,
-      238,
-      198,
-    ]);
-  });
-
-  it('红雾只有最大山顶有淡红光并冒缓慢黑烟', () => {
-    const fx = new ScreenFXSystem();
-    const first = createMockContext();
-    const second = createMockContext();
-
-    fx.render(first, 0, WeatherType.RedMist);
-    fx.render(second, 1, WeatherType.RedMist);
-
-    const redPeakGlows = first.arcs.filter((arc) =>
-      arc.radius === 62 &&
-      arc.y < 230 &&
-      hasGradientStop(arc, '185,34,22')
-    );
-    const firstSmoke = first.arcs.filter((arc) => hasGradientStop(arc, '8,8,8'));
-    const secondSmoke = second.arcs.filter((arc) => hasGradientStop(arc, '8,8,8'));
-    const maxSmokeStep = Math.max(
-      ...firstSmoke.map((arc, i) =>
-        Math.hypot(secondSmoke[i]!.x - arc.x, secondSmoke[i]!.y - arc.y)
-      )
-    );
-
-    expect(redPeakGlows.length).toBe(1);
-    expect(firstSmoke.length).toBe(12);
-    expect(secondSmoke.length).toBe(12);
-    expect(maxSmokeStep).toBeGreaterThan(1);
-    expect(maxSmokeStep).toBeLessThan(8);
   });
 });
