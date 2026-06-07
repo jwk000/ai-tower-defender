@@ -34,6 +34,7 @@ import {
   AttackModeVal,
   TargetSelectionVal,
   TrapTypeVal,
+  Barrel,
 } from '../core/components.js';
 import {
   TOWER_CONFIGS,
@@ -260,6 +261,14 @@ export class UnitFactory {
     this.world.addComponent(eid, Category, { value: CategoryVal.Tower });
     this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
     this.world.addComponent(eid, Layer, { value: LayerVal.Ground });
+
+    // Barrel — 炮管视觉组件（所有塔统一添加）
+    this.world.addComponent(eid, Barrel, {
+      angle: 0,
+      targetAngle: 0,
+      length: base.cfg.size ? (base.cfg.size as number) * 0.55 : 20,
+      width: 6,
+    });
 
     // BuildingTower — 建造中状态
     const buildTime = (cfg.buildTime as number) ?? 2.0;

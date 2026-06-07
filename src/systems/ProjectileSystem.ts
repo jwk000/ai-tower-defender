@@ -97,9 +97,10 @@ export class ProjectileSystem implements System {
       const targetId = Projectile.targetId[eid] as number;
       const sourceTowerType = Projectile.sourceTowerType[eid] as number;
       const isMissile = sourceTowerType === 6;
+      const hasParabola = !isMissile && Projectile.totalTime[eid]! > 0;
 
-      if (isMissile) {
-        // ── Missile: 参数化抛物线（design/19 §X/Y 参数化）──
+      if (isMissile || hasParabola) {
+        // ── 抛物线轨迹（导弹塔 + 所有其他塔的黑色圆形炮弹）──
         // 飞行参数发射时一次锁定在 Projectile 组件，飞行期不读 mark 实体
         const fromX = Projectile.fromX[eid]!;
         const fromY = Projectile.fromY[eid]!;
@@ -133,7 +134,7 @@ export class ProjectileSystem implements System {
           Visual.idlePhase[eid] = Math.atan2(vyNow, vxNow);
         }
       } else {
-        // ── Non‑missile: straight‑line trajectory ──
+        // ── 直线弹道（敌人投射物 / 链式弹道子体） ──
         // Target dead / gone — destroy projectile
         if (!isAlive(targetId)) {
           world.destroyEntity(eid);

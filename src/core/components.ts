@@ -370,6 +370,18 @@ export const BloodParticle = defineComponent({
   lifetime: Types.f32,
 });
 
+// ============================================================
+// 炮管组件 — 塔的视觉炮管，可旋转追踪目标
+// ============================================================
+
+/** 炮管视觉属性 */
+export const Barrel = defineComponent({
+  angle: Types.f32,        // 当前炮管角度（弧度）
+  targetAngle: Types.f32,  // 目标角度（平滑旋转用）
+  length: Types.f32,       // 炮管长度（像素）
+  width: Types.f32,        // 炮管宽度（像素）
+});
+
 /** 渐消地面标记（用于弹坑、焦痕等持久效果） */
 export const FadingMark = defineComponent({
   duration: Types.f32,

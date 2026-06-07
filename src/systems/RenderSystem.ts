@@ -41,6 +41,7 @@ import {
   MissileCharge,
   BuildingTower,
   SlashEffect,
+  Barrel,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
@@ -928,11 +929,13 @@ export class RenderSystem implements System {
         let targetY: number | undefined;
 
         if (isProjectile) {
-          shape = 'arrow';
-          const projTargetId = Projectile.targetId[eid]!;
-          if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
-            targetX = Position.x[projTargetId];
-            targetY = Position.y[projTargetId];
+          // 箭头形状的投射物需要 targetX/targetY 来确定朝向
+          if (shape === 'arrow') {
+            const projTargetId = Projectile.targetId[eid]!;
+            if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
+              targetX = Position.x[projTargetId];
+              targetY = Position.y[projTargetId];
+            }
           }
         }
 
@@ -1162,6 +1165,31 @@ export class RenderSystem implements System {
             z: renderZ,
           });
         }
+      }
+
+      // ========================================
+      // Barrel rendering — 炮管（塔上方，可旋转追踪目标）
+      // ========================================
+      if (isTower && hasComponent(world.world, Barrel, eid)) {
+        const barrelAngle = Barrel.angle[eid]!;
+        const barrelLen = Barrel.length[eid]!;
+        const barrelW = Barrel.width[eid]!;
+        const midX = posX + Math.cos(barrelAngle) * (barrelLen * 0.5);
+        const midY = posY + Math.sin(barrelAngle) * (barrelLen * 0.5);
+
+        this.renderer.push({
+          shape: 'rect',
+          x: midX,
+          y: midY,
+          size: barrelLen,
+          h: barrelW,
+          color: '#2a2a2a',
+          alpha: 1,
+          stroke: '#444444',
+          strokeWidth: 1,
+          rotation: barrelAngle,
+          z: renderZ + 1,
+        });
       }
 
       // ========================================

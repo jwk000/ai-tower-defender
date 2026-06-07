@@ -17,6 +17,7 @@ import {
   TargetingMark,
   BuildingTower,
   Faction,
+  Barrel,
 } from '../core/components.js';
 import { TowerType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
@@ -92,16 +93,16 @@ const BAT_COLOR      = hexToRgb('#7c4dff');
 const BALLISTA_COLOR = hexToRgb('#8d6e63');
 
 const PROJ_VISUAL: Record<number, ProjectileVisual> = {
-  0: { speed: 420, shape: ShapeVal.Arrow,    colorR: ARROW_COLOR[0],    colorG: ARROW_COLOR[1],    colorB: ARROW_COLOR[2],    size: 24 },
-  1: { speed: 280, shape: ShapeVal.Circle,   colorR: CANNON_COLOR[0],   colorG: CANNON_COLOR[1],   colorB: CANNON_COLOR[2],   size: 16 },
-  2: { speed: 350, shape: ShapeVal.Diamond,  colorR: ICE_COLOR[0],      colorG: ICE_COLOR[1],      colorB: ICE_COLOR[2],      size: 12 },
+  0: { speed: 420, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 14 },
+  1: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 18 },
+  2: { speed: 350, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 12 },
   3: { speed: 600, shape: ShapeVal.Triangle, colorR: LIGHTNING_COLOR[0], colorG: LIGHTNING_COLOR[1], colorB: LIGHTNING_COLOR[2], size: 10 },
   4: { speed: 500, shape: ShapeVal.Circle,   colorR: LASER_COLOR[0],    colorG: LASER_COLOR[1],    colorB: LASER_COLOR[2],    size: 8 },
   5: { speed: 350, shape: ShapeVal.Triangle, colorR: BAT_COLOR[0],      colorG: BAT_COLOR[1],      colorB: BAT_COLOR[2],      size: 10 },
   6: { speed: 280, shape: ShapeVal.Arrow,    colorR: 0x1a,              colorG: 0x1a,              colorB: 0x1a,              size: 40 },
-  7: { speed: 350, shape: ShapeVal.Circle,   colorR: 0xff,              colorG: 0x57,              colorB: 0x22,              size: 10 },
-  8: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x66,              colorG: 0xbb,              colorB: 0x6a,              size: 8 },
-  9: { speed: 500, shape: ShapeVal.Arrow,    colorR: BALLISTA_COLOR[0], colorG: BALLISTA_COLOR[1], colorB: BALLISTA_COLOR[2], size: 30 },
+  7: { speed: 350, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 14 },
+  8: { speed: 280, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 12 },
+  9: { speed: 500, shape: ShapeVal.Circle,   colorR: 0x1a, colorG: 0x1a, colorB: 0x1a, size: 16 },
 };
 
 // ============================================================
@@ -139,6 +140,34 @@ export class AttackSystem implements System {
 
       // 蝙蝠塔由 BatSwarmSystem 处理
       if (towerTypeVal === 5) continue;
+
+      // ── 炮管平滑旋转（始终执行，不受冷却限制）──
+      if (hasComponent(world.world, Barrel, eid)) {
+        const range = Attack.range[eid]!;
+        const enemies = findEnemiesInRange(world, eid, range);
+        if (enemies.length > 0) {
+          const targetPos = enemies[0]!;
+          const tx = Position.x[targetPos.id]!;
+          const ty = Position.y[targetPos.id]!;
+          const px = Position.x[eid]!;
+          const py = Position.y[eid]!;
+          Barrel.targetAngle[eid] = Math.atan2(ty - py, tx - px);
+        }
+
+        const currentAngle = Barrel.angle[eid]!;
+        const targetAngle = Barrel.targetAngle[eid]!;
+        let diff = targetAngle - currentAngle;
+        // 归一化到 [-PI, PI]
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const rotateSpeed = 8; // 弧度/秒
+        const maxRotation = rotateSpeed * dt;
+        if (Math.abs(diff) <= maxRotation) {
+          Barrel.angle[eid] = targetAngle;
+        } else {
+          Barrel.angle[eid] = currentAngle + Math.sign(diff) * maxRotation;
+        }
+      }
 
       // Tick cooldown
       if (Attack.cooldownTimer[eid]! > 0) {
@@ -574,8 +603,17 @@ export function spawnMissileProjectile(
   if (!visual) return;
 
   const damage = getEffectiveDamage(towerId);
-  const fromX = Position.x[towerId]!;
-  const fromY = Position.y[towerId]!;
+
+  // ── 从炮管尖端计算发射起点 ──
+  let fromX = Position.x[towerId]!;
+  let fromY = Position.y[towerId]!;
+  if (hasComponent(world.world, Barrel, towerId)) {
+    const barrelAngle = Barrel.angle[towerId]!;
+    const barrelLen = Barrel.length[towerId]!;
+    fromX = Position.x[towerId]! + Math.cos(barrelAngle) * barrelLen;
+    fromY = Position.y[towerId]! + Math.sin(barrelAngle) * barrelLen;
+  }
+
   const towerCfg = TOWER_CONFIGS[TowerType.Missile];
 
   const targetX = Position.x[targetMarkId] ?? fromX;
@@ -662,10 +700,24 @@ export function spawnProjectile(
   if (!visual) return;
 
   const damage = getEffectiveDamage(towerId);
-  const fromX = Position.x[towerId]!;
-  const fromY = Position.y[towerId]!;
+
+  // ── 从炮管尖端计算发射起点 ──
+  let fromX = Position.x[towerId]!;
+  let fromY = Position.y[towerId]!;
+  if (hasComponent(world.world, Barrel, towerId)) {
+    const barrelAngle = Barrel.angle[towerId]!;
+    const barrelLen = Barrel.length[towerId]!;
+    fromX = Position.x[towerId]! + Math.cos(barrelAngle) * barrelLen;
+    fromY = Position.y[towerId]! + Math.sin(barrelAngle) * barrelLen;
+  }
+
   const towerTypeEnum = TOWER_TYPE_BY_ID[towerTypeVal]!;
   const towerCfg = TOWER_CONFIGS[towerTypeEnum];
+
+  // ── 锁定目标位置并计算抛物线参数 ──
+  const targetX = Position.x[targetId]!;
+  const targetY = Position.y[targetId]!;
+  const { totalTime, vyInitial } = computeMissileParabola(fromX, fromY, targetX, targetY, visual.speed);
 
   const pid = world.createEntity();
 
@@ -693,6 +745,12 @@ export function spawnProjectile(
     chainRange: towerCfg?.chainRange ?? 0,
     chainDecay: towerCfg?.chainDecay ?? 0,
     sourceTowerType: towerTypeVal,
+    // 抛物线参数（所有塔统一抛物线轨迹）
+    targetX,
+    targetY,
+    flightTime: 0,
+    totalTime,
+    vyInitial,
   });
 
   world.addComponent(pid, Visual, {
