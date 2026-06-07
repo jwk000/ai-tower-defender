@@ -31,6 +31,7 @@ import {
   BatTower,
 } from '../core/components.js';
 import type { CardConfig, CardType } from '../config/cardRegistry.js';
+import { cardConfigRegistry } from '../config/cardRegistry.js';
 import type { CardDraftSystem } from './CardDraftSystem.js';
 import type { InterLevelBuffSystem } from './InterLevelBuffSystem.js';
 import { Sound } from '../utils/Sound.js';
@@ -1228,10 +1229,37 @@ export class UISystem implements System {
         break;
       }
       case 'spell': {
-        color = '#7c4dff';
-        shape = 'circle';
-        size = 28;
-        label = '法术';
+        const spellId = ds.spellCardId;
+        if (spellId) {
+          const cardCfg = cardConfigRegistry.get(spellId);
+          if (cardCfg) {
+            const extras = cardCfg as Record<string, unknown>;
+            const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;
+            const spellRadius = spellEffect?.radius as number | undefined;
+            const subtype = cardCfg.spellSubtype;
+            switch (subtype) {
+              case 'damage': color = '#ff5722'; break;
+              case 'control': color = '#7c4dff'; break;
+              case 'buff' as string: case 'buff_instance' as string: case 'buff_card' as string: color = '#66bb6a'; break;
+              case 'utility': color = '#ffd700'; break;
+              default: color = '#7c4dff';
+            }
+            shape = 'circle';
+            size = 28;
+            label = cardCfg.name;
+            range = spellRadius;
+          } else {
+            color = '#7c4dff';
+            shape = 'circle';
+            size = 28;
+            label = '法术';
+          }
+        } else {
+          color = '#7c4dff';
+          shape = 'circle';
+          size = 28;
+          label = '法术';
+        }
         break;
       }
     }
