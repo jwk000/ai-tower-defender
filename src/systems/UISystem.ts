@@ -214,6 +214,9 @@ export class UISystem implements System {
   private interLevelBuffSystem: InterLevelBuffSystem | null = null;
   private onOpenEncyclopedia: (() => void) | null = null;
 
+  /** 敌人图鉴回调 */
+  private onOpenEnemyCodex: (() => void) | null = null;
+
   /** 当前抽卡会话中骰子是否已被使用 */
   private draftRerollUsed: boolean = false;
 
@@ -227,6 +230,10 @@ export class UISystem implements System {
 
   setEncyclopediaCallback(cb: () => void): void {
     this.onOpenEncyclopedia = cb;
+  }
+
+  setEnemyCodexCallback(cb: () => void): void {
+    this.onOpenEnemyCodex = cb;
   }
 
   selectEnemy(id: number): void {
@@ -1039,10 +1046,11 @@ export class UISystem implements System {
     // Viewport-right-anchored button positions (design-space)
     const rightEdgeD = this.viewportRightDesignX();
     const rightControlsEdgeD = rightEdgeD - UISystem.TOP_HUD_SIDE_MARGIN;
+    const hasEnemyCodex = this.onOpenEnemyCodex !== null;
 
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
       const cd = this.getCountdown();
-      const skipBtnX = rightControlsEdgeD - 133;  // 12(gap) + 50(btnW) + 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 133
+      const skipBtnX = hasEnemyCodex ? rightControlsEdgeD - 174 : rightControlsEdgeD - 133;  // depends on codex presence
       const skipBtnW = 50;
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
@@ -1073,7 +1081,7 @@ export class UISystem implements System {
       });
     }
 
-    const speedBtnX = rightControlsEdgeD - 71;    // 12(gap) + 30(btnW) + 12(gap) + 29(btnW) = 71
+    const speedBtnX = hasEnemyCodex ? rightControlsEdgeD - 112 : rightControlsEdgeD - 71;
     const speedBtnW = 30;
     const speedBtnH = 28;
     const speedBtnY = (UISystem.TOP_H - speedBtnH) / 2;
@@ -1100,7 +1108,34 @@ export class UISystem implements System {
       onClick: () => { this.onToggleSpeed?.(); },
     });
 
-    const pauseBtnX = rightControlsEdgeD - 29;
+    // Enemy Codex button — 最右侧
+    const codexBtnX = rightControlsEdgeD - 29;
+    const codexBtnW = 29;
+    const codexBtnH = 28;
+    const codexBtnY = (UISystem.TOP_H - codexBtnH) / 2;
+
+    if (hasEnemyCodex) {
+      this.renderer.push({
+        shape: 'rect',
+        x: codexBtnX + codexBtnW / 2, y: codexBtnY + codexBtnH / 2,
+        size: codexBtnW, h: codexBtnH,
+        color: '#37474f',
+        alpha: 0.9,
+        stroke: '#ef5350', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI,
+      });
+
+      this.buttons.push({
+        x: codexBtnX, y: codexBtnY, w: codexBtnW, h: codexBtnH,
+        label: '📖',
+        color: '#37474f',
+        textColor: '#ffffff',
+        enabled: true,
+        onClick: () => { this.onOpenEnemyCodex?.(); },
+      });
+    }
+
+    const pauseBtnX = hasEnemyCodex ? rightControlsEdgeD - 70 : rightControlsEdgeD - 29;
     const pauseBtnW = 29;
     const pauseBtnH = 28;
     const pauseBtnY = (UISystem.TOP_H - pauseBtnH) / 2;

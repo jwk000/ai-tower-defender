@@ -1,7 +1,7 @@
 import { Game } from './core/Game.js';
 import { ALL_BUFFS } from './data/buffs.js';
 import { LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL } from './data/cards.js';
-import { SKILL_CONFIGS, TOWER_CONFIGS, UNIT_CONFIGS, UNIT_ID_BY_TYPE, UNIT_TYPE_BY_ID } from './data/gameData.js';
+import { ENEMY_CONFIGS, SKILL_CONFIGS, TOWER_CONFIGS, UNIT_CONFIGS, UNIT_ID_BY_TYPE, UNIT_TYPE_BY_ID } from './data/gameData.js';
 import { LEVELS } from './data/levels/index.js';
 import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
 import { AttackSystem } from './systems/AttackSystem.js';
@@ -48,6 +48,8 @@ import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './u
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
 import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
+import { EnemyCodexUI } from './ui/EnemyCodexUI.js';
+import type { EnemyCodexEntry } from './ui/EnemyCodexUI.js';
 import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
 import { Music } from './utils/Music.js';
 import {
@@ -148,6 +150,9 @@ class TowerDefenderGame extends Game {
   // ---- Encyclopedia ----
   private encyclopedia!: CardEncyclopediaUI;
 
+  // ---- Enemy Codex ----
+  private enemyCodex!: EnemyCodexUI;
+
   private unitDragId: number | null = null;
   private defeatSfxPlayed = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
@@ -173,6 +178,11 @@ class TowerDefenderGame extends Game {
     this.encyclopedia.onOpen = () => { this.paused = true; };
     this.encyclopedia.onClose = () => { this.paused = false; };
 
+    // Enemy codex — shared across all screens
+    this.enemyCodex = new EnemyCodexUI(this.renderer);
+    this.enemyCodex.onOpen = () => { this.paused = true; };
+    this.enemyCodex.onClose = () => { this.paused = false; };
+
     // LevelSelectUI — renders level selection menu
     this.levelSelectUI = new LevelSelectUI(
       this.renderer,
@@ -192,6 +202,9 @@ class TowerDefenderGame extends Game {
       if (this.encyclopedia.isOpen) {
         e.preventDefault();
         this.encyclopedia.handleWheel(e.deltaY);
+      } else if (this.enemyCodex.isOpen) {
+        e.preventDefault();
+        this.enemyCodex.handleWheel(e.deltaY);
       }
     }, { passive: false });
 
@@ -224,11 +237,18 @@ class TowerDefenderGame extends Game {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.render();
       }
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.render();
+      }
     };
     this.onAfterUpdate = null;
     this.input.onPointerDown = (e: InputEvent) => {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.handleClick(e.x, e.y);
+        return;
+      }
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.handleClick(e.x, e.y);
         return;
       }
       this.levelSelectUI?.handleClick?.(e.x, e.y);
@@ -238,10 +258,15 @@ class TowerDefenderGame extends Game {
         this.encyclopedia.handleMouseMove(e.x, e.y);
         return;
       }
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.handleMouseMove(e.x, e.y);
+        return;
+      }
       this.levelSelectUI?.handleMouseMove?.(e.x, e.y);
     };
     this.input.onPointerUp = (e: InputEvent) => {
       this.encyclopedia.handleMouseUp(e.x, e.y);
+      this.enemyCodex.handleMouseUp(e.x, e.y);
     };
   }
 
@@ -676,6 +701,12 @@ class TowerDefenderGame extends Game {
     this.uiSystem.setEncyclopediaCallback(() => {
       this.encyclopedia.open();
     });
+    this.uiSystem.setEnemyCodexCallback(() => {
+      this.enemyCodex.open();
+    });
+
+    // ---- Enemy Codex: collect unique enemy types from level waves ----
+    this.setupEnemyCodex(config);
 
     // ---- Soldier AI System ----
     this.soldierAISystem = new SoldierAISystem();
@@ -799,6 +830,9 @@ class TowerDefenderGame extends Game {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.render();
       }
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.render();
+      }
     };
 
     // ---- Input dispatch for battle ----
@@ -806,6 +840,11 @@ class TowerDefenderGame extends Game {
       // Encyclopedia overlay consumes all clicks when open
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.handleClick(e.x, e.y);
+        return;
+      }
+      // Enemy codex overlay consumes all clicks when open
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.handleClick(e.x, e.y);
         return;
       }
       // Victory screen overlay consumes all clicks when active
@@ -900,18 +939,40 @@ class TowerDefenderGame extends Game {
       }
     };
 
+    this.input.onPointerMove = (e: InputEvent) => {
+      if (this.encyclopedia.isOpen) {
+        this.encyclopedia.handleMouseMove(e.x, e.y);
+        return;
+      }
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.handleMouseMove(e.x, e.y);
+        return;
+      }
+      if (this.unitDragId !== null) {
+        const ctrlTargetX = PlayerControllable.targetX[this.unitDragId];
+        if (ctrlTargetX !== undefined) {
+          PlayerControllable.targetX[this.unitDragId] = e.x;
+          PlayerControllable.targetY[this.unitDragId] = e.y;
+        }
+      }
+    };
+
     this.input.onPointerUp = (e: InputEvent) => {
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.handleMouseUp(e.x, e.y);
         return;
       }
-      console.log('[CardDrag] onPointerUp called - unitDragId:', this.unitDragId, 'dragState:', this.buildSystem.dragState);
+      if (this.enemyCodex.isOpen) {
+        this.enemyCodex.handleMouseUp(e.x, e.y);
+        return;
+      }
       if (this.unitDragId !== null) {
         this.unitDragId = null;
         return;
       }
 
       const ds = this.buildSystem.dragState;
+      console.log('[CardDrag] onPointerUp called - unitDragId:', this.unitDragId, 'dragState:', this.buildSystem.dragState);
       console.log('[CardDrag] ds:', ds, 'ds?.active:', ds?.active);
       if (ds?.active) {
         const sceneBottom = RenderSystem.sceneOffsetY + RenderSystem.sceneH;
@@ -1054,6 +1115,49 @@ class TowerDefenderGame extends Game {
     }
 
     this.installBeforeUnloadGuard();
+  }
+
+  /** 从关卡波次配置中收集所有唯一敌人类型，生成敌人图鉴数据 */
+  private setupEnemyCodex(config: LevelConfig): void {
+    const seen = new Set<string>();
+    const entries: EnemyCodexEntry[] = [];
+
+    for (const wave of config.waves) {
+      for (const group of wave.enemies) {
+        if (seen.has(group.enemyType)) continue;
+        seen.add(group.enemyType);
+
+        const enemy = ENEMY_CONFIGS[group.enemyType];
+        if (!enemy) continue;
+
+        // 分类: Boss > 精英波次中的敌人 > 普通
+        let type: EnemyCodexEntry['type'] = 'normal';
+        if (enemy.isBoss) {
+          type = 'boss';
+        } else if (wave.isBossWave) {
+          // 在 boss 波次中出现的敌人通常是精英/较强单位
+          type = 'elite';
+        }
+
+        entries.push({
+          id: group.enemyType,
+          name: enemy.name,
+          description: enemy.description ?? `${enemy.name} — HP:${enemy.hp} ATK:${enemy.atk} 防御:${enemy.defense}`,
+          type,
+          color: enemy.color,
+          hp: enemy.hp,
+          atk: enemy.atk,
+          speed: enemy.speed,
+          defense: enemy.defense,
+          magicResist: enemy.magicResist ?? 0,
+          radius: enemy.radius ?? 16,
+          shape: enemy.shape,
+          isBoss: enemy.isBoss,
+        });
+      }
+    }
+
+    this.enemyCodex.setEntries(entries);
   }
 
   // ================================================================
