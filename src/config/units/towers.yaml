@@ -263,7 +263,7 @@ laser_tower:
   stats:
     hp: 80
     atk: 7
-    attackSpeed: 1.667     # CD = 0.6s；激光束伤害随时间 S 形递增，上限 = 箭塔 atk × 3
+    attackSpeed: 0.5       # CD = 2s；激光束持续 5s，伤害 S 形递增（拐点 2.5s），上限 = 箭塔 atk × 3
     range: 250
     armor: 0
     mr: 0

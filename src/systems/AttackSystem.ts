@@ -547,7 +547,7 @@ export class AttackSystem implements System {
         targetId,
         damage: initialDamage,
         maxDamage,
-        duration: 1.0,
+        duration: 5.0,
         elapsed: 0,
       });
     }
@@ -928,7 +928,7 @@ export function doLaserAttack(
       targetId,
       damage: initialDamage,
       maxDamage,
-      duration: 1.0,
+      duration: 5.0,
       elapsed: 0,
     });
   }
