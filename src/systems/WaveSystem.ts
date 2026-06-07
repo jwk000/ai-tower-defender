@@ -142,6 +142,25 @@ export class WaveSystem implements System {
     return this.isEndless;
   }
 
+  /** Get the enemy composition of the next wave (for UI preview during WaveBreak) */
+  getNextWavePreview(): Array<{ enemyType: string; count: number; isBoss: boolean }> | null {
+    if (this.isEndless) {
+      const wave = this.generateEndlessWaveStub(this.currentWaveIndex + 1);
+      return wave.enemies.map((g) => ({
+        enemyType: g.enemyType,
+        count: g.count,
+        isBoss: wave.isBossWave ?? false,
+      }));
+    }
+    if (this.currentWaveIndex >= this.waves.length) return null;
+    const wave = this.waves[this.currentWaveIndex]!;
+    return wave.enemies.map((g) => ({
+      enemyType: g.enemyType,
+      count: g.count,
+      isBoss: wave.isBossWave ?? false,
+    }));
+  }
+
   /** v4.0: 4-stage difficulty multiplier based on wave progression ratio */
   static getDifficultyMultiplier(waveIndex: number, totalWaves: number): { hpMult: number; atkMult: number } {
     if (totalWaves <= 0) return { hpMult: 1.0, atkMult: 1.0 };

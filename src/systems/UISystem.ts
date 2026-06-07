@@ -165,6 +165,18 @@ type UILayer = 'board' | 'normal' | 'fullscreen';
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
 
+/**
+ * P2: Enemy type → display name mapping for wave preview.
+ * Matches design/03-units.md enemy definitions.
+ */
+const ENEMY_DISPLAY_NAMES: Record<string, string> = {
+  goblin: '哥布林', boar: '疯狂野猪', elephant: '铁甲大象', giant: '草原巨人',
+  desert_beetle: '沙漠黑虫', burrow_beetle: '钻地甲虫', locust: '吸血蝗虫', bomb_beetle: '自爆甲虫',
+  werewolf: '狼人', vampire_bat: '吸血蝙蝠', wizard: '巫师', priest: '黑暗牧师', frankenstein: '弗兰肯斯坦',
+  plane: '飞机', tank: '坦克', oil_truck: '油罐车', robot_dog: '机器狗', giant_robot: '巨型机器人', drone: '无人机',
+  boss_slime: '巨型史莱姆', boss_queen: '虫族女王', boss_lucifer: '路西法', boss_super_robot: '超级机器人', boss_abyss_lord: '深渊领主',
+};
+
 // ============================================================
 // UISystem
 // ============================================================
@@ -315,6 +327,14 @@ export class UISystem implements System {
   set selectedProductionEntityId(id: number | null) {
     this.selectedEntityId = id;
     this.selectedEntityType = id !== null ? 'production' : null;
+  }
+
+  /** P2: Wave enemy preview callback (WaveSystem → UI) */
+  private getWavePreview: (() => Array<{ enemyType: string; count: number; isBoss: boolean }> | null) | null = null;
+
+  /** P2: Set the wave preview callback from main.ts */
+  setWavePreviewCallback(cb: () => Array<{ enemyType: string; count: number; isBoss: boolean }> | null): void {
+    this.getWavePreview = cb;
   }
 
   // ============================================================
@@ -1434,7 +1454,7 @@ export class UISystem implements System {
     const cx = LayoutManager.DESIGN_W / 2;
     const cy = LayoutManager.DESIGN_H / 2;
     const panelW = 520;
-    const panelH = 280;
+    const panelH = 360;  // P2: increased to fit enemy preview
 
     // v5.0: signal renderUI() to draw a full-viewport dark backdrop.
     // This MUST cover the actual viewport (not just design-space) so it
@@ -1480,6 +1500,36 @@ export class UISystem implements System {
       align: 'center',
       layer: 'fullscreen',
     });
+
+    // P2: Enemy preview for next wave (only during WaveBreak, not first Deployment)
+    if (phase === GamePhase.WaveBreak) {
+      const preview = this.getWavePreview?.();
+      if (preview && preview.length > 0) {
+        const previewY = cy + 60;
+        this.infos.push({
+          x: cx, y: previewY - 8,
+          text: '即将出现:',
+          color: '#cccccc', size: 16,
+          align: 'center',
+          layer: 'fullscreen',
+        });
+
+        // Show enemy names with counts
+        const maxPreview = 5; // show at most 5 types
+        const shown = preview.slice(0, maxPreview);
+        const previewText = shown
+          .map((g) => `${ENEMY_DISPLAY_NAMES[g.enemyType] ?? g.enemyType} ×${g.count}${g.isBoss ? ' 👑' : ''}`)
+          .join('  ·  ');
+        
+        this.infos.push({
+          x: cx, y: previewY + 14,
+          text: previewText,
+          color: '#ffcc80', size: 14,
+          align: 'center',
+          layer: 'fullscreen',
+        });
+      }
+    }
 
     // Skip button — large, centered below the countdown
     const btnW = 200;
