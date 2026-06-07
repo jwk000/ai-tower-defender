@@ -18,9 +18,9 @@ base:
 
   visual:
     shape: diamond
-    color: "#ff1744"
-    size: 32
-    outline: false
+    color: "#7c3aed"
+    size: 36
+    outline: true
 
   behavior:
     movementMode: hold_position

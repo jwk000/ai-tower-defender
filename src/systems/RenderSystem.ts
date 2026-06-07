@@ -1819,73 +1819,204 @@ export class RenderSystem implements System {
 
   // ============================================
   // Crystal (Objective 水晶) 视觉渲染
-  // 设计文档: design/05-presentation.md §5 水晶视觉
-  // - 形状: 菱形复合几何体（2个菱形，1主1辉光）
-  // - 主体色: #ff1744 红色
-  // - 辉光色: #ff5252（外层，透明度0.4）
-  // - 大小: 主体32px，辉光48px
-  // - 动画: 上下浮动 ±4px，正弦2s周期
-  // - 辉光呼吸: alpha 0.2→0.5→0.2，3s周期
-  // - 低血量(<30%): 闪烁红色 + 呼吸频率加快至1.5s周期
+  // 设计语言: 高贵 / 优雅 / 神秘
+  // 紫色宝石主体 + 金色点缀 + 多层光效 + 旋转光点 + 射线 + 闪光粒子
+  // 低血量 (<30%): 转为红色警戒 + 加速动画 + 更强烈的脉冲
   // ============================================
   private drawCrystal(eid: number, posX: number, posY: number, dt: number): void {
-    // 累积动画相位
     Visual.breathPhase[eid]! += dt;
     const phase = Visual.breathPhase[eid]!;
 
-    // 血量比例 — 决定是否进入低血量模式
+    // ── 血量状态 ──
     const hpCurrent = Health.current[eid]!;
     const hpMax = Health.max[eid]!;
     const hpRatio = hpMax > 0 ? hpCurrent / hpMax : 1;
     const isLowHp = hpRatio < 0.3;
 
-    // 浮动动画: ±4px, 2s周期（低血量 1.5s）
-    const floatCycle = isLowHp ? 1.5 : 2.0;
-    const floatOffsetY = Math.sin(phase / floatCycle * Math.PI * 2) * 4;
+    // ── 主题色 (低血量时转红) ──
+    const bodyDeep   = isLowHp ? '#b91c1c' : '#5b21b6'; // 深紫 → 深红
+    const bodyMid    = isLowHp ? '#ef4444' : '#7c3aed'; // 紫罗兰 → 红
+    const bodyLight  = isLowHp ? '#fca5a5' : '#a78bfa'; // 浅紫 → 浅红
+    const glowAura   = isLowHp ? '#fecaca' : '#c4b5fd'; // 辉光紫 → 辉光红
+    const innerCore  = isLowHp ? '#fef2f2' : '#ede9fe'; // 白紫 → 白粉
+    const goldAccent = '#fcd34d';                        // 金色点缀 (不变)
+    const whitePure  = '#ffffff';
 
-    // 辉光呼吸: alpha 0.2→0.5→0.2, 3s周期（低血量 1.5s）
-    const glowCycle = isLowHp ? 1.5 : 3.0;
-    const glowPhase = (phase / glowCycle * Math.PI * 2) % (Math.PI * 2);
-    const glowAlpha = 0.2 + 0.3 * (Math.sin(glowPhase) * 0.5 + 0.5);
+    // ── 动画参数 (低血量加速) ──
+    const speedMul = isLowHp ? 1.8 : 1.0;
 
-    // 低血量闪烁效果: 0.75s 周期红白交替
-    let mainColor = '#ff1744';
-    let mainAlpha = 1.0;
-    if (isLowHp) {
-      const flashPhase = (phase / 0.75 * Math.PI * 2) % (Math.PI * 2);
-      const flashIntensity = Math.abs(Math.sin(flashPhase));
-      if (flashIntensity > 0.7) {
-        mainColor = '#ffffff';
-      }
-    }
+    // 漂浮: ±6px, 3.5s 周期
+    const floatY = Math.sin(phase / 3.5 * Math.PI * 2 * speedMul) * 6;
+    // 轻微水平摇曳
+    const swayX = Math.sin(phase / 4.7 * Math.PI * 2 * speedMul + 1.3) * 2;
+
+    // 辉光呼吸: 极缓, 5s 周期
+    const auraBreath = Math.sin(phase / 5.0 * Math.PI * 2 * speedMul) * 0.5 + 0.5;
+
+    // 内核脉冲: 2.5s 周期
+    const innerPulse = Math.sin(phase / 2.5 * Math.PI * 2 * speedMul) * 0.5 + 0.5;
 
     const layerVal = Layer.value[eid] ?? LayerVal.Ground;
     const renderZ = LAYER_TO_Z[layerVal] ?? 5;
 
-    const crystalX = posX;
-    const crystalY = posY + floatOffsetY;
+    const cx = posX + swayX;
+    const cy = posY + floatY;
 
-    // 辉光菱形（后方，半透明，较大）
+    // ============================================
+    // Layer 1: 地面光池 (底部柔光椭圆)
+    // ============================================
     this.renderer.push({
-      shape: 'diamond',
-      x: crystalX,
-      y: crystalY,
-      size: 48,
-      color: '#ff5252',
-      alpha: glowAlpha * 0.4,
+      shape: 'circle', x: posX, y: posY + 10,
+      size: 50 + auraBreath * 8,
+      color: glowAura,
+      alpha: 0.06 + auraBreath * 0.04,
       z: renderZ,
     });
 
-    // 主体菱形（前方，不透明）
+    // ============================================
+    // Layer 2: 外层以太辉光 (3层同心圆, 逐层淡化)
+    // ============================================
+    for (let i = 0; i < 3; i++) {
+      this.renderer.push({
+        shape: 'circle', x: cx, y: cy,
+        size: 38 + i * 22 + auraBreath * 6,
+        color: glowAura,
+        alpha: (0.08 - i * 0.025) + auraBreath * 0.03,
+        z: renderZ,
+      });
+    }
+
+    // ============================================
+    // Layer 3: 旋转光点环 (5颗菱形, 椭圆轨道慢速公转)
+    // ============================================
+    const moteCount = 5;
+    for (let i = 0; i < moteCount; i++) {
+      const orbitAngle = (i / moteCount) * Math.PI * 2 + phase * 0.35 * speedMul;
+      const orbitRx = 20 + Math.sin(i * 1.7) * 5;
+      const orbitRy = orbitRx * 0.55;
+      const mx = cx + Math.cos(orbitAngle) * orbitRx;
+      const my = cy + Math.sin(orbitAngle) * orbitRy;
+      const moteFlicker = Math.sin(phase * 2.2 * speedMul + i * 2.1) * 0.3 + 0.7;
+      this.renderer.push({
+        shape: 'diamond',
+        x: mx, y: my,
+        size: 3.5 + moteFlicker * 1.5,
+        color: goldAccent,
+        alpha: (0.45 + Math.sin(phase * 1.3 + i) * 0.2) * moteFlicker,
+        rotation: orbitAngle + Math.PI / 4,
+        z: renderZ,
+      });
+    }
+
+    // ============================================
+    // Layer 4: 水晶主体 — 外层切面 (深色)
+    // ============================================
     this.renderer.push({
       shape: 'diamond',
-      x: crystalX,
-      y: crystalY,
-      size: 32,
-      color: mainColor,
-      alpha: mainAlpha,
+      x: cx, y: cy,
+      size: 36,
+      color: bodyDeep,
+      alpha: 1,
+      stroke: isLowHp ? '#f87171' : '#8b5cf6',
+      strokeWidth: 1.5,
       z: renderZ,
     });
+
+    // ============================================
+    // Layer 5: 水晶主体 — 内层切面 (浅色, 偏移营造宝石切割感)
+    // ============================================
+    this.renderer.push({
+      shape: 'diamond',
+      x: cx, y: cy - 4,
+      size: 22,
+      color: bodyMid,
+      alpha: 0.88,
+      z: renderZ,
+    });
+
+    // ============================================
+    // Layer 6: 金色边缘点缀 (4颗小菱形在主体四角)
+    // ============================================
+    for (let i = 0; i < 4; i++) {
+      const edgeAngle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const ex = cx + Math.cos(edgeAngle) * 15;
+      const ey = cy + Math.sin(edgeAngle) * 15;
+      this.renderer.push({
+        shape: 'diamond',
+        x: ex, y: ey,
+        size: 4,
+        color: goldAccent,
+        alpha: 0.65 + innerPulse * 0.2,
+        rotation: edgeAngle,
+        z: renderZ,
+      });
+    }
+
+    // ============================================
+    // Layer 7: 内核光源 (脉冲亮白中心)
+    // ============================================
+    this.renderer.push({
+      shape: 'circle',
+      x: cx, y: cy,
+      size: 10 + innerPulse * 8,
+      color: innerCore,
+      alpha: 0.6 + innerPulse * 0.35,
+      z: renderZ,
+    });
+    this.renderer.push({
+      shape: 'circle',
+      x: cx, y: cy,
+      size: 4 + innerPulse * 2,
+      color: whitePure,
+      alpha: 0.5 + innerPulse * 0.45,
+      z: renderZ,
+    });
+
+    // ============================================
+    // Layer 8: 十字光射线 (4条细光束从中心辐射)
+    // ============================================
+    const rayLen = 20;
+    for (let i = 0; i < 4; i++) {
+      const rayAngle = (i / 4) * Math.PI * 2 + Math.PI / 8;
+      const rx = cx + Math.cos(rayAngle) * rayLen * 0.5;
+      const ry = cy + Math.sin(rayAngle) * rayLen * 0.5;
+      this.renderer.push({
+        shape: 'rect',
+        x: rx, y: ry,
+        size: rayLen, h: 1.5,
+        color: innerCore,
+        alpha: (0.12 + innerPulse * 0.18) * (isLowHp ? 1.5 : 1),
+        rotation: rayAngle,
+        z: renderZ,
+      });
+    }
+
+    // ============================================
+    // Layer 9: 闪烁星光粒子 (随机短暂爆发, 位置分散在水晶周围)
+    // ============================================
+    const sparkleSlot = Math.floor(phase * 4.1 * speedMul) % 6;  // 6个槽位轮换
+    const sparklePhase = (phase * 4.1 * speedMul) % 1;             // 当前槽位内的阶段
+    const sparkleLifetime = 0.35;                                   // 单次闪烁持续时长
+    if (sparklePhase < sparkleLifetime) {
+      const sAngle = (sparkleSlot / 6) * Math.PI * 2 + phase * 0.2;
+      const sDist = 14 + (sparkleSlot % 3) * 6;
+      const sx = cx + Math.cos(sAngle) * sDist;
+      const sy = cy + Math.sin(sAngle) * sDist * 0.7;
+      const sLife = sparklePhase / sparkleLifetime; // 0→1
+      // 闪烁曲线: 快速亮起, 慢速消散
+      const sAlpha = sLife < 0.2
+        ? sLife / 0.2 * 0.9
+        : (1 - (sLife - 0.2) / 0.8) * 0.9;
+      const sSize = 1.5 + (sLife < 0.2 ? sLife / 0.2 : (1 - sLife)) * 5;
+      this.renderer.push({
+        shape: 'diamond',
+        x: sx, y: sy,
+        size: sSize,
+        color: whitePure,
+        alpha: sAlpha,
+        z: renderZ,
+      });
+    }
   }
 
   // ============================================

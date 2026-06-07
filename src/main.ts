@@ -417,7 +417,7 @@ class TowerDefenderGame extends Game {
     this.baseEntityId = this.world.createEntity();
     this.world.addComponent(this.baseEntityId, Position, { x: baseX, y: baseY });
     this.world.addComponent(this.baseEntityId, Health, { current: 100, max: 100 });
-    const baseRgb = hexToRgb('#ff1744');  // 主体红色（设计文档 §5）
+    const baseRgb = hexToRgb('#7c3aed');  // 紫水晶色（高贵/优雅/神秘主题）
     this.world.addComponent(this.baseEntityId, Visual, {
       shape: ShapeVal.Diamond,  // 菱形（设计文档 §5）
       colorR: baseRgb.r,
@@ -629,6 +629,11 @@ class TowerDefenderGame extends Game {
         return { current, max };
       },
     );
+
+    // P2: Wave preview — show next wave enemies during WaveBreak countdown
+    this.uiSystem.setWavePreviewCallback(() => {
+      return this.waveSystem.getNextWavePreview();
+    });
 
     // ---- Hand System (card management) ----
     this.handSystem = new HandSystem();

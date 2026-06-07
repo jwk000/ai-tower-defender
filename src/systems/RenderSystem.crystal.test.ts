@@ -68,14 +68,12 @@ describe('RenderSystem — 水晶显示', () => {
     const renderer = new RendererStub();
     const system = new RenderSystem(renderer as never, makeMap());
 
-    // dt=0 避免浮动动画偏移影响位置断言
+    // dt=0 避免动画偏移影响断言；验证水晶以不透明菱形绘制
     system.update(world, 0);
 
     expect(renderer.commands).toContainEqual(
       expect.objectContaining({
         shape: 'diamond',
-        x: 96,
-        y: 32,
         alpha: 1,
       }),
     );
