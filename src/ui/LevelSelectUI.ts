@@ -21,6 +21,8 @@ interface LevelButton {
   timesCleared: number;
   /** v6.0: 过关界面 summary（来自 LevelCompletionState） */
   summary: string;
+  /** 关卡 YAML description（未通关时展示） */
+  description: string;
 }
 
 interface ThemeBackground {
@@ -175,6 +177,7 @@ export class LevelSelectUI {
         stars: completion?.bestStars ?? levelStars[levelId] ?? 0,
         timesCleared: completion?.timesCleared ?? 0,
         summary: completion?.summary ?? '',
+        description: level.description ?? '',
       });
     }
 
@@ -666,13 +669,14 @@ export class LevelSelectUI {
       ctx.fillText(clippedSummary, btn.x + btn.w / 2, btn.y + 64);
       ctx.restore();
     } else {
-      // Theme + waves info
+      // 未通关 → 显示 YAML description
       ctx.save();
       ctx.fillStyle = btn.locked ? '#5f647b' : selected ? 'rgba(255,255,255,0.86)' : '#b9c0d8';
-      ctx.font = getFont(15);
+      ctx.font = getFont(14);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${btn.theme} · ${btn.waves} waves`, btn.x + btn.w / 2, btn.y + 68);
+      const clipped = btn.description.length > 16 ? btn.description.slice(0, 13) + '…' : btn.description;
+      ctx.fillText(clipped, btn.x + btn.w / 2, btn.y + 68);
       ctx.restore();
     }
 
