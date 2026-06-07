@@ -155,6 +155,7 @@ class TowerDefenderGame extends Game {
 
   private unitDragId: number | null = null;
   private defeatSfxPlayed = false;
+  private victoryHandled = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
 
   /** Accumulated in-battle seconds (for BattleSnapshot.gameTime). */
@@ -385,6 +386,7 @@ class TowerDefenderGame extends Game {
     const map = config.map;
     this.currentMap = map;
     this.defeatSfxPlayed = false;
+    this.victoryHandled = false;
     this.previousPhase = GamePhase.Deployment;
     Music.play(Music.getLevelBgm(this.currentLevelId));
 
@@ -1053,7 +1055,10 @@ class TowerDefenderGame extends Game {
       }
 
       if (this.phase === GamePhase.Victory) {
-        this.handleVictory();
+        if (!this.victoryHandled) {
+          this.victoryHandled = true;
+          this.handleVictory();
+        }
       } else if (this.phase === GamePhase.Defeat) {
         if (!this.defeatSfxPlayed) {
           Sound.play('defeat');
@@ -1218,9 +1223,8 @@ class TowerDefenderGame extends Game {
     SaveManager.clearBattleSnapshot();
 
     this.levelSelectUI?.refresh?.(this.currentLevelId);
-    this.paused = true;
 
-    // 启动胜利界面系统
+    // 启动胜利界面系统（不暂停游戏循环，让 victory screen 的动画得以运行）
     this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared);
   }
 
