@@ -262,13 +262,15 @@ export class UnitFactory {
     this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
     this.world.addComponent(eid, Layer, { value: LayerVal.Ground });
 
-    // Barrel — 炮管视觉组件（所有塔统一添加）
-    this.world.addComponent(eid, Barrel, {
-      angle: 0,
-      targetAngle: 0,
-      length: base.cfg.size ? (base.cfg.size as number) * 0.55 : 20,
-      width: 6,
-    });
+    // Barrel — 仅 Cannon 塔有炮管视觉
+    if (towerType === TowerType.Cannon) {
+      this.world.addComponent(eid, Barrel, {
+        angle: 0,
+        targetAngle: 0,
+        length: ((cfg.size as number) ?? (opts.tileSize * 0.65)) * 0.55,
+        width: 6,
+      });
+    }
 
     // BuildingTower — 建造中状态
     const buildTime = (cfg.buildTime as number) ?? 2.0;
