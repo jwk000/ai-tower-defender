@@ -694,7 +694,6 @@ class TowerDefenderGame extends Game {
     // ---- Victory Screen System ----
     this.victoryScreenSystem = new VictoryScreenSystem(this.renderer);
     this.victoryScreenSystem.onComplete = () => {
-      this.paused = false;
       this.enterLevelSelect();
     };
 
@@ -1226,7 +1225,11 @@ class TowerDefenderGame extends Game {
 
     this.levelSelectUI?.refresh?.(this.currentLevelId);
 
-    // 启动胜利界面系统（不暂停游戏循环，让 victory screen 的动画得以运行）
+    // 播放胜利音频
+    Sound.play(victoryConfig.audio.sfx as never);
+    Music.play(victoryConfig.audio.bgm as never, 0.5);
+
+    // 启动胜利覆盖层（在战斗画面上叠加暗色遮罩+彩带+星星+故事）
     this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared);
   }
 
