@@ -1263,7 +1263,8 @@ class TowerDefenderGame extends Game {
 
   private handleDefeat(): void {
     Music.play('defeat', 0.5);
-    Sound.play('defeat');
+    // Sound.play('defeat') 已在调用点（line 1089）通过 defeatSfxPlayed 守卫保证只播放一次，
+    // 此处删除重复调用，避免每帧触发刺耳连播。
     this.phase = GamePhase.Defeat;
     SaveManager.clearBattleSnapshot();
     this.levelSelectUI?.refresh?.();
