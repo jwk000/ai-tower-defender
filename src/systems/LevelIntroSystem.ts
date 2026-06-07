@@ -254,7 +254,12 @@ export class LevelIntroSystem implements System {
       }
     }
 
-    // Phase 4+: 传送门特效
+    // 路径铺展叠加层：在已有棋盘格子上绘制蔓延高亮
+    if (this.phase === IntroPhase.PathReveal) {
+      this.renderPathOverlay(ctx);
+    }
+
+    // 传送门特效（SpawnAppear 及之后）
     if (this.phase === IntroPhase.SpawnAppear ||
         this.phase === IntroPhase.PathReveal ||
         this.phase === IntroPhase.Complete) {
@@ -264,6 +269,40 @@ export class LevelIntroSystem implements System {
           this.drawSpawnPortalSimple(ctx, tile.targetX, tile.targetY, alpha);
         }
       }
+    }
+  }
+
+  /** 在路径格子上绘制流动高亮叠加（沿行走路线方向 sweep） */
+  private renderPathOverlay(ctx: CanvasRenderingContext2D): void {
+    const s = this.ts - 2;
+    const revealed = this.pathRevealOrder.slice(0, this.pathRevealIndex);
+
+    for (let i = 0; i < revealed.length; i++) {
+      const entry = revealed[i]!;
+      const tile = this.tiles.find(t => t.row === entry.row && t.col === entry.col);
+      if (!tile) continue;
+
+      // 沿路线进度渐变：越近 spawn 越"旧"（恢复到正常色），越近前沿越亮
+      const progress = revealed.length > 1 ? i / (revealed.length - 1) : 1;
+      const brightness = 0.3 + (1 - progress) * 0.5; // 头部最亮，尾部收敛
+
+      const x = tile.targetX;
+      const y = tile.targetY;
+
+      ctx.save();
+      // 亮色叠加覆盖原路径瓦片
+      ctx.fillStyle = '#c4a96a';  // 亮金色路径
+      ctx.globalAlpha = brightness;
+      ctx.fillRect(x - s / 2, y - s / 2, s, s);
+
+      // 展开前沿（最后几个格子）额外光晕
+      if (i >= revealed.length - 5) {
+        const trailAlpha = (i - (revealed.length - 5)) / 5 * 0.4;
+        ctx.fillStyle = '#ffd54f';
+        ctx.globalAlpha = trailAlpha;
+        ctx.fillRect(x - s / 2, y - s / 2, s, s);
+      }
+      ctx.restore();
     }
   }
 
@@ -292,11 +331,7 @@ export class LevelIntroSystem implements System {
     const y = tile.targetY;
     const s = this.ts - 2;
 
-    // 路径瓦片：Phase 5 时按行走路线逐步揭示
-    if (tile.type === TileType.Path && this.phase === IntroPhase.PathReveal) {
-      if (!this.isPathTileRevealed(tile.row, tile.col)) return;
-    }
-    // 路径瓦片在 Phase 2-4 保持可见，Phase 1 正常下落
+    // 路径瓦片在 TilesFalling 阶段由 renderTileFalling 处理，其他阶段正常渲染
     if (tile.type === TileType.Path && (this.phase === IntroPhase.TilesFalling)) {
       return; // handled by renderTileFalling
     }
@@ -517,13 +552,5 @@ export class LevelIntroSystem implements System {
     }
 
     return result;
-  }
-
-  private isPathTileRevealed(row: number, col: number): boolean {
-    for (let i = 0; i < this.pathRevealIndex && i < this.pathRevealOrder.length; i++) {
-      const entry = this.pathRevealOrder[i]!;
-      if (entry.row === row && entry.col === col) return true;
-    }
-    return false;
   }
 }
