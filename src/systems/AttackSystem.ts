@@ -533,6 +533,10 @@ export class AttackSystem implements System {
   ): void {
     const beamCount = Math.min(this.getBeamCount(level), enemiesInRange.length);
     const damage = this.getDamage(towerId);
+    // 激光束伤害上限 = 箭塔 atk × 3
+    const maxDamage = TOWER_CONFIGS[TowerType.Arrow].atk * 3;
+    // 激光束初始伤害 = maxDamage × 10%（beam 开始时伤害最低，smoothstep 递增）
+    const initialDamage = maxDamage * 0.1;
 
     for (let i = 0; i < beamCount; i++) {
       const targetId = enemiesInRange[i]!.id;
@@ -541,7 +545,8 @@ export class AttackSystem implements System {
       world.addComponent(beamId, LaserBeam, {
         sourceId: towerId,
         targetId,
-        damage,
+        damage: initialDamage,
+        maxDamage,
         duration: 1.0,
         elapsed: 0,
       });
@@ -912,6 +917,8 @@ export function doLaserAttack(
 ): void {
   const beamCount = Math.min(getLaserBeamCount(level), enemiesInRange.length);
   const damage = getEffectiveDamage(towerId);
+  const maxDamage = TOWER_CONFIGS[TowerType.Arrow].atk * 3;
+  const initialDamage = maxDamage * 0.1;
 
   for (let i = 0; i < beamCount; i++) {
     const targetId = enemiesInRange[i]!.id;
@@ -919,7 +926,8 @@ export function doLaserAttack(
     world.addComponent(beamId, LaserBeam, {
       sourceId: towerId,
       targetId,
-      damage,
+      damage: initialDamage,
+      maxDamage,
       duration: 1.0,
       elapsed: 0,
     });

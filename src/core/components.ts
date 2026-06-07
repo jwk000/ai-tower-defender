@@ -555,6 +555,7 @@ export const LaserBeam = defineComponent({
   sourceId: Types.eid,
   targetId: Types.eid,
   damage: Types.f32,
+  maxDamage: Types.f32,
   duration: Types.f32,
   elapsed: Types.f32,
 });

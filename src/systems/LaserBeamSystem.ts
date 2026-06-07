@@ -6,8 +6,23 @@ import type { Renderer } from '../render/Renderer.js';
 const GLOW_COLOR = '#e040fb';
 const CORE_COLOR = '#ffffff';
 const DAMAGE_INTERVAL = 0.1;
+/** Minimum damage ratio at t=0 (10% of maxDamage) */
+const MIN_RATIO = 0.10;
 
 const beamQuery = defineQuery([LaserBeam]);
+
+/** Smootherstep — S-curve interpolation: 6t⁵ - 15t⁴ + 10t³ */
+function smootherstep(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+/** Compute S-curve damage for a laser beam at given elapsed time */
+function computeSigmoidDamage(elapsed: number, duration: number, maxDamage: number): number {
+  const t = Math.min(elapsed / duration, 1.0);
+  const curved = smootherstep(t);
+  const ratio = MIN_RATIO + (1 - MIN_RATIO) * curved;
+  return ratio * maxDamage;
+}
 
 /** Laser beam — continuous damage + Canvas 2D rendering */
 export class LaserBeamSystem implements System {
@@ -68,7 +83,16 @@ export class LaserBeamSystem implements System {
   private applyDamage(world: TowerWorld, eid: number): void {
     const targetId = LaserBeam.targetId[eid]!;
     if (!targetId || Health.current[targetId]! <= 0) return;
-    applyDamageToTarget(world, targetId, LaserBeam.damage[eid]!, DamageTypeVal.Magic);
+
+    const elapsed = LaserBeam.elapsed[eid]!;
+    const duration = LaserBeam.duration[eid]!;
+    const maxDamage = LaserBeam.maxDamage[eid]!;
+    const currentDamage = computeSigmoidDamage(elapsed, duration, maxDamage);
+
+    // Update stored damage for potential UI reads
+    LaserBeam.damage[eid] = currentDamage;
+
+    applyDamageToTarget(world, targetId, currentDamage, DamageTypeVal.Magic);
     Visual.hitFlashTimer[targetId] = 0.08;
   }
 

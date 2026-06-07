@@ -91,10 +91,10 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     cost: 90,
     hp: 80,
     atk: 8,
-    attackSpeed: 5, // 5 ticks/s（实际 DPS = 40）
+    attackSpeed: 1.667, // CD = 0.6s（三倍于原 0.2s），实际 DPS = 13.3
     range: 200,
     damageType: 'magic',
-    // L2: 蓄能机制 — 锁同一目标每持续 1s 伤害×1.2，上限×3
+    // 激光束伤害随照射时间 S 形递增，上限为箭塔 atk × 3 = 45
     upgradeCosts: [150],
     upgradeAtkBonus: [0],
     upgradeRangeBonus: [0],
