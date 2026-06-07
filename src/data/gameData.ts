@@ -15,8 +15,126 @@ import {
   type WaveConfig,
   type GridPos,
   type UpgradeVisualRegistry,
+  type UnitVisualParts,
 } from '../types/index.js';
 import { migrateEnemyPathToGraph } from '../level/graph/migration.js';
+
+// ============================================================
+// TOWER_BASE_VISUAL_PARTS — 塔的基础复合几何外观
+// 每种塔由 3-6 个 CompositePart 构成独特剪影，实现"简约不简单"
+// ============================================================
+
+export const TOWER_BASE_VISUAL_PARTS: Record<TowerType, UnitVisualParts> = {
+  // ── 箭塔：弓臂+弓弦+箭头 ──
+  [TowerType.Arrow]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'rect', offsetX: -10, offsetY: -4, size: 16, h: 3, color: '#0288d1', alpha: 0.9, rotation: -0.55 },
+      { shape: 'rect', offsetX: 10, offsetY: -4, size: 16, h: 3, color: '#0288d1', alpha: 0.9, rotation: 0.55 },
+      { shape: 'rect', offsetX: 0, offsetY: 0, size: 16, h: 1, color: '#b0bec5', alpha: 0.7 },
+      { shape: 'triangle', offsetX: 0, offsetY: -15, size: 8, color: '#ffffff', alpha: 0.9 },
+    ],
+  },
+  // ── 弩塔：横弩臂+弩弦+弩头 ──
+  [TowerType.Ballista]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'rect', offsetX: 0, offsetY: -2, size: 30, h: 5, color: '#455a64', alpha: 1, stroke: '#546e7a', strokeWidth: 1 },
+      { shape: 'rect', offsetX: 0, offsetY: -8, size: 12, h: 1, color: '#cfd8dc', alpha: 0.8 },
+      { shape: 'triangle', offsetX: 18, offsetY: -2, size: 10, color: '#37474f', alpha: 0.9 },
+      { shape: 'rect', offsetX: -14, offsetY: 2, size: 6, h: 10, color: '#546e7a', alpha: 0.8 },
+      { shape: 'rect', offsetX: 14, offsetY: 2, size: 6, h: 10, color: '#546e7a', alpha: 0.8 },
+    ],
+  },
+  // ── 炮塔：炮管+炮口+轮子 ──
+  [TowerType.Cannon]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'rect', offsetX: 0, offsetY: -4, size: 14, h: 10, color: '#4e342e', alpha: 1, rotation: Math.PI / 2 },
+      { shape: 'circle', offsetX: 0, offsetY: -14, size: 8, color: '#3e2723', alpha: 1 },
+      { shape: 'circle', offsetX: 0, offsetY: -14, size: 4, color: '#1b0000', alpha: 0.9 },
+      { shape: 'circle', offsetX: -10, offsetY: 10, size: 8, color: '#37474f', alpha: 0.9 },
+      { shape: 'circle', offsetX: 10, offsetY: 10, size: 8, color: '#37474f', alpha: 0.9 },
+    ],
+  },
+  // ── 激光塔：晶体+聚焦镜 ──
+  [TowerType.Laser]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'diamond', offsetX: 0, offsetY: -2, size: 14, color: '#00b8d4', alpha: 0.8 },
+      { shape: 'triangle', offsetX: 0, offsetY: -16, size: 8, color: '#e0f7fa', alpha: 0.9 },
+      { shape: 'rect', offsetX: -10, offsetY: 0, size: 5, h: 10, color: '#006064', alpha: 0.7 },
+      { shape: 'rect', offsetX: 10, offsetY: 0, size: 5, h: 10, color: '#006064', alpha: 0.7 },
+      { shape: 'circle', offsetX: 0, offsetY: -2, size: 4, color: '#ffffff', alpha: 0.7 },
+    ],
+  },
+  // ── 蝙蝠塔：双翼+尖顶+核心眼 ──
+  [TowerType.Bat]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'triangle', offsetX: -8, offsetY: -4, size: 16, color: '#311b92', alpha: 0.85, rotation: -0.25 },
+      { shape: 'triangle', offsetX: 8, offsetY: -4, size: 16, color: '#311b92', alpha: 0.85, rotation: 0.25 },
+      { shape: 'triangle', offsetX: 0, offsetY: -16, size: 8, color: '#1a237e', alpha: 0.9 },
+      { shape: 'circle', offsetX: 0, offsetY: 2, size: 7, color: '#ff1744', alpha: 0.7 },
+      { shape: 'circle', offsetX: 0, offsetY: 2, size: 3, color: '#ffffff', alpha: 0.5 },
+    ],
+  },
+  // ── 导弹塔：发射管+雷达 ──
+  [TowerType.Missile]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'rect', offsetX: -6, offsetY: 0, size: 14, h: 4, color: '#b71c1c', alpha: 1, rotation: -0.7 },
+      { shape: 'rect', offsetX: 6, offsetY: 0, size: 14, h: 4, color: '#b71c1c', alpha: 1, rotation: 0.7 },
+      { shape: 'rect', offsetX: 0, offsetY: -12, size: 10, h: 3, color: '#757575', alpha: 0.9 },
+      { shape: 'circle', offsetX: 0, offsetY: -18, size: 4, color: '#ffeb3b', alpha: 0.9 },
+      { shape: 'triangle', offsetX: 0, offsetY: -8, size: 8, color: '#ff1744', alpha: 0.8 },
+    ],
+  },
+  // ── 冰塔：冰晶+雾环 ──
+  [TowerType.Ice]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'diamond', offsetX: 0, offsetY: -2, size: 14, color: '#e1f5fe', alpha: 0.8 },
+      { shape: 'triangle', offsetX: -6, offsetY: 6, size: 6, color: '#b3e5fc', alpha: 0.7, rotation: Math.PI },
+      { shape: 'triangle', offsetX: 6, offsetY: 6, size: 6, color: '#b3e5fc', alpha: 0.7, rotation: Math.PI },
+      { shape: 'circle', offsetX: 0, offsetY: 2, size: 5, color: '#0277bd', alpha: 0.6 },
+      { shape: 'circle', offsetX: 0, offsetY: 0, size: 30, color: '#81d4fa', alpha: 0.15, stroke: '#81d4fa', strokeWidth: 1 },
+    ],
+  },
+  // ── 火塔：火焰+火星 ──
+  [TowerType.Fire]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'triangle', offsetX: 0, offsetY: -6, size: 14, color: '#ff9800', alpha: 0.9 },
+      { shape: 'triangle', offsetX: 0, offsetY: -14, size: 10, color: '#ff5722', alpha: 0.85 },
+      { shape: 'triangle', offsetX: 0, offsetY: -20, size: 6, color: '#ffcc80', alpha: 0.7 },
+      { shape: 'circle', offsetX: -4, offsetY: -2, size: 3, color: '#ff9800', alpha: 0.6 },
+      { shape: 'circle', offsetX: 4, offsetY: -8, size: 2, color: '#ff5722', alpha: 0.5 },
+    ],
+  },
+  // ── 毒塔：毒囊+毒腺+毒液 ──
+  [TowerType.Poison]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'circle', offsetX: 0, offsetY: -8, size: 10, color: '#388e3c', alpha: 0.8 },
+      { shape: 'circle', offsetX: -6, offsetY: -12, size: 7, color: '#2e7d32', alpha: 0.8 },
+      { shape: 'circle', offsetX: 6, offsetY: -12, size: 7, color: '#2e7d32', alpha: 0.8 },
+      { shape: 'triangle', offsetX: 0, offsetY: 8, size: 5, color: '#33691e', alpha: 0.7 },
+      { shape: 'circle', offsetX: 2, offsetY: -4, size: 3, color: '#a5d6a7', alpha: 0.6 },
+    ],
+  },
+  // ── 电塔：天线+线圈+电弧 ──
+  [TowerType.Lightning]: {
+    bobStyle: 'static',
+    bodyParts: [
+      { shape: 'rect', offsetX: 0, offsetY: -6, size: 12, h: 3, color: '#f57f17', alpha: 0.8 },
+      { shape: 'circle', offsetX: 0, offsetY: -18, size: 10, color: '#ffd600', alpha: 0.8 },
+      { shape: 'circle', offsetX: 0, offsetY: -18, size: 5, color: '#ffffff', alpha: 0.5 },
+      { shape: 'triangle', offsetX: -10, offsetY: -2, size: 8, color: '#ffd600', alpha: 0.7, rotation: -0.3 },
+      { shape: 'triangle', offsetX: 10, offsetY: -2, size: 8, color: '#ffd600', alpha: 0.7, rotation: 0.3 },
+    ],
+  },
+};
 
 // ============================================================
 // TOWER_CONFIGS — v4.0 塔配置（per design/03-units.md §2）
@@ -44,6 +162,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     projectileCount: [1, 2, 3],
     color: '#4fc3f7',
     buildTime: 1.5,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Arrow],
   },
 
   // ---- 2.2 弩塔 ----
@@ -63,6 +182,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#8d6e63',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Ballista],
   },
 
   // ---- 2.3 炮塔 ----
@@ -82,6 +202,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#ff8a65',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Cannon],
   },
 
   // ---- 2.4 激光塔 ----
@@ -100,6 +221,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#e040fb',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Laser],
   },
 
   // ---- 2.5 蝙蝠塔 ----
@@ -125,6 +247,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 0],
     color: '#7c4dff',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Bat],
   },
 
   // ---- 2.6 导弹塔 ----
@@ -146,6 +269,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     projectileCount: [1, 2, 3],
     color: '#ff1744',
     buildTime: 3.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Missile],
   },
 
   // ---- 2.7 冰塔 ----
@@ -166,6 +290,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#81d4fa',
     buildTime: 1.5,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Ice],
   },
 
   // ---- 2.8 火塔 ----
@@ -186,6 +311,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#ff5722',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Fire],
   },
 
   // ---- 2.9 毒塔 ----
@@ -206,6 +332,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#66bb6a',
     buildTime: 1.5,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Poison],
   },
 
   // ---- 2.10 电塔 ----
@@ -227,6 +354,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20, 0],
     color: '#fff176',
     buildTime: 2.0,
+    visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Lightning],
   },
 };
 
@@ -412,6 +540,50 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
       { shape: 'triangle', offsetX: -7, offsetY: 12, size: 6, color: '#9e9e9e', alpha: 0.6 },
       { shape: 'triangle', offsetX: 7, offsetY: 12, size: 6, color: '#9e9e9e', alpha: 0.6 },
     ], glow: { radius: 52, color: '#ff1744', alpha: 0.4, pulseAmplitude: 0.15 } },
+  ],
+  // ── 火塔（L1=L1, L2=L2）──
+  fire_tower: [
+    { level: 1, scaleMultiplier: 1.0, extraParts: [] },
+    { level: 2, scaleMultiplier: 1.12, extraParts: [
+      { shape: 'triangle', offsetX: 0, offsetY: -22, size: 7, color: '#ffcc80', alpha: 0.8 },
+      { shape: 'triangle', offsetX: -3, offsetY: -16, size: 12, color: '#ff7033', alpha: 0.85 },
+      { shape: 'triangle', offsetX: 3, offsetY: -16, size: 12, color: '#ff7033', alpha: 0.85 },
+    ], glow: { radius: 22, color: '#ff5722', alpha: 0.15 }, passiveVisual: { type: 'crit_flash', description: '5% chance execute non-BOSS' } },
+    { level: 3, scaleMultiplier: 1.25, extraParts: [
+      { shape: 'triangle', offsetX: 0, offsetY: -24, size: 9, color: '#ffcc80', alpha: 0.9 },
+      { shape: 'triangle', offsetX: -4, offsetY: -18, size: 14, color: '#ff5722', alpha: 0.9 },
+      { shape: 'triangle', offsetX: 4, offsetY: -18, size: 14, color: '#ff5722', alpha: 0.9 },
+      { shape: 'circle', offsetX: 0, offsetY: -26, size: 4, color: '#fff3e0', alpha: 0.7 },
+    ], glow: { radius: 28, color: '#ff5722', alpha: 0.25 } },
+  ],
+  // ── 毒塔（L1=L1, L2=L2）──
+  poison_tower: [
+    { level: 1, scaleMultiplier: 1.0, extraParts: [] },
+    { level: 2, scaleMultiplier: 1.12, extraParts: [
+      { shape: 'circle', offsetX: -8, offsetY: -12, size: 8, color: '#1b5e20', alpha: 0.9 },
+      { shape: 'circle', offsetX: 8, offsetY: -12, size: 8, color: '#1b5e20', alpha: 0.9 },
+      { shape: 'circle', offsetX: 0, offsetY: -4, size: 5, color: '#a5d6a7', alpha: 0.5 },
+    ], glow: { radius: 20, color: '#4caf50', alpha: 0.15 }, passiveVisual: { type: 'crit_flash', description: 'poison spreads to nearby enemies' } },
+    { level: 3, scaleMultiplier: 1.25, extraParts: [
+      { shape: 'circle', offsetX: -9, offsetY: -14, size: 9, color: '#1b5e20', alpha: 0.9 },
+      { shape: 'circle', offsetX: 9, offsetY: -14, size: 9, color: '#1b5e20', alpha: 0.9 },
+      { shape: 'circle', offsetX: 0, offsetY: -2, size: 6, color: '#c8e6c9', alpha: 0.6 },
+      { shape: 'triangle', offsetX: 0, offsetY: 10, size: 5, color: '#2e7d32', alpha: 0.8 },
+    ], glow: { radius: 24, color: '#4caf50', alpha: 0.25 } },
+  ],
+  // ── 弩塔（L1=L1, L2=L2, L3=L3）──
+  ballista_tower: [
+    { level: 1, scaleMultiplier: 1.0, extraParts: [] },
+    { level: 2, scaleMultiplier: 1.08, extraParts: [
+      { shape: 'rect', offsetX: 0, offsetY: -4, size: 16, h: 1, color: '#90a4ae', alpha: 0.7 },
+      { shape: 'triangle', offsetX: 20, offsetY: -2, size: 12, color: '#455a64', alpha: 0.9 },
+    ] },
+    { level: 3, scaleMultiplier: 1.17, extraParts: [
+      { shape: 'rect', offsetX: 0, offsetY: -4, size: 20, h: 2, color: '#b0bec5', alpha: 0.8 },
+      { shape: 'triangle', offsetX: 22, offsetY: -3, size: 14, color: '#37474f', alpha: 1 },
+      { shape: 'circle', offsetX: -16, offsetY: 2, size: 4, color: '#78909c', alpha: 0.7 },
+      { shape: 'circle', offsetX: 16, offsetY: 2, size: 4, color: '#78909c', alpha: 0.7 },
+    ], glow: { radius: 22, color: '#78909c', alpha: 0.15 }, passiveVisual: { type: 'crit_flash', description: 'pierce damage no decay, 50% bonus on 3+ hits' } },
   ],
 };
 

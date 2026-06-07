@@ -238,6 +238,10 @@ export class AttackSystem implements System {
         }
       }
 
+      // Trigger tower attack animation (brief brighten pulse)
+      Visual.attackAnimTimer[eid] = 0.25;
+      Visual.attackAnimDuration[eid] = 0.25;
+
       // Reset cooldown
       Attack.cooldownTimer[eid]! = 1.0 / Attack.attackSpeed[eid]!;
     }

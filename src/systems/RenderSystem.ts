@@ -832,9 +832,9 @@ export class RenderSystem implements System {
       }
 
       // ========================================
-      // Enemy stun visual
+      // Enemy / Tower stun visual
       // ========================================
-      if (isEnemy && !flashActive) {
+      if ((isEnemy || isTower) && !flashActive) {
         if (hasStunnedComponent && Stunned.timer[eid]! > 0) {
           displayColor = '#ffd700';
           displayAlpha = 0.9;
@@ -1074,6 +1074,19 @@ export class RenderSystem implements System {
           attackAnimPosX = posX + lungeDist * facing;
         }
       }
+      // Tower attack animation: brief brighten pulse
+      if (isTower) {
+        const atkTimer = Visual.attackAnimTimer[eid]!;
+        const atkDur = Visual.attackAnimDuration[eid]!;
+        if (atkTimer > 0 && atkDur > 0) {
+          const progress = 1 - atkTimer / atkDur;
+          if (progress < 0.15) {
+            // Brief bright flash + slight scale pulse
+            attackAnimSize = drawSize * (1 + 0.06 * Math.sin(progress / 0.15 * Math.PI / 2));
+            displayAlpha = Math.min(1, displayAlpha * 1.2);
+          }
+        }
+      }
 
       // ========================================
       // 1. Entity body (bottom layer — drawn first)
@@ -1190,6 +1203,55 @@ export class RenderSystem implements System {
           rotation: barrelAngle,
           z: renderZ + 1,
         });
+      }
+
+      // ========================================
+      // Tower idle effects — particles / aura / orbiters
+      // ========================================
+      if (isTower && !isBuilding) {
+        this.drawTowerIdleEffects(eid, posX, posY, Tower.towerType[eid]!, drawSize, renderZ, hasFrozen, hasStunnedComponent);
+      }
+
+      // ========================================
+      // Tower state overlays — frozen ice shards / stunned stars
+      // ========================================
+      if (isTower) {
+        if (hasFrozen) {
+          // Ice crystal shards encasing the tower
+          const t = Date.now() * 0.001;
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + t * 0.3;
+            const r = drawSize * 0.55;
+            this.renderer.push({
+              shape: 'diamond',
+              x: posX + Math.cos(angle) * r,
+              y: posY + Math.sin(angle) * r * 0.7,
+              size: 5,
+              color: '#b3e5fc',
+              alpha: 0.7,
+              rotation: angle,
+              z: renderZ + 3,
+            });
+          }
+        }
+        if (hasStunnedComponent && Stunned.timer[eid]! > 0) {
+          // Orbiting golden stars
+          const t = Date.now() * 0.001;
+          for (let i = 0; i < 3; i++) {
+            const angle = t * 2.5 + (i / 3) * Math.PI * 2;
+            const r = drawSize * 0.5;
+            this.renderer.push({
+              shape: 'triangle',
+              x: posX + Math.cos(angle) * r,
+              y: posY - 2 + Math.sin(angle) * r * 0.6,
+              size: 6,
+              color: '#ffd700',
+              alpha: 0.8,
+              rotation: angle,
+              z: renderZ + 3,
+            });
+          }
+        }
       }
 
       // ========================================
@@ -1616,6 +1678,170 @@ export class RenderSystem implements System {
         alpha: 0.95,
         z,
       });
+    }
+  }
+
+  // ============================================
+  // Tower idle effects — particles, auras, orbiter
+  // ============================================
+
+  /** Deterministic seed-based particle generation for tower idle effects */
+  private seedRand(seed: number): () => number {
+    let s = (seed * 16807) % 2147483647;
+    return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  }
+
+  private drawTowerIdleEffects(
+    eid: number, posX: number, posY: number,
+    towerTypeVal: number, drawSize: number, renderZ: number,
+    hasFrozen: boolean, hasStunned: boolean,
+  ): void {
+    if (hasFrozen || hasStunned) return; // disabled towers idle effects stop
+
+    const t = Date.now() * 0.001;
+    const seed = eid * 2654435761;
+    const rng = this.seedRand(seed);
+
+    switch (towerTypeVal) {
+      // ── Arrow (0): 2 floating cyan diamonds from arrow tip ──
+      case 0: {
+        for (let i = 0; i < 2; i++) {
+          const cycle = 1.4 + i * 0.35;
+          const phase = ((t * 0.7 + i * 1.8) % cycle + cycle) % cycle;
+          const p = phase / cycle;
+          const py = posY - drawSize * 0.45 - p * 28;
+          const px = posX + Math.sin(t * 1.6 + i * Math.PI) * 5;
+          this.renderer.push({ shape: 'diamond', x: px, y: py, size: 3, color: '#b3e5fc', alpha: (1 - p) * 0.55, z: renderZ + 2 });
+        }
+        break;
+      }
+      // ── Ballista (9): slow metallic gear particles rotating ──
+      case 9: {
+        for (let i = 0; i < 2; i++) {
+          const angle = t * 1.2 + i * Math.PI;
+          this.renderer.push({ shape: 'circle', x: posX + Math.cos(angle) * 18, y: posY + Math.sin(angle) * 14, size: 3, color: '#90a4ae', alpha: 0.45, z: renderZ + 1 });
+        }
+        break;
+      }
+      // ── Cannon (1): smoke puffs from barrel ──
+      case 1: {
+        for (let i = 0; i < 3; i++) {
+          const cycle = 2.5 + i * 0.7;
+          const phase = ((t * 0.9 + i * rng() * 2) % cycle + cycle) % cycle;
+          const p = phase / cycle;
+          const py = posY - drawSize * 0.5 - p * 32;
+          const px = posX + Math.sin(t * 0.5 + i * 2.0) * 8 * p;
+          this.renderer.push({ shape: 'circle', x: px, y: py, size: 3 + p * 5, color: '#bdbdbd', alpha: (1 - p) * 0.35, z: renderZ + 2 });
+        }
+        break;
+      }
+      // ── Ice (2): snowflakes + frost aura ──
+      case 2: {
+        // frost aura
+        const auraPulse = 0.08 + 0.04 * Math.sin(t * 1.5);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY, size: drawSize * 1.6, color: '#81d4fa', alpha: auraPulse, z: renderZ, stroke: '#81d4fa', strokeWidth: 1 });
+        // snowflakes
+        for (let i = 0; i < 4; i++) {
+          const cycle = 2.2 + i * 0.5;
+          const phase = ((t * 0.5 + i * 1.3) % cycle + cycle) % cycle;
+          const p = phase / cycle;
+          const px = posX + Math.sin(t * 0.8 + i * 1.57) * 16 * p;
+          const py = posY - drawSize * 0.4 - p * 30;
+          this.renderer.push({ shape: 'diamond', x: px, y: py, size: 3, color: '#e1f5fe', alpha: (1 - p) * 0.7, z: renderZ + 2 });
+        }
+        break;
+      }
+      // ── Lightning (3): Tesla sparks ──
+      case 3: {
+        // corona pulse
+        const corona = 0.06 + 0.05 * Math.sin(t * 3.5 + seed * 0.001);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY - drawSize * 0.35, size: drawSize * 0.5, color: '#fff176', alpha: corona, z: renderZ + 1 });
+        // random spark flashes
+        const sparkSeed = Math.floor(t * 2.3 + seed * 0.001);
+        const sparkRng = this.seedRand(sparkSeed * 4091 + eid);
+        if (sparkRng() > 0.65) {
+          const sx = posX + (sparkRng() - 0.5) * 14;
+          const sy = posY - drawSize * 0.3 + (sparkRng() - 0.5) * 10;
+          this.renderer.push({ shape: 'diamond', x: sx, y: sy, size: 2 + sparkRng() * 3, color: '#ffffff', alpha: sparkRng() * 0.5, z: renderZ + 3 });
+        }
+        break;
+      }
+      // ── Laser (4): 3 orbiting light dots ──
+      case 4: {
+        for (let i = 0; i < 3; i++) {
+          const angle = t * 1.5 + i * Math.PI * 2 / 3;
+          const r = drawSize * 0.5 + 4;
+          this.renderer.push({ shape: 'circle', x: posX + Math.cos(angle) * r, y: posY - 2 + Math.sin(angle) * (r * 0.6), size: 3, color: '#e0f7fa', alpha: 0.7, z: renderZ + 2 });
+        }
+        // core pulse
+        const pulse = 0.3 + 0.15 * Math.sin(t * 2.5);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY - 2, size: drawSize * 0.3, color: '#ffffff', alpha: pulse, z: renderZ + 1 });
+        break;
+      }
+      // ── Bat (5): 2 bat silhouettes orbiting ──
+      case 5: {
+        for (let i = 0; i < 2; i++) {
+          const angle = t * 1.0 + i * Math.PI;
+          const bx = posX + Math.cos(angle) * 22;
+          const by = posY + Math.sin(angle) * 20;
+          // V-shaped bat: two small triangles
+          this.renderer.push({ shape: 'triangle', x: bx - 3, y: by, size: 6, color: '#311b92', alpha: 0.6, z: renderZ + 1, rotation: -0.4 });
+          this.renderer.push({ shape: 'triangle', x: bx + 3, y: by, size: 6, color: '#311b92', alpha: 0.6, z: renderZ + 1, rotation: 0.4 });
+        }
+        // eye pulse
+        const eyePulse = 0.4 + 0.2 * Math.sin(t * 1.8);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY + 2, size: 8, color: '#ff1744', alpha: eyePulse, z: renderZ + 1 });
+        break;
+      }
+      // ── Missile (6): blinking light + radar scan ──
+      case 6: {
+        // blinking warning light
+        const blinkPhase = (t % 1.5) / 1.5;
+        const blinkAlpha = blinkPhase < 0.1 ? 0.9 : 0.2;
+        this.renderer.push({ shape: 'circle', x: posX, y: posY - drawSize * 0.55, size: 5, color: '#ffeb3b', alpha: blinkAlpha, z: renderZ + 3 });
+        // radar scan line
+        const radarAngle = (t * 0.8) % (Math.PI * 2);
+        const radarLen = drawSize * 0.9;
+        const rx = posX + Math.cos(radarAngle) * radarLen * 0.5;
+        const ry = posY - 8 + Math.sin(radarAngle) * radarLen * 0.5;
+        this.renderer.push({ shape: 'rect', x: rx, y: ry, size: radarLen, h: 1, color: '#ff1744', alpha: 0.3, z: renderZ + 1, rotation: radarAngle });
+        break;
+      }
+      // ── Fire (7): embers + fire glow ──
+      case 7: {
+        // fire aura
+        const fireAura = 0.08 + 0.06 * Math.sin(t * 2.5);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY - 2, size: drawSize * 1.3, color: '#ff5722', alpha: fireAura, z: renderZ });
+        // ember particles
+        for (let i = 0; i < 5; i++) {
+          const cycle = 1.5 + i * 0.35;
+          const phase = ((t * 1.2 + i * 0.7) % cycle + cycle) % cycle;
+          const p = phase / cycle;
+          const px = posX + (Math.sin(t * 2.0 + i * 1.26) * 10 + (rng() - 0.5) * 4) * p;
+          const py = posY - drawSize * 0.35 - p * 35;
+          const colors = ['#ff9800', '#ff5722', '#ffcc80'];
+          this.renderer.push({ shape: 'circle', x: px, y: py, size: 2 + p * 2, color: colors[i % 3]!, alpha: (1 - p) * 0.55, z: renderZ + 2 });
+        }
+        break;
+      }
+      // ── Poison (8): bubbles + toxic mist ──
+      case 8: {
+        // toxic mist aura
+        const mistPulse = 0.06 + 0.03 * Math.sin(t * 1.2);
+        this.renderer.push({ shape: 'circle', x: posX, y: posY, size: drawSize * 1.4, color: '#4caf50', alpha: mistPulse, z: renderZ });
+        // bubbles
+        for (let i = 0; i < 3; i++) {
+          const cycle = 2.0 + i * 0.55;
+          const phase = ((t * 0.6 + i * 1.1) % cycle + cycle) % cycle;
+          const p = phase / cycle;
+          const wobble = Math.sin(t * 2.5 + i * 2.0) * 5;
+          const px = posX + wobble * p;
+          const py = posY + drawSize * 0.3 - p * 25;
+          this.renderer.push({ shape: 'circle', x: px, y: py, size: 2 + (1 - p) * 3, color: '#a5d6a7', alpha: (1 - p) * 0.5, z: renderZ + 2 });
+        }
+        break;
+      }
+      default: break;
     }
   }
 
