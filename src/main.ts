@@ -829,6 +829,7 @@ class TowerDefenderGame extends Game {
         });
       }
       this.uiSystem.renderUI();
+      this.victoryScreenSystem.render();
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.render();
       }

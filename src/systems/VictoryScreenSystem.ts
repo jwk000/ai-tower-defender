@@ -124,8 +124,6 @@ export class VictoryScreenSystem implements System {
         this.updateParticles(dt);
         break;
     }
-
-    this.render();
   }
 
   // ============================================================
@@ -391,7 +389,7 @@ export class VictoryScreenSystem implements System {
   // Render
   // ============================================================
 
-  private render(): void {
+  public render(): void {
     const ctx = this.renderer.context;
     if (!ctx || !this.config) return;
 
