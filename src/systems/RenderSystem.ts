@@ -217,16 +217,15 @@ export class RenderSystem implements System {
 
     // Obstacle rendering migrated to DecorationSystem
 
+    // Spawn portal vortex effect — replaces flag poles
+    // 黑色+红色漩涡传送门，占满单格空间
     for (let r = 0; r < map.rows; r++) {
       for (let c = 0; c < map.cols; c++) {
         const tile = map.tiles[r]![c]!;
         if (tile !== TileType.Spawn) continue;
         const sx = c * ts + ts / 2 + ox;
         const sy = r * ts + ts / 2 + oy;
-        // Flag pole
-        this.renderer.push({ shape: 'rect', x: sx, y: sy - 6, size: 2, h: 22, color: '#e0e0e0', alpha: 0.9, z: 0 });
-        // Flag banner (small red rect)
-        this.renderer.push({ shape: 'rect', x: sx + 7, y: sy - 12, size: 14, h: 8, color: '#ff1744', alpha: 0.95, z: 0 });
+        this.drawSpawnPortal(sx, sy, ts);
       }
     }
 
@@ -240,6 +239,136 @@ export class RenderSystem implements System {
     this.renderer.push({ shape: 'rect', x: ox - borderW / 2, y: oy + mapH / 2, size: borderW, h: mapH, color: '#111111', alpha: 1, z: 0 });
     // Right
     this.renderer.push({ shape: 'rect', x: ox + mapW + borderW / 2, y: oy + mapH / 2, size: borderW, h: mapH, color: '#111111', alpha: 1, z: 0 });
+  }
+
+  // ============================================
+  // Spawn portal vortex — 出生口漩涡传送门特效
+  // ============================================
+  // 设计: 暗红/黑色多层旋转漩涡，占满单个 64×64 地格
+  // 层次 (由外到内):
+  //   1. 暗色基底圆 (void)
+  //   2. 脉冲外圈光环
+  //   3. 外层旋转菱形环 (8个, 慢速)
+  //   4. 内层旋转菱形环 (6个, 快速反向)
+  //   5. 脉冲核心光点
+  //   6. 中心白点
+  //   7. 向外飘散粒子
+  private drawSpawnPortal(cx: number, cy: number, tileSize: number): void {
+    const t = Date.now() * 0.001; // 秒级时间戳
+    const r = tileSize * 0.44;     // 主体半径 ~28px (64px 格)
+    const z = 0;                    // 地图层
+
+    // ── Layer 1: 暗色虚空基底 ──
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: r * 2.1,
+      color: '#0a0000',
+      alpha: 0.9,
+      z,
+    });
+
+    // ── Layer 2: 外侧脉冲红色光环 ──
+    const outerPulse = 1 + Math.sin(t * 1.2) * 0.08;
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: r * 2.5 * outerPulse,
+      color: 'transparent',
+      alpha: 0.25,
+      stroke: '#ff1744',
+      strokeWidth: 2.5,
+      z,
+    });
+    // 第二层光环, 略大, 更淡
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: r * 2.8 * outerPulse,
+      color: 'transparent',
+      alpha: 0.12,
+      stroke: '#ff5252',
+      strokeWidth: 1.5,
+      z,
+    });
+
+    // ── Layer 3: 外层旋转菱形环 (8个, 慢速顺时针) ──
+    const outerCount = 8;
+    for (let i = 0; i < outerCount; i++) {
+      const angle = (i / outerCount) * Math.PI * 2 + t * 0.9;
+      const dx = Math.cos(angle) * r * 1.15;
+      const dy = Math.sin(angle) * r * 1.15;
+      const flicker = 1 + Math.sin(t * 3.5 + i * 1.2) * 0.15;
+      this.renderer.push({
+        shape: 'diamond',
+        x: cx + dx, y: cy + dy,
+        size: 6,
+        color: '#ff5252',
+        alpha: (0.5 + Math.sin(t * 2 + i) * 0.2) * flicker,
+        rotation: angle + Math.PI / 4,
+        z,
+      });
+    }
+
+    // ── Layer 4: 内层旋转菱形环 (6个, 快速逆时针) ──
+    const innerCount = 6;
+    for (let i = 0; i < innerCount; i++) {
+      const angle = (i / innerCount) * Math.PI * 2 - t * 1.6;
+      const dx = Math.cos(angle) * r * 0.55;
+      const dy = Math.sin(angle) * r * 0.55;
+      this.renderer.push({
+        shape: 'diamond',
+        x: cx + dx, y: cy + dy,
+        size: 4,
+        color: '#ff8a80',
+        alpha: 0.55 + Math.sin(t * 3 + i * 1.5) * 0.15,
+        rotation: angle - Math.PI / 2,
+        z,
+      });
+    }
+
+    // ── Layer 5: 脉冲核心 ──
+    const corePulse = 0.55 + Math.sin(t * 3.5) * 0.25;
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: r * 0.55 * corePulse,
+      color: '#ff1744',
+      alpha: 0.75,
+      z,
+    });
+    // 内层核心 (更亮)
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: r * 0.25 * corePulse,
+      color: '#ff5252',
+      alpha: 0.85,
+      z,
+    });
+
+    // ── Layer 6: 中心白点 ──
+    this.renderer.push({
+      shape: 'circle', x: cx, y: cy,
+      size: 4,
+      color: '#ffffff',
+      alpha: 0.4 + Math.sin(t * 5) * 0.2,
+      z,
+    });
+
+    // ── Layer 7: 向外飘散粒子 (4个, 缓慢扩散) ──
+    for (let i = 0; i < 4; i++) {
+      const particlePhase = (t * 0.35 + i * 0.65) % 1.4;
+      if (particlePhase < 1.0) {
+        const angle = (i / 4) * Math.PI * 2 + t * 0.25;
+        const dist = r * (1.3 + particlePhase * 0.9);
+        const px = cx + Math.cos(angle) * dist;
+        const py = cy + Math.sin(angle) * dist;
+        this.renderer.push({
+          shape: 'circle',
+          x: px, y: py,
+          size: 1.5 + particlePhase * 2.5,
+          color: '#ff8a80',
+          alpha: (1 - particlePhase) * 0.5,
+          z,
+        });
+      }
+    }
   }
 
   // ============================================
