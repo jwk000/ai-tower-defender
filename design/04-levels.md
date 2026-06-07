@@ -356,3 +356,135 @@
 | 不破之壁 | 水晶HP上限+200 | 稀有 |
 | 奥术智慧 | 手牌上限+1（本Run内） | 史诗 |
 | 战术大师 | 3选1抽卡改为4选1 | 史诗 |
+
+---
+
+## 9. 过关界面（Victory Screen）
+
+### 9.1 概述
+
+每关通关后展示一个 **3 阶段动画序列** 的胜利全屏覆盖层。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动，配合默认值减少重复配置。
+
+过关后记录 `LevelCompletionState` 到存档，与关卡选择界面联动展示通关摘要。
+
+| 阶段 | 时长 | 内容 |
+|------|------|------|
+| 阶段1：胜利宣告 | 0~1.5s | 全屏暗角 + "VICTORY" 大字弹出 + 屏幕震动 |
+| 阶段2：庆典特效 | 1.5~4.5s | 彩带/粒子飘落 + BGM 切换 + 等级评定（星星） |
+| 阶段3：故事叙述 | 4.5~8s | 半透明面板滑入 + 关卡主题故事情节 + "继续"按钮 |
+
+### 9.2 YAML 配置结构
+
+每个关卡 YAML 新增 `victory` 配置节：
+
+```yaml
+victory:
+  story:
+    title: "标题"
+    paragraphs: ["段落1", "段落2", ...]
+    summary: "关卡选择界面展示的摘要"
+    showFullStoryOnlyFirst: true   # 仅首次通关展示完整故事
+
+  background:
+    filter: "rain_to_sunny"       # 预定义背景滤镜
+    gradient: { top: "#...", mid: "#...", bottom: "#..." }
+    particles:
+      - { type: "sparkle", color: "#...", density: 20, speed: 0.5 }
+
+  confetti:
+    count: 80                     # 总粒子数
+    burst: "top_fall"             # top_fall | bottom_rise | explosion_center | both_sides
+    colors: [["#...", "#..."]]   # 彩带颜色组
+    shapes: { ribbon: 0.5, petal: 0.35, sparkle: 0.15 }
+    duration: 3.0
+    spread: 0.8                   # 水平扩散范围 (0-1)
+
+  audio:
+    bgm: "bgm/victory_meadow.ogg"
+    sfx: "sfx/victory_meadow.ogg"
+
+  typography:
+    titleColor: ["#...", "#..."]  # VICTORY 大字渐变
+    panelBg: "rgba(..., 0.85)"
+    panelBorder: "#..."
+    storyColor: "#..."
+    accentColor: "#..."
+```
+
+### 9.3 背景滤镜类型
+
+| filter 值 | 说明 | 使用关卡 |
+|-----------|------|---------|
+| `rain_to_sunny` | 灰度80% → 明亮翠绿渐变，太阳光晕亮起 | 第1关 |
+| `heat_dissipate` | 棕黄暖色 → 热浪消散，虫族残骸散落 | 第2关 |
+| `dawn_break` | 灰暗冷色 → 裂缝白光破开，蝙蝠飞出消散 | 第3关 |
+| `eye_close` | 暗红焦黑 → 红色"眼睛夕阳"闭合，绿色光点亮起 | 第4关 |
+| `rift_seal` | 深紫 → 裂隙愈合关闭，紫火熄灭，晶簇变蓝白 | 第5关 |
+| `gray_tint` | 默认：灰度80%定格，无特殊转场 | 备用 |
+
+### 9.4 发射方式
+
+| burst 值 | 说明 | 隐喻 |
+|----------|------|------|
+| `top_fall` | 粒子从顶部飘落 | 花瓣、雪花、雨过 |
+| `bottom_rise` | 粒子从底部喷射上升 | 热风、能量上升 |
+| `explosion_center` | 从屏幕中心向外爆炸 | 爆炸、绽放 |
+| `both_sides` | 两侧同时向中间喷射 | 终局庆典 |
+
+### 9.5 各关胜利配置概要
+
+| 关卡 | story.title | background.filter | confetti.burst | confetti 主色 | audio.bgm | summary |
+|------|------------|-------------------|----------------|-------------|-----------|---------|
+| 1 绿野仙踪 | 雨后初晴 | `rain_to_sunny` | `top_fall` | 绿+金+白 | `victory_meadow` | 草原已平，沙漠风沙扬起。 |
+| 2 沙漠虫潮 | 虫群溃散 | `heat_dissipate` | `bottom_rise` | 琥珀+金 | `victory_desert` | 沙漠归于死寂，古堡阴影浮现。 |
+| 3 黑暗古堡 | 黎明破晓 | `dawn_break` | `top_fall` | 银白+深蓝+紫 | `victory_castle` | 古堡黎明破晓，废土红光隐现。 |
+| 4 末日废土 | 余烬新生 | `eye_close` | `explosion_center` | 橙+灰+铁锈红 | `victory_waste` | 巨眼闭合，焦土中绿芽新生。 |
+| 5 深渊裂隙 | 裂隙封印 | `rift_seal` | `both_sides` | 紫金+白金(×2密度) | `victory_abyss` | 裂隙愈合，黎明升起。全部通关。 |
+
+### 9.6 配置默认值
+
+YAML 中未指定的字段使用以下默认值，减少配置冗余：
+
+```typescript
+const DEFAULT_VICTORY_CONFIG = {
+  background: {
+    filter: 'gray_tint',
+    gradient: { top: '#000000', mid: '#1a1a2e', bottom: '#0a0a14' },
+    particles: [],
+  },
+  confetti: {
+    count: 60,
+    burst: 'top_fall',
+    colors: [['#ffd700', '#ff8c00', '#ffffff']],
+    shapes: { ribbon: 0.6, sparkle: 0.4 },
+    duration: 3.0,
+    spread: 0.7,
+  },
+  typography: {
+    titleColor: ['#ffd700', '#ffffff'],
+    panelBg: 'rgba(10, 14, 22, 0.85)',
+    panelBorder: '#ffd700',
+    storyColor: '#ffffff',
+    accentColor: '#ffd700',
+  },
+};
+```
+
+### 9.7 存档联动（LevelCompletionState）
+
+每关通关后存储：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `completed` | boolean | 是否已通关 |
+| `firstClearedAt` | number? | 首次通关时间戳 |
+| `timesCleared` | number | 通关次数 |
+| `bestStars` | number | 最高星级 (1-3) |
+| `summary` | string | 来自 victory.story.summary |
+
+### 9.8 关卡选择界面联动
+
+- **已通关关卡卡片**：显示星星 + summary 文本 + 通关次数角标
+- **刚通关返回**：对应卡片 2 秒金色脉冲动画，提示"刚完成的关卡"
+- **视觉衔接**：过关界面的 `background.gradient.bottom` 颜色与关卡选择主题 `gradient.top` 匹配，500ms crossfade 过渡
+- **重复通关**：若 `showFullStoryOnlyFirst=true` 且 `timesCleared>0`，跳过阶段3故事叙述，直接显示"继续"按钮

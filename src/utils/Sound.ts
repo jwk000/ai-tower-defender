@@ -21,6 +21,11 @@ export type SfxKey =
   | 'missile_impact'
   // Game phase events
   | 'victory'
+  | 'victory_meadow'
+  | 'victory_desert'
+  | 'victory_castle'
+  | 'victory_waste'
+  | 'victory_abyss'
   | 'wave_clear'
   | 'wave_boss'
   | 'countdown_tick'
@@ -88,6 +93,11 @@ const SFX_PATH: Record<SfxKey, string> = {
   missile_impact: '/sfx/missile_impact.ogg',
   // Game phase
   victory: '/sfx/victory.ogg',
+  victory_meadow: '/sfx/victory_meadow.ogg',
+  victory_desert: '/sfx/victory_desert.ogg',
+  victory_castle: '/sfx/victory_castle.ogg',
+  victory_waste: '/sfx/victory_waste.ogg',
+  victory_abyss: '/sfx/victory_abyss.ogg',
   wave_clear: '/sfx/wave_clear.ogg',
   wave_boss: '/sfx/wave_boss.ogg',
   countdown_tick: '/sfx/countdown_tick.ogg',

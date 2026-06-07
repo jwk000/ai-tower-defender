@@ -44,6 +44,23 @@ export interface SaveData {
   highScores: Record<number, number>;
   /** @deprecated v1.1 兼容字段，Phase A 后续任务移除（金币改为 Run 内 + sparkShards） */
   totalGold: number;
+
+  /** v6.0: 关卡通关状态（用于过关界面与关卡选择联动） */
+  levelCompletion: Record<number, LevelCompletionState>;
+}
+
+/** v6.0: 关卡通关状态 */
+export interface LevelCompletionState {
+  /** 是否已通关 */
+  completed: boolean;
+  /** 首次通关时间戳 */
+  firstClearedAt: number | null;
+  /** 通关次数 */
+  timesCleared: number;
+  /** 最高星级 (1-3) */
+  bestStars: number;
+  /** 通关后展示在关卡选择界面的 summary（来自关卡 victory.story.summary） */
+  summary: string;
 }
 
 export interface CardCollection {
@@ -305,6 +322,7 @@ export class SaveManager {
       levelStars: {},
       highScores: {},
       totalGold: 0,
+      levelCompletion: {},
     };
   }
 
@@ -443,6 +461,7 @@ export class SaveManager {
       levelStars: recordOr<number>(data['levelStars'], defaults.levelStars),
       highScores: recordOr<number>(data['highScores'], defaults.highScores),
       totalGold: numberOr(data['totalGold'], defaults.totalGold),
+      levelCompletion: recordOr(data['levelCompletion'], defaults.levelCompletion),
     };
     if (battleSnapshot) out.battleSnapshot = battleSnapshot;
     return out;
@@ -463,6 +482,40 @@ export class SaveManager {
       data.levelStars[levelId] = stars;
     }
     SaveManager.save(data);
+  }
+
+  /** v6.0: 记录关卡通关 → 更新 levelCompletion */
+  static recordLevelCompletion(levelId: number, stars: number, summary: string): void {
+    const data = SaveManager.load();
+    const now = Date.now();
+    const prev = data.levelCompletion[levelId];
+    const timesCleared = (prev?.timesCleared ?? 0) + 1;
+    const bestStars = Math.max(prev?.bestStars ?? 0, stars);
+    data.levelCompletion[levelId] = {
+      completed: true,
+      firstClearedAt: prev?.firstClearedAt ?? now,
+      timesCleared,
+      bestStars,
+      summary,
+    };
+    // 同时更新旧的兼容字段
+    const prevStars = data.levelStars[levelId] ?? 0;
+    if (stars > prevStars) {
+      data.levelStars[levelId] = stars;
+    }
+    SaveManager.save(data);
+  }
+
+  /** v6.0: 获取指定关卡的通关状态 */
+  static getLevelCompletion(levelId: number): LevelCompletionState | null {
+    const data = SaveManager.load();
+    return data.levelCompletion[levelId] ?? null;
+  }
+
+  /** v6.0: 获取所有关卡通关状态 */
+  static getAllLevelCompletions(): Record<number, LevelCompletionState> {
+    const data = SaveManager.load();
+    return { ...data.levelCompletion };
   }
 
   static saveBattleSnapshot(snapshot: BattleSnapshot): void {

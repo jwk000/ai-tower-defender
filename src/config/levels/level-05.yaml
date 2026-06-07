@@ -427,3 +427,51 @@ draftPool:
 
 banPool: []
 neutralPool: []
+
+# ============================================================
+# v6.0: 过关界面配置（最终关 — 密度×2 + 额外庆祝）
+# ============================================================
+victory:
+  story:
+    title: 裂隙封印
+    paragraphs:
+      - "深渊领主发出最后一声不甘的咆哮，庞大的身躯碎裂成千万片暗影，被裂隙吸入虚空。"
+      - "裂口缓缓愈合，紫色的火焰逐一熄灭，漂浮的巨石回归大地。"
+      - "水晶的光芒比任何时候都更加明亮——它不再只是防守的目标，而是照亮了整个深渊的光源。"
+      - "五个世界的威胁已被一一平息。你放下了手中的最后一张卡牌，身后，黎明正在升起。"
+      - "🏆 恭喜！你已完成全部关卡！所有卡牌已解锁。"
+    summary: 裂隙愈合，黎明升起。全部通关。
+    showFullStoryOnlyFirst: true
+  background:
+    filter: rift_seal
+    gradient:
+      top: "#120024"
+      mid: "#38105f"
+      bottom: "#05000d"
+    particles:
+      - { type: sparkle, color: "#c77dff", density: 25, speed: 0.4 }
+      - { type: sparkle, color: "#ffd166", density: 15, speed: 0.3 }
+      - { type: glow, color: "#ffffff", density: 8, speed: 0.2 }
+  confetti:
+    count: 120
+    burst: both_sides
+    colors:
+      - ["#c77dff", "#ffd700", "#e8d5b7", "#ffffff"]
+      - ["#9b59b6", "#f1c40f", "#f5f5dc", "#f0e68c"]
+    shapes:
+      ribbon: 0.4
+      sparkle: 0.5
+      petal: 0.1
+    duration: 4.0
+    spread: 1.0
+  audio:
+    bgm: bgm/victory_abyss.ogg
+    sfx: sfx/victory_abyss.ogg
+  typography:
+    titleColor:
+      - "#ffd700"
+      - "#c77dff"
+    panelBg: "rgba(10, 4, 20, 0.90)"
+    panelBorder: "#c77dff"
+    storyColor: "#f3ddff"
+    accentColor: "#c77dff"

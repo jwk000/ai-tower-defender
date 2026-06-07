@@ -271,3 +271,48 @@ draftPool:
 
 banPool: []
 neutralPool: []
+
+# ============================================================
+# v6.0: 过关界面配置
+# ============================================================
+victory:
+  story:
+    title: 余烬新生
+    paragraphs:
+      - "超级机器人在爆炸中轰然倒塌，废土上的机械军团终于停止了运转。"
+      - "火山灰仍在飘落，但天空中的'眼睛'缓缓闭上了——仿佛这个垂死的世界终于可以安息。"
+      - "你脚下的废墟中，一株绿色的嫩芽钻出了焦土。"
+      - "然而，大地深处传来一阵低沉的震动——深渊已在脚下苏醒。"
+    summary: 巨眼闭合，焦土中绿芽新生。
+    showFullStoryOnlyFirst: true
+  background:
+    filter: eye_close
+    gradient:
+      top: "#2b1814"
+      mid: "#653329"
+      bottom: "#130f0e"
+    particles:
+      - { type: sparkle, color: "#ff7043", density: 18, speed: 0.5 }
+      - { type: sparkle, color: "#90ee90", density: 8, speed: 0.3 }
+  confetti:
+    count: 85
+    burst: explosion_center
+    colors:
+      - ["#ff7043", "#8d6e63", "#a52a2a", "#90ee90"]
+    shapes:
+      ribbon: 0.2
+      sparkle: 0.3
+      fragment: 0.5
+    duration: 3.5
+    spread: 0.9
+  audio:
+    bgm: bgm/victory_waste.ogg
+    sfx: sfx/victory_waste.ogg
+  typography:
+    titleColor:
+      - "#ff7043"
+      - "#ffe0d2"
+    panelBg: "rgba(25, 15, 12, 0.88)"
+    panelBorder: "#653329"
+    storyColor: "#ffe0d2"
+    accentColor: "#ff7043"

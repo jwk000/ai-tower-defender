@@ -105,5 +105,10 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
   if (weatherInitial) config.weatherFixed = weatherInitial;
   if (model.weather?.changeInterval !== undefined) config.weatherChangeInterval = model.weather.changeInterval;
 
+  // v6.0: 过关界面配置（来自 __extras）
+  if (model.__extras?.victory) {
+    config.victory = model.__extras.victory as LevelConfig['victory'];
+  }
+
   return config;
 }

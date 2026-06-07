@@ -11,6 +11,11 @@ export type BgmKey =
   | 'battle_lava'
   | 'wave_break'
   | 'victory'
+  | 'victory_meadow'
+  | 'victory_desert'
+  | 'victory_castle'
+  | 'victory_waste'
+  | 'victory_abyss'
   | 'defeat'
   | 'endless';
 
@@ -30,6 +35,11 @@ const BGM_PATH: Record<BgmKey, string> = {
   battle_lava: 'bgm/battle_abyss.mp3',
   wave_break: 'bgm/wave_break.ogg',
   victory: 'bgm/victory.ogg',
+  victory_meadow: 'bgm/victory_meadow.ogg',
+  victory_desert: 'bgm/victory_desert.ogg',
+  victory_castle: 'bgm/victory_castle.ogg',
+  victory_waste: 'bgm/victory_waste.ogg',
+  victory_abyss: 'bgm/victory_abyss.ogg',
   defeat: 'bgm/defeat.mp3',
   endless: 'bgm/endless.ogg',
 };

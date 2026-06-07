@@ -37,12 +37,13 @@ import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
 import { TileDamageSystem } from './systems/TileDamageSystem.js';
 import { TrapSystem } from './systems/TrapSystem.js';
 import { UISystem } from './systems/UISystem.js';
+import { VictoryScreenSystem } from './systems/VictoryScreenSystem.js';
 import { UnitAnimationSystem } from './systems/UnitAnimationSystem.js';
 import { UnitFactory } from './systems/UnitFactory.js';
 import { UnitSystem } from './systems/UnitSystem.js';
 import { WaveSystem } from './systems/WaveSystem.js';
 import { WeatherSystem } from './systems/WeatherSystem.js';
-import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig } from './types/index.js';
+import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig, type VictoryConfig } from './types/index.js';
 import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
@@ -59,6 +60,7 @@ import {
 import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
 import { hexToRgb } from './utils/visualHelpers.js';
+import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
 
 // ---- bitecs component stores ----
 import {
@@ -129,6 +131,7 @@ class TowerDefenderGame extends Game {
   private handSystem!: HandSystem;
   private cardDraftSystem!: CardDraftSystem;
   private interLevelBuffSystem!: InterLevelBuffSystem;
+  private victoryScreenSystem!: VictoryScreenSystem;
   private soldierAISystem!: SoldierAISystem;
   private bossSystem!: BossSystem;
 
@@ -660,6 +663,13 @@ class TowerDefenderGame extends Game {
       this.paused = false;
     };
 
+    // ---- Victory Screen System ----
+    this.victoryScreenSystem = new VictoryScreenSystem(this.renderer);
+    this.victoryScreenSystem.onComplete = () => {
+      this.paused = false;
+      this.enterLevelSelect();
+    };
+
     // Inject systems into UISystem for overlay rendering
     this.uiSystem.setCardDraftSystem(this.cardDraftSystem);
     this.uiSystem.setInterLevelBuffSystem(this.interLevelBuffSystem);
@@ -796,6 +806,11 @@ class TowerDefenderGame extends Game {
       // Encyclopedia overlay consumes all clicks when open
       if (this.encyclopedia.isOpen) {
         this.encyclopedia.handleClick(e.x, e.y);
+        return;
+      }
+      // Victory screen overlay consumes all clicks when active
+      if (this.victoryScreenSystem.isActive()) {
+        this.victoryScreenSystem.handleClick(e.x, e.y);
         return;
       }
       if (this.buildSystem.dragState?.active) return;
@@ -1025,6 +1040,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(renderSystem);
     this.world.registerSystem(lightningBoltSystem);
     this.world.registerSystem(this.uiSystem);
+    this.world.registerSystem(this.victoryScreenSystem);
 
     // Start auto-countdown for first wave
     this.waveSystem.startAutoCountdown(5);
@@ -1044,9 +1060,31 @@ class TowerDefenderGame extends Game {
   // Victory / Defeat
   // ================================================================
 
+  /** 合并关卡配置的 victory 节与默认值 */
+  private resolveVictoryConfig(config: LevelConfig): VictoryConfig {
+    const raw = config.victory;
+    if (!raw) {
+      return {
+        ...DEFAULT_VICTORY_CONFIG,
+        story: {
+          title: config.name,
+          paragraphs: [config.description ?? ''],
+          summary: config.name,
+          showFullStoryOnlyFirst: false,
+        },
+        audio: { bgm: 'victory', sfx: 'victory' },
+      };
+    }
+    return {
+      background: { ...DEFAULT_VICTORY_CONFIG.background, ...raw.background },
+      confetti: { ...DEFAULT_VICTORY_CONFIG.confetti, ...raw.confetti },
+      typography: { ...DEFAULT_VICTORY_CONFIG.typography, ...raw.typography },
+      story: raw.story,
+      audio: raw.audio,
+    };
+  }
+
   private handleVictory(): void {
-    Sound.play('victory');
-    Music.play('victory', 0.5);   // BGM: victory fanfare via cross-fade
     this.phase = GamePhase.Victory;
     let baseHpRatio = 0;
     if (this.baseEntityId !== null) {
@@ -1060,18 +1098,31 @@ class TowerDefenderGame extends Game {
     if (baseHpRatio > 0.6) stars = 2;
     if (baseHpRatio >= 1.0) stars = 3;
 
+    const levelConfig = LEVELS[this.currentLevelId - 1];
+    if (!levelConfig) return;
+
+    const victoryConfig = this.resolveVictoryConfig(levelConfig);
+    const prevCompletion = SaveManager.getLevelCompletion(this.currentLevelId);
+    const timesCleared = (prevCompletion?.timesCleared ?? 0) + 1;
+
+    // 保存通关状态
+    SaveManager.recordLevelCompletion(this.currentLevelId, stars, victoryConfig.story.summary);
     SaveManager.setStars(this.currentLevelId, stars);
     if (this.currentLevelId < 5) {
       SaveManager.unlockLevel(this.currentLevelId + 1);
     }
     SaveManager.clearBattleSnapshot();
 
-    this.levelSelectUI?.refresh?.();
-    setTimeout(() => this.enterLevelSelect(), 1500);
+    this.levelSelectUI?.refresh?.(this.currentLevelId);
+    this.paused = true;
+
+    // 启动胜利界面系统
+    this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared);
   }
 
   private handleDefeat(): void {
-    Music.play('defeat', 0.5);    // BGM: defeat melody via cross-fade
+    Music.play('defeat', 0.5);
+    Sound.play('defeat');
     this.phase = GamePhase.Defeat;
     SaveManager.clearBattleSnapshot();
     this.levelSelectUI?.refresh?.();

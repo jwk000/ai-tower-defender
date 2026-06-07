@@ -198,3 +198,47 @@ draftPool:
 
 banPool: []
 neutralPool: []
+
+# ============================================================
+# v6.0: 过关界面配置
+# ============================================================
+victory:
+  story:
+    title: 黎明破晓
+    paragraphs:
+      - "路西法的身躯崩解为万千暗影碎片，消散在破晓的第一缕光中。"
+      - "古堡的石墙不再渗出黑暗，火盆中的火焰变成了温暖的橘色。"
+      - "蝙蝠群飞向远方，狼人变回了人形——至少暂时如此。"
+      - "但远方的天空被染成了不祥的红色，那是废土在向你招手。"
+    summary: 古堡黎明破晓，废土红光隐现。
+    showFullStoryOnlyFirst: true
+  background:
+    filter: dawn_break
+    gradient:
+      top: "#111827"
+      mid: "#2f3a56"
+      bottom: "#090d16"
+    particles:
+      - { type: sparkle, color: "#b7c9ff", density: 25, speed: 0.4 }
+      - { type: sparkle, color: "#7b879f", density: 15, speed: 0.2 }
+  confetti:
+    count: 75
+    burst: top_fall
+    colors:
+      - ["#c0c0c0", "#e8e8e8", "#483d8b", "#9370db"]
+    shapes:
+      ribbon: 0.7
+      sparkle: 0.3
+    duration: 3.5
+    spread: 0.7
+  audio:
+    bgm: bgm/victory_castle.ogg
+    sfx: sfx/victory_castle.ogg
+  typography:
+    titleColor:
+      - "#e4ecff"
+      - "#b7c9ff"
+    panelBg: "rgba(12, 16, 28, 0.88)"
+    panelBorder: "#2f3a56"
+    storyColor: "#e4ecff"
+    accentColor: "#b7c9ff"

@@ -819,6 +819,88 @@ export interface LevelConfig {
   weatherPool?: WeatherType[];
   weatherFixed?: WeatherType;
   weatherChangeInterval?: number;
+  /** v6.0: 过关界面配置（可选，缺失时使用默认值） */
+  victory?: VictoryConfig;
+}
+
+// ============================================================
+// v6.0: Victory Screen — 过关界面配置驱动
+// ============================================================
+
+/** 彩带粒子形状 */
+export type ConfettiShape = 'ribbon' | 'petal' | 'sparkle' | 'fragment';
+
+/** 彩带发射方式 */
+export type ConfettiBurst = 'top_fall' | 'bottom_rise' | 'explosion_center' | 'both_sides';
+
+/** 背景滤镜类型 */
+export type VictoryFilter =
+  | 'gray_tint'
+  | 'rain_to_sunny'
+  | 'heat_dissipate'
+  | 'dawn_break'
+  | 'eye_close'
+  | 'rift_seal';
+
+/** 胜利界面故事配置 */
+export interface VictoryStory {
+  title: string;
+  paragraphs: string[];
+  /** 关卡选择界面展示的摘要文本 */
+  summary: string;
+  /** 仅首次通关展示完整故事；重复通关只显示摘要 */
+  showFullStoryOnlyFirst: boolean;
+}
+
+/** 胜利界面背景粒子 */
+export interface VictoryParticle {
+  type: 'sparkle' | 'glow';
+  color: string;
+  /** 粒子密度（相对值，实际数量 = density × 屏幕面积因子） */
+  density: number;
+  /** 移动速度倍率 */
+  speed: number;
+}
+
+/** 胜利界面背景配置 */
+export interface VictoryBackground {
+  filter: VictoryFilter;
+  gradient: { top: string; mid: string; bottom: string };
+  particles: VictoryParticle[];
+}
+
+/** 胜利界面彩带配置 */
+export interface VictoryConfetti {
+  count: number;
+  burst: ConfettiBurst;
+  colors: string[][];
+  shapes: Partial<Record<ConfettiShape, number>>;
+  duration: number;
+  spread: number;
+}
+
+/** 胜利界面音频配置 */
+export interface VictoryAudio {
+  bgm: string;
+  sfx: string;
+}
+
+/** 胜利界面文字样式 */
+export interface VictoryTypography {
+  titleColor: string[];
+  panelBg: string;
+  panelBorder: string;
+  storyColor: string;
+  accentColor: string;
+}
+
+/** v6.0: 过关界面完整配置 */
+export interface VictoryConfig {
+  story: VictoryStory;
+  background: VictoryBackground;
+  confetti: VictoryConfetti;
+  audio: VictoryAudio;
+  typography: VictoryTypography;
 }
 
 // ============================================================

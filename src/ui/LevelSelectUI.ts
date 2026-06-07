@@ -17,6 +17,10 @@ interface LevelButton {
   waves: number;
   locked: boolean;
   stars: number;
+  /** v6.0: 通关次数 */
+  timesCleared: number;
+  /** v6.0: 过关界面 summary（来自 LevelCompletionState） */
+  summary: string;
 }
 
 interface ThemeBackground {
@@ -106,6 +110,11 @@ export class LevelSelectUI {
   /** 图鉴按钮区域 */
   private encyclopediaBtn: { x: number; y: number; w: number; h: number } | null = null;
 
+  /** v6.0: 刚通关的关卡ID（用于脉冲动画） */
+  private justCompletedLevelId: number = 0;
+  /** v6.0: 脉冲动画计时器 */
+  private pulseTimer: number = 0;
+
   constructor(
     private renderer: Renderer,
     private onStartLevel: (levelId: number) => void,
@@ -114,8 +123,11 @@ export class LevelSelectUI {
     this.buildButtons();
   }
 
-  /** Rebuild button layout (call after save data changes) */
-  refresh(): void {
+  /** Rebuild button layout (call after save data changes).
+   *  v6.0: 可传入刚通关的关卡ID以触发脉冲动画 */
+  refresh(justCompletedLevelId?: number): void {
+    this.justCompletedLevelId = justCompletedLevelId ?? 0;
+    this.pulseTimer = 0;
     this.buildButtons();
   }
 
@@ -133,6 +145,7 @@ export class LevelSelectUI {
     const save = SaveManager.load();
     const unlockedLevels = save.unlockedLevels;
     const levelStars = save.levelStars;
+    const levelCompletion = save.levelCompletion;
 
     this.buttons = [];
 
@@ -147,6 +160,7 @@ export class LevelSelectUI {
       const level = LEVELS[i]!;
       const levelId = i + 1;
       const isLocked = levelId > unlockedLevels;
+      const completion = levelCompletion[levelId];
 
       this.buttons.push({
         x: START_X + i * (BTN_W + BTN_GAP),
@@ -158,7 +172,9 @@ export class LevelSelectUI {
         theme: level.theme,
         waves: level.waves.length,
         locked: isLocked,
-        stars: levelStars[levelId] ?? 0,
+        stars: completion?.bestStars ?? levelStars[levelId] ?? 0,
+        timesCleared: completion?.timesCleared ?? 0,
+        summary: completion?.summary ?? '',
       });
     }
 
@@ -172,6 +188,9 @@ export class LevelSelectUI {
   /** Render the level select UI */
   update(dt: number): void {
     this.animationTime += dt;
+    if (this.justCompletedLevelId > 0 && this.pulseTimer < 2.0) {
+      this.pulseTimer += dt;
+    }
     const ctx = this.renderer.context;
     const selected = this.getSelectedButton();
     const theme = themeFor(selected?.theme ?? 'plains');
@@ -560,15 +579,22 @@ export class LevelSelectUI {
 
     ctx.fillStyle = 'rgba(255,255,255,0.74)';
     ctx.font = getFont(22);
-    ctx.fillText(theme.subtitle, panelX + 68, panelY + 140);
+    // v6.0: 已通关关卡显示 summary，否则显示 subtitle
+    const displayText = btn.timesCleared > 0 && btn.summary ? btn.summary : theme.subtitle;
+    ctx.fillText(displayText, panelX + 68, panelY + 140);
 
     ctx.fillStyle = 'rgba(255,255,255,0.86)';
     ctx.font = getFont(18, true);
-    ctx.fillText(`${btn.theme.toUpperCase()} · ${btn.waves} WAVES`, panelX + 68, panelY + 204);
+    const detailParts = [`${btn.theme.toUpperCase()} · ${btn.waves} WAVES`];
+    if (btn.timesCleared > 0) {
+      detailParts.push(`已通关 ×${btn.timesCleared}`);
+    }
+    ctx.fillText(detailParts.join('  |  '), panelX + 68, panelY + 204);
 
     ctx.fillStyle = btn.locked ? '#ff8a80' : theme.accent;
     ctx.font = getFont(24, true);
-    ctx.fillText(btn.locked ? 'LOCKED' : 'CLICK TO START', panelX + 68, panelY + 272);
+    const actionText = btn.locked ? 'LOCKED' : btn.timesCleared > 0 ? 'REPLAY' : 'CLICK TO START';
+    ctx.fillText(actionText, panelX + 68, panelY + 272);
 
     ctx.textAlign = 'right';
     ctx.font = getFont(20, true);
@@ -581,19 +607,31 @@ export class LevelSelectUI {
   private drawLevelButton(btn: LevelButton, theme: ThemeBackground): void {
     const ctx = this.renderer.context;
     const selected = btn.levelId === this.selectedLevelId;
+    const isJustCompleted = btn.levelId === this.justCompletedLevelId && this.pulseTimer < 2.0;
     const scale = selected ? 1.08 : 1;
     const w = btn.w * scale;
     const h = btn.h * scale;
     const x = btn.x + (btn.w - w) / 2;
     const y = btn.y + (btn.h - h) / 2;
 
+    // Pulse animation for just-completed level
+    let pulseBlur = 0;
+    let pulseColor = theme.accent;
+    if (isJustCompleted) {
+      const pulsePhase = this.pulseTimer % 0.6;
+      const pulseVal = pulsePhase < 0.3
+        ? pulsePhase / 0.3
+        : 1 - (pulsePhase - 0.3) / 0.3;
+      pulseBlur = pulseVal * 30;
+    }
+
     // Button background
     ctx.save();
     ctx.fillStyle = btn.locked ? 'rgba(22,24,34,0.64)' : 'rgba(12,18,28,0.74)';
     ctx.strokeStyle = btn.locked ? 'rgba(110,116,136,0.36)' : selected ? theme.accent : 'rgba(255,255,255,0.28)';
     ctx.lineWidth = selected ? 4 : 2;
-    ctx.shadowColor = selected ? theme.accent : 'transparent';
-    ctx.shadowBlur = selected ? 20 : 0;
+    ctx.shadowColor = isJustCompleted ? pulseColor : (selected ? theme.accent : 'transparent');
+    ctx.shadowBlur = pulseBlur > 0 ? pulseBlur : (selected ? 20 : 0);
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, 10);
     ctx.fill();
@@ -617,14 +655,26 @@ export class LevelSelectUI {
     ctx.fillText(btn.name, btn.x + btn.w / 2, btn.y + 36);
     ctx.restore();
 
-    // Theme + waves info
-    ctx.save();
-    ctx.fillStyle = btn.locked ? '#5f647b' : selected ? 'rgba(255,255,255,0.86)' : '#b9c0d8';
-    ctx.font = getFont(15);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${btn.theme} · ${btn.waves} waves`, btn.x + btn.w / 2, btn.y + 68);
-    ctx.restore();
+    // v6.0: 已完成关卡显示 summary（一行短文本）取代原 theme · waves
+    if (btn.timesCleared > 0 && btn.summary) {
+      ctx.save();
+      ctx.fillStyle = btn.locked ? '#5f647b' : selected ? 'rgba(255,255,255,0.86)' : '#b9c0d8';
+      ctx.font = getFont(13);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const clippedSummary = btn.summary.length > 18 ? btn.summary.slice(0, 15) + '…' : btn.summary;
+      ctx.fillText(clippedSummary, btn.x + btn.w / 2, btn.y + 64);
+      ctx.restore();
+    } else {
+      // Theme + waves info
+      ctx.save();
+      ctx.fillStyle = btn.locked ? '#5f647b' : selected ? 'rgba(255,255,255,0.86)' : '#b9c0d8';
+      ctx.font = getFont(15);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${btn.theme} · ${btn.waves} waves`, btn.x + btn.w / 2, btn.y + 68);
+      ctx.restore();
+    }
 
     // Stars or lock icon
     if (btn.locked) {
@@ -642,7 +692,9 @@ export class LevelSelectUI {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const starsText = '⭐'.repeat(btn.stars);
-      ctx.fillText(starsText, btn.x + btn.w / 2, btn.y + 95);
+      // 通关次数标签
+      const clearedLabel = btn.timesCleared > 1 ? ` ×${btn.timesCleared}` : '';
+      ctx.fillText(starsText + clearedLabel, btn.x + btn.w / 2, btn.y + 92);
       ctx.restore();
     }
   }

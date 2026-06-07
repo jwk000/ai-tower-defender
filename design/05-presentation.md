@@ -468,3 +468,107 @@ Abyss（深渊层）    — 最低，预留
 - 同类型音效节流：≥50ms间隔，防止播放器过载
 - UI音效优先播放（响应感最重要）
 - 战斗音效距离衰减（按屏幕位置模拟远近）
+
+---
+
+## 10. 胜利界面（Victory Screen）
+
+### 10.1 定位
+
+胜利界面是一个**全屏覆盖层**（z=1000），在战斗画面定格后以 3 阶段动画序列呈现。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动。详见 `design/04-levels.md` §9。
+
+### 10.2 渲染架构
+
+```
+VictoryScreenSystem (implement System)
+  ├── 内部状态机: Phase1 → Phase2 → Phase3 → Done
+  ├── 粒子数组: ConfettiParticle[] (每帧 update 位置/旋转/alpha)
+  ├── 读取入口: 关卡 LevelConfig.victory: VictoryConfig
+  └── 绘制: 在 UISystem.renderUI() 之后，直接写 Canvas 2D
+```
+
+VictoryScreenSystem 实现 `System` 接口，注册到 `PHASE_RENDER` 阶段后（渲染顺序在 RenderSystem 之后）。当未激活时 `update()` 直接返回，无性能开销。
+
+### 10.3 彩带粒子系统
+
+```typescript
+interface ConfettiParticle {
+  x: number; y: number;
+  vx: number; vy: number;
+  rotation: number; rotSpeed: number;
+  width: number; height: number;
+  color: string;
+  alpha: number;
+  life: number; maxLife: number;
+  shape: 'ribbon' | 'petal' | 'sparkle' | 'fragment';
+}
+```
+
+| shape | 绘制方式 | 使用场景 |
+|-------|---------|---------|
+| `ribbon` | 细长矩形（w=3px, h=8~14px），带旋转 | 通用彩带 |
+| `petal` | 椭圆（rx=3px, ry=6px），带旋转 | 自然主题（草原） |
+| `sparkle` | 小圆（r=2~4px），内发光 | 魔法/庆典 |
+| `fragment` | 不规则三角（3个顶点随机偏移） | 机械/废墟主题 |
+
+粒子初始速度由 `burst` 决定：
+- `top_fall`: vx=随机±spread, vy=100~200（下落加速）
+- `bottom_rise`: vx=随机±spread, vy=-150~-80（上抛减速）
+- `explosion_center`: 从屏幕中心径向发射
+- `both_sides`: 左半屏向右、右半屏向左发射
+
+每帧更新：位置 += 速度 × dt，旋转 += 旋转速度，alpha = 1 - life/maxLife（线性淡出）。
+
+### 10.4 背景滤镜类型
+
+| filter | 实现方式 |
+|--------|---------|
+| `gray_tint` | 战斗画面叠 80% 灰度（ctx.globalCompositeOperation = 'saturation'，设置 saturation 为 0），再叠加半透明暗色 |
+| `rain_to_sunny` | 灰度定格 → 从顶部向底部渐变填充 `gradient` 三色 → 右上角绘制金色光晕（`createRadialGradient`）随时间增大 |
+| `heat_dissipate` | 棕黄 tint 叠加 + 水平波浪线（正弦曲线）随时间降低振幅 → 残骸粒子（小三角/椭圆）从屏幕随机位置生成并缓慢下落 |
+| `dawn_break` | 暗角 tint → 屏幕中央绘制垂直裂缝状白光（两条锯齿线条+中心径向渐变），随时间扩展 → 蝙蝠剪影（V 形）从裂缝向屏幕边缘飞出 |
+| `eye_close` | 暗红 tint → 右上角"眼睛"（径向渐变三层）瞳孔缩小 → 背景远山区域出现随机绿色光点（小草/新芽） |
+| `rift_seal` | 深紫 tint → 屏幕底部绘制水平裂缝（锯齿矩形），随时间变窄 → 紫色火焰粒子逐一熄灭（alpha 1→0）→ 晶簇颜色从紫色渐变到蓝白色 |
+
+### 10.5 阶段动画时序
+
+| 时间 | 阶段 | 事件 |
+|------|------|------|
+| t=0.00 | Phase1 开始 | 播放 `victory` SFX；交叉淡入 `victory` BGM；屏幕震动触发（震幅6px，持续0.5s） |
+| t=0.15 | Phase1 | "VICTORY" 文字从 scale=3.0、alpha=0 弹出到 scale=1.0、alpha=1（弹性缓出，持续0.6s） |
+| t=1.00 | Phase1 | 屏幕震动结束 |
+| t=1.50 | Phase2 开始 | 彩带粒子生成（`confetti.count` 个）；星星评定开始逐个闪烁（每个星星0.4s间隔） |
+| t=4.50 | Phase3 开始 | 故事面板从底部滑入（translateY: +panelH→0，ease-out 0.5s）；文字逐段淡入（每段0.3s间隔）；"继续"按钮在最后一段文字后出现 |
+| t=8.00 | - | 面板完全就绪，等待玩家点击"继续" |
+| 点击后 | Done | 存储 `LevelCompletionState` → 跳转关卡选择界面 |
+
+### 10.6 视觉规范
+
+| 元素 | 位置 | 尺寸/样式 |
+|------|------|----------|
+| "VICTORY" 大字 | 设计坐标 `(960, 380)` | 字号 96px，粗体，`titleColor` 渐变填充（从上到下），textAlign='center' |
+| 星星评定 | 大字下方 `(960, 480)` | 3 颗星水平排列，间距 40px，w=48px h=48px，未亮 star 灰色 `#555`，亮 star 金色 `#ffcc00` |
+| 故事面板 | 底部居中 `(960, 750)` | w=900×h=260，圆角16px，`panelBg` 填充，`panelBorder` 描边 2px |
+| 故事标题 | 面板内 `(68, 28)` | 字号 32px，粗体，`accentColor` |
+| 故事段落 | 面板内 `(68, 78)` 起，间距 8px | 字号 18px，`storyColor`，textAlign='left' |
+| "继续"按钮 | 面板内右下角 `(w-140, 200)` | w=120×h=42，圆角8px，`accentColor` 描边，文字"继续" |
+| 跳过提示（重复通关） | 屏幕右下 `(1800, 1020)` | 字号 14px，`rgba(255,255,255,0.4)`，"点击任意位置继续" |
+
+### 10.7 关卡选择界面视觉衔接
+
+- 过关界面 `background.gradient.bottom` 颜色必须与关卡选择界面对应主题的 `gradient.top` 匹配
+- 过渡为 500ms crossfade：过关界面 alpha 1→0，关卡选择背景 alpha 0→1
+- 刚通关关卡卡片：2s 金色边框脉冲动画（`shadowBlur` 0→30→0，周期 0.6s）
+- 下一关解锁：🔒 → 可点击状态（无动画，静态切换）
+
+### 10.8 BGM / SFX 新增键
+
+| BGM Key | 文件 | SFX Key | 文件 |
+|---------|------|---------|------|
+| `victory_meadow` | `bgm/victory_meadow.ogg` | `victory_meadow` | `sfx/victory_meadow.ogg` |
+| `victory_desert` | `bgm/victory_desert.ogg` | `victory_desert` | `sfx/victory_desert.ogg` |
+| `victory_castle` | `bgm/victory_castle.ogg` | `victory_castle` | `sfx/victory_castle.ogg` |
+| `victory_waste` | `bgm/victory_waste.ogg` | `victory_waste` | `sfx/victory_waste.ogg` |
+| `victory_abyss` | `bgm/victory_abyss.ogg` | `victory_abyss` | `sfx/victory_abyss.ogg` |
+
+原有的 `victory` BGM/SFX key 保留，作为无主题配置时的回退默认值。

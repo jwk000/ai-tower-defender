@@ -154,3 +154,47 @@ draftPool:
 
 banPool: []
 neutralPool: []
+
+# ============================================================
+# v6.0: 过关界面配置
+# ============================================================
+victory:
+  story:
+    title: 雨后初晴
+    paragraphs:
+      - "翠绿草原上的雨水渐渐停歇，阳光穿透云层洒在水晶上。"
+      - "哥布林部落仓皇逃窜，巨型史莱姆化作一滩无害的黏液。"
+      - "你守住了第一道防线，但远处沙漠的风沙已经扬起——真正的考验才刚刚开始。"
+    summary: 草原已平，沙漠风沙扬起。
+    showFullStoryOnlyFirst: true
+  background:
+    filter: rain_to_sunny
+    gradient:
+      top: "#2d5a1e"
+      mid: "#4a8c3f"
+      bottom: "#1a3a12"
+    particles:
+      - { type: sparkle, color: "#ffd700", density: 20, speed: 0.5 }
+      - { type: sparkle, color: "#90ee90", density: 30, speed: 0.3 }
+  confetti:
+    count: 80
+    burst: top_fall
+    colors:
+      - ["#90ee90", "#228b22", "#ffd700", "#ffffff"]
+    shapes:
+      ribbon: 0.5
+      petal: 0.35
+      sparkle: 0.15
+    duration: 3.0
+    spread: 0.8
+  audio:
+    bgm: bgm/victory_meadow.ogg
+    sfx: sfx/victory_meadow.ogg
+  typography:
+    titleColor:
+      - "#ffd700"
+      - "#90ee90"
+    panelBg: "rgba(10, 30, 18, 0.85)"
+    panelBorder: "#4a8c3f"
+    storyColor: "#e7ffd8"
+    accentColor: "#9bd66f"

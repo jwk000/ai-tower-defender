@@ -170,3 +170,46 @@ draftPool:
 
 banPool: []
 neutralPool: []
+
+# ============================================================
+# v6.0: 过关界面配置
+# ============================================================
+victory:
+  story:
+    title: 虫群溃散
+    paragraphs:
+      - "最后一只虫族女王在沙地上痉挛抽搐，终于不再动弹。沙漠恢复了死寂——但这是属于你的死寂。"
+      - "阳光不再灼人，而是为散落的甲壳镀上金光。"
+      - "前方，一座黑暗古堡的轮廓在地平线上若隐若现，那里有不属于这个世界的邪恶在等待。"
+    summary: 沙漠归于死寂，古堡阴影浮现。
+    showFullStoryOnlyFirst: true
+  background:
+    filter: heat_dissipate
+    gradient:
+      top: "#4b2d18"
+      mid: "#c58d3d"
+      bottom: "#2d1c14"
+    particles:
+      - { type: sparkle, color: "#ffd166", density: 15, speed: 0.6 }
+  confetti:
+    count: 70
+    burst: bottom_rise
+    colors:
+      - ["#d4a017", "#ffd700", "#f5deb3"]
+    shapes:
+      ribbon: 0.4
+      sparkle: 0.4
+      fragment: 0.2
+    duration: 3.0
+    spread: 0.6
+  audio:
+    bgm: bgm/victory_desert.ogg
+    sfx: sfx/victory_desert.ogg
+  typography:
+    titleColor:
+      - "#ffd700"
+      - "#ff8c00"
+    panelBg: "rgba(30, 20, 10, 0.85)"
+    panelBorder: "#c58d3d"
+    storyColor: "#fff1c2"
+    accentColor: "#ffd166"
