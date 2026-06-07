@@ -57,22 +57,23 @@ describe('RenderSystem — 水晶显示', () => {
     world.addComponent(eid, Health, { current: 100, max: 100 });
     world.addComponent(eid, Category, { value: CategoryVal.Objective });
     world.addComponent(eid, Visual, {
-      shape: ShapeVal.Hexagon,
-      colorR: 66,
-      colorG: 165,
-      colorB: 245,
-      size: 38,
+      shape: ShapeVal.Diamond,
+      colorR: 255,  // #ff1744 红色（设计文档 §5）
+      colorG: 23,
+      colorB: 68,
+      size: 32,     // 主体 32px（设计文档 §5）
       alpha: 1,
     });
 
     const renderer = new RendererStub();
     const system = new RenderSystem(renderer as never, makeMap());
 
-    system.update(world, 0.016);
+    // dt=0 避免浮动动画偏移影响位置断言
+    system.update(world, 0);
 
     expect(renderer.commands).toContainEqual(
       expect.objectContaining({
-        shape: 'hexagon',
+        shape: 'diamond',
         x: 96,
         y: 32,
         alpha: 1,

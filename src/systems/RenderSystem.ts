@@ -1091,39 +1091,46 @@ export class RenderSystem implements System {
       // ========================================
       // 1. Entity body (bottom layer — drawn first)
       // ========================================
-      const unitPartsId = Visual.partsId[eid] ?? 0;
-      if (unitPartsId !== 0) {
-        const parts = world.getUnitVisualParts(unitPartsId);
-        if (parts) {
-          this.drawUnitComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
-        } else {
-          // Use attack-animated position/size for simple-shape enemies
-          this.renderer.push({
-            shape: shapeValToString(Visual.shape[eid]!),
-            x: attackAnimPosX, y: attackAnimPosY,
-            size: attackAnimSize,
-            color: displayColor,
-            alpha: displayAlpha,
-            stroke: strokeColor,
-            strokeWidth: strokeW,
-            z: renderZ,
-          });
-        }
+      // Crystal (Objective) — 使用文档定义的菱形复合+辉光+浮动动画渲染
+      // 设计文档: design/05-presentation.md §5 水晶视觉
+      const isObjective = hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Objective;
+      if (isObjective) {
+        this.drawCrystal(eid, posX, posY, dt);
       } else {
-        // Use attack-animated position/size for simple-shape enemies/non-unit entities
-        if (isEnemy) {
-          this.renderer.push({
-            shape: shapeValToString(Visual.shape[eid]!),
-            x: attackAnimPosX, y: attackAnimPosY,
-            size: attackAnimSize,
-            color: displayColor,
-            alpha: displayAlpha,
-            stroke: strokeColor,
-            strokeWidth: strokeW,
-            z: renderZ,
-          });
+        const unitPartsId = Visual.partsId[eid] ?? 0;
+        if (unitPartsId !== 0) {
+          const parts = world.getUnitVisualParts(unitPartsId);
+          if (parts) {
+            this.drawUnitComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
+          } else {
+            // Use attack-animated position/size for simple-shape enemies
+            this.renderer.push({
+              shape: shapeValToString(Visual.shape[eid]!),
+              x: attackAnimPosX, y: attackAnimPosY,
+              size: attackAnimSize,
+              color: displayColor,
+              alpha: displayAlpha,
+              stroke: strokeColor,
+              strokeWidth: strokeW,
+              z: renderZ,
+            });
+          }
         } else {
-          pushCmd();
+          // Use attack-animated position/size for simple-shape enemies/non-unit entities
+          if (isEnemy) {
+            this.renderer.push({
+              shape: shapeValToString(Visual.shape[eid]!),
+              x: attackAnimPosX, y: attackAnimPosY,
+              size: attackAnimSize,
+              color: displayColor,
+              alpha: displayAlpha,
+              stroke: strokeColor,
+              strokeWidth: strokeW,
+              z: renderZ,
+            });
+          } else {
+            pushCmd();
+          }
         }
       }
 
@@ -1679,6 +1686,77 @@ export class RenderSystem implements System {
         z,
       });
     }
+  }
+
+  // ============================================
+  // Crystal (Objective 水晶) 视觉渲染
+  // 设计文档: design/05-presentation.md §5 水晶视觉
+  // - 形状: 菱形复合几何体（2个菱形，1主1辉光）
+  // - 主体色: #ff1744 红色
+  // - 辉光色: #ff5252（外层，透明度0.4）
+  // - 大小: 主体32px，辉光48px
+  // - 动画: 上下浮动 ±4px，正弦2s周期
+  // - 辉光呼吸: alpha 0.2→0.5→0.2，3s周期
+  // - 低血量(<30%): 闪烁红色 + 呼吸频率加快至1.5s周期
+  // ============================================
+  private drawCrystal(eid: number, posX: number, posY: number, dt: number): void {
+    // 累积动画相位
+    Visual.breathPhase[eid]! += dt;
+    const phase = Visual.breathPhase[eid]!;
+
+    // 血量比例 — 决定是否进入低血量模式
+    const hpCurrent = Health.current[eid]!;
+    const hpMax = Health.max[eid]!;
+    const hpRatio = hpMax > 0 ? hpCurrent / hpMax : 1;
+    const isLowHp = hpRatio < 0.3;
+
+    // 浮动动画: ±4px, 2s周期（低血量 1.5s）
+    const floatCycle = isLowHp ? 1.5 : 2.0;
+    const floatOffsetY = Math.sin(phase / floatCycle * Math.PI * 2) * 4;
+
+    // 辉光呼吸: alpha 0.2→0.5→0.2, 3s周期（低血量 1.5s）
+    const glowCycle = isLowHp ? 1.5 : 3.0;
+    const glowPhase = (phase / glowCycle * Math.PI * 2) % (Math.PI * 2);
+    const glowAlpha = 0.2 + 0.3 * (Math.sin(glowPhase) * 0.5 + 0.5);
+
+    // 低血量闪烁效果: 0.75s 周期红白交替
+    let mainColor = '#ff1744';
+    let mainAlpha = 1.0;
+    if (isLowHp) {
+      const flashPhase = (phase / 0.75 * Math.PI * 2) % (Math.PI * 2);
+      const flashIntensity = Math.abs(Math.sin(flashPhase));
+      if (flashIntensity > 0.7) {
+        mainColor = '#ffffff';
+      }
+    }
+
+    const layerVal = Layer.value[eid] ?? LayerVal.Ground;
+    const renderZ = LAYER_TO_Z[layerVal] ?? 5;
+
+    const crystalX = posX;
+    const crystalY = posY + floatOffsetY;
+
+    // 辉光菱形（后方，半透明，较大）
+    this.renderer.push({
+      shape: 'diamond',
+      x: crystalX,
+      y: crystalY,
+      size: 48,
+      color: '#ff5252',
+      alpha: glowAlpha * 0.4,
+      z: renderZ,
+    });
+
+    // 主体菱形（前方，不透明）
+    this.renderer.push({
+      shape: 'diamond',
+      x: crystalX,
+      y: crystalY,
+      size: 32,
+      color: mainColor,
+      alpha: mainAlpha,
+      z: renderZ,
+    });
   }
 
   // ============================================

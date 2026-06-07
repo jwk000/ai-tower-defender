@@ -404,6 +404,7 @@ class TowerDefenderGame extends Game {
     const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
 
     // ---- Create base entity ----
+    // 水晶视觉: design/05-presentation.md §5 — 红色菱形复合几何体
     const resolvedGraph = resolveGraphFromMap(map);
     const crystalAnchor = resolvedGraph.pathGraph.nodes.find((n) => n.role === 'crystal_anchor')
       ?? resolvedGraph.pathGraph.nodes[resolvedGraph.pathGraph.nodes.length - 1]!;
@@ -416,13 +417,13 @@ class TowerDefenderGame extends Game {
     this.baseEntityId = this.world.createEntity();
     this.world.addComponent(this.baseEntityId, Position, { x: baseX, y: baseY });
     this.world.addComponent(this.baseEntityId, Health, { current: 100, max: 100 });
-    const baseRgb = hexToRgb('#42a5f5');
+    const baseRgb = hexToRgb('#ff1744');  // 主体红色（设计文档 §5）
     this.world.addComponent(this.baseEntityId, Visual, {
-      shape: ShapeVal.Hexagon,
+      shape: ShapeVal.Diamond,  // 菱形（设计文档 §5）
       colorR: baseRgb.r,
       colorG: baseRgb.g,
       colorB: baseRgb.b,
-      size: ts * 0.6,
+      size: 32,  // 主体 32px（设计文档 §5）
       alpha: 1,
       facing: 1,
       bobPhase: 0,
