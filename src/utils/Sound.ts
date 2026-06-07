@@ -98,27 +98,9 @@ function sfxUrl(key: SfxKey): string {
 /**
  * Keys that have NO OGG audio file and rely entirely on SoundSynth.
  * All other keys have a corresponding .ogg file in public/sfx/.
+ * Updated: 31 new OGG files downloaded from open-source packs.
  */
-const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>([
-  // v3.0 CardDraft & Buff
-  'draft_select', 'buff_select',
-  // v3.0 Boss abilities
-  'boss_split', 'boss_summon', 'boss_devour', 'boss_missile',
-  // Victory theme variants
-  'victory_meadow', 'victory_desert', 'victory_castle', 'victory_waste', 'victory_abyss',
-  // New tower attacks
-  'tower_fire', 'tower_poison', 'tower_ballista',
-  // New projectile hits
-  'fire_hit', 'poison_hit', 'ballista_hit',
-  // Skill cards
-  'skill_fireball', 'skill_arrow_rain', 'skill_blizzard', 'skill_bomb',
-  // Arcane cards
-  'arcane_shield', 'arcane_boost', 'arcane_gold',
-  // Status effects
-  'freeze_apply', 'stun_apply', 'poison_tick', 'burn_tick',
-  // Soldier events
-  'soldier_deploy', 'soldier_death', 'soldier_heal',
-]);
+const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>([]);
 
 const SFX_PATH: Record<SfxKey, string> = {
   // Legacy
