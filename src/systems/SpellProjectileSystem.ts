@@ -17,6 +17,7 @@ import {
   DamageTypeVal,
   ShapeVal,
   ExplosionEffect,
+  ScreenShake,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
@@ -155,37 +156,103 @@ export class SpellProjectileSystem implements System {
     const alpha = 1;
 
     switch (spellType) {
-      case SPELL_FIREBALL:
-        // Fireball: orange-red glowing circle with trail
+      case SPELL_FIREBALL: {
+        // ── Burning Fireball: multi-layer flame core + particle trail ──
+        const elapsed = SpellProjectile.elapsed[eid]!;
+        const flicker = 0.85 + 0.15 * Math.sin(elapsed * 18);
+        const pulse = 0.9 + 0.1 * Math.sin(elapsed * 12);
+        const z = 7; // Above ground entities
+
+        // Outer flame aura (large, soft, flickering)
         this.renderer.push({
-          shape: 'circle',
-          x, y,
-          size: 20 + Math.sin(progress * Math.PI * 4) * 4,
-          color: '#ff5722',
-          alpha,
+          shape: 'circle', x, y,
+          size: 44 * flicker,
+          color: '#ff3d00',
+          alpha: 0.2 * pulse,
+          z,
         });
-        // Inner glow
         this.renderer.push({
-          shape: 'circle',
-          x, y,
-          size: 12,
-          color: '#ffab40',
-          alpha: 0.8,
+          shape: 'circle', x, y,
+          size: 34 * flicker,
+          color: '#ff6d00',
+          alpha: 0.3 * pulse,
+          z,
         });
-        // Trail particles
-        for (let i = 0; i < 3; i++) {
-          const trailProgress = Math.max(0, progress - i * 0.05);
-          const trailX = SpellProjectile.startX[eid]! + (SpellProjectile.targetX[eid]! - SpellProjectile.startX[eid]!) * trailProgress;
-          const trailY = SpellProjectile.startY[eid]! + (SpellProjectile.targetY[eid]! - SpellProjectile.startY[eid]!) * trailProgress - Math.sin(trailProgress * Math.PI) * 30;
+
+        // Flame wisps (4 small circles around edge, rotating)
+        for (let w = 0; w < 4; w++) {
+          const wAngle = elapsed * 5 + w * Math.PI * 0.5;
+          const wDist = 14 + Math.sin(elapsed * 8 + w) * 4;
+          const wx = x + Math.cos(wAngle) * wDist;
+          const wy = y + Math.sin(wAngle) * wDist;
           this.renderer.push({
             shape: 'circle',
-            x: trailX, y: trailY,
-            size: 8 - i * 2,
+            x: wx, y: wy,
+            size: 8 + Math.sin(elapsed * 12 + w) * 3,
+            color: '#ff9100',
+            alpha: 0.5,
+            z,
+          });
+        }
+
+        // Inner fire core
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: 20 * pulse,
+          color: '#ff9800',
+          alpha: 0.85,
+          z: z + 1,
+        });
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: 12 * flicker,
+          color: '#ffc107',
+          alpha: 0.9,
+          z: z + 2,
+        });
+        // White-hot center
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: 6 * pulse,
+          color: '#fff9c4',
+          alpha: 1,
+          z: z + 3,
+        });
+
+        // ── Particle trail: 6 flame particles trailing behind ──
+        for (let i = 0; i < 6; i++) {
+          const t = Math.max(0, progress - (i + 1) * 0.03);
+          const spreadAngle = i * 1.2 + Math.sin(elapsed * 14 + i * 2.5) * 0.5;
+          const spreadDist = (i + 1) * 3 + Math.sin(elapsed * 8 + i) * 4;
+          const startX = SpellProjectile.startX[eid]!;
+          const startY = SpellProjectile.startY[eid]!;
+          const targetX = SpellProjectile.targetX[eid]!;
+          const targetY = SpellProjectile.targetY[eid]!;
+          const tX = startX + (targetX - startX) * t;
+          const tY = startY + (targetY - startY) * t - Math.sin(t * Math.PI) * 30;
+          const pX = tX + Math.cos(spreadAngle) * spreadDist;
+          const pY = tY + Math.sin(spreadAngle) * spreadDist;
+          const tSize = 10 - i * 1.2;
+          const tAlpha = 0.6 - i * 0.08;
+          // Outer glow
+          this.renderer.push({
+            shape: 'circle', x: pX, y: pY,
+            size: tSize * 1.6,
+            color: '#ff3d00',
+            alpha: tAlpha * 0.3,
+            z: z - 1,
+          });
+          // Core
+          this.renderer.push({
+            shape: 'circle', x: pX, y: pY,
+            size: tSize,
             color: '#ff9800',
-            alpha: 0.4 - i * 0.1,
+            alpha: tAlpha,
+            z,
           });
         }
         break;
+      }
 
       case SPELL_ARROW_RAIN:
         // Arrow: small triangle pointing down
@@ -234,26 +301,122 @@ export class SpellProjectileSystem implements System {
     const alpha = 1 - progress;
 
     switch (spellType) {
-      case SPELL_FIREBALL:
-        // Explosion: expanding orange-red circle
-        this.renderer.push({
-          shape: 'circle',
-          x, y,
-          size: radius * progress * 2,
-          color: '#ff5722',
-          alpha: alpha * 0.6,
-        });
-        // Inner bright flash
-        if (progress < 0.3) {
+      case SPELL_FIREBALL: {
+        // ── Fireball Impact: flash → shockwave → ground fire → smoke ──
+        const z = 6;
+
+        // Phase 1: Bright flash (0-0.15s)
+        if (progress < 0.15) {
+          const flashProgress = progress / 0.15;
+          const flashAlpha = (1 - flashProgress) * 0.9;
+          const flashSize = radius * (1.5 - flashProgress * 0.8);
+          // White core
           this.renderer.push({
-            shape: 'circle',
-            x, y,
-            size: radius * (1 - progress / 0.3),
-            color: '#ffab40',
-            alpha: (1 - progress / 0.3) * 0.8,
+            shape: 'circle', x, y,
+            size: flashSize,
+            color: '#ffffff',
+            alpha: flashAlpha,
+            z: z + 5,
+          });
+          // Yellow burst
+          this.renderer.push({
+            shape: 'circle', x, y,
+            size: flashSize * 1.4,
+            color: '#ffeb3b',
+            alpha: flashAlpha * 0.7,
+            z: z + 4,
           });
         }
+
+        // Phase 2: Expanding fire ring (0-1.0s)
+        const ringProgress = Math.min(progress / 0.6, 1);
+        const easeOut = 1 - Math.pow(1 - ringProgress, 2); // ease-out quad
+        const ringRadius = radius * easeOut;
+        const ringAlpha = (1 - progress) * 0.7;
+
+        // Outer shockwave ring
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: ringRadius * 2.2,
+          color: '#ff5722',
+          alpha: ringAlpha * 0.35,
+          stroke: '#ff5722',
+          strokeWidth: 3,
+          z,
+        });
+        // Inner fire fill
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: ringRadius * 1.5,
+          color: '#ff6d00',
+          alpha: ringAlpha * 0.45,
+          z: z + 1,
+        });
+        // Core heat glow
+        this.renderer.push({
+          shape: 'circle', x, y,
+          size: ringRadius * 0.7,
+          color: '#ffab40',
+          alpha: ringAlpha * 0.5,
+          z: z + 2,
+        });
+
+        // Phase 3: Ground flame scatter (0.1-1.0s) — 8 flame patches
+        if (progress > 0.05) {
+          const flameProgress = (progress - 0.05) / 0.95;
+          for (let i = 0; i < 8; i++) {
+            const fAngle = (i / 8) * Math.PI * 2 + i * 0.3;
+            const fDist = radius * (0.3 + flameProgress * 0.9);
+            const fX = x + Math.cos(fAngle) * fDist;
+            const fY = y + Math.sin(fAngle) * fDist - flameProgress * 8; // slight drift up
+            const fFade = Math.max(0, 1 - flameProgress * 1.1);
+            const fPulse = 0.8 + 0.2 * Math.sin(Date.now() * 0.015 + i * 2);
+            // Flame glow
+            this.renderer.push({
+              shape: 'circle', x: fX, y: fY,
+              size: 14 * fFade * fPulse,
+              color: '#ff6d00',
+              alpha: fFade * 0.5,
+              z: z + 1,
+            });
+            // Flame core
+            this.renderer.push({
+              shape: 'circle', x: fX, y: fY,
+              size: 8 * fFade * fPulse,
+              color: '#ffc107',
+              alpha: fFade * 0.7,
+              z: z + 2,
+            });
+          }
+        }
+
+        // Phase 4: Rising smoke (0.1-1.0s) — 5 dark particles
+        if (progress > 0.1) {
+          const smokeProgress = (progress - 0.1) / 0.9;
+          for (let i = 0; i < 5; i++) {
+            const sAngle = (i / 5) * Math.PI * 2 + 0.5;
+            const sDist = radius * 0.4 + smokeProgress * radius * 0.6 + i * 12;
+            const sX = x + Math.cos(sAngle) * sDist + Math.sin(smokeProgress * 3 + i) * 15;
+            const sY = y + Math.sin(sAngle) * sDist * 0.5 - smokeProgress * 25;
+            const sFade = Math.max(0, 1 - smokeProgress * 1.0);
+            this.renderer.push({
+              shape: 'circle', x: sX, y: sY,
+              size: 10 + smokeProgress * 16,
+              color: '#212121',
+              alpha: sFade * 0.35,
+              z: z + 3,
+            });
+            this.renderer.push({
+              shape: 'circle', x: sX + 3, y: sY - 2,
+              size: 6 + smokeProgress * 10,
+              color: '#424242',
+              alpha: sFade * 0.25,
+              z: z + 3,
+            });
+          }
+        }
         break;
+      }
 
       case SPELL_ARROW_RAIN:
         // Multiple arrows falling
@@ -331,15 +494,27 @@ export class SpellProjectileSystem implements System {
 
   private spawnEffect(world: TowerWorld, projectileId: number, spellType: number, x: number, y: number): void {
     const effectId = world.createEntity();
+    const isFireball = spellType === SPELL_FIREBALL;
     world.addComponent(effectId, Position, { x, y });
     world.addComponent(effectId, SpellEffect, {
       spellType,
-      duration: spellType === SPELL_BOMB ? 0.5 : 0.8,
+      duration: isFireball ? 1.0 : (spellType === SPELL_BOMB ? 0.5 : 0.8),
       elapsed: 0,
       radius: SpellProjectile.radius[projectileId]!,
       damage: SpellProjectile.damage[projectileId]!,
       hasDealtDamage: 0,
     });
+
+    // Screen shake for impactful spells
+    if (isFireball || spellType === SPELL_BOMB) {
+      const shakeEid = world.createEntity();
+      world.addComponent(shakeEid, ScreenShake, {
+        intensity: isFireball ? 4 : 6,
+        duration: isFireball ? 0.3 : 0.5,
+        elapsed: 0,
+        frequency: isFireball ? 40 : 30,
+      });
+    }
 
     // Play sound
     switch (spellType) {
