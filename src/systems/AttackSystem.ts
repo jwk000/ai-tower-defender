@@ -187,11 +187,12 @@ export class AttackSystem implements System {
         case 0: {
           // Arrow → multi-shot: L1: 1箭, L2: 2箭, L3: 3箭（可锁不同目标）
           const arrowCfg = TOWER_CONFIGS[TowerType.Arrow];
-          const arrowCount = arrowCfg.projectileCount?.[level - 1]
+          const configuredCount = arrowCfg.projectileCount?.[level - 1]
             ?? arrowCfg.projectileCount?.[arrowCfg.projectileCount.length - 1]
             ?? 1;
+          const arrowCount = Math.min(configuredCount, enemies.length);
           for (let i = 0; i < arrowCount; i++) {
-            const target = enemies[i]?.id ?? primaryTarget;
+            const target = enemies[i]!.id;
             spawnProjectile(world, eid, target, towerTypeVal);
           }
           Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
