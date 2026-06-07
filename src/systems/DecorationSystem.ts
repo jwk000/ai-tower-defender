@@ -552,18 +552,12 @@ export class DecorationSystem implements System {
       this.lastBgLevelId = this.levelId;
     }
 
-    const ctx = this.renderer.context;
-
-    // 图片未加载完成时，回退到深色背景
+    // 图片未加载完成 → beginFrame() 已填充 #1a1a2e，不做额外绘制
     if (!this.bgImageLoaded || !this.bgImage) {
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
-      ctx.restore();
       return;
     }
 
+    const ctx = this.renderer.context;
     const vw = LayoutManager.viewportW;
     const vh = LayoutManager.viewportH;
     const imgW = this.bgImage.naturalWidth;
@@ -596,12 +590,15 @@ export class DecorationSystem implements System {
 
   /** 加载关卡背景图（异步，加载完成后下次帧可见） */
   private loadBgImage(): void {
-    const path = `/art/bg/bg${String(this.levelId).padStart(2, '0')}.png`;
+    const basePath = (import.meta as any).env?.BASE_URL ?? '/';
+    const path = `${basePath}art/bg/bg${String(this.levelId).padStart(2, '0')}.png`;
+    console.log(`[DecorationSystem] 正在加载背景图: ${path} (levelId=${this.levelId})`);
     this.bgImageLoaded = false;
     const img = new Image();
     img.onload = () => {
       this.bgImage = img;
       this.bgImageLoaded = true;
+      console.log(`[DecorationSystem] 背景图加载成功: ${path} (${img.naturalWidth}x${img.naturalHeight})`);
     };
     img.onerror = () => {
       console.warn(`[DecorationSystem] 背景图加载失败: ${path}`);
