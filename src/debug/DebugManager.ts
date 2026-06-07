@@ -18,6 +18,8 @@ export interface DebugManagerHooks {
   getHandSystem?: () => HandSystem | null;
   onLevelProgressChanged?: () => void;
   onOpenLevelEditor?: () => void;
+  /** v6.0: 跳过当前关卡直接通关（测试胜利界面用） */
+  onSkipToVictory?: () => void;
 }
 
 const GOLD_BONUS = 99999;
@@ -34,6 +36,7 @@ export class DebugManager {
   private getHandSystemFn: (() => HandSystem | null) | null = null;
   private onLevelProgressChangedFn: (() => void) | null = null;
   private onOpenLevelEditorFn: (() => void) | null = null;
+  private onSkipToVictoryFn: (() => void) | null = null;
 
   constructor(world: TowerWorld, hooks: DebugManagerHooks = {}) {
     this.world = world;
@@ -41,6 +44,7 @@ export class DebugManager {
     this.getHandSystemFn = hooks.getHandSystem ?? null;
     this.onLevelProgressChangedFn = hooks.onLevelProgressChanged ?? null;
     this.onOpenLevelEditorFn = hooks.onOpenLevelEditor ?? null;
+    this.onSkipToVictoryFn = hooks.onSkipToVictory ?? null;
 
     this.cardListWindow = new CardListWindow();
     this.setupCardListWindow();
@@ -91,6 +95,14 @@ export class DebugManager {
         disabledHint: '仅战斗中可用',
         onClick: () => this.showCardList(),
       },
+      {
+        id: 'skip_to_victory',
+        label: '🏁 直接通关（测试用）',
+        icon: '🏁',
+        isEnabled: () => this.getEconomy() !== null,
+        disabledHint: '仅战斗中可用',
+        onClick: () => this.skipToVictory(),
+      },
     ];
     if (this.onOpenLevelEditorFn) {
       const openEditor = this.onOpenLevelEditorFn;
@@ -138,6 +150,10 @@ export class DebugManager {
 
   private showCardList(): void {
     this.cardListWindow.show(ALL_CARDS);
+  }
+
+  private skipToVictory(): void {
+    this.onSkipToVictoryFn?.();
   }
 
   completeAllLevels(): { stars: number; unlocked: number } {

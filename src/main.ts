@@ -196,6 +196,7 @@ class TowerDefenderGame extends Game {
       getEconomy: () => (this.currentScreen === GameScreen.Battle ? this.economy : null),
       getHandSystem: () => (this.currentScreen === GameScreen.Battle ? this.handSystem : null),
       onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
+      onSkipToVictory: () => this.skipToVictory(),
     });
 
     // Wheel event for encyclopedia scroll
@@ -1236,6 +1237,24 @@ class TowerDefenderGame extends Game {
     SaveManager.clearBattleSnapshot();
     this.levelSelectUI?.refresh?.();
     setTimeout(() => this.enterLevelSelect(), 1500);
+  }
+
+  /** 🏁 调试：直接通关当前关卡（跳过所有波次） */
+  private skipToVictory(): void {
+    if (this.currentScreen !== GameScreen.Battle) return;
+    if (this.phase === GamePhase.Victory || this.phase === GamePhase.Defeat) return;
+
+    // 秒杀所有存活的敌人
+    const w = this.world.world;
+    for (let eid = 1; eid < Health.current.length; eid++) {
+      const hp = Health.current[eid];
+      if (hp !== undefined && hp > 0 && UnitTag.isEnemy[eid] === 1) {
+        Health.current[eid] = 0;
+      }
+    }
+
+    // 直接触发胜利阶段
+    this.phase = GamePhase.Victory;
   }
 
   // ================================================================
