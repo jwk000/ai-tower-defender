@@ -72,8 +72,8 @@ interface BirdState {
 export class DecorationSystem implements System {
   readonly name = 'DecorationSystem';
 
-  /** v4.1: 入场动画期间隐藏装饰物（Phase 1 棋盘掉落时不显示） */
-  static introHideDecorations = false;
+  /** v4.1: 入场动画装饰物 alpha（0=隐藏, 1=完全可见）。Phase 2 从 0→1 渐变 */
+  static introDecorAlpha: number = 1;
 
   private renderer: Renderer;
   private map: MapConfig;
@@ -134,8 +134,13 @@ export class DecorationSystem implements System {
     // Phase 3: 背景层（天空渐变 + 远景 + 云）
     this.drawBackground();
 
-    // v4.1: 入场动画 Phase 1 期间隐藏装饰物
-    if (DecorationSystem.introHideDecorations) return;
+    // v4.1: 入场动画期间按 alpha 控制装饰物可见度
+    const decAlpha = DecorationSystem.introDecorAlpha;
+    if (decAlpha <= 0) return;
+
+    const ctx = this.renderer.context;
+    ctx.save();
+    if (decAlpha < 1) ctx.globalAlpha = decAlpha;
 
     // Phase 2: 静态装饰物（复合几何体 + 微动）
     this.drawStaticDecorations();
@@ -148,6 +153,8 @@ export class DecorationSystem implements System {
 
     // Phase 5: 飞鸟（在云朵之后、实体之前）
     this.drawBirds();
+
+    ctx.restore();
   }
 
   // ============================================================

@@ -9,7 +9,7 @@
 //   Phase 2 — 场景装饰显现 (0.6s fade)
 //   Phase 3 — 水晶显现 (0.6s fade + scale)
 //   Phase 4 — 传送门显现 (0.5s fade)
-//   Phase 5 — 路径从生成口向水晶蔓延 (BFS，~1.0s)
+//   Phase 5 — 路径沿行走路线铺展 (1.5s)
 // 动画完成后启动第一波倒计时。
 // ============================================================
 
@@ -21,6 +21,8 @@ import { TileType, type MapConfig } from '../types/index.js';
 import { RenderSystem, computeSceneLayout } from './RenderSystem.js';
 import { DecorationSystem } from './DecorationSystem.js';
 import { isAdjacentToPath } from '../utils/grid.js';
+import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
+import type { PathNode } from '../level/graph/types.js';
 
 // ---- 阶段枚举 ----
 
@@ -64,7 +66,7 @@ const TILE_FALL_STAGGER = 0.5;
 const DECOR_FADE_DURATION = 0.6;
 const CRYSTAL_FADE_DURATION = 0.6;
 const SPAWN_FADE_DURATION = 0.5;
-const PATH_REVEAL_INTERVAL = 0.04;
+const PATH_REVEAL_DURATION = 1.5;  // 总时长（秒）
 
 export class LevelIntroSystem implements System {
   readonly name = 'LevelIntroSystem';
@@ -126,7 +128,7 @@ export class LevelIntroSystem implements System {
 
     // 抑制正常渲染
     RenderSystem.introActive = true;
-    DecorationSystem.introHideDecorations = true;
+    DecorationSystem.introDecorAlpha = 0;
 
     // 随机化瓦片延迟
     for (const tile of this.tiles) {
@@ -175,8 +177,6 @@ export class LevelIntroSystem implements System {
   private updateTilesFalling(): void {
     const totalDuration = TILE_FALL_DURATION + TILE_FALL_STAGGER + 0.2;
     if (this.timer >= totalDuration) {
-      // 切换到装饰物显现阶段
-      DecorationSystem.introHideDecorations = false;
       this.phase = IntroPhase.DecorAppear;
       this.timer = 0;
     }
@@ -184,8 +184,10 @@ export class LevelIntroSystem implements System {
 
   private updateDecorAppear(): void {
     this.decorAlpha = Math.min(1, this.timer / DECOR_FADE_DURATION);
+    DecorationSystem.introDecorAlpha = this.decorAlpha;
     if (this.timer >= DECOR_FADE_DURATION) {
       this.decorAlpha = 1;
+      DecorationSystem.introDecorAlpha = 1;
       this.phase = IntroPhase.CrystalAppear;
       this.timer = 0;
     }
@@ -214,16 +216,24 @@ export class LevelIntroSystem implements System {
   }
 
   private updatePathReveal(): void {
-    this.pathRevealIndex = Math.min(
-      Math.floor(this.timer / PATH_REVEAL_INTERVAL),
-      this.pathRevealOrder.length,
-    );
-    if (this.pathRevealIndex >= this.pathRevealOrder.length) {
-      this.phase = IntroPhase.Complete;
-      this.isActive = false;
-      RenderSystem.introActive = false;
-      this.onComplete?.();
+    const total = this.pathRevealOrder.length;
+    if (total === 0) {
+      this.finishIntro();
+      return;
     }
+    const progress = Math.min(1, this.timer / PATH_REVEAL_DURATION);
+    this.pathRevealIndex = Math.floor(progress * total);
+    if (this.pathRevealIndex >= total) {
+      this.pathRevealIndex = total;
+      this.finishIntro();
+    }
+  }
+
+  private finishIntro(): void {
+    this.phase = IntroPhase.Complete;
+    this.isActive = false;
+    RenderSystem.introActive = false;
+    this.onComplete?.();
   }
 
   // ============================================================
@@ -282,15 +292,13 @@ export class LevelIntroSystem implements System {
     const y = tile.targetY;
     const s = this.ts - 2;
 
-    // 路径瓦片：Phase 5 时按 BFS 逐步揭示
+    // 路径瓦片：Phase 5 时按行走路线逐步揭示
     if (tile.type === TileType.Path && this.phase === IntroPhase.PathReveal) {
       if (!this.isPathTileRevealed(tile.row, tile.col)) return;
     }
-    if (tile.type === TileType.Path &&
-        (this.phase === IntroPhase.DecorAppear ||
-         this.phase === IntroPhase.CrystalAppear ||
-         this.phase === IntroPhase.SpawnAppear)) {
-      return; // 路径在 Phase 5 才展示
+    // 路径瓦片在 Phase 2-4 保持可见，Phase 1 正常下落
+    if (tile.type === TileType.Path && (this.phase === IntroPhase.TilesFalling)) {
+      return; // handled by renderTileFalling
     }
 
     // 生成口瓦片：Phase 4 之前隐藏
@@ -423,50 +431,92 @@ export class LevelIntroSystem implements System {
     }
   }
 
+  /**
+   * 从路径图提取行走路线顺序（spawn → waypoints → crystal_anchor）
+   * 用于路径铺展动画，按敌人实际行走方向逐格揭示。
+   */
   private computePathRevealOrder(): void {
     const map = this.map;
-    const visited = new Set<string>();
-    const dirs: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    const graph = resolveGraphFromMap(map);
+    const { nodes, edges } = graph.pathGraph;
 
-    const queue: { r: number; c: number; dist: number }[] = [];
+    // 找到所有 spawn 节点
+    const spawnNodes = nodes.filter(n => n.role === 'spawn');
+    if (spawnNodes.length === 0) return;
 
-    for (let r = 0; r < map.rows; r++) {
-      for (let c = 0; c < map.cols; c++) {
-        if (map.tiles[r]![c]! === TileType.Spawn) {
-          const key = `${r},${c}`;
-          visited.add(key);
-          queue.push({ r, c, dist: 0 });
+    // 建索引：id → node
+    const nodeById = new Map<string, PathNode>();
+    for (const n of nodes) nodeById.set(n.id, n);
+
+    // 从第一个 spawn 出发，沿边走到 crystal_anchor
+    const entries: PathTileEntry[] = [];
+    const visitedEdges = new Set<string>();
+    const startNode = spawnNodes[0]!;
+    const stack = [startNode];
+    const visitedNodes = new Set<string>();
+    visitedNodes.add(startNode.id);
+
+    let dist = 0;
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+
+      for (const edge of edges) {
+        const edgeKey = `${edge.from}→${edge.to}`;
+        if (visitedEdges.has(edgeKey)) continue;
+        visitedEdges.add(edgeKey);
+
+        let fromNode: typeof node | undefined;
+        let toNode: typeof node | undefined;
+        if (edge.from === node.id) {
+          fromNode = node;
+          toNode = nodeById.get(edge.to);
+        } else if (edge.to === node.id) {
+          fromNode = nodeById.get(edge.from);
+          toNode = node;
+        } else {
+          continue;
+        }
+
+        if (!fromNode || !toNode) continue;
+
+        // 沿边插值格子
+        const steps = this.interpolateEdge(fromNode.col, fromNode.row, toNode.col, toNode.row);
+        for (const [c, r] of steps) {
+          if (r < 0 || r >= map.rows || c < 0 || c >= map.cols) continue;
+          if (map.tiles[r]![c]! !== TileType.Path) continue;
+          entries.push({ row: r, col: c, distance: dist++ });
+        }
+
+        if (!visitedNodes.has(toNode.id)) {
+          visitedNodes.add(toNode.id);
+          stack.push(toNode);
         }
       }
     }
 
-    const entries: PathTileEntry[] = [];
+    this.pathRevealOrder = entries;
+  }
 
-    while (queue.length > 0) {
-      const { r, c, dist } = queue.shift()!;
+  /** 两点间插值，生成经过的格子坐标列表 */
+  private interpolateEdge(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+    const result: [number, number][] = [];
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const steps = Math.max(dx, dy);
 
-      if (map.tiles[r]![c]! === TileType.Path) {
-        entries.push({ row: r, col: c, distance: dist });
-      }
-
-      for (const [dr, dc] of dirs) {
-        const nr = r + dr;
-        const nc = c + dc;
-        if (nr < 0 || nr >= map.rows || nc < 0 || nc >= map.cols) continue;
-
-        const nTile = map.tiles[nr]![nc]!;
-        if (nTile !== TileType.Path && nTile !== TileType.Base && nTile !== TileType.Spawn) continue;
-
-        const key = `${nr},${nc}`;
-        if (visited.has(key)) continue;
-        visited.add(key);
-
-        queue.push({ r: nr, c: nc, dist: dist + 1 });
-      }
+    if (steps === 0) {
+      result.push([x0, y0]);
+      return result;
     }
 
-    entries.sort((a, b) => a.distance - b.distance);
-    this.pathRevealOrder = entries;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const cx = Math.round(x0 + (x1 - x0) * t);
+      const cy = Math.round(y0 + (y1 - y0) * t);
+      result.push([cx, cy]);
+    }
+
+    return result;
   }
 
   private isPathTileRevealed(row: number, col: number): boolean {
