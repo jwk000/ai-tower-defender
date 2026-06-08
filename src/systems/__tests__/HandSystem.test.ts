@@ -10,20 +10,20 @@ import { TowerWorld } from '../../core/World.js';
 
 function makeTestPool(): CardInstance[] {
   return [
-    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出' },
-    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔' },
-    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵' },
-    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击' },
-    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害' },
-    { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨' },
-    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌' },
-    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%' },
+    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
+    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
+    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
+    { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
+    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌', goldCost: 0 },
+    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%', goldCost: 0 },
   ];
 }
 
-// 只取 4 张的卡池（刚好手牌上限）
+// 5 张卡的卡池（刚好手牌上限）
 function makeSmallPool(): CardInstance[] {
-  return makeTestPool().slice(0, 4);
+  return makeTestPool().slice(0, 5);
 }
 
 describe('HandSystem — 手牌管理', () => {
@@ -43,32 +43,33 @@ describe('HandSystem — 手牌管理', () => {
   });
 
   describe('initialize — 初始手牌', () => {
-    it('从卡池中随机抽 4 张到手中', () => {
+    it('从卡池中随机抽 5 张到手中', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
       const hand = handSystem.getHand();
-      expect(hand).toHaveLength(4);
+      expect(hand).toHaveLength(5);
       // 所有槽位都应非空
       for (const card of hand) {
         expect(card).not.toBeNull();
         expect(card!.id).toBeTruthy();
         expect(card!.name).toBeTruthy();
       }
-      // 4 张牌应互不相同
+      // 5 张牌应互不相同
       const ids = hand.map((c) => c!.id);
-      expect(new Set(ids).size).toBe(4);
+      expect(new Set(ids).size).toBe(5);
     });
 
-    it('卡池不足 4 张时只抽可用的数量', () => {
+    it('卡池不足 5 张时只抽可用的数量', () => {
       const pool = makeSmallPool().slice(0, 2); // only 2 cards
       handSystem.initialize(pool);
       const hand = handSystem.getHand();
-      expect(hand).toHaveLength(4);
-      // 前 2 槽非空，后 2 槽为空
+      expect(hand).toHaveLength(5);
+      // 前 2 槽非空，后 3 槽为空
       expect(hand[0]).not.toBeNull();
       expect(hand[1]).not.toBeNull();
       expect(hand[2]).toBeNull();
       expect(hand[3]).toBeNull();
+      expect(hand[4]).toBeNull();
       expect(handSystem.getCount()).toBe(2);
     });
 
@@ -82,19 +83,21 @@ describe('HandSystem — 手牌管理', () => {
 
       // 由于随机性，两次可能相同但不应总是相同
       // 仅验证结构正确
-      expect(handSystem.getCount()).toBe(4);
-      expect(firstIds.length).toBe(4);
-      expect(secondIds.length).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
+      expect(firstIds.length).toBe(5);
+      expect(secondIds.length).toBe(5);
     });
   });
 
   describe('drawCard — 抽牌', () => {
     it('手牌未满时成功抽入', () => {
-      const pool = makeTestPool();
-      // 用完整卡池初始化，但事先打出 2 张让手牌不满
-      handSystem.initialize(pool);
-      handSystem.playCard(0);
-      handSystem.playCard(1);
+      // initialize 存入 cardLibrary，然后 reset 清空手牌，再手动抽入 2 张
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+      expect(handSystem.getCount()).toBe(0);
+
+      handSystem.drawCard('card_arrow_tower');
+      handSystem.drawCard('card_ice_tower');
       expect(handSystem.getCount()).toBe(2);
 
       const result = handSystem.drawCard('card_fireball');
@@ -112,30 +115,26 @@ describe('HandSystem — 手牌管理', () => {
 
       const result = handSystem.drawCard('card_fireball');
       expect(result).toBe(false);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
     });
 
     it('无效 cardId 返回 false', () => {
-      handSystem.initialize(makeSmallPool().slice(0, 2));
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
       const result = handSystem.drawCard('nonexistent_card');
       expect(result).toBe(false);
     });
 
     it('抽入未知 cardId（未在卡库中）', () => {
-      const pool = makeTestPool();
-      handSystem.initialize(pool.slice(0, 2));
-      // 'card_fireball' is in pool but the pool.slice(0,2) initializes only first 2
-      // The cardLibrary should still contain all cards from the pool
-      // Actually, initialize() takes the full pool and adds ALL to cardLibrary
-      // So 'card_fireball' should be known.
-      // Let me test with a truly unknown ID
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
       const result = handSystem.drawCard('totally_fake_card');
       expect(result).toBe(false);
     });
   });
 
-  describe('playCard — 出牌', () => {
-    it('打出有效槽位的牌并返回 cardId', () => {
+  describe('playCard — 出牌（v5.0: 自动补牌）', () => {
+    it('打出有效槽位的牌并返回 cardId，自动补牌保持手牌满', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
       const handBefore = handSystem.getHand();
@@ -144,8 +143,13 @@ describe('HandSystem — 手牌管理', () => {
 
       const playedId = handSystem.playCard(0);
       expect(playedId).toBe(cardToPlay.id);
-      expect(handSystem.getHand()[0]).toBeNull();
-      expect(handSystem.getCount()).toBe(3);
+      // v5.0: 自动补牌后所有槽位仍然非空
+      const handAfter = handSystem.getHand();
+      for (const card of handAfter) {
+        expect(card).not.toBeNull();
+      }
+      expect(handSystem.getCount()).toBe(5);
+      expect(handSystem.isFull()).toBe(true);
     });
 
     it('触发 onCardPlayed 回调', () => {
@@ -172,21 +176,23 @@ describe('HandSystem — 手牌管理', () => {
     it('越界 index 返回 null', () => {
       handSystem.initialize(makeTestPool());
       expect(handSystem.playCard(-1)).toBeNull();
-      expect(handSystem.playCard(4)).toBeNull();
+      expect(handSystem.playCard(5)).toBeNull();
       expect(handSystem.playCard(100)).toBeNull();
     });
 
-    it('打出牌后该槽位为空，不影响其他牌', () => {
+    it('出牌后自动补牌，所有槽位非空，原打出槽位被新牌填充', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
-      const handBefore = handSystem.getHand();
+      const oldCard = handSystem.getHand()[1]!;
 
       handSystem.playCard(1);
       const handAfter = handSystem.getHand();
-      expect(handAfter[1]).toBeNull();
-      expect(handAfter[0]?.id).toBe(handBefore[0]!.id);
-      expect(handAfter[2]?.id).toBe(handBefore[2]!.id);
-      expect(handAfter[3]?.id).toBe(handBefore[3]!.id);
+      // 所有槽位非空
+      for (let i = 0; i < 5; i++) {
+        expect(handAfter[i]).not.toBeNull();
+      }
+      // slot 1 被新牌填充（不同于旧牌）
+      expect(handAfter[1]!.id).not.toBe(oldCard.id);
     });
   });
 
@@ -201,22 +207,24 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.getHand()[2]!.id).toBe('card_fireball');
     });
 
-    it('替换空槽位（空手牌后再初始化替代）', () => {
-      const pool = makeTestPool();
-      handSystem.initialize(pool);
-      // 先打出 slot 2 的牌使其为空
-      handSystem.playCard(2);
-      // slot 2 现在是空的
+    it('替换空槽位放入新牌', () => {
+      // initialize 填充 cardLibrary，然后 reset + 部分抽牌创建空槽位
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+      handSystem.drawCard('card_arrow_tower');
+      handSystem.drawCard('card_ice_tower');
+      // slot 2 为空
+      expect(handSystem.getHand()[2]).toBeNull();
       const replacedId = handSystem.replaceCard(2, 'card_fireball');
       expect(replacedId).toBe('');
       expect(handSystem.getHand()[2]!.id).toBe('card_fireball');
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(3);
     });
 
     it('越界 index 抛出异常', () => {
       handSystem.initialize(makeTestPool());
       expect(() => handSystem.replaceCard(-1, 'card_fireball')).toThrow();
-      expect(() => handSystem.replaceCard(4, 'card_fireball')).toThrow();
+      expect(() => handSystem.replaceCard(5, 'card_fireball')).toThrow();
     });
 
     it('无效 cardId 抛出异常', () => {
@@ -234,23 +242,30 @@ describe('HandSystem — 手牌管理', () => {
   });
 
   describe('isFull / getCount', () => {
-    it('初始 4 张后 isFull 为 true', () => {
+    it('初始 5 张后 isFull 为 true', () => {
       handSystem.initialize(makeSmallPool());
       expect(handSystem.isFull()).toBe(true);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
     });
 
-    it('出牌后 isFull 为 false', () => {
+    it('出牌后自动补牌，isFull 仍为 true', () => {
       handSystem.initialize(makeSmallPool());
       handSystem.playCard(0);
-      expect(handSystem.isFull()).toBe(false);
-      expect(handSystem.getCount()).toBe(3);
+      // v5.0: 自动补牌保持手牌满
+      expect(handSystem.isFull()).toBe(true);
+      expect(handSystem.getCount()).toBe(5);
     });
 
     it('初始化为空时 isFull 为 false', () => {
       handSystem.initialize([]);
       expect(handSystem.isFull()).toBe(false);
       expect(handSystem.getCount()).toBe(0);
+    });
+
+    it('部分卡池初始化后 isFull 为 false', () => {
+      handSystem.initialize(makeTestPool().slice(0, 3));
+      expect(handSystem.isFull()).toBe(false);
+      expect(handSystem.getCount()).toBe(3);
     });
   });
 
@@ -262,7 +277,7 @@ describe('HandSystem — 手牌管理', () => {
       const hand2 = handSystem.getHand();
       // 浅拷贝：引用不同但内容相同
       expect(hand1).not.toBe(hand2);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 5; i++) {
         expect(hand1[i]?.id).toBe(hand2[i]?.id);
       }
     });
@@ -279,7 +294,7 @@ describe('HandSystem — 手牌管理', () => {
   describe('reset — 重置', () => {
     it('重置后所有槽位为空', () => {
       handSystem.initialize(makeSmallPool());
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
 
       handSystem.reset();
       expect(handSystem.getCount()).toBe(0);
@@ -290,41 +305,50 @@ describe('HandSystem — 手牌管理', () => {
   });
 
   describe('集成场景', () => {
-    it('完整流程：初始→出牌→抽牌→替换', () => {
+    it('完整流程：初始→出牌（自动补牌）→替换', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
       expect(handSystem.isFull()).toBe(true);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
 
-      // 打出 2 张牌
+      // 打出 2 张牌（自动补牌，手牌保持满）
       const id1 = handSystem.playCard(0);
       const id2 = handSystem.playCard(1);
       expect(id1).toBeTruthy();
       expect(id2).toBeTruthy();
-      expect(handSystem.getCount()).toBe(2);
-
-      // 抽入 2 张新牌
-      handSystem.drawCard('card_fireball');
-      handSystem.drawCard('card_emergency_shield');
       expect(handSystem.isFull()).toBe(true);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
 
       // 替换一张
       handSystem.replaceCard(3, 'card_arrow_rain');
       expect(handSystem.getHand()[3]!.id).toBe('card_arrow_rain');
     });
 
-    it('手牌满时抽牌失败，需先出再抽', () => {
+    it('手牌满时抽牌失败', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
       expect(handSystem.isFull()).toBe(true);
 
       // 直接抽失败
       expect(handSystem.drawCard('card_fireball')).toBe(false);
+    });
 
-      // 出牌后抽成功
-      handSystem.playCard(0);
-      expect(handSystem.drawCard('card_fireball')).toBe(true);
+    it('re-init + 抽牌流程', () => {
+      // initialize → cardLibrary 已填充 → reset → 抽牌
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+      expect(handSystem.getCount()).toBe(0);
+
+      handSystem.drawCard('card_arrow_tower');
+      handSystem.drawCard('card_ice_tower');
+      expect(handSystem.getCount()).toBe(2);
+      expect(handSystem.isFull()).toBe(false);
+
+      handSystem.drawCard('card_shield_guard');
+      handSystem.drawCard('card_archer');
+      handSystem.drawCard('card_fireball');
+      expect(handSystem.isFull()).toBe(true);
+      expect(handSystem.getCount()).toBe(5);
     });
   });
 });

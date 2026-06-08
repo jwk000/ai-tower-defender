@@ -645,12 +645,13 @@ class TowerDefenderGame extends Game {
 
     // ---- Create RunContext for UISystem ----
     // UISystem expects runContext with hand, energy, registry, deck
-    const cardRegistry = new Map<string, { type: string; rarity: string; energyCost: number; name: string; description: string }>();
+    const cardRegistry = new Map<string, { type: string; rarity: string; energyCost: number; goldCost: number; name: string; description: string }>();
     for (const card of initialPool) {
       cardRegistry.set(card.id, {
         type: card.type,
         rarity: 'common',
         energyCost: 0,
+        goldCost: card.goldCost,
         name: card.name,
         description: card.description,
       });
@@ -684,13 +685,14 @@ class TowerDefenderGame extends Game {
           type: card.type,
           rarity: 'common',
           energyCost: 0,
+          goldCost: card.goldCost,
           name: card.name,
           description: card.description,
         });
       }
     };
 
-    // ---- Card Draft System ----
+    // ---- Card Draft System (v5.0: 保留但暂不接入精英击杀，后续可能复用) ----
     this.cardDraftSystem = new CardDraftSystem();
     this.cardDraftSystem.onDraftStart = () => {
       this.paused = true;
@@ -742,17 +744,12 @@ class TowerDefenderGame extends Game {
         Sound.play('enemy_death');
         this.economy.rewardForEnemy(enemyId);
         Sound.play('gold_earn');
-        // v4.0: 精英敌人死亡 → 触发 3选1 抽卡
-        // 在 HealthSystem 回调中检测，覆盖所有死因（塔伤/陷阱/DOT等），
-        // 不受系统执行顺序影响（原先在 WaveSystem 轮询可能导致漏检）。
-        // v6.0: 若为最终波次且无其他存活敌人，跳过抽卡 → 直接胜利
-        if (UnitTag.isElite[enemyId] === 1 && !this.cardDraftSystem.isActive()) {
-          const isFinalWave = this.waveSystem.currentWave >= this.waveSystem.totalWaves;
-          if (isFinalWave && !this.waveSystem.hasAliveEnemies()) {
-            this.phase = GamePhase.Victory;
-          } else {
-            this.cardDraftSystem.startDraft(initialPool, this.handSystem);
-          }
+        // v5.0: 精英击杀不再触发3选1抽卡（抽卡相关代码保留，后续可能复用）。
+        // 击杀精英现仅获得金币奖励（1.5x 普通版 rewardGold）。
+        // 最终波次全部敌人死亡 → 胜利
+        const isFinalWave = this.waveSystem.currentWave >= this.waveSystem.totalWaves;
+        if (isFinalWave && !this.waveSystem.hasAliveEnemies()) {
+          this.phase = GamePhase.Victory;
         }
       },
       (unitId) => {
@@ -910,6 +907,13 @@ class TowerDefenderGame extends Game {
                 // 技能卡/奥术卡
                 if (isSelfTargetSpell(resolved.spellCardId)) {
                   // 自施法奥术卡：点击即生效，无需拖拽
+                  // v5.0: 出牌前检查金币
+                  const handCards = this.handSystem.getHand();
+                  const handCard = handCards[cardIdx];
+                  if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+                    Sound.play('build_deny');
+                    return;
+                  }
                   this.executeSpellAt(resolved.spellCardId, 0, 0);
                   this.handSystem.playCard(cardIdx);
                   return;
@@ -1015,6 +1019,14 @@ class TowerDefenderGame extends Game {
         }
         console.log('[CardDrag] entityType:', ds.entityType, 'cardIndex:', ds.cardIndex);
         if (ds.entityType === 'unit') {
+          // v5.0: 出牌前检查金币
+          const handCards = this.handSystem.getHand();
+          const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+          if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+            Sound.play('build_deny');
+            this.buildSystem.cancelDrag();
+            return;
+          }
           const spawnResult = this.spawnUnitAt(e.x, e.y);
           console.log('[CardDrag] spawnUnitAt result:', spawnResult);
           if (spawnResult && ds.cardIndex !== undefined) {
@@ -1026,6 +1038,14 @@ class TowerDefenderGame extends Game {
           // 技能卡：在释放位置执行法术效果
           const spellId = ds.spellCardId;
           if (spellId) {
+            // v5.0: 出牌前检查金币
+            const handCards = this.handSystem.getHand();
+            const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+            if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+              Sound.play('build_deny');
+              this.buildSystem.cancelDrag();
+              return;
+            }
             this.executeSpellAt(spellId, e.x, e.y);
             if (ds.cardIndex !== undefined) {
               this.handSystem.playCard(ds.cardIndex);
@@ -1035,6 +1055,14 @@ class TowerDefenderGame extends Game {
           this.buildSystem.cancelDrag();
         } else {
           console.log('[CardDrag] Calling tryDrop...');
+          // v5.0: 出牌前检查金币
+          const handCards = this.handSystem.getHand();
+          const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+          if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+            Sound.play('build_deny');
+            this.buildSystem.cancelDrag();
+            return;
+          }
           const result = this.buildSystem.tryDrop(e.x, e.y);
           console.log('[CardDrag] tryDrop result:', result, 'cardIndex:', ds.cardIndex);
           if (result !== false && result !== null) {

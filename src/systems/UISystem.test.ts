@@ -241,11 +241,11 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     })).toBe(false);
   });
 
-  it('空槽背景始终按 4 槽绘制，与已有卡牌坐标对齐', () => {
+  it('空槽背景始终按 5 槽绘制，与已有卡牌坐标对齐', () => {
     const slots = computeHandZoneSlotRects();
 
-    expect(slots).toHaveLength(4);
-    expect(slots.map((slot) => slot.left)).toEqual([696, 832, 968, 1104]);
+    expect(slots).toHaveLength(5);
+    expect(slots.map((slot) => slot.left)).toEqual([628, 764, 900, 1036, 1172]);
     expect(slots.every((slot) => slot.top === 866)).toBe(true);
     expect(slots.every((slot) => slot.width === 120 && slot.height === 168)).toBe(true);
   });

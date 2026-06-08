@@ -77,7 +77,7 @@ crystal:
   hp: 500
 
 starting:
-  gold: 200
+  gold: 150
   energy: 50
   maxPopulation: 6
 

@@ -15,6 +15,7 @@ spike_trap_card:
   type: trap
   rarity: common
   energyCost: 2
+  goldCost: 30
   unitConfigId: spike_trap
   placement:
     targetType: tile
@@ -26,6 +27,7 @@ bear_trap_card:
   type: trap
   rarity: common
   energyCost: 3
+  goldCost: 50
   unitConfigId: bear_trap
   placement:
     targetType: tile
@@ -37,6 +39,7 @@ tar_pit_card:
   type: trap
   rarity: common
   energyCost: 2
+  goldCost: 30
   unitConfigId: tar_pit
   placement:
     targetType: tile
@@ -48,6 +51,7 @@ boulder_card:
   type: trap
   rarity: rare
   energyCost: 4
+  goldCost: 60
   unitConfigId: boulder
   placement:
     targetType: tile

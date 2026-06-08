@@ -15,6 +15,7 @@ gold_mine_card:
   type: production
   rarity: rare
   energyCost: 3
+  goldCost: 50
   unitConfigId: gold_mine
   placement:
     targetType: tile
@@ -25,6 +26,7 @@ energy_tower_card:
   type: production
   rarity: rare
   energyCost: 4
+  goldCost: 40
   unitConfigId: energy_tower
   placement:
     targetType: tile

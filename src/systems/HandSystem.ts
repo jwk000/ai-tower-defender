@@ -2,7 +2,7 @@
 // HandSystem — 手牌管理（纯逻辑，无 UI 渲染）
 //
 // 职责：
-//   - 管理玩家手牌（上限 4 张）
+//   - 管理玩家手牌（v5.0: 上限 5 张，出牌自动补满）
 //   - 提供抽牌 / 出牌 / 替换牌操作
 //   - 发射 onCardPlayed 回调供 UISystem 消费
 //
@@ -23,12 +23,14 @@ export interface CardInstance {
   type: 'unit' | 'spell' | 'arcane' | 'trap' | 'production';
   /** 一句话机制描述 */
   description: string;
+  /** v5.0 出牌消耗金币 */
+  goldCost: number;
 }
 
 // ---- 常量 ----
 
-/** 手牌上限（固定 4 张） */
-const MAX_HAND_SIZE = 4;
+/** v5.0 手牌上限（固定 5 张，出牌后自动补满） */
+const MAX_HAND_SIZE = 5;
 
 // ---- HandSystem ----
 
@@ -39,7 +41,7 @@ const MAX_HAND_SIZE = 4;
 export class HandSystem implements System {
   readonly name = 'HandSystem';
 
-  /** 手牌槽位（固定长度 4，null = 空槽） */
+  /** 手牌槽位（v5.0: 固定长度 5，null = 空槽） */
   private hand: (CardInstance | null)[] = Array.from({ length: MAX_HAND_SIZE }, () => null);
 
   /** 卡牌库（cardId → CardInstance），由 initialize 注入 */
@@ -64,8 +66,8 @@ export class HandSystem implements System {
   // ============================================================
 
   /**
-   * 初始化手牌：注入卡牌库并从池中随机抽 4 张。
-   * 若池不足 4 张，有多少抽多少。
+   * 初始化手牌：注入卡牌库并从池中随机抽满手牌（v5.0: 5张）。
+   * 若池不足 5 张，有多少抽多少。
    *
    * 保证第一张手牌为箭塔卡（card_arrow_tower），降低第一波难度。
    */
@@ -113,6 +115,7 @@ export class HandSystem implements System {
   }
 
   /**
+   * @deprecated v5.0 不再需要外部手动抽牌 — playCard 已内置自动补牌。
    * 从卡牌库中随机抽一张牌补充手牌。
    * @returns true 若抽牌成功，false 若手牌已满或卡牌库为空
    */
@@ -134,7 +137,8 @@ export class HandSystem implements System {
   }
 
   /**
-   * 打出手牌中指定位置的牌，将其从手牌中移除。
+   * 打出手牌中指定位置的牌，将其从手牌中移除并自动补牌。
+   * v5.0: 出牌后自动从牌库随机抽一张牌补满手牌。
    * 触发 onCardPlayed 回调。
    * @returns 被打出卡牌的 cardId，若该位置为空则返回 null
    */
@@ -154,6 +158,10 @@ export class HandSystem implements System {
     console.log('[HandSystem] playCard: removing card', cardId, 'at index', index);
     this.hand[index] = null;
     this.onCardPlayed?.(cardId);
+
+    // v5.0: 出牌后自动补牌
+    this.drawRandomCard();
+
     return cardId;
   }
 

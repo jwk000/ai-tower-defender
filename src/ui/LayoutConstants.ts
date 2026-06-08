@@ -50,7 +50,7 @@ export function computeCardSlotsLayout(
 export const HAND_ZONE_CARD_WIDTH = 120;
 export const HAND_ZONE_CARD_HEIGHT = 168;
 export const HAND_ZONE_GAP = 16;
-export const HAND_ZONE_DEFAULT_SLOT_COUNT = 4;
+export const HAND_ZONE_DEFAULT_SLOT_COUNT = 5;
 
 export interface HandZoneSlotRect {
   index: number;

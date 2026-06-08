@@ -15,6 +15,7 @@ fireball_card:
   type: spell
   rarity: common
   energyCost: 3
+  goldCost: 40
   spellSubtype: damage
   placement:
     targetType: area
@@ -31,6 +32,7 @@ arrow_rain_card:
   type: spell
   rarity: common
   energyCost: 3
+  goldCost: 45
   spellSubtype: damage
   placement:
     targetType: area
@@ -47,6 +49,7 @@ blizzard_card:
   type: spell
   rarity: rare
   energyCost: 4
+  goldCost: 55
   spellSubtype: control
   placement:
     targetType: area
@@ -65,6 +68,7 @@ bomb_card:
   type: spell
   rarity: rare
   energyCost: 4
+  goldCost: 60
   spellSubtype: damage
   placement:
     targetType: area
@@ -82,6 +86,7 @@ emergency_shield_card:
   type: spell
   rarity: epic
   energyCost: 5
+  goldCost: 50
   spellSubtype: buff
   placement:
     targetType: self
@@ -95,6 +100,7 @@ arrow_boost_card:
   type: spell
   rarity: rare
   energyCost: 4
+  goldCost: 60
   spellSubtype: buff
   placement:
     targetType: self
@@ -111,6 +117,7 @@ shield_boost_card:
   type: spell
   rarity: rare
   energyCost: 4
+  goldCost: 55
   spellSubtype: buff
   placement:
     targetType: self
@@ -127,6 +134,7 @@ gold_rush_card:
   type: spell
   rarity: common
   energyCost: 0
+  goldCost: 20
   spellSubtype: economy
   placement:
     targetType: self
@@ -140,6 +148,7 @@ speed_boost_card:
   type: spell
   rarity: rare
   energyCost: 4
+  goldCost: 50
   spellSubtype: buff
   placement:
     targetType: self

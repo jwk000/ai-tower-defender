@@ -14,6 +14,7 @@ swordsman_card:
   type: unit
   rarity: common
   energyCost: 2
+  goldCost: 50
   unitConfigId: swordsman
   placement:
     targetType: tile
@@ -24,6 +25,7 @@ archer_card:
   type: unit
   rarity: common
   energyCost: 2
+  goldCost: 55
   unitConfigId: archer
   placement:
     targetType: tile
@@ -34,6 +36,7 @@ shield_guard_card:
   type: unit
   rarity: common
   energyCost: 3
+  goldCost: 50
   unitConfigId: shield_guard
   placement:
     targetType: tile
@@ -44,6 +47,7 @@ priest_card:
   type: unit
   rarity: rare
   energyCost: 4
+  goldCost: 55
   unitConfigId: priest
   placement:
     targetType: tile
@@ -54,6 +58,7 @@ engineer_card:
   type: unit
   rarity: rare
   energyCost: 3
+  goldCost: 60
   unitConfigId: engineer
   placement:
     targetType: tile
@@ -64,6 +69,7 @@ assassin_card:
   type: unit
   rarity: epic
   energyCost: 4
+  goldCost: 70
   unitConfigId: assassin
   placement:
     targetType: tile
@@ -74,6 +80,7 @@ mage_card:
   type: unit
   rarity: rare
   energyCost: 4
+  goldCost: 65
   unitConfigId: mage
   placement:
     targetType: tile

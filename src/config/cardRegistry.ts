@@ -56,6 +56,8 @@ export interface CardConfig {
   name: string;
   type: CardType;
   energyCost: number;
+  /** v5.0 出牌消耗金币，0 表示免费（如淘金热等特殊卡） */
+  goldCost: number;
   rarity: CardRarity;
 
   unitConfigId?: string;

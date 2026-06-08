@@ -17,17 +17,17 @@ describe('EconomySystem', () => {
   });
 
   describe('初始状态', () => {
-    it('初始金币 220', () => {
-      expect(economy.gold).toBe(220);
+    it('初始金币 150', () => {
+      expect(economy.gold).toBe(150);
     });
   });
 
   describe('金币操作', () => {
     it('addGold 加到 pending，update 后生效', () => {
       economy.addGold(50);
-      expect(economy.gold).toBe(220); // 还在 pending
+      expect(economy.gold).toBe(150); // 还在 pending
       economy.update(null as any, 0);
-      expect(economy.gold).toBe(270);
+      expect(economy.gold).toBe(200);
     });
 
     it('spendGold 先消耗 pending 再消耗 reserve', () => {
@@ -36,18 +36,18 @@ describe('EconomySystem', () => {
       expect(ok).toBe(true);
       // pending 20 被消耗，剩余 60 从 reserve 扣除
       economy.update(null as any, 0);
-      expect(economy.gold).toBe(160); // 220 - 60
+      expect(economy.gold).toBe(90); // 150 - 60
     });
 
     it('spendGold 余额不足返回 false', () => {
       const ok = economy.spendGold(500);
       expect(ok).toBe(false);
       economy.update(null as any, 0);
-      expect(economy.gold).toBe(220); // 未扣减
+      expect(economy.gold).toBe(150); // 未扣减
     });
 
     it('spendGold 精确等于余额时成功', () => {
-      const ok = economy.spendGold(220);
+      const ok = economy.spendGold(150);
       expect(ok).toBe(true);
       economy.update(null as any, 0);
       expect(economy.gold).toBe(0);
@@ -58,18 +58,18 @@ describe('EconomySystem', () => {
       economy.addGold(20);
       economy.addGold(30);
       economy.update(null as any, 0);
-      expect(economy.gold).toBe(280);
+      expect(economy.gold).toBe(210);
     });
   });
 
   describe('update 刷新机制', () => {
     it('update 将 pending 转入实际储备', () => {
       economy.addGold(100);
-      expect(economy.gold).toBe(220);
+      expect(economy.gold).toBe(150);
 
       economy.update(null as any, 0.016);
 
-      expect(economy.gold).toBe(320);
+      expect(economy.gold).toBe(250);
     });
 
     it('update 后 pending 清零', () => {
@@ -77,7 +77,7 @@ describe('EconomySystem', () => {
       economy.update(null as any, 0);
       economy.addGold(10);
       economy.update(null as any, 0);
-      expect(economy.gold).toBe(280); // 220 + 50 + 10
+      expect(economy.gold).toBe(210); // 150 + 50 + 10
     });
   });
 

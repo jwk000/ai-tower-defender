@@ -11,27 +11,27 @@ import { TowerWorld } from '../../core/World.js';
 
 function makeDraftPool(): CardInstance[] {
   return [
-    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出' },
-    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔' },
-    { id: 'card_cannon_tower', name: '炮塔', type: 'unit', description: 'AOE物理范围伤害' },
-    { id: 'card_fire_tower', name: '火塔', type: 'unit', description: '灼烧DOT魔法塔' },
-    { id: 'card_laser_tower', name: '激光塔', type: 'unit', description: '持续锁敌魔法伤害' },
-    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵' },
-    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击' },
-    { id: 'card_mage', name: '法师', type: 'unit', description: '远程AOE魔法' },
-    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害' },
-    { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨' },
-    { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '减速AOE区域' },
-    { id: 'card_bomb', name: '炸弹', type: 'spell', description: '2秒延时爆炸' },
-    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌' },
-    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%' },
-    { id: 'card_gold_rush', name: '淘金热', type: 'arcane', description: '立即获得80金币' },
+    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
+    { id: 'card_cannon_tower', name: '炮塔', type: 'unit', description: 'AOE物理范围伤害', goldCost: 0 },
+    { id: 'card_fire_tower', name: '火塔', type: 'unit', description: '灼烧DOT魔法塔', goldCost: 0 },
+    { id: 'card_laser_tower', name: '激光塔', type: 'unit', description: '持续锁敌魔法伤害', goldCost: 0 },
+    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
+    { id: 'card_mage', name: '法师', type: 'unit', description: '远程AOE魔法', goldCost: 0 },
+    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
+    { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
+    { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '减速AOE区域', goldCost: 0 },
+    { id: 'card_bomb', name: '炸弹', type: 'spell', description: '2秒延时爆炸', goldCost: 0 },
+    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌', goldCost: 0 },
+    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%', goldCost: 0 },
+    { id: 'card_gold_rush', name: '淘金热', type: 'arcane', description: '立即获得80金币', goldCost: 0 },
   ];
 }
 
-/** 4 张卡的小池（刚好填满手牌） */
+/** 5 张卡的小池（刚好填满手牌） */
 function makeSmallPool(): CardInstance[] {
-  return makeDraftPool().slice(0, 4);
+  return makeDraftPool().slice(0, 5);
 }
 
 describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
@@ -95,12 +95,9 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
 
   describe('confirmDraft — 确定抽取（全部加入手牌）', () => {
     it('手牌有空位时全部加入并完成抽卡', () => {
-      // 手牌只有 1 张（3 个空位）
-      handSystem.initialize(makeSmallPool());
-      handSystem.playCard(0);
-      handSystem.playCard(1);
-      handSystem.playCard(2);
-      expect(handSystem.getCount()).toBe(1);
+      // 手牌只初始化 2 张（3 个空位）
+      handSystem.initialize(makeDraftPool().slice(0, 2));
+      expect(handSystem.getCount()).toBe(2);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
       expect(draftSystem.isActive()).toBe(true);
@@ -111,6 +108,7 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       expect(addedCount).toBe(3);
       expect(draftSystem.isActive()).toBe(false);
       expect(handSystem.isFull()).toBe(true);
+      expect(handSystem.getCount()).toBe(5);
       // 3 张候选卡都在手牌中
       const handIds = handSystem.getHand().filter((c) => c !== null).map((c) => c!.id);
       for (const opt of options) {
@@ -119,18 +117,16 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
     });
 
     it('手牌空位不足时只放入能放的数量', () => {
-      // 手牌有 2 张，只剩 2 个空位
-      handSystem.initialize(makeSmallPool());
-      handSystem.playCard(0);
-      handSystem.playCard(1);
-      expect(handSystem.getCount()).toBe(2);
+      // 手牌有 3 张，只剩 2 个空位
+      handSystem.initialize(makeDraftPool().slice(0, 3));
+      expect(handSystem.getCount()).toBe(3);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
       const addedCount = draftSystem.confirmDraft();
 
       expect(addedCount).toBe(2);
       expect(handSystem.isFull()).toBe(true);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
     });
 
     it('手牌满时什么也不加入，仍完成抽卡', () => {
@@ -142,7 +138,7 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
 
       expect(addedCount).toBe(0);
       expect(draftSystem.isActive()).toBe(false);
-      expect(handSystem.getCount()).toBe(4);
+      expect(handSystem.getCount()).toBe(5);
     });
 
     it('抽卡未激活时返回 0', () => {
@@ -153,12 +149,9 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
-      // 手牌有空位
-      handSystem.initialize(makeSmallPool());
-      handSystem.playCard(0);
-      handSystem.playCard(1);
-      handSystem.playCard(2);
-      expect(handSystem.getCount()).toBe(1);
+      // 手牌有空位（只初始化 2 张）
+      handSystem.initialize(makeDraftPool().slice(0, 2));
+      expect(handSystem.getCount()).toBe(2);
 
       draftSystem.startDraft(makeDraftPool(), handSystem);
       const options = draftSystem.getOptions();
@@ -296,12 +289,9 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       const callback = vi.fn();
       draftSystem.onDraftComplete = callback;
 
-      // 手牌只初始化 1 张（有 3 个空位）
-      handSystem.initialize(makeSmallPool());
-      handSystem.playCard(0);
-      handSystem.playCard(1);
-      handSystem.playCard(2);
-      expect(handSystem.getCount()).toBe(1);
+      // 手牌只初始化 2 张（有 3 个空位）
+      handSystem.initialize(makeDraftPool().slice(0, 2));
+      expect(handSystem.getCount()).toBe(2);
 
       // 触发抽卡
       draftSystem.startDraft(makeDraftPool(), handSystem);
@@ -349,10 +339,10 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       expect(added1).toBe(3);
       expect(handSystem.getCount()).toBe(3);
 
-      // 第二次抽卡（只剩 1 个空位）
+      // 第二次抽卡（只剩 2 个空位）
       draftSystem.startDraft(makeDraftPool(), handSystem);
       const added2 = draftSystem.confirmDraft();
-      expect(added2).toBe(1);
+      expect(added2).toBe(2);
       expect(handSystem.isFull()).toBe(true);
     });
   });

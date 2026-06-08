@@ -76,7 +76,8 @@ export function calculateRefund(input: RefundCalcInput): RefundCalcResult {
 export class EconomySystem implements System {
   readonly name = 'EconomySystem';
 
-  gold: number = 220;
+  /** v5.0 起始金币 150（关卡配置可覆盖） */
+  gold: number = 150;
   private pendingGold: number = 0;
 
   /** Game-time accumulator (seconds since battle start). */

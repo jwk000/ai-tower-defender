@@ -13,6 +13,7 @@ const arrowTower: CardInstance = {
   name: '箭塔',
   type: 'unit',
   description: '基础单体物理输出，攻速快',
+  goldCost: 40,
 };
 
 const ballistaTower: CardInstance = {
@@ -20,6 +21,7 @@ const ballistaTower: CardInstance = {
   name: '弩塔',
   type: 'unit',
   description: '穿透型物理输出，箭矢直线贯穿敌人',
+  goldCost: 100,
 };
 
 const cannonTower: CardInstance = {
@@ -27,6 +29,7 @@ const cannonTower: CardInstance = {
   name: '炮塔',
   type: 'unit',
   description: 'AOE物理范围伤害，溅射攻击',
+  goldCost: 80,
 };
 
 const laserTower: CardInstance = {
@@ -34,6 +37,7 @@ const laserTower: CardInstance = {
   name: '激光塔',
   type: 'unit',
   description: '单体魔法持续伤害，锁敌后伤害递增',
+  goldCost: 85,
 };
 
 const batTower: CardInstance = {
@@ -41,6 +45,7 @@ const batTower: CardInstance = {
   name: '蝙蝠塔',
   type: 'unit',
   description: '召唤型，释放蝙蝠自动攻击周围敌人',
+  goldCost: 80,
 };
 
 const missileTower: CardInstance = {
@@ -48,6 +53,7 @@ const missileTower: CardInstance = {
   name: '导弹塔',
   type: 'unit',
   description: '全图射程大范围伤害，战略武器',
+  goldCost: 150,
 };
 
 const iceTower: CardInstance = {
@@ -55,6 +61,7 @@ const iceTower: CardInstance = {
   name: '冰塔',
   type: 'unit',
   description: '魔法控制型塔，减速并概率冰冻敌人',
+  goldCost: 40,
 };
 
 const fireTower: CardInstance = {
@@ -62,6 +69,7 @@ const fireTower: CardInstance = {
   name: '火塔',
   type: 'unit',
   description: '魔法DOT型塔，灼烧造成持续伤害',
+  goldCost: 55,
 };
 
 const poisonTower: CardInstance = {
@@ -69,6 +77,7 @@ const poisonTower: CardInstance = {
   name: '毒塔',
   type: 'unit',
   description: '魔法DOT传染型塔，中毒可在敌人间传播',
+  goldCost: 55,
 };
 
 const lightningTower: CardInstance = {
@@ -76,6 +85,7 @@ const lightningTower: CardInstance = {
   name: '电塔',
   type: 'unit',
   description: '魔法连锁攻击，闪电在敌人间弹跳',
+  goldCost: 75,
 };
 
 // ---- 士兵（4种）----
@@ -85,6 +95,7 @@ const shieldGuard: CardInstance = {
   name: '盾卫',
   type: 'unit',
   description: '近战坦克，嘲讽范围内敌人优先攻击',
+  goldCost: 50,
 };
 
 const archer: CardInstance = {
@@ -92,6 +103,7 @@ const archer: CardInstance = {
   name: '弓手',
   type: 'unit',
   description: '远程物理输出，优先攻击低血量敌人',
+  goldCost: 55,
 };
 
 const mage: CardInstance = {
@@ -99,6 +111,7 @@ const mage: CardInstance = {
   name: '法师',
   type: 'unit',
   description: '远程魔法AOE，火球术溅射伤害',
+  goldCost: 65,
 };
 
 const priest: CardInstance = {
@@ -106,6 +119,7 @@ const priest: CardInstance = {
   name: '牧师',
   type: 'unit',
   description: '治疗单位，持续恢复友方HP',
+  goldCost: 55,
 };
 
 const assassin: CardInstance = {
@@ -113,6 +127,7 @@ const assassin: CardInstance = {
   name: '刺客',
   type: 'unit',
   description: '高爆发刺杀位，瞬移到最弱敌人旁造成高伤害',
+  goldCost: 70,
 };
 
 // ---- 机关（4种）----
@@ -122,6 +137,7 @@ const spikeTrap: CardInstance = {
   name: '地刺',
   type: 'trap',
   description: '路径陷阱，对经过敌人造成持续伤害',
+  goldCost: 30,
 };
 
 const bearTrap: CardInstance = {
@@ -129,6 +145,7 @@ const bearTrap: CardInstance = {
   name: '捕兽夹',
   type: 'trap',
   description: '一次性陷阱，触发后困住敌人1秒',
+  goldCost: 50,
 };
 
 const tarPit: CardInstance = {
@@ -136,6 +153,7 @@ const tarPit: CardInstance = {
   name: '焦油坑',
   type: 'trap',
   description: '路径减速，经过的地面敌人减速20%',
+  goldCost: 30,
 };
 
 const boulder: CardInstance = {
@@ -143,6 +161,7 @@ const boulder: CardInstance = {
   name: '巨石',
   type: 'trap',
   description: '路障，阻挡敌人前进必须被破坏',
+  goldCost: 60,
 };
 
 
@@ -154,6 +173,7 @@ const fireball: CardInstance = {
   name: '火球术',
   type: 'spell',
   description: '2×2格范围40点魔法伤害',
+  goldCost: 40,
 };
 
 const arrowRain: CardInstance = {
@@ -161,6 +181,7 @@ const arrowRain: CardInstance = {
   name: '剑雨',
   type: 'spell',
   description: '3×3格范围25点物理伤害',
+  goldCost: 45,
 };
 
 const blizzard: CardInstance = {
@@ -168,6 +189,7 @@ const blizzard: CardInstance = {
   name: '暴风雪',
   type: 'spell',
   description: '3×3格范围减速，持续5秒',
+  goldCost: 55,
 };
 
 const bomb: CardInstance = {
@@ -175,6 +197,7 @@ const bomb: CardInstance = {
   name: '炸弹',
   type: 'spell',
   description: '2×2格范围80点伤害，放置后2秒爆炸',
+  goldCost: 60,
 };
 
 // ---- 奥术卡（5种）----
@@ -184,6 +207,7 @@ const emergencyShield: CardInstance = {
   name: '紧急防护',
   type: 'arcane',
   description: '水晶10秒内无敌',
+  goldCost: 50,
 };
 
 const arrowBoost: CardInstance = {
@@ -191,6 +215,7 @@ const arrowBoost: CardInstance = {
   name: '箭术精通',
   type: 'arcane',
   description: '本关箭塔和弩塔ATK+20%',
+  goldCost: 60,
 };
 
 const shieldBoost: CardInstance = {
@@ -198,6 +223,7 @@ const shieldBoost: CardInstance = {
   name: '坚韧守护',
   type: 'arcane',
   description: '本关所有盾卫HP+30%',
+  goldCost: 55,
 };
 
 const goldRush: CardInstance = {
@@ -205,6 +231,7 @@ const goldRush: CardInstance = {
   name: '淘金热',
   type: 'arcane',
   description: '立即获得80金币',
+  goldCost: 20,
 };
 
 const speedBoost: CardInstance = {
@@ -212,6 +239,7 @@ const speedBoost: CardInstance = {
   name: '疾风步',
   type: 'arcane',
   description: '本关所有士兵移速+25%',
+  goldCost: 50,
 };
 
 // ============================================================
