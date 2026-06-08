@@ -56,11 +56,9 @@ import { ComboKillSystem } from './systems/ComboKillSystem.js';
 import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
 import { Music } from './utils/Music.js';
 import {
-  captureStreamState,
   generateSeed,
   getGlobalRandom,
   initGlobalRandom,
-  restoreStreamState,
 } from './utils/Random.js';
 import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
@@ -165,14 +163,6 @@ class TowerDefenderGame extends Game {
   private victoryHandled = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
 
-  /** Accumulated in-battle seconds (for BattleSnapshot.gameTime). */
-  private battleGameTime: number = 0;
-  /** Seconds since last auto-snapshot (throttle to 60s). */
-  private snapshotTimer: number = 0;
-  /** Tracks last wave we persisted at — re-snapshot when wave index advances. */
-  private lastSnapshotWave: number = 0;
-  /** Wired beforeunload handler — saved here so we can remove on screen exit. */
-  private beforeUnloadHandler: ((ev: BeforeUnloadEvent) => void) | null = null;
   private editorOnExit: (() => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -232,11 +222,7 @@ class TowerDefenderGame extends Game {
       cb();
       return;
     }
-    if (this.currentScreen === GameScreen.Battle) {
-      SaveManager.clearBattleSnapshot();
-    }
     this.currentScreen = GameScreen.LevelSelect;
-    this.uninstallBeforeUnloadGuard();
     this.world.reset();
     Music.play('main_menu');
     this.onUpdate = (dt) => {
@@ -312,72 +298,7 @@ class TowerDefenderGame extends Game {
     this.initBattle(config);
   }
 
-  // ================================================================
-  // Battle Snapshot — design/13 §1 (auto-save throttle 60s)
-  // ================================================================
 
-  /** Auto-snapshot throttle interval in seconds — design/13 §1 recovery checkpoint. */
-  private static readonly SNAPSHOT_INTERVAL_S = 60;
-
-  private saveCurrentBattle(_reason: string): void {
-    if (this.currentScreen !== GameScreen.Battle) return;
-    if (this.phase === GamePhase.Victory || this.phase === GamePhase.Defeat) return;
-    try {
-      const streams = getGlobalRandom();
-      const snapshot = {
-        levelId: this.currentLevelId,
-        currentWave: this.waveSystem.currentWave,
-        gameTime: this.battleGameTime,
-        prngStates: captureStreamState(streams),
-        economy: {
-          gold: this.economy.gold,
-          refundMeta: this.economy.serializeRefundMeta(),
-        },
-      };
-      SaveManager.saveBattleSnapshot(snapshot);
-      this.lastSnapshotWave = snapshot.currentWave;
-    } catch (e) {
-      console.warn('[BattleSnapshot] save failed:', e);
-    }
-  }
-
-  /**
-   * Attempt to restore a saved battle (PRNG streams + economy scalars + refund meta)
-   * if the snapshot matches the level we are about to start.
-   * Returns true if restoration succeeded; caller should skip default initial values.
-   */
-  private tryRestoreBattleSnapshot(config: LevelConfig): boolean {
-    const snapshot = SaveManager.loadBattleSnapshot();
-    if (!snapshot) return false;
-    if (snapshot.levelId !== this.currentLevelId) return false;
-    try {
-      const streams = initGlobalRandom(snapshot.prngStates.seed);
-      restoreStreamState(streams, snapshot.prngStates);
-      this.battleGameTime = snapshot.gameTime;
-      this.economy.gold = snapshot.economy.gold;
-      this.economy.deserializeRefundMeta(snapshot.economy.refundMeta);
-      this.lastSnapshotWave = snapshot.currentWave;
-      void config;
-      return true;
-    } catch (e) {
-      console.warn('[BattleSnapshot] restore failed, starting fresh:', e);
-      return false;
-    }
-  }
-
-  private installBeforeUnloadGuard(): void {
-    this.uninstallBeforeUnloadGuard();
-    const handler = () => { this.saveCurrentBattle('beforeunload'); };
-    window.addEventListener('beforeunload', handler);
-    this.beforeUnloadHandler = handler;
-  }
-
-  private uninstallBeforeUnloadGuard(): void {
-    if (this.beforeUnloadHandler !== null) {
-      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
-      this.beforeUnloadHandler = null;
-    }
-  }
 
   // ================================================================
   // Battle Init
@@ -387,9 +308,6 @@ class TowerDefenderGame extends Game {
     this.boardGlowSystem?.dispose();
     const runSeed = generateSeed();
     initGlobalRandom(runSeed);
-    this.battleGameTime = 0;
-    this.snapshotTimer = 0;
-    this.lastSnapshotWave = 0;
 
     const map = config.map;
     this.currentMap = map;
@@ -445,7 +363,9 @@ class TowerDefenderGame extends Game {
 
     // ---- Economy ----
     this.economy = new EconomySystem();
-    this.economy.gold = config.startingGold;
+    const permaUpgrades = SaveManager.load().permanentUpgrades;
+    const startGoldBonus = permaUpgrades?.startingGold ?? 0;
+    this.economy.gold = config.startingGold + startGoldBonus;
 
     // P1-#11: hook damage events to refund combat-guard tracker
     clearDamageObservers();
@@ -467,14 +387,13 @@ class TowerDefenderGame extends Game {
       (p) => { this.phase = p; },
       () => {
         this.weatherSystem.onWaveEnd();
-        this.saveCurrentBattle('wave-end');
         Music.play('wave_break', 0.5);
       },
       () => {
         // wave start — restore level BGM
         Music.play(Music.getLevelBgm(this.currentLevelId));
       },
-      undefined, // onWaveReward (unused)
+      (gold: number) => { this.economy.addGold(gold); },
     );
 
     // ---- Weather system — init with level config ----
@@ -1122,16 +1041,6 @@ class TowerDefenderGame extends Game {
       // Update debug manager
       this.debugManager.update();
 
-      // Accumulate gameTime + auto-snapshot throttle (only during active battle phases)
-      if (this.phase === GamePhase.Battle || this.phase === GamePhase.WaveBreak || this.phase === GamePhase.Deployment) {
-        this.battleGameTime += dt;
-        this.snapshotTimer += dt;
-        if (this.snapshotTimer >= TowerDefenderGame.SNAPSHOT_INTERVAL_S) {
-          this.snapshotTimer = 0;
-          this.saveCurrentBattle('auto-60s');
-        }
-      }
-
       // BGM: switch on phase change
       if (this.phase !== this.previousPhase) {
         this.previousPhase = this.phase;
@@ -1204,16 +1113,6 @@ class TowerDefenderGame extends Game {
       this.waveSystem.startAutoCountdown(5);
     };
     this.levelIntroSystem.start();
-
-    // Attempt restore (PRNG/economy only — entity state is not snapshotted in v1.1).
-    // Wave progression keeps fresh; on success we just preserve random determinism
-    // and economy invariants so refund-guard/RNG sequences match prior session.
-    const restored = this.tryRestoreBattleSnapshot(config);
-    if (restored) {
-      console.info('[BattleSnapshot] restored PRNG + economy from previous session');
-    }
-
-    this.installBeforeUnloadGuard();
   }
 
   /** 从关卡波次配置中收集所有唯一敌人类型，生成敌人图鉴数据 */
@@ -1333,7 +1232,6 @@ class TowerDefenderGame extends Game {
     if (this.currentLevelId < 5) {
       SaveManager.unlockLevel(this.currentLevelId + 1);
     }
-    SaveManager.clearBattleSnapshot();
 
     this.levelSelectUI?.refresh?.(this.currentLevelId);
 
@@ -1353,7 +1251,6 @@ class TowerDefenderGame extends Game {
     // Sound.play('defeat') 已在调用点（line 1089）通过 defeatSfxPlayed 守卫保证只播放一次，
     // 此处删除重复调用，避免每帧触发刺耳连播。
     this.phase = GamePhase.Defeat;
-    SaveManager.clearBattleSnapshot();
     this.levelSelectUI?.refresh?.();
 
     // 显示失败故事覆盖层

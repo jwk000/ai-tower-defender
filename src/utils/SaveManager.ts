@@ -9,7 +9,6 @@
  *
  * 沿用 v1.1 设计:
  * - CRC32 校验和 + 多层备份 + 损坏恢复 (P2-#17)
- * - BattleSnapshot 中途存档
  */
 
 import { crc32 } from './crc32.js';
@@ -33,8 +32,6 @@ export interface SaveData {
   achievements: AchievementProgress;
 
   settings: PlayerSettings;
-
-  battleSnapshot?: BattleSnapshot;
 
   /** @deprecated v1.1 兼容字段，Phase A 后续任务移除（替代为 ongoingRun.currentLevel） */
   unlockedLevels: number;
@@ -125,24 +122,6 @@ export interface PlayerSettings {
   musicVolume: number;
   showFPS: boolean;
   preferredLanguage: string;
-}
-
-export interface BattleSnapshot {
-  levelId: number;
-  currentWave: number;
-  gameTime: number;
-  prngStates: {
-    seed: number;
-    map: number;
-    wave: number;
-    drop: number;
-    decor: number;
-  };
-  economy: {
-    gold: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    refundMeta: Array<[number, any]>;
-  };
 }
 
 export const CURRENT_VERSION = '2.0.0';
@@ -427,7 +406,6 @@ export class SaveManager {
     const achievements = data['achievements'] as AchievementProgress | undefined;
     const settings = data['settings'] as PlayerSettings | undefined;
     const ongoingRun = data['ongoingRun'] as OngoingRun | null | undefined;
-    const battleSnapshot = data['battleSnapshot'] as BattleSnapshot | undefined;
 
     const out: SaveData = {
       version: (data['version'] as string | undefined) ?? defaults.version,
@@ -463,7 +441,6 @@ export class SaveManager {
       totalGold: numberOr(data['totalGold'], defaults.totalGold),
       levelCompletion: recordOr(data['levelCompletion'], defaults.levelCompletion),
     };
-    if (battleSnapshot) out.battleSnapshot = battleSnapshot;
     return out;
   }
 
@@ -516,25 +493,6 @@ export class SaveManager {
   static getAllLevelCompletions(): Record<number, LevelCompletionState> {
     const data = SaveManager.load();
     return { ...data.levelCompletion };
-  }
-
-  static saveBattleSnapshot(snapshot: BattleSnapshot): void {
-    const data = SaveManager.load();
-    data.battleSnapshot = snapshot;
-    SaveManager.save(data);
-  }
-
-  static loadBattleSnapshot(): BattleSnapshot | null {
-    const data = SaveManager.load();
-    return data.battleSnapshot ?? null;
-  }
-
-  static clearBattleSnapshot(): void {
-    const data = SaveManager.load();
-    if (data.battleSnapshot) {
-      delete data.battleSnapshot;
-      SaveManager.save(data);
-    }
   }
 
   static resetAll(): void {
