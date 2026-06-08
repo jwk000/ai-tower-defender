@@ -869,6 +869,25 @@ export class UISystem implements System {
         size: 12, align: 'center',
       });
 
+      // v5.0: 金币费用显示
+      const goldCost = (config as any).goldCost;
+      if (goldCost !== undefined && goldCost > 0) {
+        const goldColor = goldCost <= 40 ? '#ffc107' : goldCost <= 70 ? '#ff9800' : '#ff5722';
+        this.infos.push({
+          x: cardCenterX, y: cardTop + 12 + artH + 32,
+          text: `💰${goldCost}`,
+          color: goldColor,
+          size: 11, align: 'center',
+        });
+      } else if (goldCost === 0) {
+        this.infos.push({
+          x: cardCenterX, y: cardTop + 12 + artH + 32,
+          text: '免费',
+          color: '#66bb6a',
+          size: 11, align: 'center',
+        });
+      }
+
       // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
       if (config.persistAcrossWaves) {
         this.infos.push({

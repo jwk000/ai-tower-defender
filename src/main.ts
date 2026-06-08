@@ -1199,19 +1199,38 @@ class TowerDefenderGame extends Game {
         const enemy = ENEMY_CONFIGS[group.enemyType];
         if (!enemy) continue;
 
-        // 分类: Boss > 精英波次中的敌人 > 普通
+        // 类型: Boss > 精英（boss波中的敌人） > 普通
         let type: EnemyCodexEntry['type'] = 'normal';
         if (enemy.isBoss) {
           type = 'boss';
         } else if (wave.isBossWave) {
-          // 在 boss 波次中出现的敌人通常是精英/较强单位
+          // 非 boss 波中出现的敌人通常是精英/强化单位
           type = 'elite';
+        }
+
+        // v5.0: 掉落金币范围计算
+        const baseGold = enemy.rewardGold;
+        let goldMin: number;
+        let goldMax: number;
+        if (enemy.isBoss) {
+          // Boss: ±10%
+          goldMin = Math.floor(baseGold * 0.9);
+          goldMax = Math.ceil(baseGold * 1.1);
+        } else if (type === 'elite') {
+          // 精英: 1.5x 基础奖励 ±20%
+          const eliteGold = baseGold * 1.5;
+          goldMin = Math.floor(eliteGold * 0.8);
+          goldMax = Math.ceil(eliteGold * 1.2);
+        } else {
+          // 普通: ±20%
+          goldMin = Math.floor(baseGold * 0.8);
+          goldMax = Math.ceil(baseGold * 1.2);
         }
 
         entries.push({
           id: group.enemyType,
           name: enemy.name,
-          description: enemy.description ?? `${enemy.name} — HP:${enemy.hp} ATK:${enemy.atk} 防御:${enemy.defense}`,
+          description: enemy.description ?? `${enemy.name} — HP:${enemy.hp} ATK:${enemy.atk} 护甲:${enemy.defense}`,
           type,
           color: enemy.color,
           hp: enemy.hp,
@@ -1222,6 +1241,8 @@ class TowerDefenderGame extends Game {
           radius: enemy.radius ?? 16,
           shape: enemy.shape,
           isBoss: enemy.isBoss,
+          goldMin,
+          goldMax,
         });
       }
     }

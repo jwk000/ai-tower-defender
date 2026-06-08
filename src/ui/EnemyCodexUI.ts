@@ -61,6 +61,9 @@ export interface EnemyCodexEntry {
   radius: number;
   shape?: string;
   isBoss?: boolean;
+  /** v5.0 掉落金币范围 */
+  goldMin: number;
+  goldMax: number;
 }
 
 // ============================================================
@@ -430,6 +433,19 @@ export class EnemyCodexUI {
       ctx.fillText(
         `HP:${card.hp} ATK:${card.atk} 速度:${card.speed}`,
         cardCenterX, cardTop + 14 + ART_H + 50,
+      );
+      ctx.restore();
+
+      // v5.0: 掉落金币范围
+      ctx.save();
+      const goldColor = card.type === 'boss' ? '#ef5350' : card.type === 'elite' ? '#ffd700' : '#ffc107';
+      ctx.fillStyle = goldColor;
+      ctx.font = getFont(9, true);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(
+        `💰 ${card.goldMin}-${card.goldMax}`,
+        cardCenterX, cardTop + 14 + ART_H + 63,
       );
       ctx.restore();
 
