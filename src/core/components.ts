@@ -629,6 +629,7 @@ export const UnitTag = defineComponent({
   isRanged: Types.ui8,        // 0/1 远程攻击
   canAttackBuildings: Types.ui8, // 0/1
   rewardGold: Types.f32,      // 击杀奖励金币
+  goldVariance: Types.f32,    // v5.1 掉落金币随机方差（0-1）
   rewardEnergy: Types.f32,    // 击杀奖励能量
   popCost: Types.ui8,         // 人口占用
   cost: Types.f32,            // 造价
@@ -702,6 +703,8 @@ export const DamageNumberStyle = {
   True: 2,
   Heal: 3,
   Critical: 4,
+  /** v5.1 金币掉落飘字 */
+  Gold: 5,
 } as const;
 export type DamageNumberStyle = (typeof DamageNumberStyle)[keyof typeof DamageNumberStyle];
 

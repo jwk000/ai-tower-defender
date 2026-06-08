@@ -88,7 +88,8 @@ import {
   Tower,
   Trap,
   UnitTag,
-  Visual
+  Visual,
+  DamageNumberStyle,
 } from './core/components.js';
 
 import { hasComponent } from './core/World.js';
@@ -743,13 +744,30 @@ class TowerDefenderGame extends Game {
       (p) => { this.phase = p; },
       (enemyId) => {
         Sound.play('enemy_death');
-        // 连杀金币加成
-        const baseGold = UnitTag.rewardGold[enemyId] ?? 0;
-        const comboMultiplier = this.comboKillSystem.notifyEnemyKilled(enemyId, this.world);
-        this.economy.addGold(Math.floor(baseGold * comboMultiplier));
-        if (baseGold > 0) Sound.play('gold_earn');
+        // v5.1: 随机掉落金币 + 连杀加成 + 飘字
+        const baseGold = this.economy.rewardForEnemy(enemyId);
+        if (baseGold > 0) {
+          const comboMultiplier = this.comboKillSystem.notifyEnemyKilled(enemyId, this.world);
+          const totalGold = Math.floor(baseGold * comboMultiplier);
+          // 若连杀有加成，补差额
+          if (comboMultiplier > 1) {
+            this.economy.addGold(totalGold - baseGold);
+          }
+          Sound.play('gold_earn');
+
+          // v5.1: 金币飘字
+          const px = Position.x[enemyId];
+          const py = Position.y[enemyId];
+          if (px !== undefined && py !== undefined) {
+            this.damageNumberSystem.spawnAtPos(
+              this.world,
+              px, py - 10,
+              totalGold,
+              DamageNumberStyle.Gold,
+            );
+          }
+        }
         // v5.0: 精英击杀不再触发3选1抽卡（抽卡相关代码保留，后续可能复用）。
-        // 击杀精英现仅获得金币奖励（1.5x 普通版 rewardGold）。
         // 最终波次全部敌人死亡 → 胜利
         const isFinalWave = this.waveSystem.currentWave >= this.waveSystem.totalWaves;
         if (isFinalWave && !this.waveSystem.hasAliveEnemies()) {

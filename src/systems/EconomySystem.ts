@@ -178,11 +178,20 @@ export class EconomySystem implements System {
     return false;
   }
 
-  rewardForEnemy(enemyId: number): void {
+  /** v5.1 返回实际掉落金币数（含随机方差） */
+  rewardForEnemy(enemyId: number): number {
     const goldReward = UnitTag.rewardGold[enemyId];
-    if (goldReward !== undefined) {
-      this.addGold(goldReward);
+    if (goldReward !== undefined && goldReward > 0) {
+      // v5.1: 使用配置的随机方差计算实际掉落金币
+      const variance = UnitTag.goldVariance[enemyId] ?? 0.2;
+      const minGold = Math.floor(goldReward * (1 - variance));
+      const maxGold = Math.ceil(goldReward * (1 + variance));
+      const actualGold = minGold + Math.floor(Math.random() * (maxGold - minGold + 1));
+      const amount = Math.max(1, actualGold);
+      this.addGold(amount);
+      return amount;
     }
+    return 0;
   }
 
   update(_world: TowerWorld, dt: number): void {

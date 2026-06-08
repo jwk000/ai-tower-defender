@@ -449,6 +449,7 @@ export class WaveSystem implements System {
       isEnemy: 1,
       isElite: isElite ? 1 : 0,
       rewardGold: config.rewardGold,
+      goldVariance: config.goldVariance ?? 0.2,
       canAttackBuildings: config.canAttackBuildings ? 1 : 0,
       atk: effectiveAtk,
     });

@@ -28,6 +28,7 @@ const STYLE_COLORS: Record<number, { r: number; g: number; b: number }> = {
   [DamageNumberStyle.True]: { r: 255, g: 220, b: 60 },       // 金色
   [DamageNumberStyle.Heal]: { r: 80, g: 255, b: 80 },        // 绿色
   [DamageNumberStyle.Critical]: { r: 255, g: 60, b: 60 },    // 红色
+  [DamageNumberStyle.Gold]: { r: 255, g: 215, b: 0 },        // 金币
 };
 
 // ============================================================

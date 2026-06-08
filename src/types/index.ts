@@ -331,6 +331,8 @@ export interface EnemyConfig {
   attackSpeed: number;
   canAttackBuildings: boolean;
   rewardGold: number;
+  /** v5.1 掉落金币随机方差（0-1），默认 0.2 即 ±20% */
+  goldVariance?: number;
   color: string;
   radius: number;
   description?: string;
