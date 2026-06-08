@@ -165,18 +165,6 @@ type UILayer = 'board' | 'normal' | 'fullscreen';
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
 
-/**
- * P2: Enemy type → display name mapping for wave preview.
- * Matches design/03-units.md enemy definitions.
- */
-const ENEMY_DISPLAY_NAMES: Record<string, string> = {
-  goblin: '哥布林', boar: '疯狂野猪', elephant: '铁甲大象', giant: '草原巨人',
-  desert_beetle: '沙漠黑虫', burrow_beetle: '钻地甲虫', locust: '吸血蝗虫', bomb_beetle: '自爆甲虫',
-  werewolf: '狼人', vampire_bat: '吸血蝙蝠', wizard: '巫师', priest: '黑暗牧师', frankenstein: '弗兰肯斯坦',
-  plane: '飞机', tank: '坦克', oil_truck: '油罐车', robot_dog: '机器狗', giant_robot: '巨型机器人', drone: '无人机',
-  boss_slime: '巨型史莱姆', boss_queen: '虫族女王', boss_lucifer: '路西法', boss_super_robot: '超级机器人', boss_abyss_lord: '深渊领主',
-};
-
 // ============================================================
 // UISystem
 // ============================================================
@@ -329,14 +317,6 @@ export class UISystem implements System {
     this.selectedEntityType = id !== null ? 'production' : null;
   }
 
-  /** P2: Wave enemy preview callback (WaveSystem → UI) */
-  private getWavePreview: (() => Array<{ enemyType: string; count: number; isBoss: boolean }> | null) | null = null;
-
-  /** P2: Set the wave preview callback from main.ts */
-  setWavePreviewCallback(cb: () => Array<{ enemyType: string; count: number; isBoss: boolean }> | null): void {
-    this.getWavePreview = cb;
-  }
-
   // ============================================================
   // System.update — cache world, build UI state
   // ============================================================
@@ -391,7 +371,6 @@ export class UISystem implements System {
 
     this.buildTopHUD(phase);
     this.buildBottomPanel(phase);
-    this.buildCountdownOverlay(phase);
     this.buildOverlay(phase);
 
     this.buildDragGhost();
@@ -1087,12 +1066,17 @@ export class UISystem implements System {
     const rightControlsEdgeD = rightEdgeD - UISystem.TOP_HUD_SIDE_MARGIN;
     const hasEnemyCodex = this.onOpenEnemyCodex !== null;
 
+    // 倒计时显示 + 跳过按钮（常驻顶部HUD，替代原全屏遮罩）
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
       const cd = this.getCountdown();
-      const skipBtnX = hasEnemyCodex ? rightControlsEdgeD - 174 : rightControlsEdgeD - 133;  // depends on codex presence
-      const skipBtnW = 50;
+      const showStartBtn = cd <= 10;
+      const skipBtnW = showStartBtn ? 90 : 50;  // "立即开始" 需要更宽的按钮
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
+      // 按钮右边缘固定在 speedBtnX - 12px 间距处，宽度变化时左边缘左移
+      const skipEndX = hasEnemyCodex ? rightControlsEdgeD - 124 : rightControlsEdgeD - 83;
+      const skipBtnX = skipEndX - skipBtnW;
+
       this.infos.push({
         x: skipBtnX - 12, y: UISystem.TOP_H / 2,
         text: `⏱${formatNumber(cd)}s`,
@@ -1100,20 +1084,22 @@ export class UISystem implements System {
         align: 'right',
       });
 
+      // 跳过按钮背景（倒计时 ≤10s 时绿色加亮）
       this.renderer.push({
         shape: 'rect',
         x: skipBtnX + skipBtnW / 2, y: skipBtnY + skipBtnH / 2,
         size: skipBtnW, h: skipBtnH,
-        color: '#2e7d32',
+        color: showStartBtn ? '#2e7d32' : '#37474f',
         alpha: 0.9,
-        stroke: '#ffffff', strokeWidth: 1,
+        stroke: showStartBtn ? '#ffd54f' : '#ffffff', strokeWidth: 1,
         z: UI_Z.NORMAL_UI,
       });
 
+      // 跳过按钮（倒计时 ≤10s 时显示"立即开始"）
       this.buttons.push({
         x: skipBtnX, y: skipBtnY, w: skipBtnW, h: skipBtnH,
-        label: '▶',
-        color: '#2e7d32',
+        label: showStartBtn ? '立即开始' : '▶',
+        color: showStartBtn ? '#2e7d32' : '#37474f',
         textColor: '#ffffff',
         enabled: true,
         onClick: () => { this.onSkipCountdown?.(); },
@@ -1457,114 +1443,6 @@ export class UISystem implements System {
         labelSize: 14,
       });
     }
-  }
-
-  // ============================================================
-  // Countdown Overlay (Deployment / WaveBreak)
-  // ============================================================
-
-  /** v5.0: center-screen countdown overlay with large timer and skip button.
-   *  Appears during Deployment and WaveBreak when countdown > 0. */
-  private buildCountdownOverlay(phase: GamePhase): void {
-    const cd = this.getCountdown?.() ?? 0;
-    if (cd <= 0) return;
-    if (phase === GamePhase.Battle || phase === GamePhase.Victory || phase === GamePhase.Defeat) return;
-
-    const cx = LayoutManager.DESIGN_W / 2;
-    const cy = LayoutManager.DESIGN_H / 2;
-    const panelW = 520;
-    const panelH = 360;  // P2: increased to fit enemy preview
-
-    // v5.0: signal renderUI() to draw a full-viewport dark backdrop.
-    // This MUST cover the actual viewport (not just design-space) so it
-    // works correctly on ultrawide and non-16:9 displays.
-    this.modalBackdropAlpha = 0.6;
-    this.hasFullscreenOverlay = true;
-
-    // Panel background
-    this.renderer.push({
-      shape: 'rect', x: cx, y: cy,
-      size: panelW, h: panelH,
-      color: '#1a1a2e', alpha: 0.95,
-      stroke: '#ffd54f', strokeWidth: 3,
-      z: UI_Z.FULLSCREEN_UI,
-    });
-
-    // Wave label
-    const isFirstWave = phase === GamePhase.Deployment;
-    const labelText = isFirstWave ? '敌军即将来袭！' : `第 ${this.getWave?.() ?? 1} 波准备`;
-    this.infos.push({
-      x: cx, y: cy - 90,
-      text: labelText,
-      color: '#ffd54f', size: 28,
-      align: 'center',
-      layer: 'fullscreen',
-    });
-
-    // Countdown timer — large number
-    const cdDisplay = Math.ceil(cd);
-    this.infos.push({
-      x: cx, y: cy - 20,
-      text: `${cdDisplay}`,
-      color: '#ffffff', size: 72,
-      align: 'center',
-      layer: 'fullscreen',
-    });
-
-    // "秒" label
-    this.infos.push({
-      x: cx, y: cy + 30,
-      text: '秒',
-      color: '#aaaaaa', size: 24,
-      align: 'center',
-      layer: 'fullscreen',
-    });
-
-    // P2: Enemy preview for next wave (only during WaveBreak, not first Deployment)
-    if (phase === GamePhase.WaveBreak) {
-      const preview = this.getWavePreview?.();
-      if (preview && preview.length > 0) {
-        const previewY = cy + 60;
-        this.infos.push({
-          x: cx, y: previewY - 8,
-          text: '即将出现:',
-          color: '#cccccc', size: 16,
-          align: 'center',
-          layer: 'fullscreen',
-        });
-
-        // Show enemy names with counts
-        const maxPreview = 5; // show at most 5 types
-        const shown = preview.slice(0, maxPreview);
-        const previewText = shown
-          .map((g) => `${ENEMY_DISPLAY_NAMES[g.enemyType] ?? g.enemyType} ×${g.count}${g.isBoss ? ' 👑' : ''}`)
-          .join('  ·  ');
-        
-        this.infos.push({
-          x: cx, y: previewY + 14,
-          text: previewText,
-          color: '#ffcc80', size: 14,
-          align: 'center',
-          layer: 'fullscreen',
-        });
-      }
-    }
-
-    // Skip button — large, centered below the countdown
-    const btnW = 200;
-    const btnH = 48;
-    const btnX = cx - btnW / 2;
-    const btnY = cy + 60;
-
-    this.buttons.push({
-      x: btnX, y: btnY, w: btnW, h: btnH,
-      label: '▶ 现在开始',
-      color: '#2e7d32',
-      textColor: '#ffffff',
-      enabled: true,
-      layer: 'fullscreen',
-      onClick: () => { this.onSkipCountdown?.(); },
-    });
   }
 
   // ============================================================

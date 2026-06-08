@@ -636,11 +636,6 @@ class TowerDefenderGame extends Game {
       },
     );
 
-    // P2: Wave preview — show next wave enemies during WaveBreak countdown
-    this.uiSystem.setWavePreviewCallback(() => {
-      return this.waveSystem.getNextWavePreview();
-    });
-
     // ---- Hand System (card management) ----
     this.handSystem = new HandSystem();
     this.handSystem.initialize(initialPool);
@@ -1225,23 +1220,21 @@ class TowerDefenderGame extends Game {
           type = 'elite';
         }
 
-        // v5.0: 掉落金币范围计算
+        // v5.1: 掉落金币范围计算（使用敌人配置的 goldVariance）
         const baseGold = enemy.rewardGold;
+        const variance = enemy.goldVariance ?? 0.2;
         let goldMin: number;
         let goldMax: number;
         if (enemy.isBoss) {
-          // Boss: ±10%
-          goldMin = Math.floor(baseGold * 0.9);
-          goldMax = Math.ceil(baseGold * 1.1);
+          goldMin = Math.floor(baseGold * (1 - variance * 0.5));
+          goldMax = Math.ceil(baseGold * (1 + variance * 0.5));
         } else if (type === 'elite') {
-          // 精英: 1.5x 基础奖励 ±20%
           const eliteGold = baseGold * 1.5;
-          goldMin = Math.floor(eliteGold * 0.8);
-          goldMax = Math.ceil(eliteGold * 1.2);
+          goldMin = Math.floor(eliteGold * (1 - variance));
+          goldMax = Math.ceil(eliteGold * (1 + variance));
         } else {
-          // 普通: ±20%
-          goldMin = Math.floor(baseGold * 0.8);
-          goldMax = Math.ceil(baseGold * 1.2);
+          goldMin = Math.floor(baseGold * (1 - variance));
+          goldMax = Math.ceil(baseGold * (1 + variance));
         }
 
         entries.push({

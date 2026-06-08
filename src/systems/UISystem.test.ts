@@ -132,7 +132,7 @@ describe('UISystem 顶部 HUD 布局', () => {
 
     ui.update(new TowerWorld(), 1 / 60);
 
-    const buttons = buttonsOf(ui).filter((button) => ['▶', '1x', '⏸'].includes(button.label));
+    const buttons = buttonsOf(ui).filter((button) => ['立即开始', '1x', '⏸'].includes(button.label));
     const rightMostEdge = Math.max(...buttons.map((button) => button.x + button.w));
     expect(rightMostEdge).toBe(
       LayoutManager.toDesignX(LayoutManager.viewportW) - UISystem.TOP_HUD_SIDE_MARGIN,
@@ -144,7 +144,7 @@ describe('UISystem 顶部 HUD 布局', () => {
 
     ui.update(new TowerWorld(), 1 / 60);
 
-    const startWaveButton = buttonsOf(ui).find((button) => button.label === '▶');
+    const startWaveButton = buttonsOf(ui).find((button) => button.label === '立即开始');
     const countdownInfo = infosOf(ui).find((info) => info.text.startsWith('⏱'));
     expect(startWaveButton).toBeDefined();
     expect(countdownInfo).toBeDefined();
