@@ -52,6 +52,7 @@ import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
 import { EnemyCodexUI } from './ui/EnemyCodexUI.js';
 import type { EnemyCodexEntry } from './ui/EnemyCodexUI.js';
 import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
+import { ComboKillSystem } from './systems/ComboKillSystem.js';
 import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
 import { Music } from './utils/Music.js';
 import {
@@ -139,6 +140,7 @@ class TowerDefenderGame extends Game {
   private soldierAISystem!: SoldierAISystem;
   private bossSystem!: BossSystem;
   private damageNumberSystem!: DamageNumberSystem;
+  private comboKillSystem!: ComboKillSystem;
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
@@ -736,14 +738,21 @@ class TowerDefenderGame extends Game {
     // ---- Boss System ----
     this.bossSystem = new BossSystem();
 
+    // ---- Combo Kill System ----
+    // 必须在 HealthSystem 之前创建，因为 onEnemyKilled 回调会引用它
+    this.comboKillSystem = new ComboKillSystem();
+
     // ---- Health system ----
     this.healthSystem = new HealthSystem(
       () => this.phase,
       (p) => { this.phase = p; },
       (enemyId) => {
         Sound.play('enemy_death');
-        this.economy.rewardForEnemy(enemyId);
-        Sound.play('gold_earn');
+        // 连杀金币加成
+        const baseGold = UnitTag.rewardGold[enemyId] ?? 0;
+        const comboMultiplier = this.comboKillSystem.notifyEnemyKilled(enemyId, this.world);
+        this.economy.addGold(Math.floor(baseGold * comboMultiplier));
+        if (baseGold > 0) Sound.play('gold_earn');
         // v5.0: 精英击杀不再触发3选1抽卡（抽卡相关代码保留，后续可能复用）。
         // 击杀精英现仅获得金币奖励（1.5x 普通版 rewardGold）。
         // 最终波次全部敌人死亡 → 胜利
@@ -853,6 +862,13 @@ class TowerDefenderGame extends Game {
         const ctx = this.renderer.context;
         if (ctx) {
           this.damageNumberSystem.renderAll(this.world, ctx);
+        }
+      }
+      // 连杀飘字渲染（在伤害飘字之上）
+      if (this.currentScreen === GameScreen.Battle) {
+        const ctx = this.renderer.context;
+        if (ctx) {
+          this.comboKillSystem.renderAll(this.world, ctx);
         }
       }
       this.uiSystem.renderUI();
@@ -1153,6 +1169,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(fadingMarkSystem);
     this.world.registerSystem(this.tileDamageSystem);
     this.world.registerSystem(this.healthSystem);
+    this.world.registerSystem(this.comboKillSystem);     // 连杀系统（在 healthSystem 之后，处理连杀飘字生命周期）
     this.world.registerSystem(this.damageNumberSystem); // P0-1: 伤害飘字（必须在伤害系统之后）
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);

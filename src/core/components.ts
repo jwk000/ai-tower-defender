@@ -721,6 +721,23 @@ export const DamageNumber = defineComponent({
 export const damageNumberQuery = defineQuery([Position, DamageNumber]);
 
 // ============================================================
+// 连杀飘字组件（Combo Kill Floating Text）
+// ============================================================
+
+/** 连杀飘字动画实体 — 浮起+淡出，显示 "N连杀!" */
+export const ComboFloatingText = defineComponent({
+  comboCount: Types.ui8,    // 连杀数
+  lifetime: Types.f32,      // 已存活时间 (s)
+  maxLifetime: Types.f32,   // 最大存活时间 (s)
+  velocityY: Types.f32,     // 浮起速度 (px/s)
+  scale: Types.f32,         // 当前缩放倍率
+  alpha: Types.f32,         // 当前透明度
+});
+
+/** 连杀飘字实体查询 */
+export const comboTextQuery = defineQuery([Position, ComboFloatingText]);
+
+// ============================================================
 // 常用查询组合
 // ============================================================
 
