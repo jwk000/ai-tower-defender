@@ -65,6 +65,9 @@ export class BuildSystem implements System {
    */
   private onBuilt: ((entityId: number, cost: number) => void) | undefined;
 
+  /** 放置失败回调，传入失败原因和放置坐标 */
+  onPlacementDenied: ((reason: string, px: number, py: number) => void) | null = null;
+
   // —— 每帧由 update() 注入 ——
   private _world: TowerWorld | null = null;
 
@@ -176,8 +179,13 @@ export class BuildSystem implements System {
     const col = Math.floor((px - RenderSystem.sceneOffsetX) / ts);
     const row = Math.floor((py - RenderSystem.sceneOffsetY) / ts);
 
+    // 网格中心坐标（用于飘字提示定位）
+    const cx = col * ts + ts / 2 + RenderSystem.sceneOffsetX;
+    const cy = row * ts + ts / 2 + RenderSystem.sceneOffsetY;
+
     // 边界检查
     if (col < 0 || col >= this.map.cols || row < 0 || row >= this.map.rows) {
+      this.onPlacementDenied?.('超出地图范围', px, py);
       this.cancelDrag();
       return false;
     }
@@ -188,16 +196,19 @@ export class BuildSystem implements System {
     if (ds.entityType === 'trap') {
       // 陷阱只能放在路径上
       if (tile !== TileType.Path) {
+        this.onPlacementDenied?.('陷阱只能放在路径上', cx, cy);
         this.cancelDrag();
         return false;
       }
     } else {
       // 塔/建筑/单位必须放在空地 + 毗邻路径
       if (tile !== TileType.Empty) {
+        this.onPlacementDenied?.('只能放在空地上', cx, cy);
         this.cancelDrag();
         return false;
       }
       if (!isAdjacentToPath(row, col, this.map)) {
+        this.onPlacementDenied?.('必须毗邻路径', cx, cy);
         this.cancelDrag();
         return false;
       }
@@ -213,6 +224,7 @@ export class BuildSystem implements System {
         // 同层级冲突才拒绝
         const existingLayer = Layer.value[eid] ?? LayerVal.Ground;
         if (existingLayer === myLayer) {
+          this.onPlacementDenied?.('地格已被占用', cx, cy);
           this.cancelDrag();
           return false;
         }

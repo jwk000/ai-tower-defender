@@ -54,6 +54,7 @@ import type { EnemyCodexEntry } from './ui/EnemyCodexUI.js';
 import { clearDamageObservers, registerDamageObserver } from './utils/damageUtils.js';
 import { ComboKillSystem } from './systems/ComboKillSystem.js';
 import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
+import { FloatingTextSystem } from './systems/FloatingTextSystem.js';
 import { Music } from './utils/Music.js';
 import {
   generateSeed,
@@ -139,6 +140,7 @@ class TowerDefenderGame extends Game {
   private soldierAISystem!: SoldierAISystem;
   private bossSystem!: BossSystem;
   private damageNumberSystem!: DamageNumberSystem;
+  private floatingTextSystem!: FloatingTextSystem;
   private comboKillSystem!: ComboKillSystem;
 
   // ---- Scene decoration ----
@@ -380,6 +382,9 @@ class TowerDefenderGame extends Game {
       this.damageNumberSystem.enqueueDamage(targetId, actualDamage);
     });
 
+    // 放置提示飘字
+    this.floatingTextSystem = new FloatingTextSystem();
+
     // ---- Wave system ----
     this.waveSystem = new WaveSystem(
       this.world, map, config.waves,
@@ -423,6 +428,11 @@ class TowerDefenderGame extends Game {
       (eid, cost) => this.economy.registerBuild(eid, cost),
       this.unitFactory,
     );
+
+    // 放置失败飘字提示
+    this.buildSystem.onPlacementDenied = (reason, x, y) => {
+      this.floatingTextSystem.show(this.world, x, y, reason);
+    };
 
     if (config.availableTowers.length > 0 && config.availableTowers[0]) {
       this.buildSystem.selectTower(config.availableTowers[0]);
@@ -803,6 +813,13 @@ class TowerDefenderGame extends Game {
           this.comboKillSystem.renderAll(this.world, ctx);
         }
       }
+      // 放置提示飘字渲染（在连杀飘字之上）
+      if (this.currentScreen === GameScreen.Battle) {
+        const ctx = this.renderer.context;
+        if (ctx) {
+          this.floatingTextSystem.renderAll(this.world, ctx);
+        }
+      }
       this.uiSystem.renderUI();
       this.victoryScreenSystem.render();
       if (this.encyclopedia.isOpen) {
@@ -967,10 +984,11 @@ class TowerDefenderGame extends Game {
         }
         console.log('[CardDrag] entityType:', ds.entityType, 'cardIndex:', ds.cardIndex);
         if (ds.entityType === 'unit') {
-          // v5.0: 出牌前检查金币
+          // v5.0: 金币由 spawnUnitAt 在校验通过后扣除，此处仅做检查
           const handCards = this.handSystem.getHand();
           const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
-          if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+          if (handCard && this.economy.gold < handCard.goldCost) {
+            this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
             Sound.play('build_deny');
             this.buildSystem.cancelDrag();
             return;
@@ -986,15 +1004,17 @@ class TowerDefenderGame extends Game {
           // 技能卡：在释放位置执行法术效果
           const spellId = ds.spellCardId;
           if (spellId) {
-            // v5.0: 出牌前检查金币
+            // v5.0: 校验通过后再扣金币
             const handCards = this.handSystem.getHand();
             const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
-            if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+            if (handCard && this.economy.gold < handCard.goldCost) {
+              this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
               Sound.play('build_deny');
               this.buildSystem.cancelDrag();
               return;
             }
             this.executeSpellAt(spellId, e.x, e.y);
+            if (handCard) this.economy.spendGold(handCard.goldCost);
             if (ds.cardIndex !== undefined) {
               this.handSystem.playCard(ds.cardIndex);
             }
@@ -1003,10 +1023,11 @@ class TowerDefenderGame extends Game {
           this.buildSystem.cancelDrag();
         } else {
           console.log('[CardDrag] Calling tryDrop...');
-          // v5.0: 出牌前检查金币
+          // v5.0: 金币在校验通过后扣除，此处仅做检查
           const handCards = this.handSystem.getHand();
           const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
-          if (handCard && !this.economy.spendGold(handCard.goldCost)) {
+          if (handCard && this.economy.gold < handCard.goldCost) {
+            this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
             Sound.play('build_deny');
             this.buildSystem.cancelDrag();
             return;
@@ -1014,6 +1035,8 @@ class TowerDefenderGame extends Game {
           const result = this.buildSystem.tryDrop(e.x, e.y);
           console.log('[CardDrag] tryDrop result:', result, 'cardIndex:', ds.cardIndex);
           if (result !== false && result !== null) {
+            // 校验通过后再扣金币
+            if (handCard) this.economy.spendGold(handCard.goldCost);
             Sound.play('build_place');
             this.uiSystem.selectedEntityId = result;
             this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
@@ -1093,6 +1116,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.healthSystem);
     this.world.registerSystem(this.comboKillSystem);     // 连杀系统（在 healthSystem 之后，处理连杀飘字生命周期）
     this.world.registerSystem(this.damageNumberSystem); // P0-1: 伤害飘字（必须在伤害系统之后）
+    this.world.registerSystem(this.floatingTextSystem); // 放置提示飘字
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
     this.world.registerSystem(this.soldierAISystem);
@@ -1442,20 +1466,36 @@ class TowerDefenderGame extends Game {
     const col = Math.floor((px - ox) / ts);
     const row = Math.floor((py - oy) / ts);
 
-    if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
+    // 网格中心坐标（用于飘字定位）
+    const centerX = col * ts + ts / 2 + ox;
+    const centerY = row * ts + ts / 2 + oy;
+
+    if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) {
+      this.floatingTextSystem.show(this.world, px, py, '超出地图范围');
+      return false;
+    }
 
     const tile = map.tiles[row]![col]!;
 
-    if (tile !== TileType.Path) return false;
+    if (tile !== TileType.Path) {
+      this.floatingTextSystem.show(this.world, centerX, centerY, '只能放在路径上');
+      return false;
+    }
 
     // Check grid occupancy via GridOccupant SoA
     for (let eid = 1; eid < GridOccupant.row.length; eid++) {
       if (GridOccupant.row[eid] === undefined) continue;
-      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) return false;
+      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) {
+        this.floatingTextSystem.show(this.world, centerX, centerY, '地格已被占用');
+        return false;
+      }
     }
 
     // v4.0: population system removed — no canDeployUnit/deployUnit
-    if (!this.economy.spendGold(config.cost)) return false;
+    if (!this.economy.spendGold(config.cost)) {
+      this.floatingTextSystem.show(this.world, centerX, centerY, '金币不足');
+      return false;
+    }
 
     Sound.play('build_place');
 

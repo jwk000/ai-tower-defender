@@ -741,6 +741,23 @@ export const ComboFloatingText = defineComponent({
 export const comboTextQuery = defineQuery([Position, ComboFloatingText]);
 
 // ============================================================
+// 放置提示飘字组件（Floating Hint Text）
+// ============================================================
+
+/** 放置失败提示飘字 — 浮起+淡出，显示文字提示（如 "金币不足"） */
+export const FloatingText = defineComponent({
+  lifetime: Types.f32,    // 已存活时间 (s)
+  maxLifetime: Types.f32, // 最大存活时间 (s)
+  velocityY: Types.f32,   // 浮起速度 (px/s)
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+});
+
+/** 放置提示飘字实体查询 */
+export const floatingTextQuery = defineQuery([Position, FloatingText]);
+
+// ============================================================
 // 常用查询组合
 // ============================================================
 
