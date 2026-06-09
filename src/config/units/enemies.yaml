@@ -162,6 +162,15 @@ heavy:
     special:
       canAttackBuildings: true
 
+  skills:
+    - id: shield_wall
+      name: 盾墙推进
+      cooldown: 12
+      range: 0
+      value: 40
+      duration: 4
+      description: "自身获得40%减伤，持续4s，并播放金色护盾视觉"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -217,6 +226,15 @@ mage:
     special:
       canAttackBuildings: true
 
+  skills:
+    - id: arcane_bolt
+      name: 奥术冲击
+      cooldown: 8
+      range: 250
+      value: 35
+      duration: 1
+      description: "对最弱玩家单位造成35魔法伤害，并短暂打断攻击1s"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -267,6 +285,15 @@ exploder:
     targetSelection: nearest
     attackMode: single_target
     movementMode: follow_path
+
+  skills:
+    - id: unstable_countdown
+      name: 不稳定倒计时
+      cooldown: 0
+      range: 100
+      value: 50
+      duration: 0
+      description: "死亡爆炸半径100px，伤害50；出生后持续闪烁预警"
 
   lifecycle:
     onDeath:
@@ -500,6 +527,15 @@ e_burrow_worm:
     special:
       canTunnel: true
 
+  skills:
+    - id: burrow_phase
+      name: 钻地潜行
+      cooldown: 6
+      range: 0
+      value: 2
+      duration: 2
+      description: "钻地2s，期间不受塔攻击并获得50%移速加成"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -710,6 +746,15 @@ e_giant_beetle:
     special:
       canAttackBuildings: true
 
+  skills:
+    - id: carapace_guard
+      name: 巨壳防御
+      cooldown: 10
+      range: 0
+      value: 60
+      duration: 4
+      description: "开启甲壳，4s内护甲+60"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -835,6 +880,15 @@ e_frost_marauder:
     special:
       canAttackBuildings: true
 
+  skills:
+    - id: frost_guard
+      name: 寒霜护甲
+      cooldown: 10
+      range: 0
+      value: 50
+      duration: 4
+      description: "自身获得50护甲，并播放冰蓝护甲视觉，持续4s"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -946,6 +1000,15 @@ e_yeti_charger:
       canAttackBuildings: true
       knockback: true
 
+  skills:
+    - id: yeti_charge
+      name: 雪人冲锋
+      cooldown: 8
+      range: 128
+      value: 40
+      duration: 0.25
+      description: "向水晶方向冲锋128px，撞击玩家单位造成40物理伤害并击退64px"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -996,6 +1059,15 @@ e_blizzard_sprite:
     movementMode: follow_path
     special:
       canAttackBuildings: true
+
+  skills:
+    - id: snowblind
+      name: 雪盲
+      cooldown: 9
+      range: 220
+      value: 3
+      duration: 3
+      description: "对一座塔施加雪盲3s，期间用命中率降低表现为攻击间隔延长"
 
   lifecycle:
     onDeath:
@@ -1565,6 +1637,15 @@ e_brine_charger:
       canAttackBuildings: true
       knockback: true
 
+  skills:
+    - id: brine_ram
+      name: 咸潮撞击
+      cooldown: 8
+      range: 96
+      value: 45
+      duration: 0.25
+      description: "冲撞最近建筑，造成45物理伤害并击退周围士兵"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -1805,6 +1886,15 @@ e_steam_lancer:
       canAttackBuildings: true
       armorPenetration: 1.0
 
+  skills:
+    - id: piercing_lance
+      name: 穿甲蒸汽枪
+      cooldown: 7
+      range: 240
+      value: 30
+      duration: 0
+      description: "发射穿甲能量弹，造成30魔法伤害并无视目标护甲"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -1855,6 +1945,15 @@ e_hammergrub_drone:
     special:
       targetBuildings: true
       ignoreUnits: true
+
+  skills:
+    - id: building_lock
+      name: 建筑锁定
+      cooldown: 6
+      range: 220
+      value: 3
+      duration: 3
+      description: "标记最近塔3s，期间自身直冲该塔且无视士兵拦截"
 
   lifecycle:
     onDeath:
@@ -1907,6 +2006,15 @@ e_minecart_juggernaut:
     special:
       canAttackBuildings: true
       destroyBuildingOnHit: true
+
+  skills:
+    - id: rail_charge
+      name: 矿车冲锤
+      cooldown: 12
+      range: 160
+      value: 80
+      duration: 0.35
+      description: "沿路径直线冲刺160px，撞到建筑造成80物理伤害并短暂眩晕周围士兵"
 
   lifecycle:
     onDeath:
@@ -2150,6 +2258,15 @@ e_myco_charger:
     attackMode: single_target
     movementMode: follow_path
 
+  skills:
+    - id: spore_burst
+      name: 孢子爆裂
+      cooldown: 0
+      range: 80
+      value: 20
+      duration: 4
+      description: "死亡时额外释放孢子爆裂，范围80px内友军ATK+20%，持续4s"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -2206,6 +2323,7 @@ e_warped_witch:
       name: 变形诅咒
       cooldown: 10
       range: 220
+      value: 6
       duration: 6
       description: "对我方士兵施加变形 6s，不能攻击不能移动"
 
@@ -2265,6 +2383,16 @@ e_brood_mother:
     attackMode: none
     movementMode: hold_position
 
+  skills:
+    - id: spore_spawn
+      name: 孢子孵化
+      cooldown: 4
+      range: 120
+      value: 2
+      duration: 0
+      unitId: e_sporeling
+      description: "每4s召唤2只e_sporeling，场上最多保持8只"
+
   lifecycle:
     onCondition:
       condition: "interval_4s"
@@ -2316,6 +2444,15 @@ e_blight_spitter:
     targetSelection: nearest
     attackMode: single_target
     movementMode: follow_path
+
+  skills:
+    - id: blight_pool
+      name: 腐疫毒池
+      cooldown: 6
+      range: 180
+      value: 30
+      duration: 3
+      description: "在攻击目标脚下留下3s毒池，每秒30魔法伤害"
 
   lifecycle:
     onAttack:
@@ -2388,6 +2525,7 @@ e_mycelial_core:
       name: 真菌变形
       cooldown: 20
       range: 0
+      value: 10
       duration: 10
       description: "形态 2：对玩家最强塔施加变形 10s，无法攻击"
 
@@ -2927,6 +3065,15 @@ e_frost_lancer:
     attackMode: single_target
     movementMode: follow_path
 
+  skills:
+    - id: frost_pierce
+      name: 寒霜穿刺
+      cooldown: 7
+      range: 120
+      value: 24
+      duration: 2
+      description: "对直线上的玩家单位造成24物理伤害，并附加25%减速2s"
+
   lifecycle:
     onDeath:
       - type: drop_gold
@@ -2975,6 +3122,16 @@ e_blood_trickster:
     targetSelection: nearest
     attackMode: single_target
     movementMode: follow_path
+
+  skills:
+    - id: blood_rebirth
+      name: 鲜血复生
+      cooldown: 0
+      range: 0
+      value: 1
+      duration: 0
+      unitId: zombie_trickster_revive
+      description: "死亡时复活1个zombie_trickster_revive，若周围有玩家单位则优先在其附近生成"
 
   lifecycle:
     onDeath:
@@ -3072,6 +3229,7 @@ giant_slime:
   visual: { shape: circle, color: "#66bb6a", size: 64, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: GiantSlime, splitCount: 0 }
+  skills: [{ id: slime_split_pulse, name: "黏液分裂波", cooldown: 12, range: 120, value: 35, duration: 4, description: "对周围120px内玩家单位造成35魔法伤害，并留下4s黏液减速区，敌人移速降低35%" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
@@ -3155,6 +3313,7 @@ queen_beetle:
   visual: { shape: circle, color: "#e65100", size: 68, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: QueenWorm, immuneToTowers: true, spawnInterval: 15.0, spawnUnit: desert_beetle, spawnCount: 3 }
+  skills: [{ id: summon_desert_beetles, name: "虫群孵化", cooldown: 15, range: 150, value: 3, duration: 0, unitId: desert_beetle, description: "在女王周围召唤3只desert_beetle；女王仍保持免疫塔攻击机制" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
@@ -3221,7 +3380,7 @@ dark_priest:
   reward: { gold: 18 }
   visual: { shape: hexagon, color: "#311b92", size: 30, outline: true }
   behavior: { targetSelection: nearest, attackMode: none, movementMode: follow_path }
-  skills: [{ id: revive, name: "复活", cooldown: 8.0, range: 150, value: 1 }]
+  skills: [{ id: revive, name: "复活", cooldown: 8.0, range: 150, value: 1, description: "每8s复活1个范围内已死亡友军" }]
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_magic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
@@ -3254,6 +3413,7 @@ lucifer:
   visual: { shape: circle, color: "#9c27b0", size: 72, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: Lucifer, spawnInterval: 10.0, spawnIntervalEnraged: 5.0, spawnUnit: skeleton, spawnCount: 3, skeletonCap: 12, enrageHpRatio: 0.3, enrageAtkBonus: 0.5 }
+  skills: [{ id: summon_skeletons, name: "召唤骷髅大军", cooldown: 10, range: 160, value: 3, duration: 0, unitId: skeleton, description: "在路西法周围召唤3个skeleton，低血量强化后冷却缩短至5s，场上骷髅上限12" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
@@ -3382,6 +3542,7 @@ super_robot:
   visual: { shape: rect, color: "#d32f2f", size: 80, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   boss: { bossType: SuperRobot, missileInterval: 10.0, warningDuration: 2.0, missileDamage: 80, missileRadius: 80 }
+  skills: [{ id: targeted_missile, name: "远程导弹轰炸", cooldown: 10, range: 9999, value: 80, duration: 2, description: "按塔密度/士兵密度评分选择目标点，2s预警后造成中心80、半径80px递减伤害" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]
@@ -3405,6 +3566,8 @@ abyss_lord:
   visual: { shape: circle, color: "#1a0033", size: 96, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   boss: { bossType: AbyssLord, annihilateInterval: 5.0, annihilateRadius: 150, healRatio: 0.02 }
+  skills: [{ id: dark_devour, name: "黑暗吞噬", cooldown: 5, range: 150, value: 2, duration: 0, description: "吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%" }]
+
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

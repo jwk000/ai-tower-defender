@@ -19,7 +19,7 @@ import {
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
 import { GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
-import { registerBossEntity } from './EnemySkillSystem.js';
+import { registerEnemySkillEntity } from './EnemySkillSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { Sound } from '../utils/Sound.js';
 import { shapeTypeToVal } from '../utils/visualHelpers.js';
@@ -509,8 +509,9 @@ export class WaveSystem implements System {
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
         selfDestructTimer: -1, // inactive
       });
-      registerBossEntity(eid, config.type);
     }
+
+    registerEnemySkillEntity(eid, config.type);
 
     // v4.0: Elite component
     if (isElite) {

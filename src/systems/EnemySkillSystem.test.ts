@@ -1,0 +1,198 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { defineQuery, hasComponent, TowerWorld } from '../core/World.js';
+import {
+  Attack,
+  Category,
+  CategoryVal,
+  Elite,
+  ExplosionEffect,
+  Faction,
+  FactionVal,
+  Health,
+  Layer,
+  LayerVal,
+  Movement,
+  Position,
+  ShapeVal,
+  Tower,
+  UnitTag,
+  Visual,
+} from '../core/components.js';
+import { unitConfigRegistry, type UnitConfig } from '../config/registry.js';
+import { EnemySkillSystem, registerEnemySkillEntity } from './EnemySkillSystem.js';
+
+const explosionQuery = defineQuery([Position, ExplosionEffect, Visual]);
+
+function registerSkillConfig(config: UnitConfig): void {
+  unitConfigRegistry.register(config);
+}
+
+function makeElite(world: TowerWorld, configId: string): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: 100, y: 100 });
+  world.addComponent(eid, Health, { current: 200, max: 200, armor: 10, magicResist: 0 });
+  world.addComponent(eid, Faction, { value: FactionVal.Evil });
+  world.addComponent(eid, Category, { value: CategoryVal.Enemy });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  world.addComponent(eid, Movement, {
+    speed: 40,
+    currentSpeed: 40,
+    moveMode: 0,
+    targetX: 0,
+    targetY: 0,
+    pathIndex: 0,
+    progress: 0,
+    homeX: 100,
+    homeY: 100,
+    moveRange: 0,
+    spawnIdx: 0,
+  });
+  world.addComponent(eid, UnitTag, { isEnemy: 1, isElite: 1, atk: 20, rewardGold: 10 });
+  world.addComponent(eid, Elite, {
+    cardOptions: 3,
+    hpMultiplier: 2,
+    atkMultiplier: 1.5,
+    visualScale: 1.2,
+  });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: 255,
+    colorG: 215,
+    colorB: 0,
+    size: 40,
+    alpha: 1,
+    outline: 1,
+    facing: 1,
+    hitFlashTimer: 0,
+    idlePhase: 0,
+    bobPhase: 0,
+    breathPhase: 0,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0.3,
+    partsId: 0,
+  });
+  registerEnemySkillEntity(eid, configId);
+  return eid;
+}
+
+function makeTower(world: TowerWorld, x = 140, y = 100): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Category, { value: CategoryVal.Tower });
+  world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
+  world.addComponent(eid, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+  world.addComponent(eid, Attack, {
+    damage: 20,
+    attackSpeed: 1,
+    range: 180,
+    alertRange: 180,
+    damageType: 0,
+    cooldownTimer: 0,
+    targetId: 0,
+    targetSelection: 0,
+    attackMode: 0,
+    isRanged: 1,
+    splashRadius: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
+    drainPercent: 0,
+    tauntCapacity: 0,
+    attackerCount: 0,
+  });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Rect,
+    colorR: 80,
+    colorG: 120,
+    colorB: 220,
+    size: 28,
+    alpha: 1,
+    outline: 1,
+    facing: 1,
+    hitFlashTimer: 0,
+    idlePhase: 0,
+    bobPhase: 0,
+    breathPhase: 0,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0,
+    partsId: 0,
+  });
+  return eid;
+}
+
+describe('EnemySkillSystem — 精英技能与视觉效果', () => {
+  let world: TowerWorld;
+  let system: EnemySkillSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new EnemySkillSystem();
+  });
+
+  it('精英 arcane_bolt 会伤害目标并创建技能视觉效果', () => {
+    registerSkillConfig({
+      id: 'test_elite_mage',
+      name: '测试精英法师',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      tier: 'L2',
+      stats: { hp: 100, atk: 10 },
+      visual: { shape: 'circle', color: '#ce93d8', size: 28 },
+      behavior: { targetSelection: 'weakest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'arcane_bolt',
+          name: '奥术冲击',
+          cooldown: 8,
+          range: 250,
+          value: 35,
+          description: '对最弱玩家单位造成 35 魔法伤害，并短暂打断攻击 1s',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    makeElite(world, 'test_elite_mage');
+    const tower = makeTower(world);
+
+    system.update(world, 0.1);
+
+    expect(Health.current[tower]).toBe(65);
+    expect(Visual.hitFlashTimer[tower]).toBeGreaterThan(0);
+    expect(explosionQuery(world.world).length).toBeGreaterThan(0);
+  });
+
+  it('冷却未结束时不会重复释放精英技能', () => {
+    registerSkillConfig({
+      id: 'test_elite_mage_cooldown',
+      name: '测试精英法师冷却',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      tier: 'L2',
+      stats: { hp: 100, atk: 10 },
+      visual: { shape: 'circle', color: '#ce93d8', size: 28 },
+      behavior: { targetSelection: 'weakest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'arcane_bolt',
+          name: '奥术冲击',
+          cooldown: 8,
+          range: 250,
+          value: 35,
+          description: '对最弱玩家单位造成 35 魔法伤害，并短暂打断攻击 1s',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    makeElite(world, 'test_elite_mage_cooldown');
+    const tower = makeTower(world);
+
+    system.update(world, 0.1);
+    system.update(world, 0.1);
+
+    expect(Health.current[tower]).toBe(65);
+  });
+});

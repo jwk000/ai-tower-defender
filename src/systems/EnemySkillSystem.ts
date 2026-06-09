@@ -12,7 +12,7 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
-  Tower, ScreenShake, ExplosionEffect,
+  Tower, ScreenShake, ExplosionEffect, Elite, FadingMark,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { unitConfigRegistry } from '../config/registry.js';
@@ -24,15 +24,21 @@ import { hexToRgb } from '../utils/visualHelpers.js';
 // ============================================================
 
 const entityConfigId = new Map<number, string>();
+const genericSkillTimers = new Map<number, number[]>();
+const temporaryArmorBonuses = new Map<number, Array<{ amount: number; timer: number }>>();
 
-/** Register a boss entity with its YAML config ID */
-export function registerBossEntity(eid: number, configId: string): void {
+/** Register an enemy entity with its YAML config ID */
+export function registerEnemySkillEntity(eid: number, configId: string): void {
   entityConfigId.set(eid, configId);
 }
+
+/** Backward-compatible alias for older Boss-only call sites/tests. */
+export const registerBossEntity = registerEnemySkillEntity;
 
 /** Unregister a boss entity (on death/cleanup) */
 export function unregisterBossEntity(eid: number): void {
   entityConfigId.delete(eid);
+  genericSkillTimers.delete(eid);
 }
 
 /** Get config ID for a boss entity */
@@ -61,6 +67,7 @@ interface BossSkillConfig {
 // ============================================================
 
 const bossQuery = defineQuery([Position, Health, Boss, Faction]);
+const skilledEnemyQuery = defineQuery([Position, Health, UnitTag, Faction]);
 const towerQuery = defineQuery([Position, Health, Tower]);
 const allPositionedQuery = defineQuery([Position]);
 
@@ -243,6 +250,106 @@ function createExplosionEffect(
     bobPhase: 0, breathPhase: 0,
     attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
   });
+}
+
+function createGroundMark(
+  world: TowerWorld,
+  x: number,
+  y: number,
+  color: { r: number; g: number; b: number },
+  radius: number,
+  duration: number,
+  alpha: number = 0.35,
+): void {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Category, { value: CategoryVal.Effect });
+  world.addComponent(eid, FadingMark, { duration, elapsed: 0, maxAlpha: alpha });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: color.r,
+    colorG: color.g,
+    colorB: color.b,
+    size: radius * 2,
+    alpha,
+    outline: 1,
+    facing: 1,
+    hitFlashTimer: 0,
+    idlePhase: 0,
+    bobPhase: 0,
+    breathPhase: 0,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0,
+    partsId: 0,
+  });
+}
+
+function findNearestTarget(
+  world: TowerWorld,
+  sourceEid: number,
+  radius: number,
+  predicate: (eid: number) => boolean,
+): number | null {
+  const sx = Position.x[sourceEid] ?? 0;
+  const sy = Position.y[sourceEid] ?? 0;
+  const all = allPositionedQuery(world.world);
+  let best: number | null = null;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+
+  for (const eid of all) {
+    if (eid === sourceEid) continue;
+    if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (!predicate(eid)) continue;
+
+    const dx = (Position.x[eid] ?? 0) - sx;
+    const dy = (Position.y[eid] ?? 0) - sy;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= radius * radius && distSq < bestDistSq) {
+      best = eid;
+      bestDistSq = distSq;
+    }
+  }
+
+  return best;
+}
+
+function findWeakestPlayerTarget(world: TowerWorld, sourceEid: number, radius: number): number | null {
+  const sx = Position.x[sourceEid] ?? 0;
+  const sy = Position.y[sourceEid] ?? 0;
+  const all = allPositionedQuery(world.world);
+  let best: number | null = null;
+  let bestHpRatio = Number.POSITIVE_INFINITY;
+
+  for (const eid of all) {
+    if (eid === sourceEid) continue;
+    if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (Faction.value[eid] !== FactionVal.Justice) continue;
+
+    const dx = (Position.x[eid] ?? 0) - sx;
+    const dy = (Position.y[eid] ?? 0) - sy;
+    if (dx * dx + dy * dy > radius * radius) continue;
+
+    const ratio = (Health.current[eid] ?? 0) / Math.max(1, Health.max[eid] ?? 1);
+    if (ratio < bestHpRatio) {
+      best = eid;
+      bestHpRatio = ratio;
+    }
+  }
+
+  return best;
+}
+
+function flashEntity(eid: number, duration: number): void {
+  if (Visual.hitFlashTimer[eid] !== undefined) {
+    Visual.hitFlashTimer[eid] = Math.max(Visual.hitFlashTimer[eid] ?? 0, duration);
+  }
+}
+
+function applyTemporaryArmor(eid: number, amount: number, duration: number): void {
+  Health.armor[eid] = (Health.armor[eid] ?? 0) + amount;
+  const bonuses = temporaryArmorBonuses.get(eid) ?? [];
+  bonuses.push({ amount, timer: duration });
+  temporaryArmorBonuses.set(eid, bonuses);
 }
 
 // ============================================================
@@ -452,6 +559,183 @@ const handleSelfDestruct: SkillHandler = (_world, bossEid, skill, _phase) => {
   Boss.selfDestructTimer[bossEid] = skill.value; // e.g. 20 seconds
 };
 
+const handleSingleTargetDamage: SkillHandler = (world, casterEid, skill, _phase) => {
+  const target = findWeakestPlayerTarget(world, casterEid, skill.range);
+  if (target === null) return;
+
+  Health.current[target] = Math.max(0, (Health.current[target] ?? 0) - skill.value);
+  flashEntity(target, skill.duration ?? 0.25);
+
+  const x = Position.x[target] ?? Position.x[casterEid] ?? 0;
+  const y = Position.y[target] ?? Position.y[casterEid] ?? 0;
+  createExplosionEffect(world, x, y, { r: 190, g: 80, b: 255 }, 36, 0.35);
+  Sound.play('mage_attack');
+};
+
+const handleSelfGuard: SkillHandler = (world, casterEid, skill, _phase) => {
+  const bonus = skill.value;
+  applyTemporaryArmor(casterEid, bonus, skill.duration ?? 1);
+  flashEntity(casterEid, skill.duration ?? 1);
+  createExplosionEffect(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    { r: 120, g: 210, b: 255 },
+    52,
+    0.45,
+  );
+  Sound.play('arcane_shield');
+};
+
+const handleChargeStrike: SkillHandler = (world, casterEid, skill, _phase) => {
+  const target = findNearestTarget(
+    world,
+    casterEid,
+    skill.range,
+    (eid) => Faction.value[eid] === FactionVal.Justice,
+  );
+  if (target === null) return;
+
+  const tx = Position.x[target] ?? 0;
+  const ty = Position.y[target] ?? 0;
+  const sx = Position.x[casterEid] ?? tx;
+  const sy = Position.y[casterEid] ?? ty;
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+  const nx = dx / dist;
+  const ny = dy / dist;
+
+  Position.x[casterEid] = sx + nx * Math.min(skill.range, dist);
+  Position.y[casterEid] = sy + ny * Math.min(skill.range, dist);
+  Health.current[target] = Math.max(0, (Health.current[target] ?? 0) - skill.value);
+  Position.x[target] = tx + nx * 48;
+  Position.y[target] = ty + ny * 48;
+  flashEntity(target, 0.4);
+  createExplosionEffect(world, Position.x[casterEid] ?? sx, Position.y[casterEid] ?? sy, { r: 255, g: 180, b: 60 }, 56, 0.4);
+  Sound.play('enemy_attack');
+};
+
+const handleTowerDebuff: SkillHandler = (world, casterEid, skill, _phase) => {
+  const target = findNearestTarget(
+    world,
+    casterEid,
+    skill.range,
+    (eid) => hasComponent(world.world, Tower, eid),
+  );
+  if (target === null) return;
+
+  if (Attack.attackSpeed[target] !== undefined && skill.id === 'snowblind') {
+    Attack.attackSpeed[target] = Math.max(0.1, Attack.attackSpeed[target]! * 0.5);
+  }
+  if (Attack.damage[target] !== undefined && skill.id === 'building_lock') {
+    Attack.targetId[casterEid] = target;
+  }
+  flashEntity(target, skill.duration ?? 1);
+  createGroundMark(world, Position.x[target] ?? 0, Position.y[target] ?? 0, { r: 120, g: 210, b: 255 }, 42, skill.duration ?? 2);
+  Sound.play('stun_apply');
+};
+
+const handleSporeSpawn: SkillHandler = (world, casterEid, skill, _phase) => {
+  const bx = Position.x[casterEid] ?? 0;
+  const by = Position.y[casterEid] ?? 0;
+  const count = Math.max(1, Math.round(skill.value));
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    spawnMinion(world, bx + Math.cos(angle) * 48, by + Math.sin(angle) * 48, {
+      hp: 60,
+      atk: 6,
+      speed: 80,
+      name: '孢子幼体',
+      color: '#a5d6a7',
+      size: 20,
+      faction: Faction.value[casterEid] ?? FactionVal.Evil,
+    });
+  }
+  createExplosionEffect(world, bx, by, { r: 120, g: 220, b: 120 }, 64, 0.5);
+  Sound.play('boss_summon');
+};
+
+const handlePoisonPool: SkillHandler = (world, casterEid, skill, _phase) => {
+  const target = findNearestTarget(
+    world,
+    casterEid,
+    skill.range,
+    (eid) => Faction.value[eid] === FactionVal.Justice,
+  );
+  if (target === null) return;
+  const x = Position.x[target] ?? 0;
+  const y = Position.y[target] ?? 0;
+  Health.current[target] = Math.max(0, (Health.current[target] ?? 0) - skill.value);
+  createGroundMark(world, x, y, { r: 100, g: 190, b: 60 }, 44, skill.duration ?? 3, 0.45);
+  Sound.play('poison_hit');
+};
+
+const handleSlimePulse: SkillHandler = (world, bossEid, skill, _phase) => {
+  const x = Position.x[bossEid] ?? 0;
+  const y = Position.y[bossEid] ?? 0;
+  dealAoeDamage(world, x, y, skill.range, skill.value, FactionVal.Justice, {
+    slowPercent: 0.35,
+    slowDuration: skill.duration ?? 4,
+    damageType: DamageTypeVal.Magic,
+  });
+  createGroundMark(world, x, y, { r: 100, g: 220, b: 100 }, skill.range, skill.duration ?? 4, 0.3);
+  createExplosionEffect(world, x, y, { r: 100, g: 220, b: 100 }, skill.range, 0.5);
+  Sound.play('boss_phase2');
+};
+
+const handleTargetedMissile: SkillHandler = (world, bossEid, skill, _phase) => {
+  const target = findNearestTarget(world, bossEid, skill.range, (eid) => hasComponent(world.world, Tower, eid))
+    ?? findNearestTarget(world, bossEid, skill.range, (eid) => Faction.value[eid] === FactionVal.Justice);
+  if (target === null) return;
+  const x = Position.x[target] ?? 0;
+  const y = Position.y[target] ?? 0;
+  dealAoeDamage(world, x, y, 80, skill.value, FactionVal.Justice, { falloff: true });
+  createGroundMark(world, x, y, { r: 220, g: 40, b: 40 }, 80, skill.duration ?? 2, 0.45);
+  createExplosionEffect(world, x, y, { r: 255, g: 80, b: 40 }, 80, 0.6);
+  Sound.play('boss_missile');
+  triggerScreenShake(world, 7, 0.4, 16);
+};
+
+const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
+  const bx = Position.x[bossEid] ?? 0;
+  const by = Position.y[bossEid] ?? 0;
+  const all = allPositionedQuery(world.world);
+  let devoured = 0;
+  for (const eid of all) {
+    if (eid === bossEid) continue;
+    if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (hasComponent(world.world, Boss, eid)) continue;
+    const dx = (Position.x[eid] ?? 0) - bx;
+    const dy = (Position.y[eid] ?? 0) - by;
+    if (dx * dx + dy * dy <= skill.range * skill.range) {
+      Health.current[eid] = 0;
+      devoured++;
+    }
+  }
+  if (devoured > 0) {
+    Health.current[bossEid] = Math.min(
+      Health.max[bossEid] ?? Health.current[bossEid] ?? 0,
+      (Health.current[bossEid] ?? 0) + (Health.max[bossEid] ?? 0) * (skill.value / 100) * devoured,
+    );
+  }
+  createExplosionEffect(world, bx, by, { r: 80, g: 0, b: 140 }, skill.range, 0.8);
+  Sound.play('boss_devour');
+  triggerScreenShake(world, 8, 0.5, 12);
+};
+
+const handlePassiveWarning: SkillHandler = (world, casterEid, skill, _phase) => {
+  flashEntity(casterEid, Math.max(0.5, skill.duration ?? 0.5));
+  createExplosionEffect(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    { r: 255, g: 90, b: 40 },
+    Math.max(32, skill.range || 40),
+    0.35,
+  );
+};
+
 // ============================================================
 // Skill handler registry
 // ============================================================
@@ -460,21 +744,43 @@ const SKILL_HANDLERS: Record<string, SkillHandler> = {
   // Summon skills
   summon_grunts: handleSummon,
   summon_burrow_worm: handleSummon,
+  summon_desert_beetles: handleSummon,
+  summon_skeletons: handleSummon,
   summon_kraken: handleSummon,
   summon_drones: handleSummon,
   summon_brood_mother: handleSummon,
   mass_summon: handleSummon,
+  spore_spawn: handleSporeSpawn,
   // AOE skills
   ground_slam: handleAoeAttack,
   frost_slam: handleAoeAttack,
   ground_quake: handleAoeAttack,
   tidal_wave: handleAoeAttack,
   void_eruption: handleAoeAttack,
+  slime_split_pulse: handleSlimePulse,
+  targeted_missile: handleTargetedMissile,
+  dark_devour: handleDarkDevour,
   // Buff/debuff skills
   war_cry: handleWarCry,
   mass_petrify: handleMassPetrify,
   reality_warp: handleRealityWarp,
   polymorph_mushroom: handleRealityWarp, // uses same pattern
+  shield_wall: handleSelfGuard,
+  carapace_guard: handleSelfGuard,
+  frost_guard: handleSelfGuard,
+  arcane_bolt: handleSingleTargetDamage,
+  piercing_lance: handleSingleTargetDamage,
+  frost_pierce: handleSingleTargetDamage,
+  snowblind: handleTowerDebuff,
+  building_lock: handleTowerDebuff,
+  acid_pool: handlePoisonPool,
+  blight_pool: handlePoisonPool,
+  yeti_charge: handleChargeStrike,
+  brine_ram: handleChargeStrike,
+  rail_charge: handleChargeStrike,
+  unstable_countdown: handlePassiveWarning,
+  spore_burst: handlePassiveWarning,
+  blood_rebirth: handlePassiveWarning,
   // Special
   self_destruct_timer: handleSelfDestruct,
 };
@@ -487,6 +793,8 @@ export class EnemySkillSystem implements System {
   readonly name = 'EnemySkillSystem';
 
   update(world: TowerWorld, dt: number): void {
+    this.tickTemporaryArmor(dt);
+    this.updateGenericEnemies(world, dt);
     const bosses = bossQuery(world.world);
 
     for (let i = 0; i < bosses.length; i++) {
@@ -577,6 +885,73 @@ export class EnemySkillSystem implements System {
           Health.current[tid] = 0;
         }
       }
+    }
+  }
+
+  private updateGenericEnemies(world: TowerWorld, dt: number): void {
+    const enemies = skilledEnemyQuery(world.world);
+    for (const eid of enemies) {
+      if ((Health.current[eid] ?? 0) <= 0) continue;
+      if (hasComponent(world.world, Boss, eid)) continue;
+
+      const configId = entityConfigId.get(eid);
+      if (!configId) continue;
+      const config = unitConfigRegistry.get(configId);
+      if (!config) continue;
+      const skills = config['skills'] as BossSkillConfig[] | undefined;
+      if (!skills || skills.length === 0) continue;
+
+      const timers = this.tickGenericSkillTimers(eid, skills.length, dt);
+      const phase = hasComponent(world.world, Elite, eid) ? 2 : 1;
+      for (let si = 0; si < skills.length; si++) {
+        const skill = skills[si]!;
+        if ((timers[si] ?? 0) < 0) continue;
+        const handler = SKILL_HANDLERS[skill.id];
+        if (!handler) continue;
+        handler(world, eid, skill, phase);
+        timers[si] = -this.getGenericCooldown(skill);
+        break;
+      }
+    }
+  }
+
+  private getGenericCooldown(skill: BossSkillConfig): number {
+    if (skill.cooldown > 0) return skill.cooldown;
+    switch (skill.id) {
+      case 'unstable_countdown':
+      case 'spore_burst':
+      case 'blood_rebirth':
+        return Number.POSITIVE_INFINITY;
+      default:
+        return 1;
+    }
+  }
+
+  private tickGenericSkillTimers(eid: number, count: number, dt: number): number[] {
+    let timers = genericSkillTimers.get(eid);
+    if (!timers) {
+      timers = Array.from({ length: count }, () => 0);
+      genericSkillTimers.set(eid, timers);
+      return timers;
+    }
+
+    for (let i = 0; i < count; i++) {
+      timers[i] = (timers[i] ?? 0) + dt;
+    }
+    return timers;
+  }
+
+  private tickTemporaryArmor(dt: number): void {
+    for (const [eid, bonuses] of temporaryArmorBonuses) {
+      for (let i = bonuses.length - 1; i >= 0; i--) {
+        const bonus = bonuses[i]!;
+        bonus.timer -= dt;
+        if (bonus.timer <= 0) {
+          Health.armor[eid] = Math.max(0, (Health.armor[eid] ?? 0) - bonus.amount);
+          bonuses.splice(i, 1);
+        }
+      }
+      if (bonuses.length === 0) temporaryArmorBonuses.delete(eid);
     }
   }
 }
