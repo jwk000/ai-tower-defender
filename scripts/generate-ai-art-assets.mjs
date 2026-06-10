@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const PROGRESS_PATH = resolve(ROOT, 'art-generation-progress.json');
@@ -224,7 +224,7 @@ function expandTuple(tuple) {
     priority: id.startsWith('bg_') || id.startsWith('buff_') || id.startsWith('fx_') ? 'P1' : 'P0',
     type,
     output: `public/art/${type}/${id}.${extension}`,
-    size: id.startsWith('bg_') ? undefined : '1024x1024',
+    size: id.startsWith('bg_') ? '1920x1088' : '1024x1024',
     aspectRatio,
     transparent,
     prompt,
@@ -291,24 +291,50 @@ function buildPrompt(asset) {
 function generate(asset) {
   const outPath = resolve(ROOT, asset.output);
   mkdirSync(dirname(outPath), { recursive: true });
-  const args = ['generate', 'image', buildPrompt(asset), '--model', MODEL_LOCK, '-o', outPath];
+  const isBackground = asset.id.startsWith('bg_');
+  const rawOutPath = isBackground
+    ? resolve(ROOT, 'tmp', 'ai-backgrounds', `${basename(asset.output, '.webp')}_raw.png`)
+    : outPath;
+  if (isBackground) mkdirSync(dirname(rawOutPath), { recursive: true });
+
+  const args = ['generate', 'image', buildPrompt(asset), '--model', MODEL_LOCK, '-o', rawOutPath];
   if (asset.size) args.push('--size', asset.size);
-  if (asset.aspectRatio) args.push('--aspect-ratio', asset.aspectRatio);
+  if (asset.aspectRatio && !isBackground) args.push('--aspect-ratio', asset.aspectRatio);
   if (asset.transparent) {
     args.push('--background', 'transparent', '--output-format', 'png');
-  } else if (asset.id.startsWith('bg_')) {
-    args.push('--output-format', 'webp');
   }
   const result = spawnSync('animal-mediakit', args, {
     cwd: ROOT,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+
+  let stderr = result.stderr?.trim() ?? '';
+  let ok = result.status === 0 && existsSync(rawOutPath);
+  if (ok && isBackground) {
+    const convert = spawnSync('magick', [
+      rawOutPath,
+      '-gravity', 'center',
+      '-crop', '1920x1080+0+0',
+      '+repage',
+      '-quality', '82',
+      '-define', 'webp:method=6',
+      outPath,
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    ok = convert.status === 0 && existsSync(outPath);
+    stderr = [stderr, convert.stderr?.trim()].filter(Boolean).join('\n');
+    if (ok) rmSync(rawOutPath, { force: true });
+  }
+
   return {
-    ok: result.status === 0 && existsSync(outPath),
+    ok,
     status: result.status,
     stdout: result.stdout?.trim() ?? '',
-    stderr: result.stderr?.trim() ?? '',
+    stderr,
   };
 }
 

@@ -2,7 +2,7 @@
   "version": 1,
   "modelLock": "azure/gpt-image-2",
   "createdAt": "2026-06-09T00:00:00.000Z",
-  "updatedAt": "2026-06-10T05:34:37.495Z",
+  "updatedAt": "2026-06-10T08:15:15.208Z",
   "totals": {
     "done": 146
   },
@@ -772,10 +772,11 @@
       "status": "done",
       "attempts": 1,
       "startedAt": "2026-06-10T03:29:55.356Z",
-      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_meadow. Primary request: rainy night grassland battlefield, distant mountains, low heavy clouds, low contrast center area for gameplay readability, stronger atmosphere at edges. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_meadow. Primary request: rainy night grassland battlefield, distant mountains, low heavy clouds, low contrast center area for gameplay readability, stronger atmosphere at edges, wide 16:9 battlefield background, native high resolution composition for 1920x1080 final delivery, no UI, no characters, no text. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
       "finishedAt": "2026-06-10T03:31:03.368Z",
-      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_meadow.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 73230\n   prompt: dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_meadow. Primary request: rainy night grassland battlefield, distant mountains, low heavy clouds, low contrast center area for gameplay readability, stronger atmosphere at edges. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.\n   耗时: 67725ms\n   trace: dcbaf4b9c25e05c36efcf480cd0e408f",
-      "lastStderr": ""
+      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_meadow.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 96530\n   note: 由 azure/gpt-image-2 重新生成 1920x1088 原图后居中裁切 4px+4px 到 1920x1080，并压缩为 WebP。",
+      "lastStderr": "",
+      "regeneratedAt": "2026-06-10T08:15:15.208Z"
     },
     {
       "id": "bg_desert",
@@ -786,10 +787,11 @@
       "status": "done",
       "attempts": 1,
       "startedAt": "2026-06-10T03:31:03.369Z",
-      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_desert. Primary request: dark gold desert battlefield, heat haze, dunes, insect burrow silhouettes, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_desert. Primary request: dark gold desert battlefield, heat haze, dunes, insect burrow silhouettes, low contrast center area for gameplay readability, wide 16:9 battlefield background, native high resolution composition for 1920x1080 final delivery, no UI, no characters, no text. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
       "finishedAt": "2026-06-10T03:32:13.828Z",
-      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_desert.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 92114\n   prompt: dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_desert. Primary request: dark gold desert battlefield, heat haze, dunes, insect burrow silhouettes, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.\n   耗时: 70214ms\n   trace: 093a8ef6c5dbcfb52937e5ef387f57f6",
-      "lastStderr": ""
+      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_desert.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 163392\n   note: 由 azure/gpt-image-2 重新生成 1920x1088 原图后居中裁切 4px+4px 到 1920x1080，并压缩为 WebP。",
+      "lastStderr": "",
+      "regeneratedAt": "2026-06-10T08:15:15.208Z"
     },
     {
       "id": "bg_castle",
@@ -800,10 +802,11 @@
       "status": "done",
       "attempts": 1,
       "startedAt": "2026-06-10T03:32:13.829Z",
-      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_castle. Primary request: gothic ruined castle battlefield at night, crescent moon, fog, dead trees, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_castle. Primary request: gothic ruined castle battlefield at night, crescent moon, fog, dead trees, low contrast center area for gameplay readability, wide 16:9 battlefield background, native high resolution composition for 1920x1080 final delivery, no UI, no characters, no text. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
       "finishedAt": "2026-06-10T03:33:43.850Z",
-      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_castle.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 60512\n   prompt: dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_castle. Primary request: gothic ruined castle battlefield at night, crescent moon, fog, dead trees, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.\n   耗时: 89760ms\n   trace: 9f46bbd597c610e299d2db1fa4e019fa",
-      "lastStderr": ""
+      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_castle.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 94422\n   note: 由 azure/gpt-image-2 重新生成 1920x1088 原图后居中裁切 4px+4px 到 1920x1080，并压缩为 WebP。",
+      "lastStderr": "",
+      "regeneratedAt": "2026-06-10T08:15:15.208Z"
     },
     {
       "id": "bg_wasteland",
@@ -814,10 +817,11 @@
       "status": "done",
       "attempts": 1,
       "startedAt": "2026-06-10T03:33:43.851Z",
-      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_wasteland. Primary request: post apocalyptic red mist battlefield, broken city skyline, smoke columns, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_wasteland. Primary request: post apocalyptic red mist battlefield, broken city skyline, smoke columns, low contrast center area for gameplay readability, wide 16:9 battlefield background, native high resolution composition for 1920x1080 final delivery, no UI, no characters, no text. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
       "finishedAt": "2026-06-10T03:34:55.441Z",
-      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_wasteland.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 66062\n   prompt: dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_wasteland. Primary request: post apocalyptic red mist battlefield, broken city skyline, smoke columns, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.\n   耗时: 71353ms\n   trace: 52d8147205060addf9942162483707a4",
-      "lastStderr": ""
+      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_wasteland.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 115122\n   note: 由 azure/gpt-image-2 重新生成 1920x1088 原图后居中裁切 4px+4px 到 1920x1080，并压缩为 WebP。",
+      "lastStderr": "",
+      "regeneratedAt": "2026-06-10T08:15:15.208Z"
     },
     {
       "id": "bg_abyss",
@@ -828,10 +832,11 @@
       "status": "done",
       "attempts": 1,
       "startedAt": "2026-06-10T03:34:55.442Z",
-      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_abyss. Primary request: purple black void abyss battlefield, floating rocks, violet rift glow, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_abyss. Primary request: purple black void abyss battlefield, floating rocks, violet rift glow, low contrast center area for gameplay readability, wide 16:9 battlefield background, native high resolution composition for 1920x1080 final delivery, no UI, no characters, no text. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.",
       "finishedAt": "2026-06-10T03:35:57.179Z",
-      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_abyss.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 67196\n   prompt: dark fantasy casual tower defense game art, stylized 2D hand-painted game asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: bg_abyss. Primary request: purple black void abyss battlefield, floating rocks, violet rift glow, low contrast center area for gameplay readability. No transparent background needed. Avoid: photorealistic, cinematic poster, complex background, tiny details, horror gore, realistic blood, messy silhouette, blurry, low contrast, text, letters, numbers, watermark, logo.\n   耗时: 61433ms\n   trace: d4ea88c2c82a54cec170d67da88e5355",
-      "lastStderr": ""
+      "lastStdout": "✅ generate.image\n   输出: /Users/happyelements/ai-games/ai-tower-defender/public/art/backgrounds/bg_abyss.webp\n   width: 1920\n   height: 1080\n   format: WEBP\n   mode: RGB\n   file_size_bytes: 145266\n   note: 由 azure/gpt-image-2 重新生成 1920x1088 原图后居中裁切 4px+4px 到 1920x1080，并压缩为 WebP。",
+      "lastStderr": "",
+      "regeneratedAt": "2026-06-10T08:15:15.208Z"
     },
     {
       "id": "buff_sharpshooter",
