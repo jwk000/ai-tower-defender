@@ -190,6 +190,8 @@ export interface MapConfig {
   rows: number;
   tileSize: number;
   tiles: TileType[][];
+  /** Runtime art theme used by tile texture selection. */
+  artTheme?: TileArtTheme;
   spawns?: import('../level/graph/types.js').SpawnPoint[];
   pathGraph?: import('../level/graph/types.js').PathGraph;
   tileColors?: Partial<Record<TileType, string>>;
@@ -605,6 +607,7 @@ export interface InputEvent {
 // ---- Geometry Rendering ----
 
 export type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'hexagon' | 'arrow';
+export type TileArtTheme = 'meadow' | 'desert' | 'castle' | 'wasteland' | 'abyss';
 
 export interface RenderCommand {
   shape: ShapeType;
@@ -612,6 +615,7 @@ export interface RenderCommand {
   y: number;
   size: number;
   color: string;
+  image?: CanvasImageSource;
   alpha?: number;
   rotation?: number;
   stroke?: string;

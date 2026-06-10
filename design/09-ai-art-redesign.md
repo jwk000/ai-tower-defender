@@ -377,6 +377,8 @@ dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-do
 - 三通和十字的交汇点固定在地格中心。
 - 同主题路径宽度保持一致，建议占地格宽度的 42%-56%。
 
+运行时地格加载算法必须基于上下左右四邻接关系选择路径纹理，禁止随机选择通用路径图。`path`、`spawn`、`base` 都视为可连通路径节点：普通路径按实际连通边选择 `straight` / `corner` / `tee` / `cross` 连接件；出生口使用 `endpoint_spawn`；水晶口使用 `endpoint_crystal`。当前关卡主题 `plains` 对应素材主题 `meadow`，其余主题按同名素材目录加载。
+
 ### 7.5 背景与装饰
 
 背景保持暗黑氛围，但棋盘区域不得有高频细节。

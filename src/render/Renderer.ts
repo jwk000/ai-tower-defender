@@ -121,8 +121,12 @@ export class Renderer {
           ctx.save();
           ctx.translate(cx, cy);
           ctx.rotate(rot);
-          ctx.fillStyle = cmd.color;
-          ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+          if (cmd.image) {
+            ctx.drawImage(cmd.image, -rw / 2, -rh / 2, rw, rh);
+          } else {
+            ctx.fillStyle = cmd.color;
+            ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+          }
           if (cmd.stroke) {
             ctx.strokeStyle = cmd.stroke;
             ctx.lineWidth = cmd.strokeWidth ?? 1;
@@ -132,8 +136,12 @@ export class Renderer {
         } else {
           const x = cx - rw / 2;
           const y = cy - rh / 2;
-          ctx.fillStyle = cmd.color;
-          ctx.fillRect(x, y, rw, rh);
+          if (cmd.image) {
+            ctx.drawImage(cmd.image, x, y, rw, rh);
+          } else {
+            ctx.fillStyle = cmd.color;
+            ctx.fillRect(x, y, rw, rh);
+          }
           if (cmd.stroke) {
             ctx.strokeStyle = cmd.stroke;
             ctx.lineWidth = cmd.strokeWidth ?? 1;

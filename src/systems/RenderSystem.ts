@@ -44,6 +44,7 @@ import {
   Barrel,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
+import { getTileTexturePath } from '../utils/pathTileTexture.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
@@ -122,6 +123,20 @@ const RANK_STAR_GAP = 2;
 const RANK_STAR_ROW_GAP = 2;
 const RANK_INSIGNIA_BLOCK_WIDTH = 14;
 const RANK_INSIGNIA_NAME_GAP = 4;
+
+const tileTextureCache = new Map<string, HTMLImageElement>();
+
+function getLoadedTileTexture(path: string): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+
+  const cached = tileTextureCache.get(path);
+  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+
+  const image = new Image();
+  image.src = path;
+  tileTextureCache.set(path, image);
+  return null;
+}
 
 export class RenderSystem implements System {
   readonly name = 'RenderSystem';
@@ -208,7 +223,18 @@ export class RenderSystem implements System {
             break;
         }
 
-        this.renderer.push({ shape: 'rect', x, y, size: ts - 2, color, alpha: 1, z: 0 });
+        const texturePath = getTileTexturePath(map, r, c);
+        const texture = texturePath ? getLoadedTileTexture(texturePath) : null;
+        this.renderer.push({
+          shape: 'rect',
+          x,
+          y,
+          size: texture ? ts : ts - 2,
+          color,
+          image: texture ?? undefined,
+          alpha: 1,
+          z: 0,
+        });
 
         if (tile === TileType.Empty && isAdjacentToPath(r, c, map) && !tc[TileType.Empty]) {
           this.renderer.push({

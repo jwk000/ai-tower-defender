@@ -4,6 +4,7 @@ import {
   type LevelConfig, type MapConfig, type WaveConfig, type WaveEnemyGroup,
   type ObstaclePlacement,
 } from '../../types/index.js';
+import { resolveMapArtTheme } from '../../utils/pathTileTexture.js';
 
 const ALL_TOWER_TYPES = Object.values(TowerType);
 
@@ -35,7 +36,7 @@ const WEATHER_MAP: Record<string, WeatherType> = {
 
 const VALID_OBSTACLE_TYPES = new Set<string>(Object.values(ObstacleType));
 
-function adaptMap(m: MapModel): MapConfig {
+function adaptMap(m: MapModel, theme: LevelTheme): MapConfig {
   const obstaclePlacements: ObstaclePlacement[] | undefined = m.obstacles
     ?.filter((o): o is { type: string; row: number; col: number } =>
       typeof o.type === 'string' && VALID_OBSTACLE_TYPES.has(o.type) &&
@@ -49,6 +50,7 @@ function adaptMap(m: MapModel): MapConfig {
     rows: m.rows,
     tileSize: m.tileSize,
     tiles: m.tiles as MapConfig['tiles'],
+    artTheme: resolveMapArtTheme(theme),
     spawns: m.spawns,
     pathGraph: m.pathGraph,
     tileColors: m.tileColors as MapConfig['tileColors'] | undefined,
@@ -91,7 +93,7 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
     name: model.name,
     theme,
     description: model.description ?? '',
-    map: adaptMap(model.map),
+    map: adaptMap(model.map, theme),
     waves: model.waves.map(adaptWave),
     startingGold: model.starting?.gold ?? 200,
     availableTowers,
