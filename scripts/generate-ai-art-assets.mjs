@@ -133,21 +133,26 @@ const assets = [
   ['card_energy_tower', 'cards', '192x160 game card art of arcane energy tower, blue violet crystal battery, pulsing mana ring'],
 
   // P0 tiles.
-  ['tile_meadow_buildable', 'tiles', 'dark rainy grass tile with short moss and wet highlights, top-down square game tile, low detail'],
-  ['tile_meadow_path', 'tiles', 'muddy brown path tile with puddles and worn footprints, top-down square game tile, low detail'],
-  ['tile_meadow_obstacle', 'tiles', 'dark wet rock and thorn bush obstacle tile, top-down square game tile, readable'],
-  ['tile_desert_buildable', 'tiles', 'dark golden sand tile with sparse cracked texture, top-down square game tile, low detail'],
-  ['tile_desert_path', 'tiles', 'packed desert road tile with worm track marks, top-down square game tile, low detail'],
-  ['tile_desert_obstacle', 'tiles', 'sandstone rock and insect burrow obstacle tile, top-down square game tile, readable'],
-  ['tile_castle_buildable', 'tiles', 'cold grey stone courtyard tile with moss cracks, top-down square game tile, low detail'],
-  ['tile_castle_path', 'tiles', 'dark slate path tile, worn gothic stone slabs, top-down square game tile, low detail'],
-  ['tile_castle_obstacle', 'tiles', 'black ruined wall rubble obstacle tile, top-down square game tile, readable'],
-  ['tile_wasteland_buildable', 'tiles', 'charcoal wasteland ground tile with red ash dust, top-down square game tile, low detail'],
-  ['tile_wasteland_path', 'tiles', 'cracked asphalt road tile with dark red dirt, top-down square game tile, low detail'],
-  ['tile_wasteland_obstacle', 'tiles', 'rusted metal debris and broken concrete obstacle tile, top-down square game tile, readable'],
-  ['tile_abyss_buildable', 'tiles', 'dark purple void stone tile with faint violet cracks, top-down square game tile, low detail'],
-  ['tile_abyss_path', 'tiles', 'black violet rift path tile with glowing edge fissures, top-down square game tile, low detail'],
-  ['tile_abyss_obstacle', 'tiles', 'jagged abyss crystal and void rock obstacle tile, top-down square game tile, readable'],
+  ['tile_meadow_buildable', 'tiles', seamlessTile('dark rainy grass tile with short moss and wet highlights')],
+  ['tile_meadow_path', 'tiles', seamlessTile('muddy brown path tile with puddles and worn footprints, path texture flows continuously across all four edges')],
+  ['tile_meadow_obstacle', 'tiles', seamlessTile('dark wet rock and thorn bush obstacle ground, no large object cut off at the edges')],
+  ['tile_desert_buildable', 'tiles', seamlessTile('dark golden sand tile with sparse cracked texture')],
+  ['tile_desert_path', 'tiles', seamlessTile('packed desert road tile with worm track marks, path texture flows continuously across all four edges')],
+  ['tile_desert_obstacle', 'tiles', seamlessTile('sandstone rock and insect burrow obstacle ground, no large object cut off at the edges')],
+  ['tile_castle_buildable', 'tiles', seamlessTile('cold grey stone courtyard tile with moss cracks')],
+  ['tile_castle_path', 'tiles', seamlessTile('dark slate path tile, worn gothic stone slabs, path texture flows continuously across all four edges')],
+  ['tile_castle_obstacle', 'tiles', seamlessTile('black ruined wall rubble obstacle ground, no large object cut off at the edges')],
+  ['tile_wasteland_buildable', 'tiles', seamlessTile('charcoal wasteland ground tile with red ash dust')],
+  ['tile_wasteland_path', 'tiles', seamlessTile('cracked asphalt road tile with dark red dirt, path texture flows continuously across all four edges')],
+  ['tile_wasteland_obstacle', 'tiles', seamlessTile('rusted metal debris and broken concrete obstacle ground, no large object cut off at the edges')],
+  ['tile_abyss_buildable', 'tiles', seamlessTile('dark purple void stone tile with faint violet cracks')],
+  ['tile_abyss_path', 'tiles', seamlessTile('black violet rift path tile with glowing edge fissures, path texture flows continuously across all four edges')],
+  ['tile_abyss_obstacle', 'tiles', seamlessTile('jagged abyss crystal and void rock obstacle ground, no large object cut off at the edges')],
+  ...pathConnectorAssets('meadow', 'muddy brown rainy grassland road with puddles'),
+  ...pathConnectorAssets('desert', 'packed dark golden desert road with subtle worm tracks'),
+  ...pathConnectorAssets('castle', 'dark gothic slate stone road with worn slabs'),
+  ...pathConnectorAssets('wasteland', 'cracked asphalt road with dark red ash dirt'),
+  ...pathConnectorAssets('abyss', 'black violet rift road with subtle glowing fissures'),
 
   // P1 backgrounds.
   ['bg_meadow', 'backgrounds', 'rainy night grassland battlefield, distant mountains, low heavy clouds, low contrast center area for gameplay readability, stronger atmosphere at edges', '16:9'],
@@ -182,6 +187,33 @@ const assets = [
   ['fx_magic_shield_loop_0', 'fx', 'blue magic shield bubble, hexagonal shimmer, transparent background'],
   ['fx_heal_aura_loop_0', 'fx', 'soft golden healing particles, upward motes, circular aura, transparent background'],
 ].map((asset) => Array.isArray(asset) ? expandTuple(asset) : asset);
+
+function seamlessTile(subject) {
+  return `${subject}, top-down square seamless tile texture, continuous edges on all four sides, tileable 3x3 without visible seams, low detail, no border line, no isolated object cut off at edges`;
+}
+
+function pathConnectorAssets(theme, material) {
+  const connectors = [
+    ['straight_h', 'horizontal straight path, path exits left and right edges'],
+    ['straight_v', 'vertical straight path, path exits top and bottom edges'],
+    ['corner_ne', 'corner path connecting top and right edges'],
+    ['corner_es', 'corner path connecting right and bottom edges'],
+    ['corner_sw', 'corner path connecting bottom and left edges'],
+    ['corner_wn', 'corner path connecting left and top edges'],
+    ['tee_n', 'three-way path open to left, right, and bottom; top side blends into ground'],
+    ['tee_e', 'three-way path open to top, bottom, and left; right side blends into ground'],
+    ['tee_s', 'three-way path open to left, right, and top; bottom side blends into ground'],
+    ['tee_w', 'three-way path open to top, bottom, and right; left side blends into ground'],
+    ['cross', 'crossroad path exits all four edges'],
+    ['endpoint_spawn', 'enemy spawn endpoint, portal sits outside the path flow, path exits one edge cleanly'],
+    ['endpoint_crystal', 'crystal base endpoint, crystal base sits outside the path flow, path enters one edge cleanly'],
+  ];
+  return connectors.map(([id, connector]) => [
+    `tile_${theme}_path_${id}`,
+    'tiles',
+    `${material}, ${connector}, top-down square path connector tile, connected edges align seamlessly with matching path tiles, unconnected edges blend into buildable ground, no hard seam, no border line, no text`,
+  ]);
+}
 
 function expandTuple(tuple) {
   const [id, type, prompt, aspectRatio] = tuple;

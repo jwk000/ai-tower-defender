@@ -88,7 +88,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 | UI 图标 | 48×48 | 是 | 运行时可缩放到 16/24/32 |
 | UI 面板九宫格 | 512×512 | 是 | 作为 9-slice 源图 |
 | 按钮九宫格 | 384×128 | 是 | 普通/悬停/按下/禁用四状态可复用 |
-| 地格 | 128×128 | 否 | 64×64 的 2x 资产 |
+| 地格 | 128×128 | 否 | 64×64 的 2x 资产，必须支持连续拼接 |
 | 战斗背景 | 1920×1080 | 否 | 分层时用 far/mid/overlay |
 
 ### 3.3 动画状态规则
@@ -298,21 +298,46 @@ dark fantasy casual game buff icon, {buff_subject}, centered symbol, transparent
 
 | 地格 | 视觉要求 |
 |------|----------|
-| 可建造地 | 低饱和底色、轻微纹理、边缘清楚 |
-| 路径 | 与可建造地区分明显，纹理沿路径方向延展 |
+| 可建造地 | 低饱和底色、轻微纹理、四边无缝拼接 |
+| 路径 | 与可建造地区分明显，纹理沿路径方向延展，连接处不能断裂 |
 | 障碍 | 更暗、更硬、更高对比，不能像可放置地 |
-| 出生点 | 敌方入口符号，不烘焙文字 |
-| 基地/水晶 | 玩家核心，红色水晶高亮，但周围地面简洁 |
+| 出生点 | 敌方入口符号，不烘焙文字，必须能和路径地格无缝相接 |
+| 基地/水晶 | 玩家核心，红色水晶高亮，但周围地面简洁，必须能和路径地格无缝相接 |
 | 预览合法格 | 蓝绿描边或柔光覆盖，由运行时绘制优先 |
 | 预览非法格 | 红色描边或暗红遮罩，由运行时绘制优先 |
+
+### 7.2 地格拼接规则
+
+场景地格、路径地格、出生口和水晶口都位于棋盘上，必须连续拼接，不能像孤立图标一样生成。
+
+| 规则 | 要求 |
+|------|------|
+| 四边无缝 | `buildable`、`path`、`obstacle` 基础地格的左/右、上/下边缘纹理必须能平铺，边缘不能出现明显亮线、暗线、边框或独立物体截断 |
+| 路径方向件 | 路径至少需要直线、转角、三通、十字和端点语义；即使 MVP 暂用单张路径，也必须按“可裁切成方向连接件”的方式生成 |
+| 出生口连接 | 出生口的出口边必须延续路径材质，不能有门槛、阴影或装饰把路径切断 |
+| 水晶口连接 | 水晶口入口边必须延续路径材质，水晶底座只能放在路径末端外侧，不能覆盖路径连接线 |
+| 装饰约束 | 地格上的石块、草、裂纹、虫洞边缘等细节不能跨边缘被截断；大装饰物应放在独立装饰层，不进入基础平铺地格 |
+| 验收方式 | 用同一地格 3×3 平铺预览；用路径、出生口、水晶口排成一条线预览。若肉眼能看到格子边界割裂，则不通过 |
 
 地格提示词：
 
 ```text
-dark fantasy casual tower defense tile texture, {theme} {tile_type}, top-down square game tile, simple readable surface, low detail, clean border readability, 128x128, no units, no text, seamless enough for grid
+dark fantasy casual tower defense seamless tile texture, {theme} {tile_type}, top-down square game tile, continuous edges on all four sides, tileable 3x3 without visible seams, simple readable surface, low detail, no border line, no isolated object cut off at edges, 128x128, no units, no text
 ```
 
-### 7.2 主题地格提示词
+路径连接件提示词：
+
+```text
+dark fantasy casual tower defense path connector tile, {theme} {connector_type}, top-down square game tile, path material continues exactly through connected edges, unconnected edges blend into buildable ground, no visible seam when placed next to matching path tiles, low detail, no border line, no text
+```
+
+出生口 / 水晶口提示词：
+
+```text
+dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-down square game tile, the path texture continues cleanly through the connection edge, portal or crystal base sits outside the path flow, no hard seam, no baked text, readable but low detail
+```
+
+### 7.3 主题地格提示词
 
 | 主题 | 可建造地 | 路径 | 障碍 |
 |------|----------|------|------|
@@ -322,7 +347,21 @@ dark fantasy casual tower defense tile texture, {theme} {tile_type}, top-down sq
 | 末日废土 | `charcoal wasteland ground tile with red ash dust` | `cracked asphalt road tile with dark red dirt` | `rusted metal debris and broken concrete obstacle tile` |
 | 深渊裂隙 | `dark purple void stone tile with faint violet cracks` | `black violet rift path tile with glowing edge fissures` | `jagged abyss crystal and void rock obstacle tile` |
 
-### 7.3 背景与装饰
+### 7.4 路径连接件与端点清单
+
+每个主题至少需要以下路径连接件。命名规则为 `tile_<theme>_path_<connector>`。
+
+| 连接件 | 说明 |
+|--------|------|
+| `straight_h` | 水平直线，左右边缘连续 |
+| `straight_v` | 垂直直线，上下边缘连续 |
+| `corner_ne` / `corner_es` / `corner_sw` / `corner_wn` | 四种转角，连接的两边纹理连续 |
+| `tee_n` / `tee_e` / `tee_s` / `tee_w` | 三通，缺口方向由后缀表示 |
+| `cross` | 十字路口，四边连续 |
+| `endpoint_spawn` | 出生口，出口边与路径连续 |
+| `endpoint_crystal` | 水晶口，入口边与路径连续 |
+
+### 7.5 背景与装饰
 
 背景保持暗黑氛围，但棋盘区域不得有高频细节。
 
