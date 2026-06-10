@@ -218,11 +218,12 @@ function pathConnectorAssets(theme, material) {
 function expandTuple(tuple) {
   const [id, type, prompt, aspectRatio] = tuple;
   const transparent = !id.startsWith('bg_') && !id.startsWith('tile_') && type !== 'cards';
+  const extension = id.startsWith('bg_') ? 'webp' : 'png';
   return {
     id,
     priority: id.startsWith('bg_') || id.startsWith('buff_') || id.startsWith('fx_') ? 'P1' : 'P0',
     type,
-    output: `public/art/${type}/${id}.png`,
+    output: `public/art/${type}/${id}.${extension}`,
     size: id.startsWith('bg_') ? undefined : '1024x1024',
     aspectRatio,
     transparent,
@@ -295,6 +296,8 @@ function generate(asset) {
   if (asset.aspectRatio) args.push('--aspect-ratio', asset.aspectRatio);
   if (asset.transparent) {
     args.push('--background', 'transparent', '--output-format', 'png');
+  } else if (asset.id.startsWith('bg_')) {
+    args.push('--output-format', 'webp');
   }
   const result = spawnSync('animal-mediakit', args, {
     cwd: ROOT,

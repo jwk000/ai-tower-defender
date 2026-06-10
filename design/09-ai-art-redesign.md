@@ -72,7 +72,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 | UI 元素 | `public/art/ui/` | `ui_<surface>_<part>.png` |
 | 地格 | `public/art/tiles/` | `tile_<theme>_<tile_type>.png` |
 | 场景装饰 | `public/art/decor/` | `decor_<theme>_<decor_id>.png` |
-| 背景 | `public/art/backgrounds/` | `bg_<theme>_<layer>.png` |
+| 背景 | `public/art/backgrounds/` | `bg_<theme>.webp` |
 
 ### 3.2 尺寸标准
 
@@ -381,7 +381,7 @@ dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-do
 
 ### 7.5 背景与装饰
 
-背景保持暗黑氛围，但棋盘区域不得有高频细节。
+背景保持暗黑氛围，但棋盘区域不得有高频细节。背景交付格式固定为 `1920x1080` WebP；如果图片生成模型输出非 16:9 原图，后处理必须按覆盖画布居中裁切/缩放到 `1920x1080`，禁止拉伸变形。
 
 背景提示词：
 
