@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "description": "路径地格连接方向契约。方向使用棋盘视角：n=上, e=右, s=下, w=左。connectedEdges 表示该地格必须延伸到的边；blockedEdges 表示必须保持普通地面的边。",
+  "centerlineRule": {
+    "horizontal": "水平路径中心线固定在地格垂直中心，连接 west/east 边中心。",
+    "vertical": "垂直路径中心线固定在地格水平中心，连接 north/south 边中心。",
+    "corner": "转角路径必须从一个连接边中心平滑转向另一个连接边中心。",
+    "junction": "三通和十字交汇点固定在地格中心。",
+    "width": "同一主题路径宽度保持一致，建议占地格宽度的 42%-56%。"
+  },
+  "connectors": {
+    "straight_h": {
+      "connectedEdges": ["w", "e"],
+      "blockedEdges": ["n", "s"]
+    },
+    "straight_v": {
+      "connectedEdges": ["n", "s"],
+      "blockedEdges": ["w", "e"]
+    },
+    "corner_ne": {
+      "connectedEdges": ["n", "e"],
+      "blockedEdges": ["s", "w"]
+    },
+    "corner_es": {
+      "connectedEdges": ["e", "s"],
+      "blockedEdges": ["n", "w"]
+    },
+    "corner_sw": {
+      "connectedEdges": ["s", "w"],
+      "blockedEdges": ["n", "e"]
+    },
+    "corner_wn": {
+      "connectedEdges": ["w", "n"],
+      "blockedEdges": ["e", "s"]
+    },
+    "tee_n": {
+      "connectedEdges": ["w", "e", "s"],
+      "blockedEdges": ["n"]
+    },
+    "tee_e": {
+      "connectedEdges": ["n", "s", "w"],
+      "blockedEdges": ["e"]
+    },
+    "tee_s": {
+      "connectedEdges": ["w", "e", "n"],
+      "blockedEdges": ["s"]
+    },
+    "tee_w": {
+      "connectedEdges": ["n", "s", "e"],
+      "blockedEdges": ["w"]
+    },
+    "cross": {
+      "connectedEdges": ["n", "e", "s", "w"],
+      "blockedEdges": []
+    },
+    "endpoint_spawn": {
+      "connectedEdges": ["runtime_defined_single_edge"],
+      "blockedEdges": ["all_other_edges"],
+      "note": "出生口只允许一个出口边与路径连续，具体朝向由关卡放置方向决定。"
+    },
+    "endpoint_crystal": {
+      "connectedEdges": ["runtime_defined_single_edge"],
+      "blockedEdges": ["all_other_edges"],
+      "note": "水晶口只允许一个入口边与路径连续，具体朝向由关卡放置方向决定。"
+    }
+  }
+}

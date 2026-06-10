@@ -316,6 +316,8 @@ dark fantasy casual game buff icon, {buff_subject}, centered symbol, transparent
 | 路径方向件 | 路径至少需要直线、转角、三通、十字和端点语义；即使 MVP 暂用单张路径，也必须按“可裁切成方向连接件”的方式生成 |
 | 出生口连接 | 出生口的出口边必须延续路径材质，不能有门槛、阴影或装饰把路径切断 |
 | 水晶口连接 | 水晶口入口边必须延续路径材质，水晶底座只能放在路径末端外侧，不能覆盖路径连接线 |
+| 方向契约 | 连接件名称中的方向就是路径延伸方向，未声明方向必须是普通地面，不能误露出路径纹理 |
+| 中心线一致 | 同一主题所有路径件的路径宽度、中心线位置、边缘磨损材质必须一致；连接边必须从边中心进入/离开 |
 | 装饰约束 | 地格上的石块、草、裂纹、虫洞边缘等细节不能跨边缘被截断；大装饰物应放在独立装饰层，不进入基础平铺地格 |
 | 验收方式 | 用同一地格 3×3 平铺预览；用路径、出生口、水晶口排成一条线预览。若肉眼能看到格子边界割裂，则不通过 |
 
@@ -328,13 +330,13 @@ dark fantasy casual tower defense seamless tile texture, {theme} {tile_type}, to
 路径连接件提示词：
 
 ```text
-dark fantasy casual tower defense path connector tile, {theme} {connector_type}, top-down square game tile, path material continues exactly through connected edges, unconnected edges blend into buildable ground, no visible seam when placed next to matching path tiles, low detail, no border line, no text
+dark fantasy casual tower defense path connector tile, {theme} {connector_type}, top-down square game tile, path extends only through the named connected edges, the path centerline meets the exact center of each connected edge, same path width and edge material as all other tiles in this theme, unconnected edges are normal buildable ground with no path leakage, no visible seam when placed next to matching path tiles, low detail, no border line, no text
 ```
 
 出生口 / 水晶口提示词：
 
 ```text
-dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-down square game tile, the path texture continues cleanly through the connection edge, portal or crystal base sits outside the path flow, no hard seam, no baked text, readable but low detail
+dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-down square game tile, the path exits through exactly one named edge and meets that edge center, same path width and edge material as matching path tiles, portal or crystal base sits outside the path flow, unconnected edges are normal buildable ground, no hard seam, no baked text, readable but low detail
 ```
 
 ### 7.3 主题地格提示词
@@ -353,13 +355,27 @@ dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-do
 
 | 连接件 | 说明 |
 |--------|------|
-| `straight_h` | 水平直线，左右边缘连续 |
-| `straight_v` | 垂直直线，上下边缘连续 |
-| `corner_ne` / `corner_es` / `corner_sw` / `corner_wn` | 四种转角，连接的两边纹理连续 |
-| `tee_n` / `tee_e` / `tee_s` / `tee_w` | 三通，缺口方向由后缀表示 |
-| `cross` | 十字路口，四边连续 |
-| `endpoint_spawn` | 出生口，出口边与路径连续 |
-| `endpoint_crystal` | 水晶口，入口边与路径连续 |
+| `straight_h` | 左、右连通；上、下为普通地面 |
+| `straight_v` | 上、下连通；左、右为普通地面 |
+| `corner_ne` | 上、右连通；下、左为普通地面 |
+| `corner_es` | 右、下连通；上、左为普通地面 |
+| `corner_sw` | 下、左连通；上、右为普通地面 |
+| `corner_wn` | 左、上连通；右、下为普通地面 |
+| `tee_n` | 左、右、下连通；上为普通地面 |
+| `tee_e` | 上、下、左连通；右为普通地面 |
+| `tee_s` | 左、右、上连通；下为普通地面 |
+| `tee_w` | 上、下、右连通；左为普通地面 |
+| `cross` | 上、下、左、右全部连通 |
+| `endpoint_spawn` | 只允许一个出口边与路径连续；出生口装饰必须放在出口边外侧或路径源头侧 |
+| `endpoint_crystal` | 只允许一个入口边与路径连续；水晶底座必须放在路径末端外侧 |
+
+连接方向使用棋盘视角：`n` 为上，`e` 为右，`s` 为下，`w` 为左。所有路径件必须共享同一条中心线规则：
+
+- 水平路径中心线固定在地格垂直中心。
+- 垂直路径中心线固定在地格水平中心。
+- 转角路径从一个连接边中心平滑转向另一个连接边中心。
+- 三通和十字的交汇点固定在地格中心。
+- 同主题路径宽度保持一致，建议占地格宽度的 42%-56%。
 
 ### 7.5 背景与装饰
 

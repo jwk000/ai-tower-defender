@@ -194,24 +194,24 @@ function seamlessTile(subject) {
 
 function pathConnectorAssets(theme, material) {
   const connectors = [
-    ['straight_h', 'horizontal straight path, path exits left and right edges'],
-    ['straight_v', 'vertical straight path, path exits top and bottom edges'],
-    ['corner_ne', 'corner path connecting top and right edges'],
-    ['corner_es', 'corner path connecting right and bottom edges'],
-    ['corner_sw', 'corner path connecting bottom and left edges'],
-    ['corner_wn', 'corner path connecting left and top edges'],
-    ['tee_n', 'three-way path open to left, right, and bottom; top side blends into ground'],
-    ['tee_e', 'three-way path open to top, bottom, and left; right side blends into ground'],
-    ['tee_s', 'three-way path open to left, right, and top; bottom side blends into ground'],
-    ['tee_w', 'three-way path open to top, bottom, and right; left side blends into ground'],
-    ['cross', 'crossroad path exits all four edges'],
-    ['endpoint_spawn', 'enemy spawn endpoint, portal sits outside the path flow, path exits one edge cleanly'],
-    ['endpoint_crystal', 'crystal base endpoint, crystal base sits outside the path flow, path enters one edge cleanly'],
+    ['straight_h', 'horizontal straight path; connected edges: west and east; north and south edges are normal ground'],
+    ['straight_v', 'vertical straight path; connected edges: north and south; west and east edges are normal ground'],
+    ['corner_ne', 'corner path; connected edges: north and east; south and west edges are normal ground'],
+    ['corner_es', 'corner path; connected edges: east and south; north and west edges are normal ground'],
+    ['corner_sw', 'corner path; connected edges: south and west; north and east edges are normal ground'],
+    ['corner_wn', 'corner path; connected edges: west and north; east and south edges are normal ground'],
+    ['tee_n', 'three-way path; connected edges: west, east, and south; north edge is normal ground'],
+    ['tee_e', 'three-way path; connected edges: north, south, and west; east edge is normal ground'],
+    ['tee_s', 'three-way path; connected edges: west, east, and north; south edge is normal ground'],
+    ['tee_w', 'three-way path; connected edges: north, south, and east; west edge is normal ground'],
+    ['cross', 'crossroad path; connected edges: north, east, south, and west'],
+    ['endpoint_spawn', 'enemy spawn endpoint; exactly one connected edge at the path exit; portal sits outside the path flow and does not interrupt the connection'],
+    ['endpoint_crystal', 'crystal base endpoint; exactly one connected edge at the path entrance; crystal base sits outside the path flow and does not cover the connection'],
   ];
   return connectors.map(([id, connector]) => [
     `tile_${theme}_path_${id}`,
     'tiles',
-    `${material}, ${connector}, top-down square path connector tile, connected edges align seamlessly with matching path tiles, unconnected edges blend into buildable ground, no hard seam, no border line, no text`,
+    `${material}, ${connector}, top-down square path connector tile, path centerline meets the exact center of every connected edge, all connected edges use the same path width, same edge wear and same material color as other ${theme} path tiles, unconnected edges must not show path texture, connected edges align seamlessly with matching path tiles, no hard seam, no border line, no text`,
   ]);
 }
 
