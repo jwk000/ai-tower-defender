@@ -20,7 +20,9 @@ import {
   ScreenShake,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
+import { spellEffectArtPath, spellProjectileArtPath } from '../utils/artAssets.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { getLoadedImage } from '../utils/imageCache.js';
 import { Sound } from '../utils/Sound.js';
 
 // Spell type constants
@@ -152,8 +154,32 @@ export class SpellProjectileSystem implements System {
   // Rendering
   // ============================================================
 
+  private pushImage(path: string | null, x: number, y: number, size: number, alpha: number, z: number, rotation = 0): boolean {
+    if (!path) return false;
+    const image = getLoadedImage(path);
+    if (!image) return false;
+    this.renderer.push({
+      shape: 'rect',
+      x, y,
+      size,
+      h: size,
+      color: '#ffffff',
+      image,
+      alpha,
+      rotation,
+      z,
+    });
+    return true;
+  }
+
   private renderProjectile(eid: number, spellType: number, x: number, y: number, progress: number): void {
     const alpha = 1;
+    const projectilePath = spellProjectileArtPath(spellType);
+    const projectileRotation = spellType === SPELL_BOMB
+      ? progress * Math.PI * 2
+      : spellType === SPELL_ARROW_RAIN
+        ? Math.PI
+        : 0;
 
     switch (spellType) {
       case SPELL_FIREBALL: {
@@ -218,6 +244,7 @@ export class SpellProjectileSystem implements System {
           alpha: 1,
           z: z + 3,
         });
+        this.pushImage(projectilePath, x, y, 54 * pulse, 0.9, z + 4, projectileRotation);
 
         // ── Particle trail: 6 flame particles trailing behind ──
         for (let i = 0; i < 6; i++) {
@@ -255,6 +282,7 @@ export class SpellProjectileSystem implements System {
       }
 
       case SPELL_ARROW_RAIN:
+        this.pushImage(projectilePath, x, y, 30, 0.9, 7, projectileRotation);
         // Arrow: small triangle pointing down
         this.renderer.push({
           shape: 'triangle',
@@ -266,6 +294,7 @@ export class SpellProjectileSystem implements System {
         break;
 
       case SPELL_BLIZZARD:
+        this.pushImage(projectilePath, x, y, 34, 0.85, 7, progress * Math.PI * 2);
         // Snowflake: white diamond
         this.renderer.push({
           shape: 'diamond',
@@ -277,6 +306,7 @@ export class SpellProjectileSystem implements System {
         break;
 
       case SPELL_BOMB:
+        this.pushImage(projectilePath, x, y, 42, 0.9, 7, projectileRotation);
         // Bomb: dark circle with fuse
         this.renderer.push({
           shape: 'circle',
@@ -299,6 +329,9 @@ export class SpellProjectileSystem implements System {
 
   private renderEffect(spellType: number, x: number, y: number, radius: number, progress: number): void {
     const alpha = 1 - progress;
+    const effectPath = spellEffectArtPath(spellType);
+    const effectSize = Math.max(radius * (1.35 + progress * 0.75), 72);
+    this.pushImage(effectPath, x, y, effectSize, Math.max(0, alpha) * 0.88, 10, progress * Math.PI * 0.35);
 
     switch (spellType) {
       case SPELL_FIREBALL: {

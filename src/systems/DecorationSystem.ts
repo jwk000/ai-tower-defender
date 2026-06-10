@@ -11,6 +11,7 @@ import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/index.js';
 import { computeSceneLayout } from './RenderSystem.js';
+import { backgroundArtPath } from '../utils/artAssets.js';
 
 /**
  * 复合几何体部件 —— 由多个简单形状组合成一个装饰物
@@ -103,7 +104,7 @@ export class DecorationSystem implements System {
   /** 关卡背景图缓存 */
   private bgImage: HTMLImageElement | null = null;
   private bgImageLoaded: boolean = false;
-  private lastBgLevelId: number = -1;
+  private lastBgPath: string = '';
 
   constructor(
     renderer: Renderer,
@@ -559,10 +560,10 @@ export class DecorationSystem implements System {
    * 图片按 cover 模式缩放填充视口，居中裁剪。
    */
   private drawBackgroundImage(): void {
-    // 关卡切换时重新加载背景图
-    if (this.lastBgLevelId !== this.levelId) {
-      this.loadBgImage();
-      this.lastBgLevelId = this.levelId;
+    const path = backgroundArtPath(this.map.artTheme ?? this.detectTheme());
+    if (this.lastBgPath !== path) {
+      this.loadBgImage(path);
+      this.lastBgPath = path;
     }
 
     // 图片未加载完成 → beginFrame() 已填充 #1a1a2e，不做额外绘制
@@ -602,22 +603,22 @@ export class DecorationSystem implements System {
   }
 
   /** 加载关卡背景图（异步，加载完成后下次帧可见） */
-  private loadBgImage(): void {
+  private loadBgImage(path: string): void {
     const basePath = (import.meta as any).env?.BASE_URL ?? '/';
-    const path = `${basePath}art/bg/bg${String(this.levelId).padStart(2, '0')}.png`;
-    console.log(`[DecorationSystem] 正在加载背景图: ${path} (levelId=${this.levelId})`);
+    const fullPath = `${basePath}${path.replace(/^\//, '')}`;
+    console.log(`[DecorationSystem] 正在加载背景图: ${fullPath} (levelId=${this.levelId})`);
     this.bgImageLoaded = false;
     const img = new Image();
     img.onload = () => {
       this.bgImage = img;
       this.bgImageLoaded = true;
-      console.log(`[DecorationSystem] 背景图加载成功: ${path} (${img.naturalWidth}x${img.naturalHeight})`);
+      console.log(`[DecorationSystem] 背景图加载成功: ${fullPath} (${img.naturalWidth}x${img.naturalHeight})`);
     };
     img.onerror = () => {
-      console.warn(`[DecorationSystem] 背景图加载失败: ${path}`);
+      console.warn(`[DecorationSystem] 背景图加载失败: ${fullPath}`);
       this.bgImageLoaded = false;
     };
-    img.src = path;
+    img.src = fullPath;
   }
 
   /** 通过地图主题色推断当前主题 */

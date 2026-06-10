@@ -59,6 +59,8 @@ import type {
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
 import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
+import { cardArtPath, buffArtPath, uiArtPath } from '../utils/artAssets.js';
+import { drawLoadedImage } from '../utils/imageCache.js';
 
 // Re-export for backward compatibility
 export {
@@ -91,6 +93,10 @@ export type {
 
 interface CardIconDraw {
   cx: number; cy: number; w: number; h: number; cardId: string; color: string; layer: UILayer;
+}
+
+interface UIImageDraw {
+  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front';
 }
 
 // ============================================================
@@ -198,6 +204,7 @@ export class UISystem implements System {
 
   /** Card icon draws — collected during update(), drawn directly in renderUI() */
   private cardIconDraws: CardIconDraw[] = [];
+  private imageDraws: UIImageDraw[] = [];
 
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
@@ -331,6 +338,7 @@ export class UISystem implements System {
     this.modalBackdropAlpha = 0;
     this.hasFullscreenOverlay = false;
     this.cardIconDraws = [];
+    this.imageDraws = [];
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -631,10 +639,38 @@ export class UISystem implements System {
       ctx.restore();
     }
 
+    for (const image of this.imageDraws) {
+      if (image.layer !== layer || image.phase !== 'back') continue;
+      ctx.save();
+      ctx.globalAlpha = image.alpha ?? 1;
+      drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
+      ctx.restore();
+    }
+
     for (const btn of this.buttons) {
       if ((btn.layer ?? 'normal') === layer) {
         this.drawButton(btn);
       }
+    }
+
+    for (const image of this.imageDraws) {
+      if (image.layer !== layer || image.phase === 'back') continue;
+      ctx.save();
+      ctx.globalAlpha = image.alpha ?? 1;
+      drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
+      ctx.restore();
+    }
+
+    // Draw vector card icons only while generated art is still loading.
+    for (const icon of this.cardIconDraws) {
+      if (icon.layer !== layer) continue;
+      ctx.save();
+      const x = icon.cx - icon.w / 2;
+      const y = icon.cy - icon.h / 2;
+      if (!drawLoadedImage(ctx, cardArtPath(icon.cardId), x, y, icon.w, icon.h)) {
+        drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
+      }
+      ctx.restore();
     }
 
     for (const info of this.infos) {
@@ -645,14 +681,6 @@ export class UISystem implements System {
       ctx.textAlign = info.align ?? 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(info.text, info.x, info.y);
-      ctx.restore();
-    }
-
-    // Draw vector card icons (hand zone + draft overlay)
-    for (const icon of this.cardIconDraws) {
-      if (icon.layer !== layer) continue;
-      ctx.save();
-      drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
       ctx.restore();
     }
   }
@@ -675,6 +703,9 @@ export class UISystem implements System {
     // Button background
     ctx.fillStyle = enabled ? btn.color : '#555555';
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+    if (enabled) {
+      drawLoadedImage(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h);
+    }
 
     // Button border
     ctx.strokeStyle = enabled ? '#ffffff44' : '#333333';
@@ -751,6 +782,16 @@ export class UISystem implements System {
   private renderHandZone(): void {
     const bounds = getHandZoneBounds();
     const slotRects = computeHandZoneSlotRects(HAND_ZONE_DEFAULT_SLOT_COUNT);
+    this.imageDraws.push({
+      x: bounds.left,
+      y: bounds.top,
+      w: bounds.width,
+      h: bounds.height,
+      path: uiArtPath('ui_panel_dark'),
+      layer: 'normal',
+      alpha: 0.78,
+      phase: 'back',
+    });
     this.renderer.push({
       shape: 'rect',
       x: bounds.centerX, y: bounds.centerY,
@@ -820,6 +861,15 @@ export class UISystem implements System {
         alpha: cardAlpha * 0.95,
         stroke: borderColor, strokeWidth: 2,
         z: UI_Z.NORMAL_UI,
+      });
+      this.imageDraws.push({
+        x: cardLeft,
+        y: cardTop,
+        w: HAND_ZONE_CARD_WIDTH,
+        h: HAND_ZONE_CARD_HEIGHT,
+        path: uiArtPath(`ui_card_frame_${config.rarity}`),
+        layer: 'normal',
+        alpha: 0.92,
       });
 
       const artW = 96;
@@ -987,6 +1037,16 @@ export class UISystem implements System {
     const barCenterX = (barLeft + barRight) / 2;
     const barWidth = barRight - barLeft;
 
+    this.imageDraws.push({
+      x: barLeft,
+      y: 0,
+      w: barWidth,
+      h: UISystem.TOP_H,
+      path: uiArtPath('ui_hud_bar'),
+      layer: 'normal',
+      alpha: 0.9,
+      phase: 'back',
+    });
     this.renderer.push({
       shape: 'rect',
       x: barCenterX, y: UISystem.TOP_H / 2,
@@ -1651,6 +1711,16 @@ export class UISystem implements System {
       stroke: '#7c4dff', strokeWidth: 2,
       z: UI_Z.FULLSCREEN_UI,
     });
+    this.imageDraws.push({
+      x: panelX,
+      y: panelY,
+      w: panelW,
+      h: panelH,
+      path: uiArtPath('ui_panel_dark'),
+      layer: 'fullscreen',
+      alpha: 0.85,
+      phase: 'back',
+    });
 
     // Title at top
     this.infos.push({
@@ -1686,6 +1756,17 @@ export class UISystem implements System {
         stroke: borderColor, strokeWidth: 2,
         z: UI_Z.FULLSCREEN_UI,
       });
+      if (config) {
+        this.imageDraws.push({
+          x: cx - cardW / 2,
+          y: cardTop,
+          w: cardW,
+          h: cardH,
+          path: uiArtPath(`ui_card_frame_${config.rarity}`),
+          layer: 'fullscreen',
+          alpha: 0.92,
+        });
+      }
 
       // Art area — hand-card style
       const artCenterY = cardTop + 12 + artH / 2;
@@ -1840,6 +1921,14 @@ export class UISystem implements System {
         stroke: borderColor, strokeWidth: 3,
         z: UI_Z.FULLSCREEN_UI,
       });
+      this.imageDraws.push({
+        x: cx - 40,
+        y: cardY - cardH / 2 + 68,
+        w: 80,
+        h: 80,
+        path: buffArtPath(opt.id),
+        layer: 'fullscreen',
+      });
 
       this.infos.push({
         x: cx, y: cardY - cardH / 2 + 30,
@@ -1855,14 +1944,14 @@ export class UISystem implements System {
       });
 
       this.infos.push({
-        x: cx, y: cardY,
+        x: cx, y: cardY + 42,
         text: opt.description,
         color: '#b0bec5', size: 13, align: 'center',
         layer: 'fullscreen',
       });
 
       this.infos.push({
-        x: cx, y: cardY + 50,
+        x: cx, y: cardY + 78,
         text: `${opt.effect.type}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
         color: '#ffcc80', size: 14, align: 'center',
         layer: 'fullscreen',

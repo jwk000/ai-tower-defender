@@ -517,6 +517,24 @@ dark fantasy casual level select node, {theme} miniature portal marker, black ir
 
 ---
 
-## 11. 与旧文档的关系
+## 11. 运行时接入状态
+
+当前运行时已接入首批 AI 图片资产，图片加载失败或尚未完成时保留程序化几何兜底，避免战斗画面空白。
+
+| 资产类型 | 接入状态 | 运行时路径 |
+|----------|----------|------------|
+| 背景 | 已接入，按地图主题加载 `1920x1080 WebP` | `DecorationSystem` |
+| 地格 | 已接入，按上下左右邻接选择路径连接件 | `RenderSystem` + `pathTileTexture` |
+| 卡牌插画 | 已接入，手牌与抽卡界面优先显示 AI 插画 | `UISystem` |
+| Buff 图标 | 已接入，局外 Buff 选择卡显示 AI 图标 | `UISystem` |
+| UI 基础件 | 已接入，HUD、按钮、面板、卡框使用 AI UI 资产 | `UISystem` |
+| 技能特效 | 已接入，技能投射物和命中特效叠加 AI FX 资产 | `SpellProjectileSystem` |
+| 单位状态帧 | 暂未接入，当前缺少 `public/art/units/` 下的独立单位状态帧素材 | 后续生成后接入 `RenderSystem` |
+
+单位、塔、敌人本体仍沿用程序化复合外观作为当前可用表现。后续若生成 `unit_<unit_id>_<state>_<frame>.png`，需要为 `Visual` 或配置层补充单位贴图引用，再由 `RenderSystem` 根据状态和 2 帧相位选择对应图片。
+
+---
+
+## 12. 与旧文档的关系
 
 `08-art-assets.md` 是历史素材清单，仍可作为具体素材命名参考。本文是本轮 **AI 美术重设计** 的权威需求，若两者冲突，以本文为准。
