@@ -164,7 +164,7 @@ const UI_Z = {
 } as const;
 
 const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 96 };
-const UI_BUTTON_SLICE: NineSliceInsets = { left: 160, right: 160, top: 96, bottom: 96 };
+const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom: 32 };
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
@@ -711,15 +711,19 @@ export class UISystem implements System {
 
     ctx.save();
 
-    // Button background
-    ctx.fillStyle = enabled ? btn.color : '#555555';
-    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-    if (enabled && btn.w >= 70 && btn.w / Math.max(1, btn.h) >= 2) {
-      drawLoadedImage9Slice(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h, UI_BUTTON_SLICE);
+    const usesSkin = enabled && btn.w >= 70 && btn.w / Math.max(1, btn.h) >= 2;
+    if (usesSkin) {
+      if (!drawLoadedImage9Slice(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h, UI_BUTTON_SLICE)) {
+        ctx.fillStyle = btn.color;
+        ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+      }
+    } else {
+      ctx.fillStyle = enabled ? btn.color : '#555555';
+      ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
     }
 
     // Button border
-    ctx.strokeStyle = enabled ? '#ffffff44' : '#333333';
+    ctx.strokeStyle = usesSkin ? '#ffffff22' : enabled ? '#ffffff44' : '#333333';
     ctx.lineWidth = 1;
     ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
 
@@ -800,7 +804,7 @@ export class UISystem implements System {
       h: bounds.height,
       path: uiArtPath('ui_panel_dark'),
       layer: 'normal',
-      alpha: 0.78,
+      alpha: 0.32,
       phase: 'back',
       mode: 'nine-slice',
       slice: UI_PANEL_SLICE,
@@ -810,8 +814,8 @@ export class UISystem implements System {
       x: bounds.centerX, y: bounds.centerY,
       size: bounds.width, h: bounds.height,
       color: '#2b3038',
-      alpha: 0.72,
-      stroke: '#6d737d', strokeWidth: 2,
+      alpha: 0.42,
+      stroke: '#6d737d', strokeWidth: 1,
       z: UI_Z.NORMAL_UI - 2,
     });
     this.renderer.push({
@@ -819,7 +823,7 @@ export class UISystem implements System {
       x: bounds.centerX, y: bounds.centerY + bounds.height / 2 - 6,
       size: bounds.width - 24, h: 2,
       color: '#9aa0a8',
-      alpha: 0.28,
+      alpha: 0.12,
       z: UI_Z.NORMAL_UI - 1,
     });
     for (const slot of slotRects) {
@@ -828,8 +832,8 @@ export class UISystem implements System {
         x: slot.centerX, y: slot.centerY,
         size: slot.width, h: slot.height,
         color: '#111820',
-        alpha: 0.62,
-        stroke: '#737b85', strokeWidth: 1,
+        alpha: 0.42,
+        stroke: '#737b85', strokeWidth: 0.5,
         z: UI_Z.NORMAL_UI - 1,
       });
       this.renderer.push({
@@ -837,8 +841,8 @@ export class UISystem implements System {
         x: slot.centerX, y: slot.centerY - 10,
         size: slot.width - 18, h: slot.height - 28,
         color: '#202833',
-        alpha: 0.38,
-        stroke: '#3f4853', strokeWidth: 1,
+        alpha: 0.24,
+        stroke: '#3f4853', strokeWidth: 0.5,
         z: UI_Z.NORMAL_UI - 1,
       });
     }

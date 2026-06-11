@@ -9,6 +9,8 @@
 import { LayoutManager } from './LayoutManager.js';
 import { FONTS, getFont } from '../config/fonts.js';
 import type { Renderer } from '../render/Renderer.js';
+import { enemyArtPath } from '../utils/artAssets.js';
+import { drawLoadedImage } from '../utils/imageCache.js';
 
 // ============================================================
 // 常量
@@ -402,7 +404,9 @@ export class EnemyCodexUI {
 
       // 图标
       ctx.save();
-      drawEnemyIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, card.color);
+      if (!drawLoadedImage(ctx, enemyArtPath(card.id), cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H)) {
+        drawEnemyIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, card.color);
+      }
       ctx.restore();
 
       // 名称

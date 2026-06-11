@@ -132,6 +132,9 @@ const assets = [
   ['card_gold_mine', 'cards', '192x160 game card art of small dark gold mine building, glowing ore vein, mine cart silhouette'],
   ['card_energy_tower', 'cards', '192x160 game card art of arcane energy tower, blue violet crystal battery, pulsing mana ring'],
 
+  // P0 enemy codex portraits.
+  ...enemyPortraitAssets(),
+
   // P0 tiles.
   ['tile_meadow_buildable', 'tiles', seamlessTile('dark rainy grass tile with short moss and wet highlights')],
   ['tile_meadow_path', 'tiles', seamlessTile('muddy brown path tile with puddles and worn footprints, path texture flows continuously across all four edges')],
@@ -212,6 +215,40 @@ function pathConnectorAssets(theme, material) {
     `tile_${theme}_path_${id}`,
     'tiles',
     `${material}, ${connector}, top-down square path connector tile, path centerline meets the exact center of every connected edge, all connected edges use the same path width, same edge wear and same material color as other ${theme} path tiles, unconnected edges must not show path texture, connected edges align seamlessly with matching path tiles, no hard seam, no border line, no text`,
+  ]);
+}
+
+function enemyPortraitAssets() {
+  const enemies = [
+    ['goblin', 'red goblin raider, sharp ears, small rusty dagger, mischievous grin'],
+    ['boar', 'wild armored boar, heavy tusks, charging pose, brown bristles'],
+    ['elephant', 'iron armored elephant, thick plates, heavy trunk, slow tank silhouette'],
+    ['giant', 'grassland giant brute, huge fists, mossy shoulder stones, massive readable body'],
+    ['desert_beetle', 'black desert beetle, sandy shell, small mandibles, insect legs tucked in'],
+    ['burrow_beetle', 'burrowing beetle, thick chitin drill horn, earth dust, sturdy shell'],
+    ['locust', 'bloodsucking locust, thin wings, long legs, lime green highlights'],
+    ['bomb_beetle', 'explosive beetle, orange glowing abdomen, danger sparks, round chitin body'],
+    ['werewolf', 'dark werewolf, hunched pose, claws, brown fur, moonlit rim light'],
+    ['vampire_bat', 'vampire bat, purple wings spread, red eyes, small fangs'],
+    ['wizard', 'dark wizard enemy, purple hood, crooked staff, arcane orb glow'],
+    ['priest', 'dark priest enemy, pale robe, black halo, cursed healing staff'],
+    ['frankenstein', 'green stitched monster, bulky shoulders, metal bolts, slow heavy pose'],
+    ['plane', 'wasteland attack plane, chunky stylized fuselage, red warning light, stub wings'],
+    ['tank', 'dark compact tank, heavy treads, large cannon, charcoal armor'],
+    ['oil_truck', 'rusty oil truck, round tank trailer, orange hazard glow, compact toy-like shape'],
+    ['robot_dog', 'mechanical dog, angular metal legs, red sensor eye, fast low silhouette'],
+    ['giant_robot', 'giant robot enemy, broad metal torso, glowing furnace core, heavy arms'],
+    ['drone', 'small attack drone, cyan lens, four rotors, dark metal shell'],
+    ['giant_slime', 'giant slime boss, green translucent blob, crown-like spikes, huge cute menacing shape'],
+    ['queen_beetle', 'beetle queen boss, red royal chitin, large mandibles, crown horn, many legs'],
+    ['lucifer', 'dark demon lord boss, red black horns, bat wings, ember aura, not gore'],
+    ['super_robot', 'super robot boss, huge black steel body, red core, missile pods, massive silhouette'],
+    ['abyss_lord', 'abyss lord boss, purple void armor, single glowing eye, tentacle-like cloak, eldritch but readable'],
+  ];
+  return enemies.map(([id, prompt]) => [
+    `enemy_${id}`,
+    'enemies',
+    `transparent-background enemy codex portrait, centered full-body ${prompt}, dark fantasy casual tower defense style, simple pose, no ground, no shadow, no frame`,
   ]);
 }
 

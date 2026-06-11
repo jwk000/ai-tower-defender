@@ -66,6 +66,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 | 类别 | 路径 | 命名 |
 |------|------|------|
 | 卡牌插画 | `public/art/cards/` | `card_<card_id>.png` |
+| 敌人图鉴 | `public/art/enemies/` | `enemy_<enemy_id>.png` |
 | 单位精灵 | `public/art/units/` | `unit_<unit_id>_<state>_<frame>.png` |
 | 技能特效 | `public/art/fx/` | `fx_<skill_or_effect_id>_<frame>.png` |
 | Buff 图标 | `public/art/buffs/` | `buff_<buff_id>.png` |
@@ -80,6 +81,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 |------|------|----------|------|
 | 卡牌整卡背景 | 240×336 | 是 | 120×168 的 2x 资产 |
 | 卡牌插画 | 192×160 | 否 | 卡面上半区，暗底可保留 |
+| 敌人图鉴 | 1024×1024 生成源，运行时缩放 | 是 | 图鉴卡面展示用，生成后需本地去底并裁掉无效透明边 |
 | 小型单位 | 96×96 | 是 | 普通敌人、士兵、机关 |
 | 中型单位 | 128×128 | 是 | 塔、生产建筑、精英怪 |
 | Boss 单位 | 192×192 | 是 | Boss 与大型中立目标 |

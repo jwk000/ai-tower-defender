@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetUrl } from './artAssets.js';
+import { assetUrl, enemyArtPath } from './artAssets.js';
 
 describe('artAssets', () => {
   it('resolves public art paths against the Vite base URL', () => {
@@ -12,5 +12,10 @@ describe('artAssets', () => {
     expect(assetUrl('//cdn.example.com/art.png')).toBe('//cdn.example.com/art.png');
     expect(assetUrl('data:image/png;base64,abc')).toBe('data:image/png;base64,abc');
     expect(assetUrl('blob:http://localhost/image')).toBe('blob:http://localhost/image');
+  });
+
+  it('builds enemy codex art paths', () => {
+    expect(enemyArtPath('goblin')).toBe('/art/enemies/enemy_goblin.png');
+    expect(assetUrl(enemyArtPath('abyss_lord'), '/ai-tower-defender/')).toBe('/ai-tower-defender/art/enemies/enemy_abyss_lord.png');
   });
 });

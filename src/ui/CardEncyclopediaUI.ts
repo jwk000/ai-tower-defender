@@ -10,6 +10,8 @@ import { FONTS, getFont } from '../config/fonts.js';
 import type { CardInstance } from '../systems/HandSystem.js';
 import { ALL_CARDS } from '../data/cards.js';
 import type { Renderer } from '../render/Renderer.js';
+import { cardArtPath } from '../utils/artAssets.js';
+import { drawLoadedImage } from '../utils/imageCache.js';
 
 // ============================================================
 // 常量
@@ -1172,7 +1174,9 @@ export class CardEncyclopediaUI {
 
       // 图标
       ctx.save();
-      drawCardIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, borderColor);
+      if (!drawLoadedImage(ctx, cardArtPath(card.id), cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H)) {
+        drawCardIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, borderColor);
+      }
       ctx.restore();
 
       // 名称

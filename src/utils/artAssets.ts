@@ -16,6 +16,10 @@ export function buffArtPath(buffId: string): string {
   return `/art/buffs/${buffId}.png`;
 }
 
+export function enemyArtPath(enemyId: string): string {
+  return `/art/enemies/enemy_${enemyId}.png`;
+}
+
 export function uiArtPath(assetId: string): string {
   return `/art/ui/${assetId}.png`;
 }
