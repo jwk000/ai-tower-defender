@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetUrl, enemyArtPath, spellEffectArtPath, spellProjectileArtPath, unitArtPath } from './artAssets.js';
+import { assetUrl, enemyArtPath, objectiveArtPath, objectiveFxArtPath, spellEffectArtPath, spellProjectileArtPath, unitArtPath } from './artAssets.js';
 
 describe('artAssets', () => {
   it('resolves public art paths against the Vite base URL', () => {
@@ -22,6 +22,14 @@ describe('artAssets', () => {
   it('builds scene unit sprite art paths', () => {
     expect(unitArtPath('tower_arrow')).toBe('/art/units/unit_tower_arrow_idle_0.png');
     expect(unitArtPath('goblin', 'idle', 1)).toBe('/art/units/unit_goblin_idle_1.png');
+  });
+
+  it('builds objective body and loop effect art paths', () => {
+    expect(objectiveArtPath('crystal')).toBe('/art/objectives/objective_crystal.png');
+    expect(objectiveArtPath('crystal_low_hp')).toBe('/art/objectives/objective_crystal_low_hp.png');
+    expect(objectiveArtPath('spawn_portal')).toBe('/art/objectives/objective_spawn_portal.png');
+    expect(objectiveFxArtPath('crystal_aura')).toBe('/art/fx/fx_crystal_aura_loop_0.png');
+    expect(objectiveFxArtPath('spawn_portal')).toBe('/art/fx/fx_spawn_portal_loop_0.png');
   });
 
   it('builds spell projectile and impact art paths', () => {

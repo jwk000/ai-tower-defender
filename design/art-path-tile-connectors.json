@@ -13,11 +13,22 @@
   "endpoints": {
     "endpoint_spawn": {
       "asset": "tile_<theme>_path_endpoint_spawn.png",
-      "note": "出生口端点使用接近普通路径的底色和材质，入口装饰不能覆盖整个地格。"
+      "note": "出生口端点底图使用接近普通路径的均匀底色和材质，不包含入口装饰；入口主体与特效由 public/art/objectives/objective_spawn_portal.png 和 public/art/fx/fx_spawn_portal_loop_0.png 叠加。"
     },
     "endpoint_crystal": {
       "asset": "tile_<theme>_path_endpoint_crystal.png",
-      "note": "水晶口端点使用接近普通路径的底色和材质，水晶底座不能覆盖整个地格。"
+      "note": "水晶口端点底图使用接近普通路径的均匀底色和材质，不包含水晶底座；水晶主体与特效由 Objective 实体资源 public/art/objectives/objective_crystal.png、objective_crystal_low_hp.png 和 public/art/fx/fx_crystal_aura_loop_0.png 叠加。"
+    }
+  },
+  "overlayAssets": {
+    "spawnPortal": {
+      "body": "public/art/objectives/objective_spawn_portal.png",
+      "loopFx": "public/art/fx/fx_spawn_portal_loop_0.png"
+    },
+    "crystal": {
+      "body": "public/art/objectives/objective_crystal.png",
+      "lowHpBody": "public/art/objectives/objective_crystal_low_hp.png",
+      "loopFx": "public/art/fx/fx_crystal_aura_loop_0.png"
     }
   },
   "runtime": {

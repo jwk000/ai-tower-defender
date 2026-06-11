@@ -28,6 +28,14 @@ export function uiArtPath(assetId: string): string {
   return `/art/ui/${assetId}.png`;
 }
 
+export function objectiveArtPath(assetId: 'crystal' | 'crystal_low_hp' | 'spawn_portal'): string {
+  return `/art/objectives/objective_${assetId}.png`;
+}
+
+export function objectiveFxArtPath(assetId: 'crystal_aura' | 'spawn_portal'): string {
+  return `/art/fx/fx_${assetId}_loop_0.png`;
+}
+
 export function backgroundArtPath(theme: string | TileArtTheme | undefined): string {
   const normalized = (theme ?? 'meadow').toLowerCase();
   const artTheme = normalized === 'plains' ? 'meadow' : normalized;

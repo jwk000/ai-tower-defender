@@ -45,8 +45,9 @@ import {
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
-import { assetUrl, unitArtPath } from '../utils/artAssets.js';
+import { assetUrl, objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
 import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
+import { getLoadedImage } from '../utils/imageCache.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
@@ -343,15 +344,50 @@ export class RenderSystem implements System {
     const t = Date.now() * 0.001; // 秒级时间戳
     const r = tileSize * 0.44;     // 主体半径 ~28px (64px 格)
     const z = 0;                    // 地图层
+    const fx = getLoadedImage(objectiveFxArtPath('spawn_portal'));
+    const portal = getLoadedImage(objectiveArtPath('spawn_portal'));
+
+    if (fx) {
+      const pulse = 1 + Math.sin(t * 1.4) * 0.04;
+      this.renderer.push({
+        shape: 'rect',
+        x: cx,
+        y: cy,
+        size: tileSize * 1.34 * pulse,
+        h: tileSize * 1.34 * pulse,
+        color: '#ffffff',
+        image: fx,
+        alpha: 0.72,
+        rotation: t * 0.18,
+        z,
+      });
+    }
+
+    if (portal) {
+      this.renderer.push({
+        shape: 'rect',
+        x: cx,
+        y: cy,
+        size: tileSize * 1.06,
+        h: tileSize * 1.06,
+        color: '#ffffff',
+        image: portal,
+        alpha: 0.98,
+        rotation: -t * 0.28,
+        z,
+      });
+    }
 
     // ── Layer 1: 暗色虚空基底 ──
-    this.renderer.push({
-      shape: 'circle', x: cx, y: cy,
-      size: r * 2.1,
-      color: '#0a0000',
-      alpha: 0.9,
-      z,
-    });
+    if (!portal) {
+      this.renderer.push({
+        shape: 'circle', x: cx, y: cy,
+        size: r * 2.1,
+        color: '#0a0000',
+        alpha: 0.9,
+        z,
+      });
+    }
 
     // ── Layer 2: 外侧脉冲红色光环 ──
     const outerPulse = 1 + Math.sin(t * 1.2) * 0.08;
@@ -2050,6 +2086,23 @@ export class RenderSystem implements System {
 
     const cx = posX + swayX;
     const cy = posY + floatY;
+    const fx = getLoadedImage(objectiveFxArtPath('crystal_aura'));
+    const crystal = getLoadedImage(objectiveArtPath(isLowHp ? 'crystal_low_hp' : 'crystal'));
+
+    if (fx) {
+      this.renderer.push({
+        shape: 'rect',
+        x: cx,
+        y: cy,
+        size: 86 + auraBreath * 10,
+        h: 86 + auraBreath * 10,
+        color: '#ffffff',
+        image: fx,
+        alpha: isLowHp ? 0.9 : 0.72,
+        rotation: phase * 0.12 * speedMul,
+        z: renderZ,
+      });
+    }
 
     // ============================================
     // Layer 1: 地面光池 (底部柔光椭圆)
@@ -2100,58 +2153,78 @@ export class RenderSystem implements System {
     // ============================================
     // Layer 4: 水晶主体 — 外层六边形 (深色)
     // ============================================
-    this.renderer.push({
-      shape: 'hexagon',
-      x: cx, y: cy,
-      size: 38,
-      color: bodyDeep,
-      alpha: 1,
-      stroke: isLowHp ? '#f87171' : '#8b5cf6',
-      strokeWidth: 1.5,
-      z: renderZ,
-    });
-
-    // ============================================
-    // Layer 5: 水晶主体 — 内层六边形 (浅色, 偏移营造宝石切割感)
-    // ============================================
-    this.renderer.push({
-      shape: 'hexagon',
-      x: cx, y: cy - 3,
-      size: 24,
-      color: bodyMid,
-      alpha: 0.88,
-      z: renderZ,
-    });
-
-    // ============================================
-    // Layer 6: 金色六边形顶点点缀 (6颗小菱形在六边形顶点)
-    // ============================================
-    for (let i = 0; i < 6; i++) {
-      const edgeAngle = (i / 6) * Math.PI * 2 + Math.PI / 6;
-      const ex = cx + Math.cos(edgeAngle) * 16;
-      const ey = cy + Math.sin(edgeAngle) * 16;
+    if (crystal) {
       this.renderer.push({
-        shape: 'diamond',
-        x: ex, y: ey,
-        size: 4,
-        color: goldAccent,
-        alpha: 0.65 + innerPulse * 0.2,
-        rotation: edgeAngle,
+        shape: 'rect',
+        x: cx,
+        y: cy,
+        size: 66,
+        h: 66,
+        color: '#ffffff',
+        image: crystal,
+        alpha: 1,
+        z: renderZ,
+      });
+    } else {
+      this.renderer.push({
+        shape: 'hexagon',
+        x: cx, y: cy,
+        size: 38,
+        color: bodyDeep,
+        alpha: 1,
+        stroke: isLowHp ? '#f87171' : '#8b5cf6',
+        strokeWidth: 1.5,
         z: renderZ,
       });
     }
 
     // ============================================
+    // Layer 5: 水晶主体 — 内层六边形 (浅色, 偏移营造宝石切割感)
+    // ============================================
+    if (!crystal) {
+      this.renderer.push({
+        shape: 'hexagon',
+        x: cx, y: cy - 3,
+        size: 24,
+        color: bodyMid,
+        alpha: 0.88,
+        z: renderZ,
+      });
+    }
+
+    // ============================================
+    // Layer 6: 金色六边形顶点点缀 (6颗小菱形在六边形顶点)
+    // ============================================
+    if (!crystal) {
+      for (let i = 0; i < 6; i++) {
+        const edgeAngle = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        const ex = cx + Math.cos(edgeAngle) * 16;
+        const ey = cy + Math.sin(edgeAngle) * 16;
+        this.renderer.push({
+          shape: 'diamond',
+          x: ex, y: ey,
+          size: 4,
+          color: goldAccent,
+          alpha: 0.65 + innerPulse * 0.2,
+          rotation: edgeAngle,
+          z: renderZ,
+        });
+      }
+    }
+
+    // ============================================
     // Layer 7: 内核脉冲 (六边形, 深紫色)
     // ============================================
-    this.renderer.push({
-      shape: 'hexagon',
-      x: cx, y: cy,
-      size: 10 + innerPulse * 8,
-      color: innerCore,
-      alpha: 0.7 + innerPulse * 0.25,
-      z: renderZ,
-    });
+    if (!crystal) {
+      this.renderer.push({
+        shape: 'hexagon',
+        x: cx, y: cy,
+        size: 10 + innerPulse * 8,
+        color: innerCore,
+        alpha: 0.7 + innerPulse * 0.25,
+        z: renderZ,
+      });
+    }
     // 中心白点亮核
     this.renderer.push({
       shape: 'circle',
