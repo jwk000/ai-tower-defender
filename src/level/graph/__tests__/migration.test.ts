@@ -188,7 +188,7 @@ describe('L1-L5 真实 YAML 内嵌 pathGraph 合规验证（B.15）', () => {
   interface RawNode { id: string; row: number; col: number; role: string; spawnId?: string }
   interface RawEdge { from: string; to: string; weight?: number }
   interface RawPathGraph { nodes: RawNode[]; edges: RawEdge[] }
-  interface RawMap { spawns?: RawSpawns[]; pathGraph?: RawPathGraph }
+  interface RawMap { tiles?: string[][]; spawns?: RawSpawns[]; pathGraph?: RawPathGraph }
 
   const findMap = (obj: unknown): RawMap | null => {
     if (!obj || typeof obj !== 'object') return null;
@@ -247,5 +247,45 @@ describe('L1-L5 真实 YAML 内嵌 pathGraph 合规验证（B.15）', () => {
       }
     }
     expect(allReachable.size).toBe(schema.data.pathGraph.nodes.length);
+  });
+
+  it('level-02 路径地块与 pathGraph 完全重合', () => {
+    const text = readFileSync(resolve(levelsDir, 'level-02.yaml'), 'utf-8');
+    const raw = yamlLoad(text);
+    const map = findMap(raw);
+    expect(map).not.toBeNull();
+    expect(map!.tiles).toBeDefined();
+    expect(map!.pathGraph).toBeDefined();
+
+    const routeTiles = new Set<string>();
+    const nodeById = new Map(map!.pathGraph!.nodes.map((n) => [n.id, n]));
+    for (const edge of map!.pathGraph!.edges) {
+      const from = nodeById.get(edge.from);
+      const to = nodeById.get(edge.to);
+      expect(from).toBeDefined();
+      expect(to).toBeDefined();
+      if (!from || !to) continue;
+      if (from.row === to.row) {
+        for (let col = Math.min(from.col, to.col); col <= Math.max(from.col, to.col); col++) {
+          routeTiles.add(`${from.row},${col}`);
+        }
+      } else {
+        expect(from.col).toBe(to.col);
+        for (let row = Math.min(from.row, to.row); row <= Math.max(from.row, to.row); row++) {
+          routeTiles.add(`${row},${from.col}`);
+        }
+      }
+    }
+
+    const visualRouteTiles = new Set<string>();
+    map!.tiles!.forEach((row, r) => {
+      row.forEach((tile, c) => {
+        if (tile === 'path' || tile === 'spawn' || tile === 'base') {
+          visualRouteTiles.add(`${r},${c}`);
+        }
+      });
+    });
+
+    expect(visualRouteTiles).toEqual(routeTiles);
   });
 });

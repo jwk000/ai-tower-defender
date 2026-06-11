@@ -1,8 +1,8 @@
 # ============================================================
 # 第2关：沙漠虫潮
-# 路径布局：水平S形蛇行
-# 出生口：右侧(行1,列20) | 水晶：左下(行7,列0)
-# 路径：右→左(行1) → 下(列14) → 右(行3) → 下(列6) → 左(行5) → 下(列14) → 左(行7)
+# 路径布局：围绕地图中心 180 度旋转对称的单入口蛇形路径
+# 出生口：右侧中部(行4,列20) | 水晶：左侧中部(行4,列0)
+# 路径：右中 → 上折 → 下折 → 中轴折返 → 下折 → 上折 → 左中
 # 每波含精英怪(burrow_beetle/locust/bomb_beetle)
 # ============================================================
 id: level_02
@@ -16,13 +16,13 @@ map:
   tileSize: 64
   tiles:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
-    - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
-    - [base, path, path, path, path, path, path, path, path, path, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty]
+    - [empty, empty, empty, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty]
+    - [base, path, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, path, spawn]
+    - [empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, path, empty, empty, empty, empty, empty, empty]
+    - [empty, empty, path, path, path, path, path, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty]
   tileColors:
     empty: '#bf9e3a'
@@ -43,7 +43,7 @@ map:
     - { type: cactus, row: 6, col: 15 }
     - { type: cactus, row: 7, col: 16 }
     - { type: cactus, row: 8, col: 8 }
-    - { type: bones, row: 1, col: 8 }
+    - { type: bones, row: 2, col: 8 }
     - { type: bones, row: 3, col: 5 }
     - { type: bones, row: 7, col: 15 }
     - { type: bones, row: 8, col: 2 }
@@ -54,18 +54,22 @@ map:
     - { type: tunnel_exit, row: 7, col: 19 }
   spawns:
     - id: spawn_0
-      row: 1
+      row: 4
       col: 20
   pathGraph:
     nodes:
-      - { id: n0, row: 1, col: 20, role: spawn, spawnId: spawn_0 }
-      - { id: n1, row: 1, col: 14, role: waypoint }
-      - { id: n2, row: 3, col: 14, role: waypoint }
-      - { id: n3, row: 3, col: 6, role: waypoint }
-      - { id: n4, row: 5, col: 6, role: waypoint }
-      - { id: n5, row: 5, col: 14, role: waypoint }
-      - { id: n6, row: 7, col: 14, role: waypoint }
-      - { id: n7, row: 7, col: 0, role: crystal_anchor }
+      - { id: n0, row: 4, col: 20, role: spawn, spawnId: spawn_0 }
+      - { id: n1, row: 4, col: 18, role: waypoint }
+      - { id: n2, row: 1, col: 18, role: waypoint }
+      - { id: n3, row: 1, col: 14, role: waypoint }
+      - { id: n4, row: 7, col: 14, role: waypoint }
+      - { id: n5, row: 7, col: 10, role: waypoint }
+      - { id: n6, row: 1, col: 10, role: waypoint }
+      - { id: n7, row: 1, col: 6, role: waypoint }
+      - { id: n8, row: 7, col: 6, role: waypoint }
+      - { id: n9, row: 7, col: 2, role: waypoint }
+      - { id: n10, row: 4, col: 2, role: waypoint }
+      - { id: n11, row: 4, col: 0, role: crystal_anchor }
     edges:
       - { from: n0, to: n1 }
       - { from: n1, to: n2 }
@@ -74,6 +78,10 @@ map:
       - { from: n4, to: n5 }
       - { from: n5, to: n6 }
       - { from: n6, to: n7 }
+      - { from: n7, to: n8 }
+      - { from: n8, to: n9 }
+      - { from: n9, to: n10 }
+      - { from: n10, to: n11 }
 
 weather:
   pool:
