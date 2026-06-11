@@ -616,6 +616,7 @@ export interface RenderCommand {
   size: number;
   color: string;
   image?: CanvasImageSource;
+  scaleX?: number;
   alpha?: number;
   rotation?: number;
   stroke?: string;

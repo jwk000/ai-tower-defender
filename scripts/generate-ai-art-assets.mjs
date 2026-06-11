@@ -135,6 +135,9 @@ const assets = [
   // P0 enemy codex portraits.
   ...enemyPortraitAssets(),
 
+  // P0 scene unit sprites.
+  ...sceneUnitSpriteAssets(),
+
   // P0 tiles.
   ['tile_meadow_buildable', 'tiles', seamlessTile('dark rainy grass tile with short moss and wet highlights')],
   ['tile_meadow_path', 'tiles', seamlessTile('muddy brown path tile with puddles and worn footprints, path texture flows continuously across all four edges')],
@@ -250,6 +253,80 @@ function enemyPortraitAssets() {
     'enemies',
     `transparent-background enemy codex portrait, centered full-body ${prompt}, dark fantasy casual tower defense style, simple pose, no ground, no shadow, no frame`,
   ]);
+}
+
+function sceneUnitSpriteAssets() {
+  const units = [
+    ['tower_arrow', '128x128 arrow tower scene sprite, compact wooden and black iron base, twin bow arms, cyan arrow tip'],
+    ['tower_cannon', '128x128 cannon tower scene sprite, squat black iron cannon base, round barrel, orange ember muzzle'],
+    ['tower_ice', '128x128 ice tower scene sprite, jagged blue crystal spire, frost mist, readable silhouette'],
+    ['tower_lightning', '128x128 lightning tower scene sprite, copper coil antenna, yellow electric arcs, dark base'],
+    ['tower_laser', '128x128 laser tower scene sprite, cyan crystal core, purple lens, angular dark metal base'],
+    ['tower_bat', '128x128 gothic bat tower scene sprite, purple bat wing roof, red eye core'],
+    ['tower_missile', '128x128 missile tower scene sprite, dark launch tubes, small red missile tips, orange ignition glow'],
+    ['tower_fire', '128x128 fire tower scene sprite, stacked flame brazier, molten dark base, ember sparks'],
+    ['tower_poison', '128x128 poison tower scene sprite, green venom bulb, alchemy glass, toxic drops'],
+    ['tower_ballista', '128x128 ballista tower scene sprite, heavy crossbow arms, blue siege bolt, dark wood frame'],
+    ['shield_guard', '128x128 shield guard scene sprite, armored defender, large cyan shield, short sword'],
+    ['swordsman', '128x128 swordsman scene sprite, red steel accents, broad stance, raised long sword'],
+    ['archer', '128x128 archer scene sprite, green hood, bow drawn, slim agile stance'],
+    ['priest', '128x128 priest scene sprite, pale robe, golden healing staff, soft holy glow'],
+    ['engineer', '128x128 engineer scene sprite, orange hard hat, wrench, little gear backpack'],
+    ['assassin', '128x128 assassin scene sprite, dark cloak, twin purple daggers, crouched stealth pose'],
+    ['mage', '128x128 mage scene sprite, purple robe, glowing staff crystal, small arcane orb'],
+    ['spike_trap', '96x96 spike trap scene sprite, three dark metal spikes emerging from cracked plate'],
+    ['bear_trap', '96x96 bear trap scene sprite, open jagged metal jaws, central trigger plate'],
+    ['tar_pit', '96x96 tar pit scene sprite, bubbling black sticky puddle, dark oily rim'],
+    ['boulder', '96x96 boulder obstacle scene sprite, cracked grey rock, heavy rounded silhouette'],
+    ['gold_mine', '128x128 gold mine building scene sprite, dark mine entrance, glowing ore vein, cart'],
+    ['energy_tower', '128x128 energy tower building scene sprite, blue violet crystal battery, pulsing mana ring'],
+    ...enemySceneSubjects(),
+  ];
+  const states = ['idle_0', 'idle_1'];
+  return units.flatMap(([id, prompt]) => states.map((state) => {
+    const frame = state.endsWith('_1') ? 1 : 0;
+    const motion = frame === 0
+      ? 'animation frame 1 of 2, neutral idle pose'
+      : 'animation frame 2 of 2, same design, tiny breathing pose change, slightly shifted arms or glow only';
+    return {
+      id: `unit_${id}_${state}`,
+      priority: 'P0',
+      type: 'units',
+      output: `public/art/units/unit_${id}_idle_${frame}.png`,
+      size: '1024x1024',
+      transparent: true,
+      prompt: `${prompt}, ${motion}, 3/4 top-down tower defense battlefield sprite, centered full body, transparent background, no ground, no shadow, no frame`,
+    };
+  }));
+}
+
+function enemySceneSubjects() {
+  return [
+    ['enemy_goblin', '96x96 red goblin raider scene sprite, sharp ears, rusty dagger, compact body'],
+    ['enemy_boar', '96x96 wild armored boar scene sprite, heavy tusks, brown bristles, charging-ready pose'],
+    ['enemy_elephant', '128x128 iron armored elephant scene sprite, thick plates, heavy trunk, tank silhouette'],
+    ['enemy_giant', '128x128 grassland giant brute scene sprite, huge fists, mossy shoulder stones'],
+    ['enemy_desert_beetle', '96x96 black desert beetle scene sprite, sandy shell, mandibles, small legs'],
+    ['enemy_burrow_beetle', '96x96 burrowing beetle scene sprite, drill horn, thick chitin shell'],
+    ['enemy_locust', '96x96 bloodsucking locust scene sprite, thin wings, long legs, lime highlights'],
+    ['enemy_bomb_beetle', '96x96 explosive beetle scene sprite, orange glowing abdomen, danger sparks'],
+    ['enemy_werewolf', '128x128 dark werewolf scene sprite, hunched claws, brown fur, moonlit rim light'],
+    ['enemy_vampire_bat', '96x96 vampire bat scene sprite, purple wings spread, red eyes, tiny fangs'],
+    ['enemy_wizard', '96x96 dark wizard enemy scene sprite, purple hood, crooked staff, arcane orb'],
+    ['enemy_priest', '96x96 dark priest enemy scene sprite, pale robe, black halo, cursed staff'],
+    ['enemy_frankenstein', '128x128 green stitched monster scene sprite, bulky shoulders, metal bolts'],
+    ['enemy_plane', '128x128 wasteland attack plane scene sprite, chunky fuselage, red warning light'],
+    ['enemy_tank', '128x128 dark compact tank scene sprite, heavy treads, large cannon, charcoal armor'],
+    ['enemy_oil_truck', '128x128 rusty oil truck scene sprite, round tank trailer, orange hazard glow'],
+    ['enemy_robot_dog', '96x96 mechanical dog scene sprite, angular legs, red sensor eye, low fast silhouette'],
+    ['enemy_giant_robot', '128x128 giant robot enemy scene sprite, metal torso, glowing furnace core, heavy arms'],
+    ['enemy_drone', '96x96 small attack drone scene sprite, cyan lens, four rotors, dark metal shell'],
+    ['enemy_giant_slime', '192x192 giant slime boss scene sprite, green translucent blob, crown-like spikes'],
+    ['enemy_queen_beetle', '192x192 beetle queen boss scene sprite, red royal chitin, crown horn, many legs'],
+    ['enemy_lucifer', '192x192 dark demon lord boss scene sprite, red black horns, bat wings, ember aura'],
+    ['enemy_super_robot', '192x192 super robot boss scene sprite, huge black steel body, red core, missile pods'],
+    ['enemy_abyss_lord', '192x192 abyss lord boss scene sprite, purple void armor, single glowing eye, tentacle-like cloak'],
+  ];
 }
 
 function expandTuple(tuple) {

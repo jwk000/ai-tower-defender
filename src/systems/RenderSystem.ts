@@ -9,7 +9,7 @@
 import { TowerWorld, System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
-import { TileType, TowerType } from '../types/index.js';
+import { TileType, TowerType, EnemyType, UnitType } from '../types/index.js';
 import type { MapConfig, SceneLayout, ShapeType, CompositePart, UpgradeVisualConfig, UnitVisualParts } from '../types/index.js';
 import {
   Position,
@@ -45,8 +45,8 @@ import {
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
-import { assetUrl } from '../utils/artAssets.js';
-import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
+import { assetUrl, unitArtPath } from '../utils/artAssets.js';
+import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
 
@@ -58,6 +58,39 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Lightning, // 3
   TowerType.Laser,     // 4
   TowerType.Bat,       // 5
+  TowerType.Missile,   // 6
+  TowerType.Fire,      // 7
+  TowerType.Poison,    // 8
+  TowerType.Ballista,  // 9
+];
+
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+
+const ENEMY_TYPE_BY_ID: EnemyType[] = [
+  EnemyType.Goblin,
+  EnemyType.Boar,
+  EnemyType.Elephant,
+  EnemyType.Giant,
+  EnemyType.DesertBeetle,
+  EnemyType.BurrowBeetle,
+  EnemyType.Locust,
+  EnemyType.BombBeetle,
+  EnemyType.Werewolf,
+  EnemyType.VampireBat,
+  EnemyType.Wizard,
+  EnemyType.Priest,
+  EnemyType.Frankenstein,
+  EnemyType.Plane,
+  EnemyType.Tank,
+  EnemyType.OilTruck,
+  EnemyType.RobotDog,
+  EnemyType.GiantRobot,
+  EnemyType.Drone,
+  EnemyType.GiantSlime,
+  EnemyType.QueenBeetle,
+  EnemyType.Lucifer,
+  EnemyType.SuperRobot,
+  EnemyType.AbyssLord,
 ];
 
 // ---- Query: all entities with position + visual ----
@@ -126,6 +159,7 @@ const RANK_INSIGNIA_BLOCK_WIDTH = 14;
 const RANK_INSIGNIA_NAME_GAP = 4;
 
 const tileTextureCache = new Map<string, HTMLImageElement>();
+const unitSpriteCache = new Map<string, HTMLImageElement>();
 
 function getLoadedTileTexture(path: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
@@ -137,6 +171,19 @@ function getLoadedTileTexture(path: string): HTMLImageElement | null {
   const image = new Image();
   image.src = url;
   tileTextureCache.set(url, image);
+  return null;
+}
+
+function getLoadedUnitSprite(path: string): HTMLImageElement | null {
+  if (typeof Image === 'undefined') return null;
+
+  const url = assetUrl(path);
+  const cached = unitSpriteCache.get(url);
+  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+
+  const image = new Image();
+  image.src = url;
+  unitSpriteCache.set(url, image);
   return null;
 }
 
@@ -593,6 +640,64 @@ export class RenderSystem implements System {
     }
   }
 
+  private drawUnitSprite(
+    unitId: string,
+    eid: number,
+    posX: number,
+    posY: number,
+    drawSize: number,
+    alpha: number,
+    z: number,
+    opts: { state?: string; stroke?: string; strokeWidth?: number; facing?: number } = {},
+  ): boolean {
+    const state = opts.state ?? 'idle';
+    const frame = Math.sin(Visual.breathPhase[eid] ?? 0) >= 0 ? 1 : 0;
+    const sprite = getLoadedUnitSprite(unitArtPath(unitId, state, frame));
+    if (!sprite) return false;
+
+    const sourceW = sprite.naturalWidth || sprite.width;
+    const sourceH = sprite.naturalHeight || sprite.height;
+    if (sourceW <= 0 || sourceH <= 0) return false;
+
+    const aspect = sourceW / sourceH;
+    const h = drawSize;
+    const w = h * aspect;
+    const facing = opts.facing ?? ((Visual.facing[eid] ?? 1) >= 0 ? 1 : -1);
+
+    this.renderer.push({
+      shape: 'rect',
+      x: posX,
+      y: posY - drawSize * 0.08,
+      size: w,
+      h,
+      color: '#ffffff',
+      alpha,
+      image: sprite,
+      scaleX: facing < 0 ? -1 : 1,
+      stroke: opts.stroke,
+      strokeWidth: opts.strokeWidth,
+      z,
+    });
+    return true;
+  }
+
+  private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {
+    if (hasComponent(world.world, Tower, eid)) {
+      const towerType = TOWER_TYPE_BY_ID[Tower.towerType[eid]!];
+      return towerType ? `tower_${towerType}` : null;
+    }
+    if (hasComponent(world.world, Trap, eid)) {
+      return TRAP_TYPE_BY_ID[Trap.trapType[eid] ?? 0] ?? 'spike_trap';
+    }
+    if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Soldier) {
+      return UNIT_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? UnitType.ShieldGuard;
+    }
+    if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Enemy) {
+      return `enemy_${ENEMY_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? EnemyType.Goblin}`;
+    }
+    return null;
+  }
+
   // ============================================
   // Missile projectile rendering — black body + red warhead + blue trail + orange glow
   // ============================================
@@ -819,10 +924,31 @@ export class RenderSystem implements System {
         const animDuration = Trap.animDuration[eid]!;
         const trapType = Trap.trapType[eid] ?? 0;
         const trapDirection = Trap.direction[eid] ?? 0;
+        void trapDirection;
 
         // 动画进度（0→1）
         const animProgress = animTimer > 0 ? (1 - animTimer / animDuration) : 0;
         const animFactor = Math.sin(animProgress * Math.PI);
+        const trapRenderZ = LAYER_TO_Z[Layer.value[eid] ?? LayerVal.AboveGrid] ?? 2;
+        const trapSpriteId = this.getSceneUnitArtId(world, eid);
+        if (
+          trapSpriteId &&
+          this.drawUnitSprite(
+            trapSpriteId,
+            eid,
+            posX,
+            posY - animFactor * 3,
+            Visual.size[eid]! * (1 + animFactor * 0.08) * 1.25,
+            Visual.alpha[eid]!,
+            trapRenderZ,
+            {
+              stroke: Visual.outline[eid] ? '#ffffff' : undefined,
+              strokeWidth: Visual.outline[eid] ? 2 : undefined,
+            },
+          )
+        ) {
+          continue;
+        }
 
         const trapPartsId = Visual.partsId[eid] ?? 0;
         const trapParts = trapPartsId !== 0 ? world.getUnitVisualParts(trapPartsId) : undefined;
@@ -837,7 +963,7 @@ export class RenderSystem implements System {
             Visual.alpha[eid]!,
             Visual.outline[eid] ? '#ffffff' : undefined,
             Visual.outline[eid] ? 2 : undefined,
-            LAYER_TO_Z[Layer.value[eid] ?? LayerVal.AboveGrid] ?? 2,
+            trapRenderZ,
             trapParts,
           );
           continue;
@@ -1274,7 +1400,20 @@ export class RenderSystem implements System {
         this.drawCrystal(eid, posX, posY, dt);
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
-        if (unitPartsId !== 0) {
+        const sceneUnitArtId = this.getSceneUnitArtId(world, eid);
+        const spriteDrawn = sceneUnitArtId !== null && this.drawUnitSprite(
+          sceneUnitArtId,
+          eid,
+          attackAnimPosX,
+          attackAnimPosY,
+          attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 : 1.35),
+          displayAlpha,
+          renderZ,
+          { stroke: strokeColor, strokeWidth: strokeW },
+        );
+        if (spriteDrawn) {
+          // Keep procedural rendering as fallback only; state overlays still render below.
+        } else if (unitPartsId !== 0) {
           const parts = world.getUnitVisualParts(unitPartsId);
           if (parts) {
             this.drawUnitComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);

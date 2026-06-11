@@ -20,6 +20,10 @@ export function enemyArtPath(enemyId: string): string {
   return `/art/enemies/enemy_${enemyId}.png`;
 }
 
+export function unitArtPath(unitId: string, state = 'idle', frame = 0): string {
+  return `/art/units/unit_${unitId}_${state}_${frame}.png`;
+}
+
 export function uiArtPath(assetId: string): string {
   return `/art/ui/${assetId}.png`;
 }

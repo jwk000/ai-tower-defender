@@ -192,6 +192,12 @@ dark fantasy casual tower defense unit sprite, {unit_subject}, 3/4 top-down view
 animation frame {frame}/2 for {state}, same character design and same camera, only small pose change, sprite sheet consistency, transparent background
 ```
 
+### 5.2.1 场景单位运行时接入规则
+
+场景单位渲染必须优先加载 `public/art/units/unit_<unit_id>_<state>_<frame>.png`。图片未加载、缺失或后续美术资源回滚时，必须保留并回退到原有程序化几何渲染，不允许删除 `visualParts` / `drawUnitComposite` 这套代码生成表现。
+
+当前 MVP 先接入 `idle_0` / `idle_1` 两帧，运行时通过呼吸相位切帧，并继续复用已有代码里的移动、攻击、受击、眩晕、冰冻、中毒、精英描边、Boss 阶段等状态特效。
+
 ### 5.3 敌人单位美术分组
 
 敌人数量较多，按主题阵营生成统一套系，并保证每个 `unit_id` 都有独立标志物。所有敌人必须至少交付 `idle_0`、`idle_1`、`move_0`、`move_1`、`attack_0`、`attack_1`、`hit_0`、`death_1`。

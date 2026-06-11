@@ -121,6 +121,7 @@ export class Renderer {
           ctx.save();
           ctx.translate(cx, cy);
           ctx.rotate(rot);
+          if (cmd.scaleX !== undefined && cmd.scaleX !== 1) ctx.scale(cmd.scaleX, 1);
           if (cmd.image) {
             ctx.drawImage(cmd.image, -rw / 2, -rh / 2, rw, rh);
           } else {
@@ -137,7 +138,15 @@ export class Renderer {
           const x = cx - rw / 2;
           const y = cy - rh / 2;
           if (cmd.image) {
-            ctx.drawImage(cmd.image, x, y, rw, rh);
+            if (cmd.scaleX !== undefined && cmd.scaleX !== 1) {
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.scale(cmd.scaleX, 1);
+              ctx.drawImage(cmd.image, -rw / 2, -rh / 2, rw, rh);
+              ctx.restore();
+            } else {
+              ctx.drawImage(cmd.image, x, y, rw, rh);
+            }
           } else {
             ctx.fillStyle = cmd.color;
             ctx.fillRect(x, y, rw, rh);
