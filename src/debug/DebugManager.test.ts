@@ -150,6 +150,28 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
     expect(actions.find((a) => a.id === 'open_level_editor')).toBeUndefined();
   });
 
+  it('调试面板提供美术资源开关，并同步到全局资源开关', async () => {
+    const { TowerWorld } = await import('../core/World.js');
+    const { DebugManager } = await import('./DebugManager.js');
+    const { areArtResourcesEnabled, setArtResourcesEnabled } = await import('../utils/artResourceSwitch.js');
+
+    setArtResourcesEnabled(true);
+    const world = new TowerWorld();
+    const debug = new DebugManager(world);
+    const action = debug.getActions().find((a) => a.id === 'toggle_art_resources');
+
+    expect(action).toBeDefined();
+    expect(debug.isArtResourcesEnabled()).toBe(true);
+    expect(areArtResourcesEnabled()).toBe(true);
+
+    action?.onClick();
+
+    expect(debug.isArtResourcesEnabled()).toBe(false);
+    expect(areArtResourcesEnabled()).toBe(false);
+
+    setArtResourcesEnabled(true);
+  });
+
   it('addDebugGold 在 economy provider 返回 null 时按未注入处理', async () => {
     const { TowerWorld } = await import('../core/World.js');
     const { DebugManager } = await import('./DebugManager.js');

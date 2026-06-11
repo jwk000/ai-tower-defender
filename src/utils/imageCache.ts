@@ -1,8 +1,10 @@
 import { assetUrl } from './artAssets.js';
+import { areArtResourcesEnabled } from './artResourceSwitch.js';
 
 const imageCache = new Map<string, HTMLImageElement>();
 
 export function getLoadedImage(path: string): HTMLImageElement | null {
+  if (!areArtResourcesEnabled()) return null;
   if (typeof Image === 'undefined') return null;
 
   const url = assetUrl(path);

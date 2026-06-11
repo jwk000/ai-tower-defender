@@ -46,6 +46,7 @@ import {
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
 import { assetUrl, unitArtPath } from '../utils/artAssets.js';
+import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
@@ -162,6 +163,7 @@ const tileTextureCache = new Map<string, HTMLImageElement>();
 const unitSpriteCache = new Map<string, HTMLImageElement>();
 
 function getLoadedTileTexture(path: string): HTMLImageElement | null {
+  if (!areArtResourcesEnabled()) return null;
   if (typeof Image === 'undefined') return null;
 
   const url = assetUrl(path);
@@ -175,6 +177,7 @@ function getLoadedTileTexture(path: string): HTMLImageElement | null {
 }
 
 function getLoadedUnitSprite(path: string): HTMLImageElement | null {
+  if (!areArtResourcesEnabled()) return null;
   if (typeof Image === 'undefined') return null;
 
   const url = assetUrl(path);

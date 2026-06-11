@@ -12,6 +12,7 @@ import { LayoutManager } from '../ui/LayoutManager.js';
 import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/index.js';
 import { computeSceneLayout } from './RenderSystem.js';
 import { assetUrl, backgroundArtPath } from '../utils/artAssets.js';
+import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 
 /**
  * 复合几何体部件 —— 由多个简单形状组合成一个装饰物
@@ -525,7 +526,7 @@ export class DecorationSystem implements System {
    * 当调试开关开启时，绘制关卡背景图替代天空渐变。
    */
   private drawBackground(): void {
-    if (this.getShowBgImage()) {
+    if (this.getShowBgImage() && areArtResourcesEnabled()) {
       this.drawBackgroundImage();
       return;
     }

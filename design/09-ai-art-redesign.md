@@ -196,6 +196,8 @@ animation frame {frame}/2 for {state}, same character design and same camera, on
 
 场景单位渲染必须优先加载 `public/art/units/unit_<unit_id>_<state>_<frame>.png`。图片未加载、缺失或后续美术资源回滚时，必须保留并回退到原有程序化几何渲染，不允许删除 `visualParts` / `drawUnitComposite` 这套代码生成表现。
 
+调试面板必须提供“美术资源”总开关，默认开启。关闭后运行时所有图片资源加载入口都必须视为资源不可用：关卡背景回退到天空渐变，地格贴图回退到纯色地格，场景单位、机关、法术特效、卡牌图标和 UI 皮肤回退到现有程序化/Canvas 绘制逻辑。该开关只影响视觉资源选择，不改变 ECS、战斗数值、碰撞、寻路或输入逻辑。
+
 当前 MVP 先接入 `idle_0` / `idle_1` 两帧，运行时通过呼吸相位切帧，并继续复用已有代码里的移动、攻击、受击、眩晕、冰冻、中毒、精英描边、Boss 阶段等状态特效。
 
 ### 5.3 敌人单位美术分组
