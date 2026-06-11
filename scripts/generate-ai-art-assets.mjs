@@ -154,11 +154,11 @@ const assets = [
   ['tile_abyss_buildable', 'tiles', seamlessTile('dark purple void stone tile with faint violet cracks')],
   ['tile_abyss_path', 'tiles', seamlessTile('black violet rift path tile with glowing edge fissures, path texture flows continuously across all four edges')],
   ['tile_abyss_obstacle', 'tiles', seamlessTile('jagged abyss crystal and void rock obstacle ground, no large object cut off at the edges')],
-  ...pathConnectorAssets('meadow', 'muddy brown rainy grassland road with puddles'),
-  ...pathConnectorAssets('desert', 'packed dark golden desert road with subtle worm tracks'),
-  ...pathConnectorAssets('castle', 'dark gothic slate stone road with worn slabs'),
-  ...pathConnectorAssets('wasteland', 'cracked asphalt road with dark red ash dirt'),
-  ...pathConnectorAssets('abyss', 'black violet rift road with subtle glowing fissures'),
+  ...pathEndpointAssets('meadow', 'muddy brown rainy grassland road with puddles'),
+  ...pathEndpointAssets('desert', 'packed dark golden desert road with subtle worm tracks'),
+  ...pathEndpointAssets('castle', 'dark gothic slate stone road with worn slabs'),
+  ...pathEndpointAssets('wasteland', 'cracked asphalt road with dark red ash dirt'),
+  ...pathEndpointAssets('abyss', 'black violet rift road with subtle glowing fissures'),
 
   // P1 backgrounds.
   ['bg_meadow', 'backgrounds', 'rainy night grassland battlefield, distant mountains, low heavy clouds, low contrast center area for gameplay readability, stronger atmosphere at edges', '16:9'],
@@ -198,26 +198,15 @@ function seamlessTile(subject) {
   return `${subject}, top-down square seamless tile texture, continuous edges on all four sides, tileable 3x3 without visible seams, low detail, no border line, no isolated object cut off at edges`;
 }
 
-function pathConnectorAssets(theme, material) {
-  const connectors = [
-    ['straight_h', 'horizontal straight path; connected edges: west and east; north and south edges are normal ground'],
-    ['straight_v', 'vertical straight path; connected edges: north and south; west and east edges are normal ground'],
-    ['corner_ne', 'corner path; connected edges: north and east; south and west edges are normal ground'],
-    ['corner_es', 'corner path; connected edges: east and south; north and west edges are normal ground'],
-    ['corner_sw', 'corner path; connected edges: south and west; north and east edges are normal ground'],
-    ['corner_wn', 'corner path; connected edges: west and north; east and south edges are normal ground'],
-    ['tee_n', 'three-way path; connected edges: west, east, and south; north edge is normal ground'],
-    ['tee_e', 'three-way path; connected edges: north, south, and west; east edge is normal ground'],
-    ['tee_s', 'three-way path; connected edges: west, east, and north; south edge is normal ground'],
-    ['tee_w', 'three-way path; connected edges: north, south, and east; west edge is normal ground'],
-    ['cross', 'crossroad path; connected edges: north, east, south, and west'],
+function pathEndpointAssets(theme, material) {
+  const endpoints = [
     ['endpoint_spawn', 'enemy spawn endpoint; exactly one connected edge at the path exit; portal sits outside the path flow and does not interrupt the connection'],
     ['endpoint_crystal', 'crystal base endpoint; exactly one connected edge at the path entrance; crystal base sits outside the path flow and does not cover the connection'],
   ];
-  return connectors.map(([id, connector]) => [
+  return endpoints.map(([id, endpoint]) => [
     `tile_${theme}_path_${id}`,
     'tiles',
-    `${material}, ${connector}, top-down square path connector tile, path centerline meets the exact center of every connected edge, all connected edges use the same path width, same edge wear and same material color as other ${theme} path tiles, unconnected edges must not show path texture, connected edges align seamlessly with matching path tiles, no hard seam, no border line, no text`,
+    `${material}, ${endpoint}, top-down square endpoint tile, same uniform color and material as the directionless ${theme} path tile, soft blend into nearby path tiles, no hard seam, no border line, no text`,
   ]);
 }
 

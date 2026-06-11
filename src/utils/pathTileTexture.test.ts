@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TileType, type MapConfig } from '../types/index.js';
-import { getPathConnectorId, getTileTexturePath, isPathConnectable, resolveMapArtTheme } from './pathTileTexture.js';
+import { getTileTexturePath, isPathConnectable, resolveMapArtTheme } from './pathTileTexture.js';
 
 function makeMap(tiles: TileType[][], artTheme: MapConfig['artTheme'] = 'meadow'): MapConfig {
   return {
@@ -28,63 +28,55 @@ describe('pathTileTexture', () => {
     expect(resolveMapArtTheme('unknown')).toBe('meadow');
   });
 
-  it('selects straight path connectors', () => {
+  it('uses a directionless path texture for straight paths', () => {
     const horizontal = makeMap([[
       TileType.Spawn,
       TileType.Path,
       TileType.Base,
     ]]);
-    expect(getPathConnectorId(horizontal, 0, 1)).toBe('straight_h');
+    expect(getTileTexturePath(horizontal, 0, 1)).toBe('/art/tiles/tile_meadow_path.png');
 
     const vertical = makeMap([
       [TileType.Spawn],
       [TileType.Path],
       [TileType.Base],
     ]);
-    expect(getPathConnectorId(vertical, 1, 0)).toBe('straight_v');
+    expect(getTileTexturePath(vertical, 1, 0)).toBe('/art/tiles/tile_meadow_path.png');
   });
 
-  it('selects all corner connectors from neighboring path directions', () => {
-    expect(getPathConnectorId(makeMap([
+  it('uses a directionless path texture for corners, tees and crosses', () => {
+    expect(getTileTexturePath(makeMap([
       [TileType.Empty, TileType.Path, TileType.Empty],
       [TileType.Empty, TileType.Path, TileType.Path],
       [TileType.Empty, TileType.Empty, TileType.Empty],
-    ]), 1, 1)).toBe('corner_ne');
+    ]), 1, 1)).toBe('/art/tiles/tile_meadow_path.png');
 
-    expect(getPathConnectorId(makeMap([
+    expect(getTileTexturePath(makeMap([
       [TileType.Empty, TileType.Empty, TileType.Empty],
       [TileType.Empty, TileType.Path, TileType.Path],
       [TileType.Empty, TileType.Path, TileType.Empty],
-    ]), 1, 1)).toBe('corner_es');
+    ]), 1, 1)).toBe('/art/tiles/tile_meadow_path.png');
 
-    expect(getPathConnectorId(makeMap([
+    expect(getTileTexturePath(makeMap([
       [TileType.Empty, TileType.Empty, TileType.Empty],
       [TileType.Path, TileType.Path, TileType.Empty],
       [TileType.Empty, TileType.Path, TileType.Empty],
-    ]), 1, 1)).toBe('corner_sw');
+    ]), 1, 1)).toBe('/art/tiles/tile_meadow_path.png');
 
-    expect(getPathConnectorId(makeMap([
-      [TileType.Empty, TileType.Path, TileType.Empty],
-      [TileType.Path, TileType.Path, TileType.Empty],
-      [TileType.Empty, TileType.Empty, TileType.Empty],
-    ]), 1, 1)).toBe('corner_wn');
-  });
-
-  it('selects tee and cross connectors', () => {
-    expect(getPathConnectorId(makeMap([
+    expect(getTileTexturePath(makeMap([
       [TileType.Empty, TileType.Empty, TileType.Empty],
       [TileType.Path, TileType.Path, TileType.Path],
       [TileType.Empty, TileType.Path, TileType.Empty],
-    ]), 1, 1)).toBe('tee_n');
+    ]), 1, 1)).toBe('/art/tiles/tile_meadow_path.png');
 
-    expect(getPathConnectorId(makeMap([
+    expect(getTileTexturePath(makeMap([
       [TileType.Empty, TileType.Path, TileType.Empty],
       [TileType.Path, TileType.Path, TileType.Path],
       [TileType.Empty, TileType.Path, TileType.Empty],
-    ]), 1, 1)).toBe('cross');
+    ]), 1, 1)).toBe('/art/tiles/tile_meadow_path.png');
   });
 
-  it('returns endpoint and connector texture paths with the map art theme', () => {
+  it('returns endpoint and tile texture paths with the map art theme', () => {
     const map = makeMap([[
       TileType.Spawn,
       TileType.Path,
@@ -94,7 +86,7 @@ describe('pathTileTexture', () => {
     ]], 'abyss');
 
     expect(getTileTexturePath(map, 0, 0)).toBe('/art/tiles/tile_abyss_path_endpoint_spawn.png');
-    expect(getTileTexturePath(map, 0, 1)).toBe('/art/tiles/tile_abyss_path_straight_h.png');
+    expect(getTileTexturePath(map, 0, 1)).toBe('/art/tiles/tile_abyss_path.png');
     expect(getTileTexturePath(map, 0, 2)).toBe('/art/tiles/tile_abyss_path_endpoint_crystal.png');
     expect(getTileTexturePath(map, 0, 3)).toBe('/art/tiles/tile_abyss_buildable.png');
     expect(getTileTexturePath(map, 0, 4)).toBe('/art/tiles/tile_abyss_obstacle.png');
