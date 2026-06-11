@@ -8,13 +8,60 @@ import {
   Position,
   Visual,
   Category,
+  CategoryVal,
   ShapeVal,
   Tower,
+  Trap,
   enemyQuery,
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
+import { EnemyType, TowerType, UnitType } from '../types/index.js';
+import { UNIT_TYPE_BY_ID } from '../data/gameData.js';
+import { registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 
 const healthUnitQuery = defineQuery([Health, UnitTag]);
+
+const TOWER_TYPE_BY_ID: TowerType[] = [
+  TowerType.Arrow,
+  TowerType.Cannon,
+  TowerType.Ice,
+  TowerType.Lightning,
+  TowerType.Laser,
+  TowerType.Bat,
+  TowerType.Missile,
+  TowerType.Fire,
+  TowerType.Poison,
+  TowerType.Ballista,
+];
+
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+
+const ENEMY_TYPE_BY_ID: EnemyType[] = [
+  EnemyType.Goblin,
+  EnemyType.Boar,
+  EnemyType.Elephant,
+  EnemyType.Giant,
+  EnemyType.DesertBeetle,
+  EnemyType.BurrowBeetle,
+  EnemyType.Locust,
+  EnemyType.BombBeetle,
+  EnemyType.Werewolf,
+  EnemyType.VampireBat,
+  EnemyType.Wizard,
+  EnemyType.Priest,
+  EnemyType.Frankenstein,
+  EnemyType.Plane,
+  EnemyType.Tank,
+  EnemyType.OilTruck,
+  EnemyType.RobotDog,
+  EnemyType.GiantRobot,
+  EnemyType.Drone,
+  EnemyType.GiantSlime,
+  EnemyType.QueenBeetle,
+  EnemyType.Lucifer,
+  EnemyType.SuperRobot,
+  EnemyType.AbyssLord,
+];
 
 /**
  * 生命周期系统 — 检测单位死亡/创建事件，分发给 RuleEngine
@@ -25,6 +72,23 @@ const healthUnitQuery = defineQuery([Health, UnitTag]);
 export class LifecycleSystem implements System {
   readonly name = 'LifecycleSystem';
 
+  private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {
+    if (hasComponent(world.world, Tower, eid)) {
+      const towerType = TOWER_TYPE_BY_ID[Tower.towerType[eid]!];
+      return towerType ? `tower_${towerType}` : null;
+    }
+    if (hasComponent(world.world, Trap, eid)) {
+      return TRAP_TYPE_BY_ID[Trap.trapType[eid] ?? 0] ?? 'spike_trap';
+    }
+    if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Soldier) {
+      return UNIT_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? UnitType.ShieldGuard;
+    }
+    if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Enemy) {
+      return `enemy_${ENEMY_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? EnemyType.Goblin}`;
+    }
+    return null;
+  }
+
   /** 实体创建时间追踪（entityId → 创建时刻秒） */
   /** Create tower-type-specific death visual: particle burst matching tower theme */
   private createTowerDeathEffect(
@@ -32,7 +96,7 @@ export class LifecycleSystem implements System {
     x: number, y: number,
     towerType: number,
     r: number, g: number, b: number, size: number,
-  ): void {
+  ): number {
     const PI = Math.PI;
     // Configs: [count, shape, color offset (r/g/b), particle size, duration]
     const configs: Record<number, { count: number; shape: number; cr: number; cg: number; cb: number; pSize: number; dur: number }> = {
@@ -55,13 +119,13 @@ export class LifecycleSystem implements System {
       world.addComponent(eid, Position, { x, y });
       world.addComponent(eid, Visual, { shape: ShapeVal.Circle, colorR: r, colorG: g, colorB: b, size });
       world.addComponent(eid, DeathEffect, { duration: 0.3 });
-      return;
+      return eid;
     }
 
     // Base expanding ring
     const ringEid = world.createEntity();
     world.addComponent(ringEid, Position, { x, y });
-    world.addComponent(ringEid, Visual, { shape: ShapeVal.Circle, colorR: cfg.cr, colorG: cfg.cg, colorB: cfg.cb, size: size * 0.3 });
+    world.addComponent(ringEid, Visual, { shape: ShapeVal.Circle, colorR: cfg.cr, colorG: cfg.cg, colorB: cfg.cb, size });
     world.addComponent(ringEid, DeathEffect, { duration: cfg.dur });
     // Use ExplosionEffect for the ring to expand outward
     world.addComponent(ringEid, ExplosionEffect as object, { duration: cfg.dur, maxRadius: size * 1.5, elapsed: 0 });
@@ -84,6 +148,7 @@ export class LifecycleSystem implements System {
       });
       world.addComponent(pEid, DeathEffect, { duration: cfg.dur - i * 0.03 });
     }
+    return ringEid;
   }
 
   private creationTimes = new Map<number, number>();
@@ -113,12 +178,14 @@ export class LifecycleSystem implements System {
         const colorG = Visual.colorG[eid] ?? 0;
         const colorB = Visual.colorB[eid] ?? 0;
         const size = Visual.size[eid] ?? 24;
+        const deathArtId = this.getSceneUnitArtId(world, eid);
 
         // Tower-specific death effects: burst of particles matching tower theme
         const isTower = hasComponent(world.world, Tower, eid);
         if (isTower) {
           const towerType = Tower.towerType[eid] ?? 0;
-          this.createTowerDeathEffect(world, posX, posY, towerType, colorR, colorG, colorB, size);
+          const effectEid = this.createTowerDeathEffect(world, posX, posY, towerType, colorR, colorG, colorB, size);
+          registerDeathSpriteArtId(effectEid, deathArtId);
         } else {
           const effectEid = world.createEntity();
           world.addComponent(effectEid, Position, { x: posX, y: posY });
@@ -130,6 +197,7 @@ export class LifecycleSystem implements System {
             size,
           });
           world.addComponent(effectEid, DeathEffect, { duration: 0.3 });
+          registerDeathSpriteArtId(effectEid, deathArtId);
         }
 
         world.destroyEntity(eid);

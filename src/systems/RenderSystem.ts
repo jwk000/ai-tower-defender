@@ -42,12 +42,14 @@ import {
   BuildingTower,
   SlashEffect,
   Barrel,
+  DeathEffect,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
 import { assetUrl, objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
 import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 import { getLoadedImage } from '../utils/imageCache.js';
+import { getDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
@@ -696,8 +698,11 @@ export class RenderSystem implements System {
     opts: { state?: string; stroke?: string; strokeWidth?: number; facing?: number } = {},
   ): boolean {
     const state = opts.state ?? 'idle';
-    const frame = Math.sin(Visual.breathPhase[eid] ?? 0) >= 0 ? 1 : 0;
-    const sprite = getLoadedUnitSprite(unitArtPath(unitId, state, frame));
+    const frame = this.getUnitSpriteFrame(eid, state);
+    let sprite = getLoadedUnitSprite(unitArtPath(unitId, state, frame));
+    if (!sprite && state !== 'idle') {
+      sprite = getLoadedUnitSprite(unitArtPath(unitId, 'idle', frame));
+    }
     if (!sprite) return false;
 
     const sourceW = sprite.naturalWidth || sprite.width;
@@ -726,7 +731,35 @@ export class RenderSystem implements System {
     return true;
   }
 
+  private getUnitSpriteFrame(eid: number, state: string): 0 | 1 {
+    if (state === 'attack') {
+      const duration = Visual.attackAnimDuration[eid] ?? 0;
+      const timer = Visual.attackAnimTimer[eid] ?? 0;
+      if (duration <= 0 || timer <= 0) return 0;
+      return 1 - timer / duration >= 0.35 ? 1 : 0;
+    }
+    if (state === 'death') {
+      const duration = DeathEffect.duration[eid] ?? 0;
+      const elapsed = DeathEffect.elapsed[eid] ?? 0;
+      if (duration <= 0) return 0;
+      return elapsed / duration >= 0.5 ? 1 : 0;
+    }
+    return Math.sin(Visual.breathPhase[eid] ?? 0) >= 0 ? 1 : 0;
+  }
+
+  private getUnitSpriteState(eid: number): 'idle' | 'attack' | 'death' {
+    if (getDeathSpriteArtId(eid)) {
+      return 'death';
+    }
+    if ((Visual.attackAnimTimer[eid] ?? 0) > 0) {
+      return 'attack';
+    }
+    return 'idle';
+  }
+
   private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {
+    const deathArtId = getDeathSpriteArtId(eid);
+    if (deathArtId) return deathArtId;
     if (hasComponent(world.world, Tower, eid)) {
       const towerType = TOWER_TYPE_BY_ID[Tower.towerType[eid]!];
       return towerType ? `tower_${towerType}` : null;
@@ -739,6 +772,9 @@ export class RenderSystem implements System {
     }
     if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Enemy) {
       return `enemy_${ENEMY_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? EnemyType.Goblin}`;
+    }
+    if (hasComponent(world.world, Production, eid)) {
+      return (Production.resourceType[eid] ?? 0) === 0 ? 'gold_mine' : 'energy_tower';
     }
     return null;
   }
@@ -1446,6 +1482,7 @@ export class RenderSystem implements System {
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
         const sceneUnitArtId = this.getSceneUnitArtId(world, eid);
+        const unitSpriteState = this.getUnitSpriteState(eid);
         const movingEnemyBreathScale = getMovingEnemyBreathScale(
           Visual.breathPhase[eid] ?? 0,
           isEnemy &&
@@ -1463,7 +1500,7 @@ export class RenderSystem implements System {
           attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 * movingEnemyBreathScale : 1.35),
           displayAlpha,
           renderZ,
-          { stroke: strokeColor, strokeWidth: strokeW },
+          { state: unitSpriteState, stroke: strokeColor, strokeWidth: strokeW },
         );
         if (spriteDrawn) {
           // Keep procedural rendering as fallback only; state overlays still render below.

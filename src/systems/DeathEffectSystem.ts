@@ -1,5 +1,6 @@
 import { TowerWorld, type System } from '../core/World.js';
 import { DeathEffect } from '../core/components.js';
+import { clearDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 
 export class DeathEffectSystem implements System {
   readonly name = 'DeathEffectSystem';
@@ -9,6 +10,7 @@ export class DeathEffectSystem implements System {
       if (DeathEffect.duration[eid]! > 0) {
         DeathEffect.elapsed[eid]! += dt;
         if (DeathEffect.elapsed[eid]! >= DeathEffect.duration[eid]!) {
+          clearDeathSpriteArtId(eid);
           world.destroyEntity(eid);
         }
       }
