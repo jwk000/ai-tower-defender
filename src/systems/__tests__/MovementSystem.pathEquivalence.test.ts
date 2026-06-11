@@ -146,6 +146,42 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
     expect(atFinal.y).toBeCloseTo(3 * TILE + TILE / 2, 2);
   });
 
+  it('turning from vertical path into left segment flips enemy facing on the turn frame', () => {
+    const path: GridPos[] = [
+      { row: 0, col: 1 },
+      { row: 1, col: 1 },
+      { row: 1, col: 0 },
+    ];
+    const map = makeMapWithPath(path);
+    const world = new TowerWorld();
+    const sys = new MovementSystem(map);
+    const eid = spawnEnemy(world, path[0]!.col * TILE + TILE / 2, path[0]!.row * TILE + TILE / 2, TILE);
+    Visual.facing[eid] = 1;
+
+    sys.update(world, 1);
+
+    expect(Movement.pathIndex[eid]).toBe(1);
+    expect(Visual.facing[eid]).toBe(-1);
+  });
+
+  it('turning from vertical path into right segment flips enemy facing on the turn frame', () => {
+    const path: GridPos[] = [
+      { row: 0, col: 0 },
+      { row: 1, col: 0 },
+      { row: 1, col: 1 },
+    ];
+    const map = makeMapWithPath(path);
+    const world = new TowerWorld();
+    const sys = new MovementSystem(map);
+    const eid = spawnEnemy(world, path[0]!.col * TILE + TILE / 2, path[0]!.row * TILE + TILE / 2, TILE);
+    Visual.facing[eid] = -1;
+
+    sys.update(world, 1);
+
+    expect(Movement.pathIndex[eid]).toBe(1);
+    expect(Visual.facing[eid]).toBe(1);
+  });
+
   it('zigzag 6-waypoint path: enemy passes through every intermediate waypoint index', () => {
     const path: GridPos[] = [
       { row: 0, col: 0 },

@@ -154,6 +154,7 @@ export class MovementSystem implements System {
 
       const current = path[pathIndex]!;
       const next = path[pathIndex + 1]!;
+      this.syncEnemyFacingToPathSegment(eid, path, pathIndex);
 
       // World-space coordinates of current and next waypoint
       const cx = current.col * ts + ts / 2 + ox;
@@ -184,6 +185,7 @@ export class MovementSystem implements System {
         Movement.progress[eid] = 0;
         newX = nx;
         newY = ny;
+        this.syncEnemyFacingToPathSegment(eid, path, pathIndex + 1);
       } else {
         Movement.progress[eid] = progress;
         newX = cx + dx * progress;
@@ -194,8 +196,6 @@ export class MovementSystem implements System {
       Position.y[eid] = newY;
 
       const stepDx = Position.x[eid]! - posX;
-      if (stepDx > 0.05) Visual.facing[eid] = 1;
-      else if (stepDx < -0.05) Visual.facing[eid] = -1;
       if (Math.abs(stepDx) > 0.05) {
         Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
       }
@@ -246,8 +246,22 @@ export class MovementSystem implements System {
     Position.y[eid] = wp.row * ts + ts / 2 + oy;
     Movement.pathIndex[eid] = nearestIdx;
     Movement.progress[eid] = 0;
+    this.syncEnemyFacingToPathSegment(eid, path, nearestIdx);
 
     return true;
+  }
+
+  private syncEnemyFacingToPathSegment(eid: number, path: readonly GridPos[], pathIndex: number): void {
+    if (pathIndex < 0 || pathIndex >= path.length - 1) return;
+
+    const current = path[pathIndex]!;
+    const next = path[pathIndex + 1]!;
+    const horizontalStep = next.col - current.col;
+    if (horizontalStep > 0) {
+      Visual.facing[eid] = 1;
+    } else if (horizontalStep < 0) {
+      Visual.facing[eid] = -1;
+    }
   }
 
   /** Perpendicular distance from point to line segment (ax,ay)-(bx,by) */
