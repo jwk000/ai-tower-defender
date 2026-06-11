@@ -27,6 +27,8 @@ const STAR_SPACING = 60;
 const PHASE1_DURATION = 1.2;  // title pop-in
 const PHASE2_DURATION = 3.0;  // confetti + stars
 // Phase 3 starts at PHASE1 + PHASE2, runs until player clicks
+const VICTORY_TYPEWRITER_START = 0.45;
+const VICTORY_TYPEWRITER_CPS = 20;
 const DEFEAT_TYPEWRITER_START = 0.85;
 const DEFEAT_TYPEWRITER_CPS = 18;
 
@@ -145,7 +147,7 @@ export class VictoryScreenSystem implements System {
         }
         break;
       case VictoryPhase.Phase3:
-        if (this.phaseElapsed >= 1.2 && !this.continueButtonVisible) {
+        if (this.isVictoryStoryComplete() && !this.continueButtonVisible) {
           this.continueButtonVisible = true;
         }
         break;
@@ -596,31 +598,29 @@ export class VictoryScreenSystem implements System {
     if (!ctx) return;
 
     const shouldSkip = this.shouldSkipStory();
-    const fade = easeOutCubic(Math.min(1, this.phaseElapsed / 1.0));
+    const titleFade = easeOutCubic(Math.min(1, this.phaseElapsed / 0.7));
     const maxW = Math.min(1120, designW - 240);
     const textX = cx;
-    const textY = y + 28 * (1 - fade);
+    const textY = y + 28 * (1 - titleFade);
     const storyTitle = shouldSkip ? '通关记录' : config.story.title;
-    const paragraphs = shouldSkip ? [config.story.summary] : config.story.paragraphs;
+    const visibleText = this.getVisibleVictoryText(config);
+    const lines = wrapParagraphLines(ctx, visibleText, maxW);
 
     ctx.save();
-    ctx.globalAlpha = fade;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
     ctx.shadowBlur = 14;
     ctx.lineJoin = 'round';
 
+    ctx.globalAlpha = titleFade;
     ctx.font = getFont(42, true);
     ctx.fillStyle = config.typography.accentColor;
     ctx.fillText(storyTitle, textX, textY);
 
+    ctx.globalAlpha = 1;
     ctx.font = getFont(30);
     ctx.fillStyle = config.typography.storyColor;
-    const lines: string[] = [];
-    for (const para of paragraphs) {
-      lines.push(...wrapTextLines(ctx, para, maxW));
-    }
 
     let lineY = textY + 68;
     for (const line of lines.slice(0, 5)) {
@@ -637,6 +637,21 @@ export class VictoryScreenSystem implements System {
     }
 
     ctx.restore();
+  }
+
+  private getVisibleVictoryText(config: VictoryConfig): string {
+    const paragraphs = this.shouldSkipStory() ? [config.story.summary] : config.story.paragraphs;
+    const fullText = paragraphs.join('\n');
+    const elapsed = Math.max(0, this.phaseElapsed - VICTORY_TYPEWRITER_START);
+    const visibleChars = Math.floor(elapsed * VICTORY_TYPEWRITER_CPS);
+    return fullText.slice(0, visibleChars);
+  }
+
+  private isVictoryStoryComplete(): boolean {
+    if (!this.config) return this.phaseElapsed >= 1.2;
+    const paragraphs = this.shouldSkipStory() ? [this.config.story.summary] : this.config.story.paragraphs;
+    const fullTextLength = paragraphs.join('\n').length;
+    return this.phaseElapsed >= VICTORY_TYPEWRITER_START + fullTextLength / VICTORY_TYPEWRITER_CPS + 0.35;
   }
 
   private drawDefeatStoryText(story: VictoryStory, config: VictoryConfig, cx: number, y: number, designW: number): void {
