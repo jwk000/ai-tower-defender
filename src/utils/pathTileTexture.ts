@@ -29,7 +29,11 @@ export function getTileTexturePath(map: MapConfig, row: number, col: number): st
   const tile = map.tiles[row]?.[col];
   if (!tile) return null;
 
-  const theme = map.artTheme ?? resolveMapArtTheme();
+  return getTileTexturePathForType(tile, map.artTheme);
+}
+
+export function getTileTexturePathForType(tile: TileType, themeName?: string): string | null {
+  const theme = resolveMapArtTheme(themeName);
   if (tile === TileType.Empty) return `/art/tiles/tile_${theme}_buildable.png`;
   if (tile === TileType.Blocked) return `/art/tiles/tile_${theme}_obstacle.png`;
   if (tile === TileType.Spawn) return `/art/tiles/tile_${theme}_path_endpoint_spawn.png`;

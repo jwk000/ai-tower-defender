@@ -1436,7 +1436,7 @@ export class RenderSystem implements System {
       // 设计文档: design/05-presentation.md §5 水晶视觉
       const isObjective = hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Objective;
       if (isObjective) {
-        this.drawCrystal(eid, posX, posY, dt);
+        this.drawCrystal(eid, posX, posY, dt, displayAlpha);
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
         const sceneUnitArtId = this.getSceneUnitArtId(world, eid);
@@ -1662,7 +1662,7 @@ export class RenderSystem implements System {
 
       const hasHealth = hasComponent(world.world, Health, eid);
       const barW = Math.max(drawSize * 1.2, 28);
-      if (hasHealth && !isProjectile && drawSize > 0 && isFinite(entityTop)) {
+      if (hasHealth && !isProjectile && drawSize > 0 && isFinite(entityTop) && displayAlpha > 0.01) {
         const hpCurrent = Health.current[eid]!;
         const hpMax = Health.max[eid]!;
         const ratio = hpMax > 0 ? hpCurrent / hpMax : 0;
@@ -2048,9 +2048,11 @@ export class RenderSystem implements System {
   // 六边形紫水晶主体 + 金色六角点缀 + 多层光效 + 旋转光点 + 射线 + 闪光粒子
   // 低血量 (<30%): 转为红色警戒 + 加速动画 + 更强烈的脉冲
   // ============================================
-  private drawCrystal(eid: number, posX: number, posY: number, dt: number): void {
+  private drawCrystal(eid: number, posX: number, posY: number, dt: number, alpha: number = 1): void {
     Visual.breathPhase[eid]! += dt;
     const phase = Visual.breathPhase[eid]!;
+    const renderAlpha = Math.max(0, Math.min(1, alpha));
+    if (renderAlpha <= 0) return;
 
     // ── 血量状态 ──
     const hpCurrent = Health.current[eid]!;
@@ -2098,7 +2100,7 @@ export class RenderSystem implements System {
         h: 86 + auraBreath * 10,
         color: '#ffffff',
         image: fx,
-        alpha: isLowHp ? 0.9 : 0.72,
+        alpha: (isLowHp ? 0.9 : 0.72) * renderAlpha,
         rotation: phase * 0.12 * speedMul,
         z: renderZ,
       });
@@ -2111,7 +2113,7 @@ export class RenderSystem implements System {
       shape: 'circle', x: posX, y: posY + 10,
       size: 50 + auraBreath * 8,
       color: glowAura,
-      alpha: 0.06 + auraBreath * 0.04,
+      alpha: (0.06 + auraBreath * 0.04) * renderAlpha,
       z: renderZ,
     });
 
@@ -2123,7 +2125,7 @@ export class RenderSystem implements System {
         shape: 'circle', x: cx, y: cy,
         size: 38 + i * 22 + auraBreath * 6,
         color: glowAura,
-        alpha: (0.08 - i * 0.025) + auraBreath * 0.03,
+        alpha: ((0.08 - i * 0.025) + auraBreath * 0.03) * renderAlpha,
         z: renderZ,
       });
     }
@@ -2144,7 +2146,7 @@ export class RenderSystem implements System {
         x: mx, y: my,
         size: 3.5 + moteFlicker * 1.5,
         color: goldAccent,
-        alpha: (0.45 + Math.sin(phase * 1.3 + i) * 0.2) * moteFlicker,
+        alpha: (0.45 + Math.sin(phase * 1.3 + i) * 0.2) * moteFlicker * renderAlpha,
         rotation: orbitAngle + Math.PI / 4,
         z: renderZ,
       });
@@ -2162,7 +2164,7 @@ export class RenderSystem implements System {
         h: 66,
         color: '#ffffff',
         image: crystal,
-        alpha: 1,
+        alpha: renderAlpha,
         z: renderZ,
       });
     } else {
@@ -2171,7 +2173,7 @@ export class RenderSystem implements System {
         x: cx, y: cy,
         size: 38,
         color: bodyDeep,
-        alpha: 1,
+        alpha: renderAlpha,
         stroke: isLowHp ? '#f87171' : '#8b5cf6',
         strokeWidth: 1.5,
         z: renderZ,
@@ -2187,7 +2189,7 @@ export class RenderSystem implements System {
         x: cx, y: cy - 3,
         size: 24,
         color: bodyMid,
-        alpha: 0.88,
+        alpha: 0.88 * renderAlpha,
         z: renderZ,
       });
     }
@@ -2205,7 +2207,7 @@ export class RenderSystem implements System {
           x: ex, y: ey,
           size: 4,
           color: goldAccent,
-          alpha: 0.65 + innerPulse * 0.2,
+          alpha: (0.65 + innerPulse * 0.2) * renderAlpha,
           rotation: edgeAngle,
           z: renderZ,
         });
@@ -2221,7 +2223,7 @@ export class RenderSystem implements System {
         x: cx, y: cy,
         size: 10 + innerPulse * 8,
         color: innerCore,
-        alpha: 0.7 + innerPulse * 0.25,
+        alpha: (0.7 + innerPulse * 0.25) * renderAlpha,
         z: renderZ,
       });
     }
@@ -2231,7 +2233,7 @@ export class RenderSystem implements System {
       x: cx, y: cy,
       size: 3 + innerPulse * 2,
       color: whitePure,
-      alpha: 0.4 + innerPulse * 0.5,
+      alpha: (0.4 + innerPulse * 0.5) * renderAlpha,
       z: renderZ,
     });
 
@@ -2248,7 +2250,7 @@ export class RenderSystem implements System {
         x: rx, y: ry,
         size: rayLen, h: 1.5,
         color: innerCore,
-        alpha: (0.12 + innerPulse * 0.18) * (isLowHp ? 1.5 : 1),
+        alpha: (0.12 + innerPulse * 0.18) * (isLowHp ? 1.5 : 1) * renderAlpha,
         rotation: rayAngle,
         z: renderZ,
       });
@@ -2276,7 +2278,7 @@ export class RenderSystem implements System {
         x: sx, y: sy,
         size: sSize,
         color: whitePure,
-        alpha: sAlpha,
+        alpha: sAlpha * renderAlpha,
         z: renderZ,
       });
     }

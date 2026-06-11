@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TileType, type MapConfig } from '../types/index.js';
-import { getTileTexturePath, isPathConnectable, resolveMapArtTheme } from './pathTileTexture.js';
+import { getTileTexturePath, getTileTexturePathForType, isPathConnectable, resolveMapArtTheme } from './pathTileTexture.js';
 
 function makeMap(tiles: TileType[][], artTheme: MapConfig['artTheme'] = 'meadow'): MapConfig {
   return {
@@ -90,6 +90,14 @@ describe('pathTileTexture', () => {
     expect(getTileTexturePath(map, 0, 2)).toBe('/art/tiles/tile_abyss_path_endpoint_crystal.png');
     expect(getTileTexturePath(map, 0, 3)).toBe('/art/tiles/tile_abyss_buildable.png');
     expect(getTileTexturePath(map, 0, 4)).toBe('/art/tiles/tile_abyss_obstacle.png');
+  });
+
+  it('returns tile texture paths directly from a tile type and theme', () => {
+    expect(getTileTexturePathForType(TileType.Empty, 'desert')).toBe('/art/tiles/tile_desert_buildable.png');
+    expect(getTileTexturePathForType(TileType.Path, 'castle')).toBe('/art/tiles/tile_castle_path.png');
+    expect(getTileTexturePathForType(TileType.Spawn, 'wasteland')).toBe('/art/tiles/tile_wasteland_path_endpoint_spawn.png');
+    expect(getTileTexturePathForType(TileType.Base, 'abyss')).toBe('/art/tiles/tile_abyss_path_endpoint_crystal.png');
+    expect(getTileTexturePathForType(TileType.Blocked, 'plains')).toBe('/art/tiles/tile_meadow_obstacle.png');
   });
 
   it('falls back to the base path texture for an isolated path tile', () => {

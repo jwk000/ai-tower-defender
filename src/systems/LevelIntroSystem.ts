@@ -5,11 +5,11 @@
 // 设计文档: design/05-presentation.md §11
 //
 // 五阶段仪式感动画：
-//   Phase 1 — 棋盘瓦片从天而降 (1.2s + 0.5s stagger)
+//   Phase 1 — 普通场景地格从天而降 (1.2s + 0.5s stagger)
 //   Phase 2 — 场景装饰显现 (0.6s fade)
-//   Phase 3 — 水晶显现 (0.6s fade + scale)
-//   Phase 4 — 传送门显现 (0.5s fade)
-//   Phase 5 — 路径沿行走路线铺展 (1.5s)
+//   Phase 3 — 水晶地格替换水晶位置 (0.6s fade)
+//   Phase 4 — 出生口地格替换出生口位置 (0.5s fade)
+//   Phase 5 — 路径按 path 顺序逐格替换普通场景地格 (20ms/格)
 // 动画完成后启动第一波倒计时。
 // ============================================================
 
@@ -20,9 +20,11 @@ import { Visual } from '../core/components.js';
 import { TileType, type MapConfig } from '../types/index.js';
 import { RenderSystem, computeSceneLayout } from './RenderSystem.js';
 import { DecorationSystem } from './DecorationSystem.js';
-import { isAdjacentToPath } from '../utils/grid.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import type { PathNode } from '../level/graph/types.js';
+import { getLoadedImage } from '../utils/imageCache.js';
+import { objectiveArtPath, objectiveFxArtPath } from '../utils/artAssets.js';
+import { getTileTexturePathForType } from '../utils/pathTileTexture.js';
 
 // ---- 阶段枚举 ----
 
@@ -42,8 +44,6 @@ interface TileAnimData {
   row: number;
   col: number;
   type: TileType;
-  color: string;
-  adjColor: string | null;
   targetX: number;
   targetY: number;
   startY: number;
@@ -57,6 +57,7 @@ interface PathTileEntry {
   row: number;
   col: number;
   distance: number;
+  sequence: number;
 }
 
 // ---- 静态配置 ----
@@ -66,7 +67,7 @@ const TILE_FALL_STAGGER = 0.5;
 const DECOR_FADE_DURATION = 0.6;
 const CRYSTAL_FADE_DURATION = 0.6;
 const SPAWN_FADE_DURATION = 0.5;
-const PATH_REVEAL_DURATION = 1.5;  // 总时长（秒）
+const PATH_TILE_INTERVAL = 0.02;
 
 export class LevelIntroSystem implements System {
   readonly name = 'LevelIntroSystem';
@@ -87,6 +88,7 @@ export class LevelIntroSystem implements System {
   // Path reveal
   private pathRevealOrder: PathTileEntry[] = [];
   private pathRevealIndex: number = 0;
+  private revealedPathTiles = new Set<string>();
 
   // 各阶段 alpha
   private decorAlpha: number = 0;
@@ -107,6 +109,7 @@ export class LevelIntroSystem implements System {
 
     this.collectTiles();
     this.computePathRevealOrder();
+    this.preloadIntroArt();
   }
 
   setBaseEntityId(eid: number): void {
@@ -125,6 +128,10 @@ export class LevelIntroSystem implements System {
     this.crystalAlpha = 0;
     this.spawnAlpha = 0;
     this.pathRevealIndex = 0;
+    this.revealedPathTiles.clear();
+    if (this.baseEntityId !== null) {
+      Visual.alpha[this.baseEntityId] = 0;
+    }
 
     // 抑制正常渲染
     RenderSystem.introActive = true;
@@ -221,8 +228,12 @@ export class LevelIntroSystem implements System {
       this.finishIntro();
       return;
     }
-    const progress = Math.min(1, this.timer / PATH_REVEAL_DURATION);
-    this.pathRevealIndex = Math.floor(progress * total);
+    this.pathRevealIndex = Math.min(total, Math.floor(this.timer / PATH_TILE_INTERVAL) + 1);
+    this.revealedPathTiles.clear();
+    for (let i = 0; i < this.pathRevealIndex; i++) {
+      const entry = this.pathRevealOrder[i];
+      if (entry) this.revealedPathTiles.add(`${entry.row},${entry.col}`);
+    }
     if (this.pathRevealIndex >= total) {
       this.pathRevealIndex = total;
       this.finishIntro();
@@ -233,6 +244,9 @@ export class LevelIntroSystem implements System {
     this.phase = IntroPhase.Complete;
     this.isActive = false;
     RenderSystem.introActive = false;
+    if (this.baseEntityId !== null) {
+      Visual.alpha[this.baseEntityId] = 1;
+    }
     this.onComplete?.();
   }
 
@@ -254,11 +268,6 @@ export class LevelIntroSystem implements System {
       }
     }
 
-    // 路径铺展叠加层：在已有棋盘格子上绘制蔓延高亮
-    if (this.phase === IntroPhase.PathReveal) {
-      this.renderPathOverlay(ctx);
-    }
-
     // 传送门特效（SpawnAppear 及之后）
     if (this.phase === IntroPhase.SpawnAppear ||
         this.phase === IntroPhase.PathReveal ||
@@ -266,43 +275,9 @@ export class LevelIntroSystem implements System {
       for (const tile of this.tiles) {
         if (tile.type === TileType.Spawn) {
           const alpha = this.phase === IntroPhase.SpawnAppear ? this.spawnAlpha : 1;
-          this.drawSpawnPortalSimple(ctx, tile.targetX, tile.targetY, alpha);
+          this.drawSpawnPortal(ctx, tile.targetX, tile.targetY, alpha);
         }
       }
-    }
-  }
-
-  /** 在路径格子上绘制流动高亮叠加（沿行走路线方向 sweep） */
-  private renderPathOverlay(ctx: CanvasRenderingContext2D): void {
-    const s = this.ts - 2;
-    const revealed = this.pathRevealOrder.slice(0, this.pathRevealIndex);
-
-    for (let i = 0; i < revealed.length; i++) {
-      const entry = revealed[i]!;
-      const tile = this.tiles.find(t => t.row === entry.row && t.col === entry.col);
-      if (!tile) continue;
-
-      // 沿路线进度渐变：越近 spawn 越"旧"（恢复到正常色），越近前沿越亮
-      const progress = revealed.length > 1 ? i / (revealed.length - 1) : 1;
-      const brightness = 0.3 + (1 - progress) * 0.5; // 头部最亮，尾部收敛
-
-      const x = tile.targetX;
-      const y = tile.targetY;
-
-      ctx.save();
-      // 亮色叠加覆盖原路径瓦片
-      ctx.fillStyle = '#c4a96a';  // 亮金色路径
-      ctx.globalAlpha = brightness;
-      ctx.fillRect(x - s / 2, y - s / 2, s, s);
-
-      // 展开前沿（最后几个格子）额外光晕
-      if (i >= revealed.length - 5) {
-        const trailAlpha = (i - (revealed.length - 5)) / 5 * 0.4;
-        ctx.fillStyle = '#ffd54f';
-        ctx.globalAlpha = trailAlpha;
-        ctx.fillRect(x - s / 2, y - s / 2, s, s);
-      }
-      ctx.restore();
     }
   }
 
@@ -319,56 +294,114 @@ export class LevelIntroSystem implements System {
 
     tile.currentY = tile.startY + (tile.targetY - tile.startY) * eased;
 
-    ctx.save();
-    ctx.fillStyle = tile.color;
-    const s = this.ts - 2;
-    ctx.fillRect(tile.targetX - s / 2, tile.currentY - s / 2, s, s);
-    ctx.restore();
+    this.drawTile(ctx, tile.targetX, tile.currentY, TileType.Empty, 1);
   }
 
   private renderTileNormal(ctx: CanvasRenderingContext2D, tile: TileAnimData): void {
     const x = tile.targetX;
     const y = tile.targetY;
-    const s = this.ts - 2;
 
-    // 路径瓦片在 TilesFalling 阶段由 renderTileFalling 处理，其他阶段正常渲染
-    if (tile.type === TileType.Path && (this.phase === IntroPhase.TilesFalling)) {
-      return; // handled by renderTileFalling
+    this.drawTile(ctx, x, y, TileType.Empty, 1);
+
+    if (tile.type === TileType.Base && this.phaseAtLeast(IntroPhase.CrystalAppear)) {
+      const alpha = this.phase === IntroPhase.CrystalAppear ? this.crystalAlpha : 1;
+      this.drawTile(ctx, x, y, TileType.Base, alpha);
+      return;
     }
 
-    // 生成口瓦片：Phase 4 之前隐藏
-    if (tile.type === TileType.Spawn && this.phase !== IntroPhase.SpawnAppear &&
-        this.phase !== IntroPhase.PathReveal && this.phase !== IntroPhase.Complete) {
-      const isAfterFall = this.phase !== IntroPhase.TilesFalling;
-      if (isAfterFall) return;
+    if (tile.type === TileType.Spawn && this.phaseAtLeast(IntroPhase.SpawnAppear)) {
+      const alpha = this.phase === IntroPhase.SpawnAppear ? this.spawnAlpha : 1;
+      this.drawTile(ctx, x, y, TileType.Spawn, alpha);
+      return;
     }
+
+    if (tile.type === TileType.Path && this.phaseAtLeast(IntroPhase.PathReveal) && this.revealedPathTiles.has(`${tile.row},${tile.col}`)) {
+      this.drawTile(ctx, x, y, TileType.Path, 1);
+    }
+  }
+
+  private drawTile(ctx: CanvasRenderingContext2D, cx: number, cy: number, type: TileType, alpha: number): void {
+    const texturePath = getTileTexturePathForType(type, this.map.artTheme);
+    const texture = texturePath ? getLoadedImage(texturePath) : null;
+    const s = texture ? this.ts : this.ts - 2;
 
     ctx.save();
-    ctx.fillStyle = tile.color;
-    ctx.fillRect(x - s / 2, y - s / 2, s, s);
-    ctx.restore();
-
-    // 邻路绿色叠加
-    if (tile.type === TileType.Empty && tile.adjColor) {
-      ctx.save();
-      ctx.fillStyle = tile.adjColor;
-      ctx.globalAlpha = 0.2;
-      ctx.fillRect(x - s / 2, y - s / 2, s, s);
-      ctx.strokeStyle = '#709470';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.2;
-      ctx.strokeRect(x - s / 2, y - s / 2, s, s);
-      ctx.restore();
+    ctx.globalAlpha = alpha;
+    if (texture) {
+      ctx.drawImage(texture, cx - s / 2, cy - s / 2, s, s);
+    } else {
+      ctx.fillStyle = this.getFallbackTileColor(type);
+      ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
     }
+    ctx.restore();
+  }
+
+  private getFallbackTileColor(type: TileType): string {
+    const tc = this.map.tileColors ?? {};
+    const defaults: Partial<Record<TileType, string>> = {
+      [TileType.Empty]: '#5e6b4e',
+      [TileType.Path]: '#8a7d6b',
+      [TileType.Blocked]: '#566570',
+      [TileType.Spawn]: '#b86b1e',
+      [TileType.Base]: '#1866a8',
+    };
+    return tc[type] ?? defaults[type] ?? '#333333';
+  }
+
+  private preloadIntroArt(): void {
+    for (const type of [TileType.Empty, TileType.Path, TileType.Base, TileType.Spawn]) {
+      const path = getTileTexturePathForType(type, this.map.artTheme);
+      if (path) getLoadedImage(path);
+    }
+    getLoadedImage(objectiveArtPath('spawn_portal'));
+    getLoadedImage(objectiveFxArtPath('spawn_portal'));
+  }
+
+  private phaseAtLeast(phase: IntroPhase): boolean {
+    const order: Record<IntroPhase, number> = {
+      [IntroPhase.None]: 0,
+      [IntroPhase.TilesFalling]: 1,
+      [IntroPhase.DecorAppear]: 2,
+      [IntroPhase.CrystalAppear]: 3,
+      [IntroPhase.SpawnAppear]: 4,
+      [IntroPhase.PathReveal]: 5,
+      [IntroPhase.Complete]: 6,
+    };
+    return order[this.phase] >= order[phase];
   }
 
   // ============================================================
   // 传送门（精简版）
   // ============================================================
 
-  private drawSpawnPortalSimple(ctx: CanvasRenderingContext2D, cx: number, cy: number, alpha: number): void {
+  private drawSpawnPortal(ctx: CanvasRenderingContext2D, cx: number, cy: number, alpha: number): void {
     const r = this.ts * 0.44;
-    const t = this.timer * 0.001;
+    const t = this.timer;
+    const fx = getLoadedImage(objectiveFxArtPath('spawn_portal'));
+    const portal = getLoadedImage(objectiveArtPath('spawn_portal'));
+
+    if (fx || portal) {
+      if (fx) {
+        const pulse = 1 + Math.sin(t * 1.4) * 0.04;
+        const s = this.ts * 1.34 * pulse;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.72;
+        ctx.translate(cx, cy);
+        ctx.rotate(t * 0.18);
+        ctx.drawImage(fx, -s / 2, -s / 2, s, s);
+        ctx.restore();
+      }
+      if (portal) {
+        const s = this.ts * 1.06;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.98;
+        ctx.translate(cx, cy);
+        ctx.rotate(-t * 0.28);
+        ctx.drawImage(portal, -s / 2, -s / 2, s, s);
+        ctx.restore();
+      }
+      if (portal) return;
+    }
 
     ctx.save();
     ctx.globalAlpha = alpha * 0.9;
@@ -418,46 +451,16 @@ export class LevelIntroSystem implements System {
 
   private collectTiles(): void {
     const map = this.map;
-    const tc = map.tileColors ?? {};
-    const defaults: Partial<Record<TileType, string>> = {
-      [TileType.Empty]: '#5e6b4e',
-      [TileType.Path]: '#8a7d6b',
-      [TileType.Blocked]: '#566570',
-      [TileType.Spawn]: '#b86b1e',
-      [TileType.Base]: '#1866a8',
-    };
 
     for (let r = 0; r < map.rows; r++) {
       for (let c = 0; c < map.cols; c++) {
         const tile = map.tiles[r]![c]!;
         const x = c * this.ts + this.ts / 2 + this.ox;
         const y = r * this.ts + this.ts / 2 + this.oy;
-        let color: string;
-        let adjColor: string | null = null;
-
-        switch (tile) {
-          case TileType.Empty: {
-            const adjacent = isAdjacentToPath(r, c, map);
-            if (tc[TileType.Empty]) {
-              color = tc[TileType.Empty]!;
-            } else {
-              color = adjacent ? '#6b7d5e' : defaults[TileType.Empty]!;
-            }
-            if (adjacent && !tc[TileType.Empty]) {
-              adjColor = '#5c7e5c';
-            }
-            break;
-          }
-          default:
-            color = tc[tile] ?? defaults[tile] ?? '#333333';
-            break;
-        }
-
         const startY = -200 - Math.random() * 400;
 
         this.tiles.push({
           row: r, col: c, type: tile,
-          color, adjColor,
           targetX: x, targetY: y,
           startY, currentY: startY,
           delay: 0,
@@ -483,53 +486,50 @@ export class LevelIntroSystem implements System {
     const nodeById = new Map<string, PathNode>();
     for (const n of nodes) nodeById.set(n.id, n);
 
-    // 从第一个 spawn 出发，沿边走到 crystal_anchor
-    const entries: PathTileEntry[] = [];
-    const visitedEdges = new Set<string>();
-    const startNode = spawnNodes[0]!;
-    const stack = [startNode];
-    const visitedNodes = new Set<string>();
-    visitedNodes.add(startNode.id);
+    const outgoing = new Map<string, string[]>();
+    for (const edge of edges) {
+      const list = outgoing.get(edge.from) ?? [];
+      list.push(edge.to);
+      outgoing.set(edge.from, list);
+    }
 
-    let dist = 0;
-    while (stack.length > 0) {
-      const node = stack.pop()!;
+    const entriesByTile = new Map<string, PathTileEntry>();
+    let sequence = 0;
+    for (const spawnNode of spawnNodes) {
+      const queue: Array<{ node: PathNode; distance: number }> = [{ node: spawnNode, distance: 0 }];
+      const visitedNodes = new Set<string>([spawnNode.id]);
 
-      for (const edge of edges) {
-        const edgeKey = `${edge.from}→${edge.to}`;
-        if (visitedEdges.has(edgeKey)) continue;
-        visitedEdges.add(edgeKey);
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        const targets = outgoing.get(current.node.id) ?? [];
 
-        let fromNode: typeof node | undefined;
-        let toNode: typeof node | undefined;
-        if (edge.from === node.id) {
-          fromNode = node;
-          toNode = nodeById.get(edge.to);
-        } else if (edge.to === node.id) {
-          fromNode = nodeById.get(edge.from);
-          toNode = node;
-        } else {
-          continue;
-        }
+        for (const targetId of targets) {
+          const targetNode = nodeById.get(targetId);
+          if (!targetNode) continue;
 
-        if (!fromNode || !toNode) continue;
+          const steps = this.interpolateEdge(current.node.col, current.node.row, targetNode.col, targetNode.row);
+          let stepDistance = current.distance;
+          for (const [c, r] of steps) {
+            if (r < 0 || r >= map.rows || c < 0 || c >= map.cols) continue;
+            if (map.tiles[r]![c]! !== TileType.Path) continue;
+            const key = `${r},${c}`;
+            const existing = entriesByTile.get(key);
+            if (!existing || stepDistance < existing.distance) {
+              entriesByTile.set(key, { row: r, col: c, distance: stepDistance, sequence: sequence++ });
+            }
+            stepDistance++;
+          }
 
-        // 沿边插值格子
-        const steps = this.interpolateEdge(fromNode.col, fromNode.row, toNode.col, toNode.row);
-        for (const [c, r] of steps) {
-          if (r < 0 || r >= map.rows || c < 0 || c >= map.cols) continue;
-          if (map.tiles[r]![c]! !== TileType.Path) continue;
-          entries.push({ row: r, col: c, distance: dist++ });
-        }
-
-        if (!visitedNodes.has(toNode.id)) {
-          visitedNodes.add(toNode.id);
-          stack.push(toNode);
+          if (!visitedNodes.has(targetNode.id)) {
+            visitedNodes.add(targetNode.id);
+            queue.push({ node: targetNode, distance: stepDistance });
+          }
         }
       }
     }
 
-    this.pathRevealOrder = entries;
+    this.pathRevealOrder = [...entriesByTile.values()]
+      .sort((a, b) => a.distance - b.distance || a.sequence - b.sequence);
   }
 
   /** 两点间插值，生成经过的格子坐标列表 */
