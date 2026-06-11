@@ -60,7 +60,7 @@ import type {
 } from '../ui/LayoutConstants.js';
 import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 import { cardArtPath, buffArtPath, uiArtPath } from '../utils/artAssets.js';
-import { drawLoadedImage } from '../utils/imageCache.js';
+import { drawLoadedImage, drawLoadedImage9Slice, type NineSliceInsets } from '../utils/imageCache.js';
 
 // Re-export for backward compatibility
 export {
@@ -96,7 +96,7 @@ interface CardIconDraw {
 }
 
 interface UIImageDraw {
-  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front';
+  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice'; slice?: NineSliceInsets;
 }
 
 // ============================================================
@@ -162,6 +162,10 @@ const UI_Z = {
   NORMAL_UI: 100,
   FULLSCREEN_UI: 1000,
 } as const;
+
+const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 96 };
+const UI_BUTTON_SLICE: NineSliceInsets = { left: 160, right: 160, top: 96, bottom: 96 };
+const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
 
@@ -643,7 +647,7 @@ export class UISystem implements System {
       if (image.layer !== layer || image.phase !== 'back') continue;
       ctx.save();
       ctx.globalAlpha = image.alpha ?? 1;
-      drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
+      this.drawUIImage(ctx, image);
       ctx.restore();
     }
 
@@ -657,7 +661,7 @@ export class UISystem implements System {
       if (image.layer !== layer || image.phase === 'back') continue;
       ctx.save();
       ctx.globalAlpha = image.alpha ?? 1;
-      drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
+      this.drawUIImage(ctx, image);
       ctx.restore();
     }
 
@@ -685,6 +689,13 @@ export class UISystem implements System {
     }
   }
 
+  private drawUIImage(ctx: CanvasRenderingContext2D, image: UIImageDraw): boolean {
+    if (image.mode === 'nine-slice' && image.slice) {
+      return drawLoadedImage9Slice(ctx, image.path, image.x, image.y, image.w, image.h, image.slice);
+    }
+    return drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
+  }
+
   // ---- Button drawing ----
 
   private drawButton(btn: UIButton): void {
@@ -703,8 +714,8 @@ export class UISystem implements System {
     // Button background
     ctx.fillStyle = enabled ? btn.color : '#555555';
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-    if (enabled) {
-      drawLoadedImage(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h);
+    if (enabled && btn.w >= 70 && btn.w / Math.max(1, btn.h) >= 2) {
+      drawLoadedImage9Slice(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h, UI_BUTTON_SLICE);
     }
 
     // Button border
@@ -791,6 +802,8 @@ export class UISystem implements System {
       layer: 'normal',
       alpha: 0.78,
       phase: 'back',
+      mode: 'nine-slice',
+      slice: UI_PANEL_SLICE,
     });
     this.renderer.push({
       shape: 'rect',
@@ -1046,6 +1059,8 @@ export class UISystem implements System {
       layer: 'normal',
       alpha: 0.9,
       phase: 'back',
+      mode: 'nine-slice',
+      slice: UI_HUD_SLICE,
     });
     this.renderer.push({
       shape: 'rect',
@@ -1720,6 +1735,8 @@ export class UISystem implements System {
       layer: 'fullscreen',
       alpha: 0.85,
       phase: 'back',
+      mode: 'nine-slice',
+      slice: UI_PANEL_SLICE,
     });
 
     // Title at top
