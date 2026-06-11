@@ -11,7 +11,7 @@ import {
   CategoryVal,
 } from '../../core/components.js';
 import { MovementSystem } from '../MovementSystem.js';
-import { RenderSystem } from '../RenderSystem.js';
+import { getMovingEnemyBreathScale, RenderSystem } from '../RenderSystem.js';
 import type { MapConfig, GridPos } from '../../types/index.js';
 import { TileType } from '../../types/index.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
@@ -180,6 +180,31 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
 
     expect(Movement.pathIndex[eid]).toBe(1);
     expect(Visual.facing[eid]).toBe(1);
+  });
+
+  it('moving enemy advances breath phase even on vertical path segments', () => {
+    const path: GridPos[] = [
+      { row: 0, col: 0 },
+      { row: 1, col: 0 },
+      { row: 2, col: 0 },
+    ];
+    const map = makeMapWithPath(path);
+    const world = new TowerWorld();
+    const sys = new MovementSystem(map);
+    const eid = spawnEnemy(world, path[0]!.col * TILE + TILE / 2, path[0]!.row * TILE + TILE / 2, TILE / 2);
+    Visual.breathPhase[eid] = 0;
+
+    sys.update(world, 0.5);
+
+    expect(Position.y[eid]).toBeGreaterThan(path[0]!.row * TILE + TILE / 2);
+    expect(Visual.breathPhase[eid]).toBeGreaterThan(0);
+    expect(Movement.currentSpeed[eid]).toBeGreaterThan(0);
+  });
+
+  it('moving enemy breath scale uses exactly two scale frames only while active', () => {
+    expect(getMovingEnemyBreathScale(0, true)).toBeCloseTo(1.04, 5);
+    expect(getMovingEnemyBreathScale(Math.PI + 0.01, true)).toBe(1);
+    expect(getMovingEnemyBreathScale(0, false)).toBe(1);
   });
 
   it('zigzag 6-waypoint path: enemy passes through every intermediate waypoint index', () => {

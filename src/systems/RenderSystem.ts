@@ -159,6 +159,7 @@ const RANK_STAR_GAP = 2;
 const RANK_STAR_ROW_GAP = 2;
 const RANK_INSIGNIA_BLOCK_WIDTH = 14;
 const RANK_INSIGNIA_NAME_GAP = 4;
+const MOVING_ENEMY_BREATH_SCALE = 1.04;
 
 const tileTextureCache = new Map<string, HTMLImageElement>();
 const unitSpriteCache = new Map<string, HTMLImageElement>();
@@ -189,6 +190,11 @@ function getLoadedUnitSprite(path: string): HTMLImageElement | null {
   image.src = url;
   unitSpriteCache.set(url, image);
   return null;
+}
+
+export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
+  if (!active) return 1;
+  return Math.sin(phase) >= 0 ? MOVING_ENEMY_BREATH_SCALE : 1;
 }
 
 export class RenderSystem implements System {
@@ -1440,12 +1446,21 @@ export class RenderSystem implements System {
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
         const sceneUnitArtId = this.getSceneUnitArtId(world, eid);
+        const movingEnemyBreathScale = getMovingEnemyBreathScale(
+          Visual.breathPhase[eid] ?? 0,
+          isEnemy &&
+            hasComponent(world.world, Movement, eid) &&
+            (Movement.currentSpeed[eid] ?? 0) > 0.05 &&
+            !hasFrozen &&
+            !(hasStunnedComponent && Stunned.timer[eid]! > 0) &&
+            Visual.attackAnimTimer[eid]! <= 0,
+        );
         const spriteDrawn = sceneUnitArtId !== null && this.drawUnitSprite(
           sceneUnitArtId,
           eid,
           attackAnimPosX,
           attackAnimPosY,
-          attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 : 1.35),
+          attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 * movingEnemyBreathScale : 1.35),
           displayAlpha,
           renderZ,
           { stroke: strokeColor, strokeWidth: strokeW },

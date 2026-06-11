@@ -20,6 +20,9 @@ const PATH_RECOVERY_MULT = 1.5;
 /** Distance (px) within which a soldier considers itself at its patrol target */
 const SOLDIER_REACH_THRESHOLD = 5;
 
+/** Moving enemy two-frame breath cadence. RenderSystem maps the phase to 100% / 104% scale. */
+const ENEMY_MOVE_BREATH_RATE = 8;
+
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
 
@@ -77,19 +80,29 @@ export class MovementSystem implements System {
       if (UnitTag.isEnemy[eid] !== 1) continue;
 
       // Skip stunned entities
-      if (Stunned.timer[eid]! > 0) continue;
+      if (Stunned.timer[eid]! > 0) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       // Skip frozen entities — completely immobilized
-      if (hasComponent(world.world, Frozen, eid)) continue;
+      if (hasComponent(world.world, Frozen, eid)) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       // Attack animation pause — stop moving during attack wind-down
       if (Visual.attackAnimTimer[eid]! > 0) {
         Visual.attackAnimTimer[eid] = Math.max(0, Visual.attackAnimTimer[eid]! - dt);
+        Movement.currentSpeed[eid] = 0;
         continue; // skip movement, but attack logic below won't re-fire due to cooldown
       }
 
       // Skip if not in follow-path mode
-      if (Movement.moveMode[eid] !== MoveModeVal.FollowPath) continue;
+      if (Movement.moveMode[eid] !== MoveModeVal.FollowPath) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       // Select path for this enemy's spawn point
       const spawnIdx = Movement.spawnIdx[eid]!;
@@ -99,6 +112,7 @@ export class MovementSystem implements System {
 
       // Reached end of path — attack animation + damage base
       if (pathIndex >= path.length - 1) {
+        Movement.currentSpeed[eid] = 0;
         if (hasComponent(world.world, Boss, eid)) {
           this.setPhase?.(GamePhase.Defeat);
           world.destroyEntity(eid);
@@ -149,6 +163,7 @@ export class MovementSystem implements System {
 
       // --- Path-recovery: detect if enemy was pushed off-path ---
       if (this.tryPathRecovery(eid, pathIndex, path, ts, ox, oy, posX, posY, spawnIdx)) {
+        Movement.currentSpeed[eid] = 0;
         continue; // position already snapped to nearest waypoint
       }
 
@@ -166,7 +181,10 @@ export class MovementSystem implements System {
       const dy = ny - cy;
       const segmentLen = Math.sqrt(dx * dx + dy * dy);
 
-      if (segmentLen <= 0) continue;
+      if (segmentLen <= 0) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       const rawSpeed = Movement.speed[eid]!;
       const buff = getEffectiveValue(eid, 'speed');
@@ -196,8 +214,12 @@ export class MovementSystem implements System {
       Position.y[eid] = newY;
 
       const stepDx = Position.x[eid]! - posX;
-      if (Math.abs(stepDx) > 0.05) {
+      const stepDy = Position.y[eid]! - posY;
+      const stepDist = Math.sqrt(stepDx * stepDx + stepDy * stepDy);
+      Movement.currentSpeed[eid] = dt > 0 ? stepDist / dt : 0;
+      if (stepDist > 0.05) {
         Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
+        Visual.breathPhase[eid] = ((Visual.breathPhase[eid] ?? 0) + dt * ENEMY_MOVE_BREATH_RATE) % (Math.PI * 2);
       }
 
       // 敌人攻击逻辑：如果有Attack组件，检查附近玩家单位并攻击
