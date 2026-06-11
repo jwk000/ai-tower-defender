@@ -146,6 +146,43 @@ describe('ScreenFXSystem 下雪天气特效', () => {
   });
 });
 
+describe('ScreenFXSystem 图片背景天空地标', () => {
+  it('晴天默认绘制太阳与阳光光束，图片背景开启后隐藏', () => {
+    const normal = new ScreenFXSystem();
+    const withBackground = new ScreenFXSystem();
+    const normalCtx = createMockContext();
+    const backgroundCtx = createMockContext();
+
+    normal.render(normalCtx, 0, WeatherType.Sunny);
+    withBackground.render(backgroundCtx, 0, WeatherType.Sunny, { backgroundImageActive: true });
+
+    const normalSunGlow = normalCtx.arcs.filter((arc) => hasGradientStop(arc, '255,248,200'));
+    const backgroundSunGlow = backgroundCtx.arcs.filter((arc) => hasGradientStop(arc, '255,248,200'));
+
+    expect(normalSunGlow.length).toBeGreaterThan(0);
+    expect(normalCtx.pathFills.length).toBeGreaterThan(0);
+    expect(backgroundSunGlow.length).toBe(0);
+    expect(backgroundCtx.pathFills.length).toBe(0);
+  });
+
+  it('夜晚图片背景开启后隐藏月亮但保留星空', () => {
+    const normal = new ScreenFXSystem();
+    const withBackground = new ScreenFXSystem();
+    const normalCtx = createMockContext();
+    const backgroundCtx = createMockContext();
+
+    normal.render(normalCtx, 0, WeatherType.Night);
+    withBackground.render(backgroundCtx, 0, WeatherType.Night, { backgroundImageActive: true });
+
+    const normalMoonArcs = normalCtx.arcs.filter((arc) => arc.radius >= 55);
+    const backgroundMoonArcs = backgroundCtx.arcs.filter((arc) => arc.radius >= 55);
+
+    expect(normalMoonArcs.length).toBe(4);
+    expect(backgroundMoonArcs.length).toBe(0);
+    expect(backgroundCtx.arcs.length).toBeGreaterThan(0);
+  });
+});
+
 describe('ScreenFXSystem 夜晚雾效叠加', () => {
   it('夜晚默认不绘制雾团', () => {
     const fx = new ScreenFXSystem();

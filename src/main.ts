@@ -63,6 +63,7 @@ import {
 } from './utils/Random.js';
 import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
+import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
 import { hexToRgb } from './utils/visualHelpers.js';
 import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
 
@@ -800,6 +801,7 @@ class TowerDefenderGame extends Game {
         // Screen FX overlay (design-space — transform maps to design area)
         this.screenFXSystem.render(ctx, 1 / 60, this.weatherSystem.currentWeather, {
           fogOverlay: map.lighting?.fogOverlay,
+          backgroundImageActive: this.debugManager.isBackgroundImageEnabled() && areArtResourcesEnabled(),
         });
       }
       // P0-1: 伤害飘字渲染（在场景之上、UI 之下）

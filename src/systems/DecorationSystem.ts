@@ -526,7 +526,7 @@ export class DecorationSystem implements System {
    * 当调试开关开启时，绘制关卡背景图替代天空渐变。
    */
   private drawBackground(): void {
-    if (this.getShowBgImage() && areArtResourcesEnabled()) {
+    if (this.isBackgroundImageActive()) {
       this.drawBackgroundImage();
       return;
     }
@@ -621,6 +621,10 @@ export class DecorationSystem implements System {
     img.src = fullPath;
   }
 
+  private isBackgroundImageActive(): boolean {
+    return this.getShowBgImage() && areArtResourcesEnabled();
+  }
+
   /** 通过地图主题色推断当前主题 */
   private detectTheme(): string {
     const tc = this.map.tileColors;
@@ -641,6 +645,7 @@ export class DecorationSystem implements System {
   /** 纯粒子云：预渲染软边粒子纹理 + 批量贴图，重叠自动融合 */
   private drawClouds(): void {
     if (this.getWeather() !== WeatherType.Sunny) return;
+    if (this.isBackgroundImageActive()) return;
 
     if (!this.cloudsInitialized) {
       this.initClouds();

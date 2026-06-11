@@ -76,12 +76,16 @@ export class ScreenFXSystem {
     ctx: CanvasRenderingContext2D,
     dt: number,
     weather: WeatherType,
-    options?: { fogOverlay?: Partial<FogOverlayConfig> },
+    options?: { fogOverlay?: Partial<FogOverlayConfig>; backgroundImageActive?: boolean },
   ): void {
     this.time += dt;
 
-    this.drawSun(ctx, weather);
-    this.drawSunRays(ctx, weather);
+    const drawSkyLandmarks = !options?.backgroundImageActive;
+
+    if (drawSkyLandmarks) {
+      this.drawSun(ctx, weather);
+      this.drawSunRays(ctx, weather);
+    }
     this.drawWindLines(ctx, weather);
     this.drawFogParticles(ctx, weather, options?.fogOverlay);
     this.drawRainDrops(ctx, weather);
@@ -89,7 +93,9 @@ export class ScreenFXSystem {
     this.drawDarkClouds(ctx, weather);
     this.drawRedMistAshClouds(ctx, weather);
     this.drawStars(ctx, weather);
-    this.drawMoon(ctx, weather);
+    if (drawSkyLandmarks) {
+      this.drawMoon(ctx, weather);
+    }
     this.drawVignette(ctx, weather);
   }
 
