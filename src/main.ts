@@ -1266,8 +1266,8 @@ class TowerDefenderGame extends Game {
     // P0-2: 胜利屏幕震动
     ScreenShakeSystem.triggerShake(this.world, 6, 0.5, 25);
 
-    // 启动胜利覆盖层（3阶段动画序列：VICTORY大字 → 彩带星星 → 故事面板）
-    this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared);
+    // 启动胜利覆盖层（3阶段动画序列：通关标题 → 彩带星星 → 剧情文字）
+    this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared, levelConfig.name);
   }
 
   private handleDefeat(): void {

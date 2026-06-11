@@ -549,22 +549,22 @@ Abyss（深渊层）    — 最低，预留
 
 ### 10.1 定位
 
-胜利界面是一个**全屏覆盖层**（z=1000），在战斗画面定格后以 3 阶段动画序列呈现。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动。详见 `design/04-levels.md` §9。
+胜利界面是一个**全屏覆盖层**（z=1000），在战斗画面定格后以单层 3 阶段动画序列呈现。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动。详见 `design/04-levels.md` §9。
 
 ### 10.2 渲染架构
 
 ```
 VictoryScreenSystem (implement System)
   ├── 内部状态机: Phase1 → Phase2 → Phase3 → Done
-  ├── Phase1 (0~1.5s): "VICTORY" 大字弹性弹出 (scale 3→1, elastic-out)
+  ├── Phase1 (0~1.2s): "恭喜你通关xxxx（关卡名）" 大字弹性弹出 (scale 2.2→1, elastic-out)
   │   └── 同步触发 ScreenShakeSystem (震幅6px, 持续0.5s, 频率25Hz)
-  ├── Phase2 (1.5~4.5s): 彩带飘落 + 星星评定逐个闪烁 (每颗0.5s间隔)
-  ├── Phase3 (4.5s+): 故事面板从底部滑入 (ease-out 0.5s)
-  │   └── 面板就绪后显示 "继续" 按钮
+  ├── Phase2 (1.2~4.2s): 彩带飘落 + 星星评定逐个闪烁 (每颗0.5s间隔)
+  ├── Phase3 (4.2s+): 通关剧情文字在同一层浮现，不绘制底框
+  │   └── 文字就绪后显示 "点击继续" 提示，整屏点击继续
   └── 绘制: 在 UISystem.renderUI() 之后，直接写 Canvas 2D
 ```
 
-VICTORY 文字使用 `typography.titleColor` 渐变填充，baseSize=96px。光晕随 alpha 从 0 → 30px 渐变。屏幕震动在 `main.ts:handleVictory()` 中通过 `ScreenShakeSystem.triggerShake()` 触发。
+通关标题使用 `typography.titleColor` 渐变填充，baseSize=64px，内容为“恭喜你通关xxxx（关卡名）”。光晕随 alpha 从 0 → 24px 渐变。屏幕震动在 `main.ts:handleVictory()` 中通过 `ScreenShakeSystem.triggerShake()` 触发。
 
 Defeat 模式跳过 Phase1/2，直接进入 Phase3 显示红色 "DEFEAT" 文字 + 失败故事面板。
 
@@ -614,24 +614,22 @@ interface ConfettiParticle {
 | 时间 | 阶段 | 事件 |
 |------|------|------|
 | t=0.00 | Phase1 开始 | 播放 `victory` SFX；交叉淡入 `victory` BGM；屏幕震动触发（震幅6px，持续0.5s） |
-| t=0.15 | Phase1 | "VICTORY" 文字从 scale=3.0、alpha=0 弹出到 scale=1.0、alpha=1（弹性缓出，持续0.6s） |
+| t=0.15 | Phase1 | “恭喜你通关xxxx（关卡名）”从 scale=2.2、alpha=0 弹出到 scale=1.0、alpha=1（弹性缓出，持续0.6s） |
 | t=1.00 | Phase1 | 屏幕震动结束 |
-| t=1.50 | Phase2 开始 | 彩带粒子生成（`confetti.count` 个）；星星评定开始逐个闪烁（每个星星0.4s间隔） |
-| t=4.50 | Phase3 开始 | 故事面板从底部滑入（translateY: +panelH→0，ease-out 0.5s）；文字逐段淡入（每段0.3s间隔）；"继续"按钮在最后一段文字后出现 |
-| t=8.00 | - | 面板完全就绪，等待玩家点击"继续" |
+| t=1.20 | Phase2 开始 | 彩带粒子生成（`confetti.count` 个）；星星评定开始逐个闪烁（每个星星0.5s间隔） |
+| t=4.20 | Phase3 开始 | 通关剧情标题和段落文字在同一覆盖层中浮现，文字较大，直接显示在画面上，不带底框 |
+| t=5.40 | - | “点击继续”提示出现，等待玩家点击任意位置继续 |
 | 点击后 | Done | 存储 `LevelCompletionState` → 跳转关卡选择界面 |
 
 ### 10.6 视觉规范
 
 | 元素 | 位置 | 尺寸/样式 |
 |------|------|----------|
-| "VICTORY" 大字 | 设计坐标 `(960, 380)` | 字号 96px，粗体，`titleColor` 渐变填充（从上到下），textAlign='center' |
-| 星星评定 | 大字下方 `(960, 480)` | 3 颗星水平排列，间距 40px，w=48px h=48px，未亮 star 灰色 `#555`，亮 star 金色 `#ffcc00` |
-| 故事面板 | 底部居中 `(960, 750)` | w=900×h=260，圆角16px，`panelBg` 填充，`panelBorder` 描边 2px |
-| 故事标题 | 面板内 `(68, 28)` | 字号 32px，粗体，`accentColor` |
-| 故事段落 | 面板内 `(68, 78)` 起，间距 8px | 字号 18px，`storyColor`，textAlign='left' |
-| "继续"按钮 | 面板内右下角 `(w-140, 200)` | w=120×h=42，圆角8px，`accentColor` 描边，文字"继续" |
-| 跳过提示（重复通关） | 屏幕右下 `(1800, 1020)` | 字号 14px，`rgba(255,255,255,0.4)`，"点击任意位置继续" |
+| 通关标题 | 设计坐标 `(960, 302)` | 字号 64px，粗体，`titleColor` 渐变填充（从上到下），textAlign='center'，内容为“恭喜你通关xxxx（关卡名）” |
+| 星星评定 | 标题下方 `(960, 421)` | 3 颗星水平排列，间距 60px，w=48px h=48px，未亮 star 灰色 `#555`，亮 star 金色 `#ffcc00` |
+| 剧情标题 | 设计坐标 `(960, 626)` | 字号 42px，粗体，`accentColor`，居中，无底框 |
+| 剧情段落 | 标题下方起始 `(960, 694)` | 字号 30px，`storyColor`，居中，按实际文本宽度换行，最多显示 5 行，无底框 |
+| 继续提示 | 底部居中 `(960, 962)` | 字号 20px，白色半透明呼吸闪烁，文字“点击继续”；整屏点击继续 |
 
 ### 10.7 关卡选择界面视觉衔接
 
