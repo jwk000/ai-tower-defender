@@ -60,6 +60,15 @@ interface PathTileEntry {
   sequence: number;
 }
 
+interface TileBreakEffect {
+  row: number;
+  col: number;
+  x: number;
+  y: number;
+  elapsed: number;
+  seed: number;
+}
+
 // ---- 静态配置 ----
 
 const TILE_FALL_DURATION = 1.2;
@@ -68,6 +77,8 @@ const DECOR_FADE_DURATION = 0.6;
 const CRYSTAL_FADE_DURATION = 0.6;
 const SPAWN_FADE_DURATION = 0.5;
 const PATH_TILE_INTERVAL = 0.02;
+const TILE_BREAK_DURATION = 0.42;
+const TILE_BREAK_GRID = 4;
 
 export class LevelIntroSystem implements System {
   readonly name = 'LevelIntroSystem';
@@ -88,7 +99,11 @@ export class LevelIntroSystem implements System {
   // Path reveal
   private pathRevealOrder: PathTileEntry[] = [];
   private pathRevealIndex: number = 0;
+  private previousPathRevealIndex: number = 0;
   private revealedPathTiles = new Set<string>();
+  private tileBreakEffects: TileBreakEffect[] = [];
+  private pathRevealDone: boolean = false;
+  private frameDt: number = 1 / 60;
 
   // 各阶段 alpha
   private decorAlpha: number = 0;
@@ -128,7 +143,10 @@ export class LevelIntroSystem implements System {
     this.crystalAlpha = 0;
     this.spawnAlpha = 0;
     this.pathRevealIndex = 0;
+    this.previousPathRevealIndex = 0;
+    this.pathRevealDone = false;
     this.revealedPathTiles.clear();
+    this.tileBreakEffects = [];
     if (this.baseEntityId !== null) {
       Visual.alpha[this.baseEntityId] = 0;
     }
@@ -150,6 +168,7 @@ export class LevelIntroSystem implements System {
 
   update(world: TowerWorld, dt: number): void {
     if (!this.isActive) return;
+    this.frameDt = dt;
     this.timer += dt;
 
     switch (this.phase) {
@@ -197,6 +216,7 @@ export class LevelIntroSystem implements System {
       DecorationSystem.introDecorAlpha = 1;
       this.phase = IntroPhase.CrystalAppear;
       this.timer = 0;
+      this.spawnBreakEffectsForType(TileType.Base);
     }
   }
 
@@ -210,6 +230,7 @@ export class LevelIntroSystem implements System {
       this.crystalAlpha = 1;
       this.phase = IntroPhase.SpawnAppear;
       this.timer = 0;
+      this.spawnBreakEffectsForType(TileType.Spawn);
     }
   }
 
@@ -228,14 +249,24 @@ export class LevelIntroSystem implements System {
       this.finishIntro();
       return;
     }
-    this.pathRevealIndex = Math.min(total, Math.floor(this.timer / PATH_TILE_INTERVAL) + 1);
-    this.revealedPathTiles.clear();
-    for (let i = 0; i < this.pathRevealIndex; i++) {
-      const entry = this.pathRevealOrder[i];
-      if (entry) this.revealedPathTiles.add(`${entry.row},${entry.col}`);
+    if (!this.pathRevealDone) {
+      this.pathRevealIndex = Math.min(total, Math.floor(this.timer / PATH_TILE_INTERVAL) + 1);
+      for (let i = this.previousPathRevealIndex; i < this.pathRevealIndex; i++) {
+        const entry = this.pathRevealOrder[i];
+        if (entry) this.spawnBreakEffect(entry.row, entry.col);
+      }
+      this.previousPathRevealIndex = this.pathRevealIndex;
+      this.revealedPathTiles.clear();
+      for (let i = 0; i < this.pathRevealIndex; i++) {
+        const entry = this.pathRevealOrder[i];
+        if (entry) this.revealedPathTiles.add(`${entry.row},${entry.col}`);
+      }
+      if (this.pathRevealIndex >= total) {
+        this.pathRevealIndex = total;
+        this.pathRevealDone = true;
+      }
     }
-    if (this.pathRevealIndex >= total) {
-      this.pathRevealIndex = total;
+    if (this.pathRevealDone && this.tileBreakEffects.length === 0) {
       this.finishIntro();
     }
   }
@@ -256,6 +287,7 @@ export class LevelIntroSystem implements System {
 
   private render(): void {
     const ctx = this.renderer.context;
+    this.updateTileBreakEffects();
 
     for (const tile of this.tiles) {
       switch (this.phase) {
@@ -267,6 +299,8 @@ export class LevelIntroSystem implements System {
           break;
       }
     }
+
+    this.renderTileBreakEffects(ctx);
 
     // 传送门特效（SpawnAppear 及之后）
     if (this.phase === IntroPhase.SpawnAppear ||
@@ -301,23 +335,26 @@ export class LevelIntroSystem implements System {
     const x = tile.targetX;
     const y = tile.targetY;
 
-    this.drawTile(ctx, x, y, TileType.Empty, 1);
-
     if (tile.type === TileType.Base && this.phaseAtLeast(IntroPhase.CrystalAppear)) {
       const alpha = this.phase === IntroPhase.CrystalAppear ? this.crystalAlpha : 1;
+      this.drawTile(ctx, x, y, TileType.Empty, 1 - alpha);
       this.drawTile(ctx, x, y, TileType.Base, alpha);
       return;
     }
 
     if (tile.type === TileType.Spawn && this.phaseAtLeast(IntroPhase.SpawnAppear)) {
       const alpha = this.phase === IntroPhase.SpawnAppear ? this.spawnAlpha : 1;
+      this.drawTile(ctx, x, y, TileType.Empty, 1 - alpha);
       this.drawTile(ctx, x, y, TileType.Spawn, alpha);
       return;
     }
 
     if (tile.type === TileType.Path && this.phaseAtLeast(IntroPhase.PathReveal) && this.revealedPathTiles.has(`${tile.row},${tile.col}`)) {
       this.drawTile(ctx, x, y, TileType.Path, 1);
+      return;
     }
+
+    this.drawTile(ctx, x, y, TileType.Empty, 1);
   }
 
   private drawTile(ctx: CanvasRenderingContext2D, cx: number, cy: number, type: TileType, alpha: number): void {
@@ -334,6 +371,117 @@ export class LevelIntroSystem implements System {
       ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
     }
     ctx.restore();
+  }
+
+  private updateTileBreakEffects(): void {
+    if (this.tileBreakEffects.length === 0) return;
+    for (const effect of this.tileBreakEffects) {
+      effect.elapsed += this.frameDt;
+    }
+    this.tileBreakEffects = this.tileBreakEffects.filter(effect => effect.elapsed < TILE_BREAK_DURATION);
+  }
+
+  private renderTileBreakEffects(ctx: CanvasRenderingContext2D): void {
+    if (this.tileBreakEffects.length === 0) return;
+
+    const texturePath = getTileTexturePathForType(TileType.Empty, this.map.artTheme);
+    const texture = texturePath ? getLoadedImage(texturePath) : null;
+    const fallback = this.getFallbackTileColor(TileType.Empty);
+    const sourceW = texture?.naturalWidth || texture?.width || 1;
+    const sourceH = texture?.naturalHeight || texture?.height || 1;
+    const pieceW = this.ts / TILE_BREAK_GRID;
+    const pieceH = this.ts / TILE_BREAK_GRID;
+
+    for (const effect of this.tileBreakEffects) {
+      const t = Math.min(1, effect.elapsed / TILE_BREAK_DURATION);
+      const easeOut = 1 - (1 - t) * (1 - t);
+      const alpha = (1 - t) * 0.92;
+
+      for (let i = 0; i < 10; i++) {
+        const a = this.hash01(effect.seed, 100 + i) * Math.PI * 2;
+        const r = (10 + this.hash01(effect.seed, 120 + i) * 28) * easeOut;
+        const px = effect.x + Math.cos(a) * r;
+        const py = effect.y + Math.sin(a) * r - Math.sin(t * Math.PI) * 8;
+        const pr = 1.2 + this.hash01(effect.seed, 140 + i) * 2.2;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.55;
+        ctx.fillStyle = i % 2 === 0 ? '#d8e7aa' : '#6c7f5c';
+        ctx.beginPath();
+        ctx.arc(px, py, pr * (1 - t * 0.45), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (let gy = 0; gy < TILE_BREAK_GRID; gy++) {
+        for (let gx = 0; gx < TILE_BREAK_GRID; gx++) {
+          const idx = gy * TILE_BREAK_GRID + gx;
+          const rx = this.hash01(effect.seed, idx * 3 + 1);
+          const ry = this.hash01(effect.seed, idx * 3 + 2);
+          const rr = this.hash01(effect.seed, idx * 3 + 3);
+          const localX = (gx + 0.5) * pieceW - this.ts / 2;
+          const localY = (gy + 0.5) * pieceH - this.ts / 2;
+          const awayAngle = Math.atan2(localY, localX) + (rx - 0.5) * 0.9;
+          const dist = (12 + rr * 26) * easeOut;
+          const lift = -Math.sin(t * Math.PI) * (6 + ry * 14);
+          const drawX = effect.x + localX + Math.cos(awayAngle) * dist;
+          const drawY = effect.y + localY + Math.sin(awayAngle) * dist + lift;
+          const rot = (rr - 0.5) * Math.PI * 1.2 * easeOut;
+          const scale = 1 - t * 0.18;
+          const dw = pieceW * scale;
+          const dh = pieceH * scale;
+
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = 'rgba(218, 238, 166, 0.35)';
+          ctx.shadowBlur = 4;
+          ctx.translate(drawX, drawY);
+          ctx.rotate(rot);
+          if (texture) {
+            const sx = gx * sourceW / TILE_BREAK_GRID;
+            const sy = gy * sourceH / TILE_BREAK_GRID;
+            const sw = sourceW / TILE_BREAK_GRID;
+            const sh = sourceH / TILE_BREAK_GRID;
+            ctx.drawImage(texture, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+          } else {
+            ctx.fillStyle = fallback;
+            ctx.fillRect(-dw / 2, -dh / 2, dw, dh);
+          }
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(230, 242, 180, 0.35)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  private spawnBreakEffectsForType(type: TileType): void {
+    for (const tile of this.tiles) {
+      if (tile.type === type) {
+        this.spawnBreakEffect(tile.row, tile.col);
+      }
+    }
+  }
+
+  private spawnBreakEffect(row: number, col: number): void {
+    const tile = this.tiles.find(candidate => candidate.row === row && candidate.col === col);
+    if (!tile) return;
+    this.tileBreakEffects.push({
+      row,
+      col,
+      x: tile.targetX,
+      y: tile.targetY,
+      elapsed: 0,
+      seed: (row + 1) * 73856093 ^ (col + 1) * 19349663,
+    });
+  }
+
+  private hash01(seed: number, salt: number): number {
+    let x = (seed ^ Math.imul(salt + 1, 0x45d9f3b)) | 0;
+    x = Math.imul(x ^ (x >>> 16), 0x45d9f3b);
+    x = Math.imul(x ^ (x >>> 16), 0x45d9f3b);
+    return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
   }
 
   private getFallbackTileColor(type: TileType): string {
