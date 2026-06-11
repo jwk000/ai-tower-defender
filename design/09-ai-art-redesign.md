@@ -240,6 +240,8 @@ dark fantasy casual tower defense boss sprite, {boss_subject}, oversized readabl
 
 技能特效以 2 帧为主：`charge_0` / `impact_1`。持续技能可循环播放两帧。
 
+法术卡释放链路使用的投射物、拖尾路径和命中特效必须交付真实 alpha 透明 PNG。AI 输出若为 RGB 或包含棋盘格 / 灰底假透明，接入前必须做本地去底，不能依赖运行时混合遮盖。
+
 | 效果 | 用途 | 提示词主体 |
 |------|------|------------|
 | 火焰爆发 | 火球术、火塔、灼烧 | `orange red fire explosion ring, ember particles, transparent background` |
@@ -493,6 +495,7 @@ dark fantasy casual level select node, {theme} miniature portal marker, black ir
 | 轮廓 | 64px 下仍能分辨类别 |
 | 色彩 | 与阵营、稀有度、元素属性一致 |
 | 背景 | 透明资产无白边、无脏边 |
+| 特效 | 投射物、拖尾、释放效果为 RGBA，透明区域 alpha 为 0，不能带棋盘格或灰底 |
 | 动画 | 2 帧循环不跳形、不漂移 |
 | UI | 不含文字，运行时文字有足够留白 |
 | 地格 | 地面复杂度低于单位，不抢焦点 |

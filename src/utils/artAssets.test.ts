@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetUrl, enemyArtPath, unitArtPath } from './artAssets.js';
+import { assetUrl, enemyArtPath, spellEffectArtPath, spellProjectileArtPath, unitArtPath } from './artAssets.js';
 
 describe('artAssets', () => {
   it('resolves public art paths against the Vite base URL', () => {
@@ -22,5 +22,14 @@ describe('artAssets', () => {
   it('builds scene unit sprite art paths', () => {
     expect(unitArtPath('tower_arrow')).toBe('/art/units/unit_tower_arrow_idle_0.png');
     expect(unitArtPath('goblin', 'idle', 1)).toBe('/art/units/unit_goblin_idle_1.png');
+  });
+
+  it('builds spell projectile and impact art paths', () => {
+    expect(spellProjectileArtPath(0)).toBe('/art/fx/fx_fire_explosion_charge_0.png');
+    expect(spellProjectileArtPath(1)).toBe('/art/fx/fx_arrow_rain_impact_1.png');
+    expect(spellProjectileArtPath(2)).toBe('/art/fx/fx_ice_burst_impact_1.png');
+    expect(spellProjectileArtPath(3)).toBe('/art/fx/fx_bomb_explosion_impact_1.png');
+    expect(spellEffectArtPath(0)).toBe('/art/fx/fx_fire_explosion_impact_1.png');
+    expect(spellEffectArtPath(99)).toBeNull();
   });
 });
