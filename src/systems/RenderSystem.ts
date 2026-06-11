@@ -45,6 +45,7 @@ import {
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
+import { assetUrl } from '../utils/artAssets.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
@@ -129,12 +130,13 @@ const tileTextureCache = new Map<string, HTMLImageElement>();
 function getLoadedTileTexture(path: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
 
-  const cached = tileTextureCache.get(path);
+  const url = assetUrl(path);
+  const cached = tileTextureCache.get(url);
   if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
 
   const image = new Image();
-  image.src = path;
-  tileTextureCache.set(path, image);
+  image.src = url;
+  tileTextureCache.set(url, image);
   return null;
 }
 

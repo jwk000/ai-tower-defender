@@ -1,5 +1,13 @@
 import type { TileArtTheme } from '../types/index.js';
 
+export function assetUrl(path: string, base = ((import.meta as any).env?.BASE_URL ?? '/')): string {
+  if (/^(?:https?:)?\/\//.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+  return `${normalizedBase}${path.replace(/^\//, '')}`;
+}
+
 export function cardArtPath(cardId: string): string {
   return `/art/cards/${cardId}.png`;
 }

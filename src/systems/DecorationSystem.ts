@@ -11,7 +11,7 @@ import { Renderer } from '../render/Renderer.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/index.js';
 import { computeSceneLayout } from './RenderSystem.js';
-import { backgroundArtPath } from '../utils/artAssets.js';
+import { assetUrl, backgroundArtPath } from '../utils/artAssets.js';
 
 /**
  * 复合几何体部件 —— 由多个简单形状组合成一个装饰物
@@ -604,8 +604,7 @@ export class DecorationSystem implements System {
 
   /** 加载关卡背景图（异步，加载完成后下次帧可见） */
   private loadBgImage(path: string): void {
-    const basePath = (import.meta as any).env?.BASE_URL ?? '/';
-    const fullPath = `${basePath}${path.replace(/^\//, '')}`;
+    const fullPath = assetUrl(path);
     console.log(`[DecorationSystem] 正在加载背景图: ${fullPath} (levelId=${this.levelId})`);
     this.bgImageLoaded = false;
     const img = new Image();

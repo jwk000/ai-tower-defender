@@ -1,14 +1,17 @@
+import { assetUrl } from './artAssets.js';
+
 const imageCache = new Map<string, HTMLImageElement>();
 
 export function getLoadedImage(path: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
 
-  const cached = imageCache.get(path);
+  const url = assetUrl(path);
+  const cached = imageCache.get(url);
   if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
 
   const image = new Image();
-  image.src = path;
-  imageCache.set(path, image);
+  image.src = url;
+  imageCache.set(url, image);
   return null;
 }
 
