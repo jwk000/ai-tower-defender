@@ -26,11 +26,11 @@ map:
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, empty, empty, empty, empty, empty, empty]
     - [empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, path, path, path, path, path, path, spawn]
   tileColors:
-    empty: '#5b5364'
-    path: '#80708c'
-    blocked: '#3d3548'
-    spawn: '#8d678f'
-    base: '#d6b85a'
+    empty: '#6f6877'
+    path: '#9b8aa8'
+    blocked: '#51485e'
+    spawn: '#a87daf'
+    base: '#dfc56a'
   lighting:
     moonlight:
       enabled: true

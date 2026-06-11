@@ -356,7 +356,7 @@ dark fantasy casual tower defense endpoint tile, {theme} {endpoint_type}, top-do
 | 沙漠虫潮 | `dark golden sand tile with sparse cracked texture` | `packed desert road tile with worm track marks` | `sandstone rock and insect burrow obstacle tile` |
 | 黑暗古堡 | `cold grey stone courtyard tile with moss cracks` | `dark slate path tile, worn gothic stone slabs` | `black ruined wall rubble obstacle tile` |
 | 末日废土 | `charcoal wasteland ground tile with red ash dust` | `cracked asphalt road tile with dark red dirt` | `rusted metal debris and broken concrete obstacle tile` |
-| 深渊裂隙 | `dark purple void stone tile with faint violet cracks` | `black violet rift path tile with glowing edge fissures` | `jagged abyss crystal and void rock obstacle tile` |
+| 深渊裂隙 | `readable medium purple gray void stone tile with faint violet cracks, not too dark` | `readable medium purple gray rift path tile with subtle glowing fissures, not too dark` | `medium dark abyss crystal and void rock obstacle tile, keep unit silhouettes readable` |
 
 ### 7.4 路径地格与端点清单
 
