@@ -566,7 +566,7 @@ VictoryScreenSystem (implement System)
 
 通关标题使用 `typography.titleColor` 渐变填充，baseSize=64px，内容为“恭喜你通关xxxx（关卡名）”。光晕随 alpha 从 0 → 24px 渐变。屏幕震动在 `main.ts:handleVictory()` 中通过 `ScreenShakeSystem.triggerShake()` 触发。
 
-Defeat 模式跳过 Phase1/2，直接进入 Phase3 显示红色 "DEFEAT" 文字 + 失败故事面板。
+Defeat 模式使用同一套全屏覆盖层，不再显示旧的 `UISystem` 失败覆盖层和失败故事面板。失败时直接显示失败剧情标题，剧情正文在同一层以打字机效果逐字出现，文字直接浮现在画面上且不带底框；正文打完后显示“点击返回”，整屏点击返回关卡选择。
 
 ### 10.3 彩带粒子系统
 
@@ -630,6 +630,8 @@ interface ConfettiParticle {
 | 剧情标题 | 设计坐标 `(960, 626)` | 字号 42px，粗体，`accentColor`，居中，无底框 |
 | 剧情段落 | 标题下方起始 `(960, 694)` | 字号 30px，`storyColor`，居中，按实际文本宽度换行，最多显示 5 行，无底框 |
 | 继续提示 | 底部居中 `(960, 962)` | 字号 20px，白色半透明呼吸闪烁，文字“点击继续”；整屏点击继续 |
+| 失败剧情标题 | 设计坐标 `(960, 367)` | 字号 42px，粗体，红色强调，使用 `defeatStory.title`，居中，无底框 |
+| 失败剧情正文 | 标题下方起始 `(960, 443)` | 字号 30px，`storyColor`，居中，按实际文本宽度换行，以打字机效果逐字显示；底部提示“点击返回” |
 
 ### 10.7 关卡选择界面视觉衔接
 

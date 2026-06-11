@@ -1538,9 +1538,9 @@ export class UISystem implements System {
     } else if (phase === GamePhase.Defeat) {
       this.selectedEntityId = null;
       this.selectedEntityType = null;
-      this.modalBackdropAlpha = 0.6;
-      this.hasFullscreenOverlay = true;
-      this.overlay = { phase, color: '#f44336', title: '失败!', subtext: '刷新页面重新开始' };
+      this.modalBackdropAlpha = 0;
+      this.hasFullscreenOverlay = false;
+      this.overlay = null;
     }
   }
 

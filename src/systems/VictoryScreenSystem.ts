@@ -27,6 +27,8 @@ const STAR_SPACING = 60;
 const PHASE1_DURATION = 1.2;  // title pop-in
 const PHASE2_DURATION = 3.0;  // confetti + stars
 // Phase 3 starts at PHASE1 + PHASE2, runs until player clicks
+const DEFEAT_TYPEWRITER_START = 0.85;
+const DEFEAT_TYPEWRITER_CPS = 18;
 
 // ============================================================
 // Confetti types
@@ -112,6 +114,13 @@ export class VictoryScreenSystem implements System {
 
     this.elapsed += dt;
     this.phaseElapsed += dt;
+
+    if (this.mode === 'defeat') {
+      if (this.isDefeatStoryComplete() && !this.continueButtonVisible) {
+        this.continueButtonVisible = true;
+      }
+      return;
+    }
 
     this.updatePhaseTransitions();
     this.updateParticles(dt);
@@ -252,7 +261,7 @@ export class VictoryScreenSystem implements System {
   handleClick(x: number, y: number): boolean {
     if (!this.active) return false;
 
-    if (this.continueButtonVisible && this.mode === 'victory') {
+    if (this.continueButtonVisible && (this.mode === 'victory' || this.mode === 'defeat')) {
       this.onContinueClick();
       return true;
     }
@@ -461,26 +470,8 @@ export class VictoryScreenSystem implements System {
 
     this.renderer.applyDesignTransform();
 
-    // 失败标题
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, this.elapsed * 3);
-    ctx.fillStyle = '#ff6b6b';
-    ctx.font = getFont(48, true);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 16;
-    ctx.fillText('DEFEAT', designW / 2, designH * 0.22);
-    ctx.shadowBlur = 0;
-    ctx.restore();
-
-    // 失败故事
     if (this.defeatStory) {
-      const storyConfig: VictoryConfig = {
-        ...config,
-        story: this.defeatStory,
-      };
-      this.drawStoryPanel(storyConfig, designW / 2, designH * 0.62);
+      this.drawDefeatStoryText(this.defeatStory, config, designW / 2, designH * 0.34, designW);
     }
   }
 
@@ -624,7 +615,7 @@ export class VictoryScreenSystem implements System {
     ctx.fillStyle = config.typography.accentColor;
     ctx.fillText(storyTitle, textX, textY);
 
-    ctx.font = `30px ${getFont(30)}`;
+    ctx.font = getFont(30);
     ctx.fillStyle = config.typography.storyColor;
     const lines: string[] = [];
     for (const para of paragraphs) {
@@ -640,12 +631,67 @@ export class VictoryScreenSystem implements System {
     if (this.continueButtonVisible) {
       const promptAlpha = 0.45 + Math.sin(this.elapsed * 4) * 0.15;
       ctx.globalAlpha = Math.max(0.25, Math.min(0.65, promptAlpha));
-      ctx.font = `20px ${getFont(20)}`;
+      ctx.font = getFont(20);
       ctx.fillStyle = '#ffffff';
       ctx.fillText('点击继续', textX, LayoutManager.DESIGN_H - 118);
     }
 
     ctx.restore();
+  }
+
+  private drawDefeatStoryText(story: VictoryStory, config: VictoryConfig, cx: number, y: number, designW: number): void {
+    const ctx = this.renderer.context;
+    if (!ctx) return;
+
+    const titleFade = easeOutCubic(Math.min(1, this.elapsed / 0.65));
+    const maxW = Math.min(1080, designW - 260);
+    const titleY = y + 24 * (1 - titleFade);
+    const visibleText = this.getVisibleDefeatText(story);
+    const lines = wrapParagraphLines(ctx, visibleText, maxW);
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.82)';
+    ctx.shadowBlur = 16;
+
+    ctx.globalAlpha = titleFade;
+    ctx.font = getFont(42, true);
+    ctx.fillStyle = '#ff9a8f';
+    ctx.fillText(story.title, cx, titleY);
+
+    ctx.globalAlpha = 1;
+    ctx.font = getFont(30);
+    ctx.fillStyle = config.typography.storyColor;
+
+    let lineY = titleY + 76;
+    for (const line of lines.slice(0, 5)) {
+      ctx.fillText(line, cx, lineY);
+      lineY += 42;
+    }
+
+    if (this.continueButtonVisible) {
+      const promptAlpha = 0.45 + Math.sin(this.elapsed * 4) * 0.15;
+      ctx.globalAlpha = Math.max(0.25, Math.min(0.65, promptAlpha));
+      ctx.font = getFont(20);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('点击返回', cx, LayoutManager.DESIGN_H - 118);
+    }
+
+    ctx.restore();
+  }
+
+  private getVisibleDefeatText(story: VictoryStory): string {
+    const fullText = story.paragraphs.join('\n');
+    const elapsed = Math.max(0, this.elapsed - DEFEAT_TYPEWRITER_START);
+    const visibleChars = Math.floor(elapsed * DEFEAT_TYPEWRITER_CPS);
+    return fullText.slice(0, visibleChars);
+  }
+
+  private isDefeatStoryComplete(): boolean {
+    if (!this.defeatStory) return this.elapsed >= 1.2;
+    const fullTextLength = this.defeatStory.paragraphs.join('\n').length;
+    return this.elapsed >= DEFEAT_TYPEWRITER_START + fullTextLength / DEFEAT_TYPEWRITER_CPS + 0.35;
   }
 
   private drawStoryPanel(config: VictoryConfig, cx: number, cy: number): void {
@@ -672,7 +718,7 @@ export class VictoryScreenSystem implements System {
 
     if (shouldSkip) {
       ctx.fillStyle = config.typography.storyColor;
-      ctx.font = `18px ${getFont(18)}`;
+      ctx.font = getFont(18);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(config.story.summary, cx, py + panelH / 2, panelW - 80);
@@ -696,7 +742,7 @@ export class VictoryScreenSystem implements System {
 
       // 段落文字
       ctx.fillStyle = config.typography.storyColor;
-      ctx.font = `16px ${getFont(16)}`;
+      ctx.font = getFont(16);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
 
@@ -776,5 +822,18 @@ function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: nu
   }
 
   if (current.length > 0) lines.push(current);
+  return lines;
+}
+
+function wrapParagraphLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const paragraphs = text.split('\n');
+  const lines: string[] = [];
+
+  for (let i = 0; i < paragraphs.length; i++) {
+    const para = paragraphs[i]!;
+    lines.push(...wrapTextLines(ctx, para, maxWidth));
+    if (i < paragraphs.length - 1) lines.push('');
+  }
+
   return lines;
 }

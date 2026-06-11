@@ -162,6 +162,7 @@ class TowerDefenderGame extends Game {
 
   private unitDragId: number | null = null;
   private defeatSfxPlayed = false;
+  private defeatHandled = false;
   private victoryHandled = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
 
@@ -196,6 +197,7 @@ class TowerDefenderGame extends Game {
       getHandSystem: () => (this.currentScreen === GameScreen.Battle ? this.handSystem : null),
       onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
       onSkipToVictory: () => this.skipToVictory(),
+      onSkipToDefeat: () => this.skipToDefeat(),
     });
 
     // Wheel event for encyclopedia scroll
@@ -314,6 +316,7 @@ class TowerDefenderGame extends Game {
     const map = config.map;
     this.currentMap = map;
     this.defeatSfxPlayed = false;
+    this.defeatHandled = false;
     this.victoryHandled = false;
     this.previousPhase = GamePhase.Deployment;
     Music.play(Music.getLevelBgm(this.currentLevelId));
@@ -1084,7 +1087,10 @@ class TowerDefenderGame extends Game {
           Sound.play('defeat');
           this.defeatSfxPlayed = true;
         }
-        this.handleDefeat();
+        if (!this.defeatHandled) {
+          this.defeatHandled = true;
+          this.handleDefeat();
+        }
       }
     };
 
@@ -1279,12 +1285,14 @@ class TowerDefenderGame extends Game {
 
     // 显示失败故事覆盖层
     const levelConfig = LEVELS[this.currentLevelId - 1];
-    if (levelConfig?.victory?.defeatStory) {
-      this.victoryScreenSystem.activateDefeat(levelConfig.victory.defeatStory, levelConfig.victory.typography);
-      return;
-    }
-    // 没有失败故事配则直接返回关卡选择
-    setTimeout(() => this.enterLevelSelect(), 1500);
+    const defeatStory = levelConfig?.victory?.defeatStory ?? {
+      title: '防线崩溃',
+      paragraphs: ['水晶被攻破，敌人暂时占据了这片战场。', '调整卡组和部署节奏，再次挑战。'],
+      summary: '挑战失败，请重新部署。',
+      showFullStoryOnlyFirst: false,
+    };
+    const typography = levelConfig?.victory?.typography ?? DEFAULT_VICTORY_CONFIG.typography;
+    this.victoryScreenSystem.activateDefeat(defeatStory, typography);
   }
 
   /** 🏁 调试：直接通关当前关卡（跳过所有波次） */
@@ -1303,6 +1311,17 @@ class TowerDefenderGame extends Game {
 
     // 直接触发胜利阶段
     this.phase = GamePhase.Victory;
+  }
+
+  /** 💀 调试：直接失败当前关卡（测试失败界面） */
+  private skipToDefeat(): void {
+    if (this.currentScreen !== GameScreen.Battle) return;
+    if (this.phase === GamePhase.Victory || this.phase === GamePhase.Defeat) return;
+
+    if (this.baseEntityId !== null) {
+      Health.current[this.baseEntityId] = 0;
+    }
+    this.phase = GamePhase.Defeat;
   }
 
   // ================================================================
