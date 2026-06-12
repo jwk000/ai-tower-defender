@@ -1143,7 +1143,22 @@ export class UISystem implements System {
     // Viewport-right-anchored button positions (design-space)
     const rightEdgeD = this.viewportRightDesignX();
     const rightControlsEdgeD = rightEdgeD - UISystem.TOP_HUD_SIDE_MARGIN;
+    const hasCardCodex = this.onOpenEncyclopedia !== null;
     const hasEnemyCodex = this.onOpenEnemyCodex !== null;
+    const hudBtnW = 29;
+    const hudBtnH = 28;
+    const hudBtnGap = 12;
+    const hudBtnY = (UISystem.TOP_H - hudBtnH) / 2;
+    let nextButtonRightX = rightControlsEdgeD;
+    const reserveHudButtonSlot = (w = hudBtnW): number => {
+      const x = nextButtonRightX - w;
+      nextButtonRightX = x - hudBtnGap;
+      return x;
+    };
+
+    const enemyCodexBtnX = hasEnemyCodex ? reserveHudButtonSlot() : null;
+    const cardCodexBtnX = hasCardCodex ? reserveHudButtonSlot() : null;
+    const pauseBtnX = reserveHudButtonSlot();
 
     // 倒计时显示 + 跳过按钮（常驻顶部HUD，替代原全屏遮罩）
     if (!currentlyPaused && this.getCountdown && this.getCountdown() > 0) {
@@ -1153,7 +1168,7 @@ export class UISystem implements System {
       const skipBtnH = 28;
       const skipBtnY = (UISystem.TOP_H - skipBtnH) / 2;
       // 按钮右边缘固定在 speedBtnX - 12px 间距处，宽度变化时左边缘左移
-      const skipEndX = hasEnemyCodex ? rightControlsEdgeD - 124 : rightControlsEdgeD - 83;
+      const skipEndX = nextButtonRightX - 30 - hudBtnGap;
       const skipBtnX = skipEndX - skipBtnW;
 
       this.infos.push({
@@ -1185,8 +1200,8 @@ export class UISystem implements System {
       });
     }
 
-    const speedBtnX = hasEnemyCodex ? rightControlsEdgeD - 112 : rightControlsEdgeD - 71;
     const speedBtnW = 30;
+    const speedBtnX = reserveHudButtonSlot(speedBtnW);
     const speedBtnH = 28;
     const speedBtnY = (UISystem.TOP_H - speedBtnH) / 2;
     const currentSpeed = this.getSpeed?.() ?? 1.0;
@@ -1213,16 +1228,11 @@ export class UISystem implements System {
     });
 
     // Enemy Codex button — 最右侧
-    const codexBtnX = rightControlsEdgeD - 29;
-    const codexBtnW = 29;
-    const codexBtnH = 28;
-    const codexBtnY = (UISystem.TOP_H - codexBtnH) / 2;
-
-    if (hasEnemyCodex) {
+    if (enemyCodexBtnX !== null) {
       this.renderer.push({
         shape: 'rect',
-        x: codexBtnX + codexBtnW / 2, y: codexBtnY + codexBtnH / 2,
-        size: codexBtnW, h: codexBtnH,
+        x: enemyCodexBtnX + hudBtnW / 2, y: hudBtnY + hudBtnH / 2,
+        size: hudBtnW, h: hudBtnH,
         color: '#37474f',
         alpha: 0.9,
         stroke: '#ef5350', strokeWidth: 1,
@@ -1230,7 +1240,7 @@ export class UISystem implements System {
       });
 
       this.buttons.push({
-        x: codexBtnX, y: codexBtnY, w: codexBtnW, h: codexBtnH,
+        x: enemyCodexBtnX, y: hudBtnY, w: hudBtnW, h: hudBtnH,
         label: '📖',
         color: '#37474f',
         textColor: '#ffffff',
@@ -1239,15 +1249,32 @@ export class UISystem implements System {
       });
     }
 
-    const pauseBtnX = hasEnemyCodex ? rightControlsEdgeD - 70 : rightControlsEdgeD - 29;
-    const pauseBtnW = 29;
-    const pauseBtnH = 28;
-    const pauseBtnY = (UISystem.TOP_H - pauseBtnH) / 2;
+    // Card Codex button — placed directly to the left of enemy codex.
+    if (cardCodexBtnX !== null) {
+      this.renderer.push({
+        shape: 'rect',
+        x: cardCodexBtnX + hudBtnW / 2, y: hudBtnY + hudBtnH / 2,
+        size: hudBtnW, h: hudBtnH,
+        color: '#37474f',
+        alpha: 0.9,
+        stroke: '#78909c', strokeWidth: 1,
+        z: UI_Z.NORMAL_UI,
+      });
+
+      this.buttons.push({
+        x: cardCodexBtnX, y: hudBtnY, w: hudBtnW, h: hudBtnH,
+        label: '🃏',
+        color: '#37474f',
+        textColor: '#ffffff',
+        enabled: true,
+        onClick: () => { this.onOpenEncyclopedia?.(); },
+      });
+    }
 
     this.renderer.push({
       shape: 'rect',
-      x: pauseBtnX + pauseBtnW / 2, y: pauseBtnY + pauseBtnH / 2,
-      size: pauseBtnW, h: pauseBtnH,
+      x: pauseBtnX + hudBtnW / 2, y: hudBtnY + hudBtnH / 2,
+      size: hudBtnW, h: hudBtnH,
       color: '#37474f',
       alpha: 0.9,
       stroke: '#ffffff', strokeWidth: 1,
@@ -1255,7 +1282,7 @@ export class UISystem implements System {
     });
 
     this.buttons.push({
-      x: pauseBtnX, y: pauseBtnY, w: pauseBtnW, h: pauseBtnH,
+      x: pauseBtnX, y: hudBtnY, w: hudBtnW, h: hudBtnH,
       label: '⏸',
       color: '#37474f',
       textColor: '#ffffff',
@@ -1555,9 +1582,8 @@ export class UISystem implements System {
     this.modalBackdropAlpha = 0.6;
     this.hasFullscreenOverlay = true;
 
-    const hasEncyclopedia = this.onOpenEncyclopedia !== null;
     const menuW = 500;
-    const menuH = hasEncyclopedia ? 450 : 380;
+    const menuH = 380;
     const menuX = mapCenterX - menuW / 2;
     const menuY = mapCenterY - menuH / 2;
 
@@ -1611,33 +1637,7 @@ export class UISystem implements System {
       onClick: () => { this.onResume?.(); },
     });
 
-    // Encyclopedia button (conditionally shown)
-    const encY = menuY + 180;
-    if (hasEncyclopedia) {
-      this.renderer.push({
-        shape: 'rect',
-        x: mapCenterX,
-        y: encY + btnH / 2,
-        size: btnW,
-        h: btnH,
-        color: '#37474f',
-        alpha: 0.9,
-        stroke: '#78909c',
-        strokeWidth: 1,
-        z: UI_Z.FULLSCREEN_UI,
-      });
-      this.buttons.push({
-        x: btnX, y: encY, w: btnW, h: btnH,
-        label: '📖 卡牌图鉴',
-        color: '#37474f',
-        textColor: '#ffffff',
-        enabled: true,
-        layer: 'fullscreen',
-        onClick: () => { this.onOpenEncyclopedia?.(); },
-      });
-    }
-
-    const restartY = hasEncyclopedia ? menuY + 250 : menuY + 180;
+    const restartY = menuY + 180;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1660,7 +1660,7 @@ export class UISystem implements System {
       onClick: () => { this.onRestart?.(); },
     });
 
-    const exitY = hasEncyclopedia ? menuY + 320 : menuY + 250;
+    const exitY = menuY + 250;
     this.renderer.push({
       shape: 'rect',
       x: mapCenterX,
@@ -1687,7 +1687,7 @@ export class UISystem implements System {
     const total = this.getTotalWaves();
     this.infos.push({
       x: mapCenterX,
-      y: hasEncyclopedia ? menuY + 390 : menuY + 320,
+      y: menuY + 320,
       text: total === -1 ? `当前波次: ${wave}` : `当前波次: ${wave} / ${total}`,
       color: '#aaaaaa',
       size: 24,

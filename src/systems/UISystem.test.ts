@@ -53,14 +53,14 @@ class RendererStub {
   applyBlur(): void {}
 }
 
-function makeUISystem(renderer: RendererStub, countdown: number): UISystem {
+function makeUISystem(renderer: RendererStub, countdown: number, options: { isPaused?: boolean } = {}): UISystem {
   return new UISystem(
     renderer as any,
     () => GamePhase.Battle,
     () => 100,
     () => 1,
     () => 3,
-    () => false,
+    () => options.isPaused ?? false,
     () => null,
     () => {},
     () => {},
@@ -150,6 +150,39 @@ describe('UISystem 顶部 HUD 布局', () => {
     expect(countdownInfo).toBeDefined();
     expect(countdownInfo!.align).toBe('right');
     expect(countdownInfo!.x).toBe(startWaveButton!.x - 12);
+  });
+
+  it('卡牌图鉴位于敌人图鉴左侧，并推动暂停与倍速按钮左移', () => {
+    const ui = makeUISystem(new RendererStub(), 0);
+    ui.setEncyclopediaCallback(() => {});
+    ui.setEnemyCodexCallback(() => {});
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    const buttons = buttonsOf(ui);
+    const enemyCodexButton = buttons.find((button) => button.label === '📖');
+    const cardCodexButton = buttons.find((button) => button.label === '🃏');
+    const pauseButton = buttons.find((button) => button.label === '⏸');
+    const speedButton = buttons.find((button) => button.label === '1x');
+    expect(enemyCodexButton).toBeDefined();
+    expect(cardCodexButton).toBeDefined();
+    expect(pauseButton).toBeDefined();
+    expect(speedButton).toBeDefined();
+    expect(enemyCodexButton!.x + enemyCodexButton!.w).toBe(
+      LayoutManager.toDesignX(LayoutManager.viewportW) - UISystem.TOP_HUD_SIDE_MARGIN,
+    );
+    expect(cardCodexButton!.x + cardCodexButton!.w + 12).toBe(enemyCodexButton!.x);
+    expect(pauseButton!.x + pauseButton!.w + 12).toBe(cardCodexButton!.x);
+    expect(speedButton!.x + speedButton!.w + 12).toBe(pauseButton!.x);
+  });
+
+  it('暂停弹窗不再显示卡牌图鉴入口', () => {
+    const ui = makeUISystem(new RendererStub(), 0, { isPaused: true });
+    ui.setEncyclopediaCallback(() => {});
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    expect(buttonsOf(ui).some((button) => button.label === '📖 卡牌图鉴')).toBe(false);
   });
 });
 
