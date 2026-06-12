@@ -1,20 +1,184 @@
 import { assetUrl } from './artAssets.js';
 import { areArtResourcesEnabled } from './artResourceSwitch.js';
 
-const imageCache = new Map<string, HTMLImageElement>();
+export interface ImageSourceRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
-export function getLoadedImage(path: string): HTMLImageElement | null {
-  if (!areArtResourcesEnabled()) return null;
+export interface LoadedArtFrame {
+  image: HTMLImageElement;
+  source: ImageSourceRect | null;
+  width: number;
+  height: number;
+  path: string;
+  atlasId?: string;
+}
+
+export interface ArtAtlasFrameSpec {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  sourceW?: number;
+  sourceH?: number;
+}
+
+export interface ArtAtlasManifest {
+  id: string;
+  image: string;
+  frames: Record<string, ArtAtlasFrameSpec>;
+}
+
+export interface ArtAtlasIndex {
+  atlases: ArtAtlasManifest[];
+}
+
+const imageCache = new Map<string, HTMLImageElement>();
+const failedImages = new Set<string>();
+const atlasImageCache = new Map<string, HTMLImageElement>();
+const failedAtlasImages = new Set<string>();
+const atlasFrames = new Map<string, { atlasId: string; imagePath: string; frame: ArtAtlasFrameSpec }>();
+let atlasIndexRequested = false;
+
+function normalizePath(path: string): string {
+  if (/^(?:https?:)?\/\//.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+  return `/${path.replace(/^\//, '')}`;
+}
+
+function loadImage(cache: Map<string, HTMLImageElement>, failures: Set<string>, path: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
 
   const url = assetUrl(path);
-  const cached = imageCache.get(url);
+  if (failures.has(url)) return null;
+
+  const cached = cache.get(url);
   if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
 
   const image = new Image();
+  image.onerror = (): void => {
+    failures.add(url);
+  };
   image.src = url;
-  imageCache.set(url, image);
+  cache.set(url, image);
   return null;
+}
+
+function requestAtlasIndex(): void {
+  if (atlasIndexRequested) return;
+  atlasIndexRequested = true;
+  if (typeof fetch === 'undefined') return;
+
+  void fetch(assetUrl('/art/atlases/index.json'))
+    .then((res) => res.ok ? res.json() as Promise<ArtAtlasIndex> : null)
+    .then((index) => {
+      if (!index) return;
+      registerArtAtlasIndex(index);
+    })
+    .catch(() => {
+      // 图集索引是可选资源；缺失时继续走单图加载。
+    });
+}
+
+export function registerArtAtlasManifest(manifest: ArtAtlasManifest): void {
+  for (const [framePath, frame] of Object.entries(manifest.frames)) {
+    atlasFrames.set(normalizePath(framePath), {
+      atlasId: manifest.id,
+      imagePath: manifest.image,
+      frame,
+    });
+  }
+}
+
+export function registerArtAtlasIndex(index: ArtAtlasIndex): void {
+  for (const manifest of index.atlases) {
+    registerArtAtlasManifest(manifest);
+  }
+}
+
+export function clearArtAtlasRegistryForTests(): void {
+  atlasFrames.clear();
+  atlasImageCache.clear();
+  failedAtlasImages.clear();
+  imageCache.clear();
+  failedImages.clear();
+  atlasIndexRequested = false;
+}
+
+export function getLoadedImage(path: string): HTMLImageElement | null {
+  if (!areArtResourcesEnabled()) return null;
+  requestAtlasIndex();
+  return loadImage(imageCache, failedImages, path);
+}
+
+export function getLoadedImageFrame(path: string): LoadedArtFrame | null {
+  if (!areArtResourcesEnabled()) return null;
+  requestAtlasIndex();
+
+  const normalizedPath = normalizePath(path);
+  const atlasRef = atlasFrames.get(normalizedPath);
+  if (atlasRef) {
+    const atlasImage = loadImage(atlasImageCache, failedAtlasImages, atlasRef.imagePath);
+    if (atlasImage) {
+      return {
+        image: atlasImage,
+        source: {
+          x: atlasRef.frame.x,
+          y: atlasRef.frame.y,
+          w: atlasRef.frame.w,
+          h: atlasRef.frame.h,
+        },
+        width: atlasRef.frame.w,
+        height: atlasRef.frame.h,
+        path: normalizedPath,
+        atlasId: atlasRef.atlasId,
+      };
+    }
+
+    if (!failedAtlasImages.has(assetUrl(atlasRef.imagePath))) return null;
+  }
+
+  const image = loadImage(imageCache, failedImages, path);
+  if (!image) return null;
+  const width = Number(image.naturalWidth || image.width);
+  const height = Number(image.naturalHeight || image.height);
+  if (width <= 0 || height <= 0) return null;
+  return {
+    image,
+    source: null,
+    width,
+    height,
+    path: normalizedPath,
+  };
+}
+
+export function drawImageFrame(
+  ctx: CanvasRenderingContext2D,
+  frame: LoadedArtFrame,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  if (frame.source) {
+    ctx.drawImage(
+      frame.image,
+      frame.source.x,
+      frame.source.y,
+      frame.source.w,
+      frame.source.h,
+      x,
+      y,
+      w,
+      h,
+    );
+    return;
+  }
+  ctx.drawImage(frame.image, x, y, w, h);
 }
 
 export function drawLoadedImage(
@@ -25,9 +189,9 @@ export function drawLoadedImage(
   w: number,
   h: number,
 ): boolean {
-  const image = getLoadedImage(path);
-  if (!image) return false;
-  ctx.drawImage(image, x, y, w, h);
+  const frame = getLoadedImageFrame(path);
+  if (!frame) return false;
+  drawImageFrame(ctx, frame, x, y, w, h);
   return true;
 }
 
@@ -47,11 +211,13 @@ export function drawLoadedImage9Slice(
   h: number,
   insets: NineSliceInsets,
 ): boolean {
-  const image = getLoadedImage(path);
-  if (!image) return false;
+  const frame = getLoadedImageFrame(path);
+  if (!frame) return false;
 
-  const sw = Number((image as HTMLImageElement).naturalWidth || (image as HTMLImageElement).width);
-  const sh = Number((image as HTMLImageElement).naturalHeight || (image as HTMLImageElement).height);
+  const sourceX = frame.source?.x ?? 0;
+  const sourceY = frame.source?.y ?? 0;
+  const sw = frame.width;
+  const sh = frame.height;
   if (sw <= 0 || sh <= 0) return false;
 
   const sl = Math.min(insets.left, sw / 2);
@@ -70,7 +236,7 @@ export function drawLoadedImage9Slice(
 
   const draw = (sx: number, sy: number, sWidth: number, sHeight: number, dx: number, dy: number, dWidth: number, dHeight: number): void => {
     if (dWidth <= 0 || dHeight <= 0 || sWidth <= 0 || sHeight <= 0) return;
-    ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+    ctx.drawImage(frame.image, sourceX + sx, sourceY + sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
   };
 
   draw(0, 0, sl, st, x, y, dl, dt);

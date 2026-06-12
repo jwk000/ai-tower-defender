@@ -616,6 +616,8 @@ export interface RenderCommand {
   size: number;
   color: string;
   image?: CanvasImageSource;
+  /** 图片源矩形；用于从图集大图中裁剪单帧。未设置时绘制整张 image。 */
+  imageSource?: { x: number; y: number; w: number; h: number };
   scaleX?: number;
   alpha?: number;
   rotation?: number;

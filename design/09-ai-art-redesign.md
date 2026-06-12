@@ -530,9 +530,9 @@ dark fantasy casual level select node, {theme} miniature portal marker, black ir
 | Buff 图标 | 已接入，局外 Buff 选择卡显示 AI 图标 | `UISystem` |
 | UI 基础件 | 已接入，HUD、按钮、面板、卡框使用 AI UI 资产 | `UISystem` |
 | 技能特效 | 已接入，技能投射物和命中特效叠加 AI FX 资产 | `SpellProjectileSystem` |
-| 单位状态帧 | 暂未接入，当前缺少 `public/art/units/` 下的独立单位状态帧素材 | 后续生成后接入 `RenderSystem` |
+| 单位状态帧 | 已接入，优先通过图集帧加载，缺失时回退独立 PNG 或程序化外观 | `RenderSystem` + `imageCache` |
 
-单位、塔、敌人本体仍沿用程序化复合外观作为当前可用表现。后续若生成 `unit_<unit_id>_<state>_<frame>.png`，需要为 `Visual` 或配置层补充单位贴图引用，再由 `RenderSystem` 根据状态和 2 帧相位选择对应图片。
+单位、塔、敌人本体已支持 `unit_<unit_id>_<state>_<frame>.png` 状态帧。运行时业务层仍使用原资源路径，加载层会先查找图集 manifest；若图集或单图未加载成功，继续保留程序化复合外观作为兜底。图集分包与 manifest 规范详见 `design/10-art-atlas-pipeline.md`。
 
 ---
 

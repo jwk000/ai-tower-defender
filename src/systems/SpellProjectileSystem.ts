@@ -22,7 +22,7 @@ import {
 import { Renderer } from '../render/Renderer.js';
 import { spellEffectArtPath, spellProjectileArtPath } from '../utils/artAssets.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
-import { getLoadedImage } from '../utils/imageCache.js';
+import { getLoadedImageFrame } from '../utils/imageCache.js';
 import { Sound } from '../utils/Sound.js';
 
 // Spell type constants
@@ -156,15 +156,16 @@ export class SpellProjectileSystem implements System {
 
   private pushImage(path: string | null, x: number, y: number, size: number, alpha: number, z: number, rotation = 0): boolean {
     if (!path) return false;
-    const image = getLoadedImage(path);
-    if (!image) return false;
+    const frame = getLoadedImageFrame(path);
+    if (!frame) return false;
     this.renderer.push({
       shape: 'rect',
       x, y,
       size,
       h: size,
       color: '#ffffff',
-      image,
+      image: frame.image,
+      imageSource: frame.source ?? undefined,
       alpha,
       rotation,
       z,

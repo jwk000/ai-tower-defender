@@ -46,9 +46,8 @@ import {
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
-import { assetUrl, objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
-import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
-import { getLoadedImage } from '../utils/imageCache.js';
+import { objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
+import { getLoadedImageFrame, type LoadedArtFrame } from '../utils/imageCache.js';
 import { getDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
@@ -168,37 +167,6 @@ const RANK_INSIGNIA_BLOCK_WIDTH = 14;
 const RANK_INSIGNIA_NAME_GAP = 4;
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
 
-const tileTextureCache = new Map<string, HTMLImageElement>();
-const unitSpriteCache = new Map<string, HTMLImageElement>();
-
-function getLoadedTileTexture(path: string): HTMLImageElement | null {
-  if (!areArtResourcesEnabled()) return null;
-  if (typeof Image === 'undefined') return null;
-
-  const url = assetUrl(path);
-  const cached = tileTextureCache.get(url);
-  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
-
-  const image = new Image();
-  image.src = url;
-  tileTextureCache.set(url, image);
-  return null;
-}
-
-function getLoadedUnitSprite(path: string): HTMLImageElement | null {
-  if (!areArtResourcesEnabled()) return null;
-  if (typeof Image === 'undefined') return null;
-
-  const url = assetUrl(path);
-  const cached = unitSpriteCache.get(url);
-  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
-
-  const image = new Image();
-  image.src = url;
-  unitSpriteCache.set(url, image);
-  return null;
-}
-
 export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
   if (!active) return 1;
   return Math.sin(phase) >= 0 ? MOVING_ENEMY_BREATH_SCALE : 1;
@@ -295,14 +263,15 @@ export class RenderSystem implements System {
         }
 
         const texturePath = getTileTexturePath(map, r, c);
-        const texture = texturePath ? getLoadedTileTexture(texturePath) : null;
+        const texture = texturePath ? getLoadedImageFrame(texturePath) : null;
         this.renderer.push({
           shape: 'rect',
           x,
           y,
           size: texture ? ts : ts - 2,
           color,
-          image: texture ?? undefined,
+          image: texture?.image,
+          imageSource: texture?.source ?? undefined,
           alpha: 1,
           z: 0,
         });
@@ -362,8 +331,8 @@ export class RenderSystem implements System {
     const t = Date.now() * 0.001; // 秒级时间戳
     const r = tileSize * 0.44;     // 主体半径 ~28px (64px 格)
     const z = 0;                    // 地图层
-    const fx = getLoadedImage(objectiveFxArtPath('spawn_portal'));
-    const portal = getLoadedImage(objectiveArtPath('spawn_portal'));
+    const fx = getLoadedImageFrame(objectiveFxArtPath('spawn_portal'));
+    const portal = getLoadedImageFrame(objectiveArtPath('spawn_portal'));
 
     if (fx) {
       const pulse = 1 + Math.sin(t * 1.4) * 0.04;
@@ -374,7 +343,8 @@ export class RenderSystem implements System {
         size: tileSize * 1.34 * pulse,
         h: tileSize * 1.34 * pulse,
         color: '#ffffff',
-        image: fx,
+        image: fx.image,
+        imageSource: fx.source ?? undefined,
         alpha: 0.72,
         rotation: t * 0.18,
         z,
@@ -389,7 +359,8 @@ export class RenderSystem implements System {
         size: tileSize * 1.06,
         h: tileSize * 1.06,
         color: '#ffffff',
-        image: portal,
+        image: portal.image,
+        imageSource: portal.source ?? undefined,
         alpha: 0.98,
         rotation: -t * 0.28,
         z,
@@ -709,14 +680,14 @@ export class RenderSystem implements System {
   ): boolean {
     const state = opts.state ?? 'idle';
     const frame = this.getUnitSpriteFrame(eid, state);
-    let sprite = getLoadedUnitSprite(unitArtPath(unitId, state, frame));
+    let sprite: LoadedArtFrame | null = getLoadedImageFrame(unitArtPath(unitId, state, frame));
     if (!sprite && state !== 'idle') {
-      sprite = getLoadedUnitSprite(unitArtPath(unitId, 'idle', frame));
+      sprite = getLoadedImageFrame(unitArtPath(unitId, 'idle', frame));
     }
     if (!sprite) return false;
 
-    const sourceW = sprite.naturalWidth || sprite.width;
-    const sourceH = sprite.naturalHeight || sprite.height;
+    const sourceW = sprite.width;
+    const sourceH = sprite.height;
     if (sourceW <= 0 || sourceH <= 0) return false;
 
     const aspect = sourceW / sourceH;
@@ -733,7 +704,8 @@ export class RenderSystem implements System {
       h,
       color: '#ffffff',
       alpha,
-      image: sprite,
+      image: sprite.image,
+      imageSource: sprite.source ?? undefined,
       scaleX,
       stroke: opts.stroke,
       strokeWidth: opts.strokeWidth,
@@ -2167,8 +2139,8 @@ export class RenderSystem implements System {
 
     const cx = posX + swayX;
     const cy = posY + floatY;
-    const fx = getLoadedImage(objectiveFxArtPath('crystal_aura'));
-    const crystal = getLoadedImage(objectiveArtPath(isLowHp ? 'crystal_low_hp' : 'crystal'));
+    const fx = getLoadedImageFrame(objectiveFxArtPath('crystal_aura'));
+    const crystal = getLoadedImageFrame(objectiveArtPath(isLowHp ? 'crystal_low_hp' : 'crystal'));
 
     if (fx) {
       this.renderer.push({
@@ -2178,7 +2150,8 @@ export class RenderSystem implements System {
         size: 86 + auraBreath * 10,
         h: 86 + auraBreath * 10,
         color: '#ffffff',
-        image: fx,
+        image: fx.image,
+        imageSource: fx.source ?? undefined,
         alpha: (isLowHp ? 0.9 : 0.72) * renderAlpha,
         rotation: phase * 0.12 * speedMul,
         z: renderZ,
@@ -2242,7 +2215,8 @@ export class RenderSystem implements System {
         size: 66,
         h: 66,
         color: '#ffffff',
-        image: crystal,
+        image: crystal.image,
+        imageSource: crystal.source ?? undefined,
         alpha: renderAlpha,
         z: renderZ,
       });

@@ -109,6 +109,24 @@ export class Renderer {
         const rw = s;           // width = size
         const rh = cmd.h ?? s;  // height = h if set, else size (square)
         const rot = cmd.rotation ?? 0;
+        const drawImage = (dx: number, dy: number, dw: number, dh: number): void => {
+          if (!cmd.image) return;
+          if (cmd.imageSource) {
+            ctx.drawImage(
+              cmd.image,
+              cmd.imageSource.x,
+              cmd.imageSource.y,
+              cmd.imageSource.w,
+              cmd.imageSource.h,
+              dx,
+              dy,
+              dw,
+              dh,
+            );
+            return;
+          }
+          ctx.drawImage(cmd.image, dx, dy, dw, dh);
+        };
 
         if (cmd.clipRadius) {
           ctx.save();
@@ -123,7 +141,7 @@ export class Renderer {
           ctx.rotate(rot);
           if (cmd.scaleX !== undefined && cmd.scaleX !== 1) ctx.scale(cmd.scaleX, 1);
           if (cmd.image) {
-            ctx.drawImage(cmd.image, -rw / 2, -rh / 2, rw, rh);
+            drawImage(-rw / 2, -rh / 2, rw, rh);
           } else {
             ctx.fillStyle = cmd.color;
             ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
@@ -142,10 +160,10 @@ export class Renderer {
               ctx.save();
               ctx.translate(cx, cy);
               ctx.scale(cmd.scaleX, 1);
-              ctx.drawImage(cmd.image, -rw / 2, -rh / 2, rw, rh);
+              drawImage(-rw / 2, -rh / 2, rw, rh);
               ctx.restore();
             } else {
-              ctx.drawImage(cmd.image, x, y, rw, rh);
+              drawImage(x, y, rw, rh);
             }
           } else {
             ctx.fillStyle = cmd.color;

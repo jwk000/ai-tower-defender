@@ -26,6 +26,7 @@
 | 7 | `07-audio.md` | 音频规范 | 实现音乐/音效 |
 | 8 | `08-art-assets.md` | 历史美术素材清单 | 查询旧素材规划 |
 | 9 | `09-ai-art-redesign.md` | AI 美术重设计 | 生成/接入新美术资产 |
+| 10 | `10-art-atlas-pipeline.md` | 图集加载管线 | 打包/加载美术图集 |
 
 ### 文档间的关系
 
@@ -58,7 +59,9 @@ README.md （入口）
   │
   ├── 08-art-assets.md （历史素材清单 — 旧素材规划）
   │
-  └── 09-ai-art-redesign.md （AI 美术重设计 — 卡牌/单位/技能/Buff/地格/UI 提示词）
+  ├── 09-ai-art-redesign.md （AI 美术重设计 — 卡牌/单位/技能/Buff/地格/UI 提示词）
+  │
+  └── 10-art-atlas-pipeline.md （图集加载管线 — 资源分包/manifest/运行时加载规范）
 ```
 
 **规则** ：引用始终向下（数字大的引用数字小的不需要，数字小的可以引用数字大的以获取细节）。无循环引用。
@@ -103,8 +106,9 @@ README.md （入口）
 
 1. `05-presentation.md` → 层级定义、视觉规范
 2. `09-ai-art-redesign.md` → AI 图片资产规格、UI 美术需求、提示词
-3. `06-technical.md` → 渲染管线阶段
-4. `src/render/` 或 `src/ui/`
+3. `10-art-atlas-pipeline.md` → 图集分包、manifest 与加载回退规范
+4. `06-technical.md` → 渲染管线阶段
+5. `src/render/` 或 `src/ui/`
 
 ### 要了解游戏全貌？
 

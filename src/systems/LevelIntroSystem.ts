@@ -22,7 +22,7 @@ import { RenderSystem, computeSceneLayout } from './RenderSystem.js';
 import { DecorationSystem } from './DecorationSystem.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import type { PathNode } from '../level/graph/types.js';
-import { getLoadedImage } from '../utils/imageCache.js';
+import { drawImageFrame, getLoadedImageFrame } from '../utils/imageCache.js';
 import { objectiveArtPath, objectiveFxArtPath } from '../utils/artAssets.js';
 import { getTileTexturePathForType } from '../utils/pathTileTexture.js';
 
@@ -359,13 +359,13 @@ export class LevelIntroSystem implements System {
 
   private drawTile(ctx: CanvasRenderingContext2D, cx: number, cy: number, type: TileType, alpha: number): void {
     const texturePath = getTileTexturePathForType(type, this.map.artTheme);
-    const texture = texturePath ? getLoadedImage(texturePath) : null;
+    const texture = texturePath ? getLoadedImageFrame(texturePath) : null;
     const s = texture ? this.ts : this.ts - 2;
 
     ctx.save();
     ctx.globalAlpha = alpha;
     if (texture) {
-      ctx.drawImage(texture, cx - s / 2, cy - s / 2, s, s);
+      drawImageFrame(ctx, texture, cx - s / 2, cy - s / 2, s, s);
     } else {
       ctx.fillStyle = this.getFallbackTileColor(type);
       ctx.fillRect(cx - s / 2, cy - s / 2, s, s);
@@ -385,10 +385,12 @@ export class LevelIntroSystem implements System {
     if (this.tileBreakEffects.length === 0) return;
 
     const texturePath = getTileTexturePathForType(TileType.Empty, this.map.artTheme);
-    const texture = texturePath ? getLoadedImage(texturePath) : null;
+    const texture = texturePath ? getLoadedImageFrame(texturePath) : null;
     const fallback = this.getFallbackTileColor(TileType.Empty);
-    const sourceW = texture?.naturalWidth || texture?.width || 1;
-    const sourceH = texture?.naturalHeight || texture?.height || 1;
+    const sourceX = texture?.source?.x ?? 0;
+    const sourceY = texture?.source?.y ?? 0;
+    const sourceW = texture?.width || 1;
+    const sourceH = texture?.height || 1;
     const pieceW = this.ts / TILE_BREAK_GRID;
     const pieceH = this.ts / TILE_BREAK_GRID;
 
@@ -437,11 +439,11 @@ export class LevelIntroSystem implements System {
           ctx.translate(drawX, drawY);
           ctx.rotate(rot);
           if (texture) {
-            const sx = gx * sourceW / TILE_BREAK_GRID;
-            const sy = gy * sourceH / TILE_BREAK_GRID;
+            const sx = sourceX + gx * sourceW / TILE_BREAK_GRID;
+            const sy = sourceY + gy * sourceH / TILE_BREAK_GRID;
             const sw = sourceW / TILE_BREAK_GRID;
             const sh = sourceH / TILE_BREAK_GRID;
-            ctx.drawImage(texture, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+            ctx.drawImage(texture.image, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
           } else {
             ctx.fillStyle = fallback;
             ctx.fillRect(-dw / 2, -dh / 2, dw, dh);
@@ -499,10 +501,10 @@ export class LevelIntroSystem implements System {
   private preloadIntroArt(): void {
     for (const type of [TileType.Empty, TileType.Path, TileType.Base, TileType.Spawn]) {
       const path = getTileTexturePathForType(type, this.map.artTheme);
-      if (path) getLoadedImage(path);
+      if (path) getLoadedImageFrame(path);
     }
-    getLoadedImage(objectiveArtPath('spawn_portal'));
-    getLoadedImage(objectiveFxArtPath('spawn_portal'));
+    getLoadedImageFrame(objectiveArtPath('spawn_portal'));
+    getLoadedImageFrame(objectiveFxArtPath('spawn_portal'));
   }
 
   private phaseAtLeast(phase: IntroPhase): boolean {
@@ -525,8 +527,8 @@ export class LevelIntroSystem implements System {
   private drawSpawnPortal(ctx: CanvasRenderingContext2D, cx: number, cy: number, alpha: number): void {
     const r = this.ts * 0.44;
     const t = this.timer;
-    const fx = getLoadedImage(objectiveFxArtPath('spawn_portal'));
-    const portal = getLoadedImage(objectiveArtPath('spawn_portal'));
+    const fx = getLoadedImageFrame(objectiveFxArtPath('spawn_portal'));
+    const portal = getLoadedImageFrame(objectiveArtPath('spawn_portal'));
 
     if (fx || portal) {
       if (fx) {
@@ -536,7 +538,7 @@ export class LevelIntroSystem implements System {
         ctx.globalAlpha = alpha * 0.72;
         ctx.translate(cx, cy);
         ctx.rotate(t * 0.18);
-        ctx.drawImage(fx, -s / 2, -s / 2, s, s);
+        drawImageFrame(ctx, fx, -s / 2, -s / 2, s, s);
         ctx.restore();
       }
       if (portal) {
@@ -545,7 +547,7 @@ export class LevelIntroSystem implements System {
         ctx.globalAlpha = alpha * 0.98;
         ctx.translate(cx, cy);
         ctx.rotate(-t * 0.28);
-        ctx.drawImage(portal, -s / 2, -s / 2, s, s);
+        drawImageFrame(ctx, portal, -s / 2, -s / 2, s, s);
         ctx.restore();
       }
       if (portal) return;
