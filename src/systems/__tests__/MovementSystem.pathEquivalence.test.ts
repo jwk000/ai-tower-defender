@@ -11,7 +11,7 @@ import {
   CategoryVal,
 } from '../../core/components.js';
 import { MovementSystem } from '../MovementSystem.js';
-import { getMovingEnemyBreathScale, RenderSystem } from '../RenderSystem.js';
+import { getMovingEnemyBreathScale, getUnitSpriteScaleX, RenderSystem } from '../RenderSystem.js';
 import type { MapConfig, GridPos } from '../../types/index.js';
 import { TileType } from '../../types/index.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
@@ -162,6 +162,13 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
 
     expect(Movement.pathIndex[eid]).toBe(1);
     expect(Visual.facing[eid]).toBe(-1);
+  });
+
+  it('left-facing enemy sprite art mirrors to match runtime movement facing', () => {
+    expect(getUnitSpriteScaleX(1, true)).toBe(-1);
+    expect(getUnitSpriteScaleX(-1, true)).toBe(1);
+    expect(getUnitSpriteScaleX(1, false)).toBe(1);
+    expect(getUnitSpriteScaleX(-1, false)).toBe(-1);
   });
 
   it('turning from vertical path into right segment flips enemy facing on the turn frame', () => {

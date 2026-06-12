@@ -199,6 +199,11 @@ export function getMovingEnemyBreathScale(phase: number, active: boolean): numbe
   return Math.sin(phase) >= 0 ? MOVING_ENEMY_BREATH_SCALE : 1;
 }
 
+export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): number {
+  const normalizedFacing = facing >= 0 ? 1 : -1;
+  return artFacesLeft ? -normalizedFacing : normalizedFacing;
+}
+
 export class RenderSystem implements System {
   readonly name = 'RenderSystem';
 
@@ -695,7 +700,7 @@ export class RenderSystem implements System {
     drawSize: number,
     alpha: number,
     z: number,
-    opts: { state?: string; stroke?: string; strokeWidth?: number; facing?: number } = {},
+    opts: { state?: string; stroke?: string; strokeWidth?: number; facing?: number; artFacesLeft?: boolean } = {},
   ): boolean {
     const state = opts.state ?? 'idle';
     const frame = this.getUnitSpriteFrame(eid, state);
@@ -713,6 +718,7 @@ export class RenderSystem implements System {
     const h = drawSize;
     const w = h * aspect;
     const facing = opts.facing ?? ((Visual.facing[eid] ?? 1) >= 0 ? 1 : -1);
+    const scaleX = getUnitSpriteScaleX(facing, opts.artFacesLeft ?? false);
 
     this.renderer.push({
       shape: 'rect',
@@ -723,7 +729,7 @@ export class RenderSystem implements System {
       color: '#ffffff',
       alpha,
       image: sprite,
-      scaleX: facing < 0 ? -1 : 1,
+      scaleX,
       stroke: opts.stroke,
       strokeWidth: opts.strokeWidth,
       z,
@@ -1510,7 +1516,7 @@ export class RenderSystem implements System {
           attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 * movingEnemyBreathScale : 1.35),
           displayAlpha,
           renderZ,
-          { state: unitSpriteState, stroke: strokeColor, strokeWidth: strokeW },
+          { state: unitSpriteState, stroke: strokeColor, strokeWidth: strokeW, artFacesLeft: isEnemy },
         );
         if (spriteDrawn) {
           // Keep procedural rendering as fallback only; state overlays still render below.
