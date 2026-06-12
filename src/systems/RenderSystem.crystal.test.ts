@@ -1,17 +1,20 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
 import { TileType } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
 import {
+  Barrel,
   Category,
   CategoryVal,
   Health,
   Position,
   ShapeVal,
+  Tower,
   Visual,
 } from '../core/components.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
+import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 
 class RendererStub {
   commands: RenderCommand[] = [];
@@ -44,10 +47,41 @@ function makeMap(): MapConfig {
   };
 }
 
+function makeCannonTower(world: TowerWorld): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: 96, y: 32 });
+  world.addComponent(eid, Tower, { towerType: 1, level: 1, totalInvested: 0 });
+  world.addComponent(eid, Barrel, { angle: 0, targetAngle: 0, length: 20, width: 6 });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Rect,
+    colorR: 255,
+    colorG: 138,
+    colorB: 101,
+    size: 38,
+    alpha: 1,
+  });
+  return eid;
+}
+
+function hasProceduralBarrel(commands: RenderCommand[]): boolean {
+  return commands.some((cmd) =>
+    cmd.shape === 'rect' &&
+    cmd.color === '#2a2a2a' &&
+    cmd.h === 6 &&
+    !cmd.image,
+  );
+}
+
 describe('RenderSystem — 水晶显示', () => {
   beforeEach(() => {
     RenderSystem.sceneOffsetX = 0;
     RenderSystem.sceneOffsetY = 0;
+    setArtResourcesEnabled(true);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setArtResourcesEnabled(true);
   });
 
   it('Objective 水晶实体即使不属于 UnitTag，也必须以非透明命令绘制', () => {
@@ -77,5 +111,45 @@ describe('RenderSystem — 水晶显示', () => {
         alpha: 1,
       }),
     );
+  });
+
+  it('炮塔图片主体已绘制时，不再叠加程序绘制的炮管', () => {
+    class LoadedImage {
+      complete = true;
+      naturalWidth = 128;
+      naturalHeight = 128;
+      width = 128;
+      height = 128;
+      src = '';
+    }
+    vi.stubGlobal('Image', LoadedImage);
+
+    const world = new TowerWorld();
+    makeCannonTower(world);
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+    renderer.commands = [];
+    system.update(world, 0);
+
+    expect(renderer.commands).toContainEqual(expect.objectContaining({ image: expect.any(LoadedImage) }));
+    expect(hasProceduralBarrel(renderer.commands)).toBe(false);
+  });
+
+  it('炮塔回退到程序化主体时，保留程序绘制的炮管', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    makeCannonTower(world);
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+
+    expect(renderer.commands.some((cmd) => cmd.image)).toBe(false);
+    expect(hasProceduralBarrel(renderer.commands)).toBe(true);
   });
 });

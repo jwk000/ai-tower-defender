@@ -1483,6 +1483,7 @@ export class RenderSystem implements System {
       // ========================================
       // 1. Entity body (bottom layer — drawn first)
       // ========================================
+      let bodySpriteDrawn = false;
       // Crystal (Objective) — 使用文档定义的菱形复合+辉光+浮动动画渲染
       // 设计文档: design/05-presentation.md §5 水晶视觉
       const isObjective = hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Objective;
@@ -1518,6 +1519,7 @@ export class RenderSystem implements System {
           renderZ,
           { state: unitSpriteState, stroke: strokeColor, strokeWidth: strokeW, artFacesLeft: isEnemy },
         );
+        bodySpriteDrawn = spriteDrawn;
         if (spriteDrawn) {
           // Keep procedural rendering as fallback only; state overlays still render below.
         } else if (unitPartsId !== 0) {
@@ -1612,7 +1614,7 @@ export class RenderSystem implements System {
       // ========================================
       // Barrel rendering — 炮管（塔上方，可旋转追踪目标）
       // ========================================
-      if (isTower && hasComponent(world.world, Barrel, eid)) {
+      if (isTower && !bodySpriteDrawn && hasComponent(world.world, Barrel, eid)) {
         const barrelAngle = Barrel.angle[eid]!;
         const barrelLen = Barrel.length[eid]!;
         const barrelW = Barrel.width[eid]!;
