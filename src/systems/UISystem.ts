@@ -180,6 +180,7 @@ const UI_Z = {
 } as const;
 
 const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 96 };
+const UI_HAND_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 72, bottom: 72 };
 const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom: 32 };
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
 const HAND_CARD_HOVER_SCALE = 1.08;
@@ -829,7 +830,7 @@ export class UISystem implements System {
       alpha: 0.48,
       phase: 'back',
       mode: 'nine-slice',
-      slice: UI_PANEL_SLICE,
+      slice: UI_HAND_PANEL_SLICE,
     });
     this.renderer.push({
       shape: 'rect',
