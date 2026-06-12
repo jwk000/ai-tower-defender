@@ -44,6 +44,15 @@ const assets = [
     prompt: 'dark fantasy casual game UI panel, black iron and dark navy material, subtle brushed metal texture, thin antique gold border, clean 8px rounded corners, 9-slice source, transparent outside, no text, no icons',
   },
   {
+    id: 'ui_hand_panel',
+    priority: 'P0',
+    type: 'ui',
+    output: 'public/art/ui/ui_hand_panel.png',
+    size: '1536x1024',
+    transparent: true,
+    prompt: 'dark fantasy casual tower defense UI hand card tray background, long low horizontal base plate for five cards, lightweight translucent black iron and dark navy surface, very simple clean shape, subtle beveled rim, thin muted blue grey border, soft inner shadow, no ornate corners, no gold decoration, no runes, no icons, no text, no numbers, no card slots',
+  },
+  {
     id: 'ui_button_green',
     priority: 'P0',
     type: 'ui',

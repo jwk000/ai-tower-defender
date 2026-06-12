@@ -822,9 +822,9 @@ export class UISystem implements System {
       y: bounds.top,
       w: bounds.width,
       h: bounds.height,
-      path: uiArtPath('ui_panel_dark'),
+      path: uiArtPath('ui_hand_panel'),
       layer: 'normal',
-      alpha: 0.32,
+      alpha: 0.48,
       phase: 'back',
       mode: 'nine-slice',
       slice: UI_PANEL_SLICE,
@@ -834,8 +834,8 @@ export class UISystem implements System {
       x: bounds.centerX, y: bounds.centerY,
       size: bounds.width, h: bounds.height,
       color: '#2b3038',
-      alpha: 0.42,
-      stroke: '#6d737d', strokeWidth: 1,
+      alpha: 0.16,
+      stroke: '#8793a3', strokeWidth: 0.5,
       z: UI_Z.NORMAL_UI - 2,
     });
     this.renderer.push({
@@ -843,7 +843,7 @@ export class UISystem implements System {
       x: bounds.centerX, y: bounds.centerY + bounds.height / 2 - 6,
       size: bounds.width - 24, h: 2,
       color: '#9aa0a8',
-      alpha: 0.12,
+      alpha: 0.08,
       z: UI_Z.NORMAL_UI - 1,
     });
     for (const slot of slotRects) {
