@@ -4,7 +4,15 @@ import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
 import { Position, Tower, Attack } from '../core/components.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
-import { computeHandZoneSlotRects, getHandZoneBounds, handZoneOverlapsBoard } from '../ui/LayoutConstants.js';
+import {
+  computeHandZoneSlotRects,
+  getHandZoneBounds,
+  handZoneOverlapsBoard,
+  HAND_ZONE_CARD_WIDTH,
+  HAND_ZONE_CARD_HEIGHT,
+  CARD_TOOLTIP_WIDTH,
+  CARD_TOOLTIP_HEIGHT,
+} from '../ui/LayoutConstants.js';
 import { UISystem } from './UISystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { CardDraftSystem } from './CardDraftSystem.js';
@@ -53,24 +61,32 @@ class RendererStub {
   applyBlur(): void {}
 }
 
-function makeUISystem(renderer: RendererStub, countdown: number, options: { isPaused?: boolean } = {}): UISystem {
+function makeUISystem(
+  renderer: RendererStub,
+  countdown: number,
+  options: {
+    isPaused?: boolean;
+    pointer?: { x: number; y: number };
+    dragState?: { active: boolean };
+  } = {},
+): UISystem {
   return new UISystem(
     renderer as any,
     () => GamePhase.Battle,
     () => 100,
     () => 1,
     () => 3,
-    () => options.isPaused ?? false,
+    () => false,
     () => null,
     () => {},
     () => {},
     null,
     null,
+    () => (options.dragState as any) ?? null,
+    options.pointer ? () => options.pointer! : null,
     null,
     null,
-    null,
-    null,
-    null,
+    () => {},
     () => {},
     () => {},
     () => {},
@@ -78,7 +94,7 @@ function makeUISystem(renderer: RendererStub, countdown: number, options: { isPa
     () => {},
     () => countdown,
     () => 1,
-    () => false,
+    () => options.isPaused ?? false,
     null,
     null,
     null,
@@ -281,5 +297,46 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     expect(slots.map((slot) => slot.left)).toEqual([628, 764, 900, 1036, 1172]);
     expect(slots.every((slot) => slot.top === 866)).toBe(true);
     expect(slots.every((slot) => slot.width === 120 && slot.height === 168)).toBe(true);
+  });
+
+  it('鼠标悬停手牌时卡牌上移放大，描述直接显示在卡面且不再绘制 tooltip', () => {
+    const slot = computeHandZoneSlotRects(1)[0]!;
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: slot.centerX, y: slot.centerY },
+    });
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: () => ({
+          id: 'card_arrow_tower',
+          name: '箭塔',
+          type: 'unit',
+          energyCost: 0,
+          goldCost: 35,
+          rarity: 'common',
+          placement: { targetType: 'tile' },
+          description: '基础单体物理输出',
+        }),
+      },
+      hand: { state: { hand: [{ cardId: 'card_arrow_tower' }] } },
+    });
+
+    ui.update(world, 1);
+
+    const cardRect = renderer.commands.find((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.stroke === '#ffffff' &&
+      cmd.size > HAND_ZONE_CARD_WIDTH &&
+      (cmd.h ?? 0) > HAND_ZONE_CARD_HEIGHT
+    ));
+    expect(cardRect).toBeDefined();
+    expect(cardRect!.y).toBeLessThan(slot.centerY);
+    expect(infosOf(ui).some((info) => info.text === '基础单体物理输出')).toBe(true);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.size === CARD_TOOLTIP_WIDTH &&
+      cmd.h === CARD_TOOLTIP_HEIGHT
+    ))).toBe(false);
   });
 });

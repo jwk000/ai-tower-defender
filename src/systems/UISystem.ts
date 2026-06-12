@@ -99,6 +99,21 @@ interface UIImageDraw {
   x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice'; slice?: NineSliceInsets;
 }
 
+interface HandCardDrawData {
+  index: number;
+  cardId: string;
+  config: CardConfig;
+  left: number;
+  top: number;
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+  scale: number;
+  progress: number;
+  z: number;
+}
+
 // ============================================================
 // TowerType numeric ID → enum mapping (matches BuildSystem)
 // ============================================================
@@ -166,6 +181,9 @@ const UI_Z = {
 const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 96 };
 const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom: 32 };
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
+const HAND_CARD_HOVER_SCALE = 1.08;
+const HAND_CARD_HOVER_LIFT = 24;
+const HAND_CARD_HOVER_SPEED = 12;
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
 
@@ -209,6 +227,8 @@ export class UISystem implements System {
   /** Card icon draws — collected during update(), drawn directly in renderUI() */
   private cardIconDraws: CardIconDraw[] = [];
   private imageDraws: UIImageDraw[] = [];
+  private handCardHoverProgress: number[] = Array.from({ length: HAND_ZONE_DEFAULT_SLOT_COUNT }, () => 0);
+  private frameDt: number = 1 / 60;
 
   public selectedEntityId: number | null = null;
   public selectedEntityType: 'tower' | 'unit' | 'trap' | 'production' | null = null;
@@ -334,6 +354,7 @@ export class UISystem implements System {
 
   update(world: TowerWorld, dt: number): void {
     this._world = world;
+    this.frameDt = dt;
     const phase = this.getPhase();
 
     this.buttons = [];
@@ -785,13 +806,12 @@ export class UISystem implements System {
   /**
    * v3.0 roguelike — 手牌区渲染（design/20 §4.5.2）。
    *   - 锚点 bottom-center offset(0, -130)，size 800×180
-   *   - 单卡 120×168，水平居中排列，卡间距 16px，最多 8 张
+   *   - 单卡 120×168，水平居中排列，卡间距 16px
    *   - 边框 2px 稀有度色（design/09 §3.2）
-   *   - 主图区 96×80 放占位符号（type 字母 + 卡名首字）
-   *   - 底部：◇ 能量消耗（蓝色菱形）
-   *   - 右上角：persistAcrossWaves=true 画金色 ✦ 角标（design/14 §3.2 line 72）
-   *   - 能量不足整卡 alpha=0.4 并叠加"能量不足"红字
-   *   - 灰色底板与 4 个空槽始终绘制，保证手牌区域存在感
+   *   - 主图区 96×80 放卡牌图标
+   *   - 底部显示名称、金币费用、描述，不再使用悬浮详情面板
+   *   - 鼠标悬停卡牌时插值放大并向上弹出手牌区，离开后回落
+   *   - 灰色底板与 5 个空槽始终绘制，保证手牌区域存在感
    *   - runContext 未装配时仅绘制底板/空槽，主菜单/编辑器流程保持无交互
    */
   private renderHandZone(): void {
@@ -854,6 +874,9 @@ export class UISystem implements System {
     if (cards.length === 0) return;
 
     const slots = computeCardSlotsLayout(cards.length, bounds.width, HAND_ZONE_CARD_WIDTH, HAND_ZONE_GAP);
+    const hoveredIndex = this.computeHoveredHandCardIndex(cards.length, bounds, slots);
+    this.updateHandCardHoverProgress(cards.length, hoveredIndex);
+    const cardDraws: HandCardDrawData[] = [];
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
@@ -866,177 +889,173 @@ export class UISystem implements System {
       const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
       const cardCenterX = cardLeft + HAND_ZONE_CARD_WIDTH / 2;
       const cardCenterY = cardTop + HAND_ZONE_CARD_HEIGHT / 2;
+      const progress = this.handCardHoverProgress[i] ?? 0;
+      const scale = 1 + (HAND_CARD_HOVER_SCALE - 1) * progress;
+      const drawW = HAND_ZONE_CARD_WIDTH * scale;
+      const drawH = HAND_ZONE_CARD_HEIGHT * scale;
+      const drawCenterY = cardCenterY - HAND_CARD_HOVER_LIFT * progress;
 
-      const cardAlpha = 1;
-      const borderColor = rarityBorderColor(config.rarity);
-
-      this.renderer.push({
-        shape: 'rect',
-        x: cardCenterX, y: cardCenterY,
-        size: HAND_ZONE_CARD_WIDTH, h: HAND_ZONE_CARD_HEIGHT,
-        color: '#1a2332',
-        alpha: cardAlpha * 0.95,
-        stroke: borderColor, strokeWidth: 2,
-        z: UI_Z.NORMAL_UI,
+      cardDraws.push({
+        index: i,
+        cardId: card.cardId,
+        config,
+        left: cardCenterX - drawW / 2,
+        top: drawCenterY - drawH / 2,
+        centerX: cardCenterX,
+        centerY: drawCenterY,
+        width: drawW,
+        height: drawH,
+        scale,
+        progress,
+        z: UI_Z.NORMAL_UI + (progress > 0 ? 7 + progress : i * 0.01),
       });
-      this.imageDraws.push({
-        x: cardLeft,
-        y: cardTop,
-        w: HAND_ZONE_CARD_WIDTH,
-        h: HAND_ZONE_CARD_HEIGHT,
-        path: uiArtPath(`ui_card_frame_${config.rarity}`),
-        layer: 'normal',
-        alpha: 0.92,
-      });
+    }
 
-      const artW = 96;
-      const artH = 80;
-      const artCenterY = cardTop + 12 + artH / 2;
-      this.renderer.push({
-        shape: 'rect',
-        x: cardCenterX, y: artCenterY,
-        size: artW, h: artH,
-        color: '#0d1b2a',
-        alpha: cardAlpha,
-        stroke: '#37474f', strokeWidth: 1,
-        z: UI_Z.NORMAL_UI + 1,
-      });
+    cardDraws.sort((a, b) => a.progress - b.progress || a.index - b.index);
+    for (const cardDraw of cardDraws) {
+      this.drawHandCard(cardDraw);
+    }
+  }
 
-      const glyph = cardTypeGlyph(config.type);
-      this.cardIconDraws.push({
-        cx: cardCenterX, cy: artCenterY, w: artW, h: artH,
-        cardId: card.cardId, color: borderColor, layer: 'normal',
-      });
+  private computeHoveredHandCardIndex(
+    cardCount: number,
+    bounds: ReturnType<typeof getHandZoneBounds>,
+    slots: { x: number; y: number }[],
+  ): number {
+    if (cardCount <= 0) return -1;
+    if (!this.getPointerPosition) return -1;
+    if (this.getDragState?.()) return -1;
 
-      this.infos.push({
-        x: cardCenterX, y: cardTop + 12 + artH + 14,
-        text: config.name,
-        color: '#ffffff',
-        size: 12, align: 'center',
-      });
+    const pos = this.getPointerPosition();
+    const baseHit = hitTestHandCard(pos.x, pos.y, cardCount);
+    if (baseHit >= 0) return baseHit;
 
-      // v5.0: 金币费用显示
-      const goldCost = (config as any).goldCost;
-      if (goldCost !== undefined && goldCost > 0) {
-        const goldColor = goldCost <= 40 ? '#ffc107' : goldCost <= 70 ? '#ff9800' : '#ff5722';
-        this.infos.push({
-          x: cardCenterX, y: cardTop + 12 + artH + 32,
-          text: `💰${goldCost}`,
-          color: goldColor,
-          size: 11, align: 'center',
-        });
-      } else if (goldCost === 0) {
-        this.infos.push({
-          x: cardCenterX, y: cardTop + 12 + artH + 32,
-          text: '免费',
-          color: '#66bb6a',
-          size: 11, align: 'center',
-        });
+    const cardTop = bounds.top + (bounds.height - HAND_ZONE_CARD_HEIGHT) / 2;
+    for (let i = Math.min(cardCount, slots.length) - 1; i >= 0; i--) {
+      const progress = this.handCardHoverProgress[i] ?? 0;
+      if (progress <= 0.01) continue;
+      const cardLeft = bounds.left + slots[i]!.x;
+      const centerX = cardLeft + HAND_ZONE_CARD_WIDTH / 2;
+      const centerY = cardTop + HAND_ZONE_CARD_HEIGHT / 2 - HAND_CARD_HOVER_LIFT * progress;
+      const width = HAND_ZONE_CARD_WIDTH * (1 + (HAND_CARD_HOVER_SCALE - 1) * progress);
+      const height = HAND_ZONE_CARD_HEIGHT * (1 + (HAND_CARD_HOVER_SCALE - 1) * progress);
+      if (
+        pos.x >= centerX - width / 2 &&
+        pos.x <= centerX + width / 2 &&
+        pos.y >= centerY - height / 2 &&
+        pos.y <= centerY + height / 2
+      ) {
+        return i;
       }
+    }
 
-      // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
-      if (config.persistAcrossWaves) {
-        this.infos.push({
-          x: cardLeft + HAND_ZONE_CARD_WIDTH - 12, y: cardTop + 14,
-          text: '✦',
-          color: '#ffc107',
-          size: 18, align: 'center',
-        });
+    return -1;
+  }
+
+  private updateHandCardHoverProgress(cardCount: number, hoveredIndex: number): void {
+    if (this.handCardHoverProgress.length < cardCount) {
+      this.handCardHoverProgress.length = cardCount;
+    }
+    const step = Math.min(1, Math.max(0, this.frameDt) * HAND_CARD_HOVER_SPEED);
+    for (let i = 0; i < this.handCardHoverProgress.length; i++) {
+      const current = this.handCardHoverProgress[i] ?? 0;
+      const target = i < cardCount && i === hoveredIndex ? 1 : 0;
+      this.handCardHoverProgress[i] = current + (target - current) * step;
+      if (i >= cardCount || this.handCardHoverProgress[i]! < 0.001) {
+        this.handCardHoverProgress[i] = 0;
       }
     }
   }
 
-
-  /**
-   * v3.0 roguelike — A4-UI A2 悬停详情卡片（design/14 §3.2 line 77）。
-   *   - 鼠标位置由 getPointerPosition callback 提供（每帧最新值）
-   *   - hitTestHandCard 命中槽位 i → 取 runContext.hand[i] → CardConfig
-   *   - buildCardTooltipLines 结构化文本 + computeTooltipAnchor 定位
-   *   - 在所有手牌渲染之后绘制（保证 z-order 在最上）
-   *   - runContext 未装配 / getPointerPosition 未注入 / 未命中手牌 时静默跳过
-   *   - 拖卡 (BuildSystem.dragState != null) 期间不显示，避免与拖拽视觉重叠
-   */
-  private renderHandTooltip(): void {
-    const runContext = this._world?.runContext;
-    if (!runContext) return;
-    if (!this.getPointerPosition) return;
-    if (this.getDragState?.()) return;
-    const cards = runContext.hand.state.hand;
-    if (cards.length === 0) return;
-
-    const pos = this.getPointerPosition();
-    const idx = hitTestHandCard(pos.x, pos.y, cards.length);
-    if (idx < 0) return;
-
-    const card = cards[idx];
-    if (!card) return;
-
-    const config = runContext.registry.get(card.cardId);
-    if (!config) return;
-
-    const REGION_W = 800;
-    const CARD_W = 120;
-    const GAP = 16;
-    const anchor = computeTooltipAnchor(idx, cards.length, REGION_W, CARD_W, GAP);
-    const lines = buildCardTooltipLines(config);
+  private drawHandCard(cardDraw: HandCardDrawData): void {
+    const { config } = cardDraw;
+    const cardAlpha = 1;
     const borderColor = rarityBorderColor(config.rarity);
+    const artW = 96 * cardDraw.scale;
+    const artH = 80 * cardDraw.scale;
+    const artCenterY = cardDraw.top + 12 * cardDraw.scale + artH / 2;
 
     this.renderer.push({
       shape: 'rect',
-      x: anchor.x + CARD_TOOLTIP_WIDTH / 2,
-      y: anchor.y + CARD_TOOLTIP_HEIGHT / 2,
-      size: CARD_TOOLTIP_WIDTH, h: CARD_TOOLTIP_HEIGHT,
-      color: '#0d1b2a', alpha: 0.96,
-      stroke: borderColor, strokeWidth: 3,
-      z: UI_Z.NORMAL_UI + 10,
+      x: cardDraw.centerX, y: cardDraw.centerY,
+      size: cardDraw.width, h: cardDraw.height,
+      color: '#1a2332',
+      alpha: cardAlpha * 0.95,
+      stroke: borderColor, strokeWidth: cardDraw.progress > 0 ? 3 : 2,
+      z: cardDraw.z,
+    });
+    this.imageDraws.push({
+      x: cardDraw.left,
+      y: cardDraw.top,
+      w: cardDraw.width,
+      h: cardDraw.height,
+      path: uiArtPath(`ui_card_frame_${config.rarity}`),
+      layer: 'normal',
+      alpha: 0.92,
     });
 
-    let cursorY = anchor.y + 28;
-    for (const line of lines) {
-      switch (line.kind) {
-        case 'name':
-          this.infos.push({
-            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
-            text: line.text, color: borderColor, size: 22, align: 'center',
-          });
-          cursorY += 30;
-          break;
-        case 'meta':
-          this.infos.push({
-            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
-            text: line.text, color: '#90a4ae', size: 13, align: 'center',
-          });
-          cursorY += 24;
-          break;
-        case 'energy':
-          this.infos.push({
-            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
-            text: line.text, color: '#bbdefb', size: 18, align: 'center',
-          });
-          cursorY += 28;
-          break;
-        case 'persist':
-          this.infos.push({
-            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
-            text: line.text, color: '#ffc107', size: 14, align: 'center',
-          });
-          cursorY += 22;
-          break;
-        case 'desc':
-          this.infos.push({
-            x: anchor.x + 16, y: cursorY,
-            text: line.text, color: '#e0e0e0', size: 13,
-          });
-          cursorY += 20 * Math.max(1, Math.ceil(line.text.length / 20));
-          break;
-        case 'flavor':
-          this.infos.push({
-            x: anchor.x + CARD_TOOLTIP_WIDTH / 2, y: cursorY,
-            text: line.text, color: '#78909c', size: 11, align: 'center',
-          });
-          cursorY += 18;
-          break;
+    this.renderer.push({
+      shape: 'rect',
+      x: cardDraw.centerX, y: artCenterY,
+      size: artW, h: artH,
+      color: '#0d1b2a',
+      alpha: cardAlpha,
+      stroke: '#37474f', strokeWidth: 1,
+      z: cardDraw.z + 1,
+    });
+
+    this.cardIconDraws.push({
+      cx: cardDraw.centerX, cy: artCenterY, w: artW, h: artH,
+      cardId: cardDraw.cardId, color: borderColor, layer: 'normal',
+    });
+
+    this.infos.push({
+      x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 14 * cardDraw.scale,
+      text: config.name,
+      color: '#ffffff',
+      size: 12, align: 'center',
+    });
+
+    const goldCost = config.goldCost;
+    if (goldCost !== undefined && goldCost > 0) {
+      const goldColor = goldCost <= 40 ? '#ffc107' : goldCost <= 70 ? '#ff9800' : '#ff5722';
+      this.infos.push({
+        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 30 * cardDraw.scale,
+        text: `💰${goldCost}`,
+        color: goldColor,
+        size: 11, align: 'center',
+      });
+    } else if (goldCost === 0) {
+      this.infos.push({
+        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 30 * cardDraw.scale,
+        text: '免费',
+        color: '#66bb6a',
+        size: 11, align: 'center',
+      });
+    }
+
+    if (config.description) {
+      const descLines = this.wrapText(config.description, cardDraw.width - 18 * cardDraw.scale, 9);
+      for (let li = 0; li < descLines.length && li < 2; li++) {
+        this.infos.push({
+          x: cardDraw.centerX,
+          y: cardDraw.top + 12 * cardDraw.scale + artH + 46 * cardDraw.scale + li * 11,
+          text: descLines[li]!,
+          color: '#90a4ae',
+          size: 9, align: 'center',
+        });
       }
+    }
+
+    // 右上角 ✦ 金色角标 — design/14 §3.2 line 72：persistAcrossWaves=true 法术卡跨波保留
+    if (config.persistAcrossWaves) {
+      this.infos.push({
+        x: cardDraw.left + cardDraw.width - 12 * cardDraw.scale,
+        y: cardDraw.top + 14 * cardDraw.scale,
+        text: '✦',
+        color: '#ffc107',
+        size: 18, align: 'center',
+      });
     }
   }
 
@@ -1310,7 +1329,6 @@ export class UISystem implements System {
     if (!available) return;
 
     this.renderHandZone();
-    this.renderHandTooltip();
   }
 
   // ============================================================
