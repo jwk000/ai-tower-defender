@@ -747,12 +747,15 @@ export class RenderSystem implements System {
     return Math.sin(Visual.breathPhase[eid] ?? 0) >= 0 ? 1 : 0;
   }
 
-  private getUnitSpriteState(eid: number): 'idle' | 'attack' | 'death' {
+  private getUnitSpriteState(eid: number, moving: boolean): 'idle' | 'move' | 'attack' | 'death' {
     if (getDeathSpriteArtId(eid)) {
       return 'death';
     }
     if ((Visual.attackAnimTimer[eid] ?? 0) > 0) {
       return 'attack';
+    }
+    if (moving) {
+      return 'move';
     }
     return 'idle';
   }
@@ -1482,10 +1485,17 @@ export class RenderSystem implements System {
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
         const sceneUnitArtId = this.getSceneUnitArtId(world, eid);
-        const unitSpriteState = this.getUnitSpriteState(eid);
+        const isMovingUnit =
+          hasComponent(world.world, Movement, eid) &&
+          (Movement.currentSpeed[eid] ?? 0) > 0.05 &&
+          !hasFrozen &&
+          !(hasStunnedComponent && Stunned.timer[eid]! > 0) &&
+          Visual.attackAnimTimer[eid]! <= 0;
+        const unitSpriteState = this.getUnitSpriteState(eid, isMovingUnit);
         const movingEnemyBreathScale = getMovingEnemyBreathScale(
           Visual.breathPhase[eid] ?? 0,
-          isEnemy &&
+          unitSpriteState === 'idle' &&
+            isEnemy &&
             hasComponent(world.world, Movement, eid) &&
             (Movement.currentSpeed[eid] ?? 0) > 0.05 &&
             !hasFrozen &&
