@@ -104,6 +104,11 @@ const renderableQuery = defineQuery([Position, Visual]);
 const targetingMarkQuery = defineQuery([TargetingMark, Position]);
 const tileDamageMarkQuery = defineQuery([TileDamageMark, Position]);
 
+const NAME_COLOR_DEFAULT = '#ffffff';
+const NAME_COLOR_ELITE = '#FFD700';
+const NAME_COLOR_BOSS = '#ff1744';
+const NAME_COLOR_PLAYER_UNIT = '#4ade80';
+
 // ---- ShapeVal numeric -> string mapping ----
 function shapeValToString(v: number): ShapeType {
   switch (v) {
@@ -1242,6 +1247,7 @@ export class RenderSystem implements System {
       // Boss rendering
       // ========================================
       const isBossEntity = hasComponent(world.world, Boss, eid);
+      const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
       let drawSize = Visual.size[eid]!;
       if (isBossEntity) {
         drawSize = Visual.size[eid]! * 1.3;
@@ -1266,20 +1272,16 @@ export class RenderSystem implements System {
         (selectedUnitId !== null && eid === selectedUnitId) ||
         (selectedTrapId !== null && eid === selectedTrapId) ||
         (selectedProductionId !== null && eid === selectedProductionId);
-      let strokeColor = isSelected ? '#ffffff' : (Visual.outline[eid] ? '#ffffff' : undefined);
-      let strokeW = isSelected ? 3 : (Visual.outline[eid] ? 2 : undefined);
+      const usePassiveOutline = !isUnit && !isEliteEnemy && (Visual.outline[eid] ?? 0) === 1;
+      let strokeColor = isSelected ? '#ffffff' : (usePassiveOutline ? '#ffffff' : undefined);
+      let strokeW = isSelected ? 3 : (usePassiveOutline ? 2 : undefined);
 
       // ========================================
-      // Elite enemy rendering — gold border + 20% size increase
-      // design/02-gameplay.md §2.4: 金色边框+体型增大20%
+      // Elite enemy rendering — 20% size increase, name color handles identification.
+      // design/02-gameplay.md §2.4: 体型增大20%，名称黄色
       // ========================================
-      const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
       if (isEliteEnemy) {
         drawSize = drawSize * 1.2;
-        if (!isSelected) {
-          strokeColor = '#FFD700';
-          strokeW = 3;
-        }
       }
 
       // ========================================
@@ -1786,6 +1788,13 @@ export class RenderSystem implements System {
 
         if (displayName) {
           const nameCenterX = blockLeft + insigniaWidth + gap + nameWidth / 2;
+          const labelColor = isBossEntity
+            ? NAME_COLOR_BOSS
+            : isEliteEnemy
+              ? NAME_COLOR_ELITE
+              : isUnit
+                ? NAME_COLOR_PLAYER_UNIT
+                : NAME_COLOR_DEFAULT;
           this.renderer.push({
             shape: 'rect',
             x: nameCenterX,
@@ -1795,7 +1804,7 @@ export class RenderSystem implements System {
             color: '#ffffff',
             alpha: 1,
             label: displayName,
-            labelColor: '#ffffff',
+            labelColor,
             labelSize: nameLabelSize,
             z: renderZ,
           });

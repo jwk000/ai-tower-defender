@@ -4,12 +4,15 @@ import { TileType } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
 import {
   Barrel,
+  Boss,
   Category,
   CategoryVal,
   Health,
+  Movement,
   Position,
   ShapeVal,
   Tower,
+  UnitTag,
   Visual,
 } from '../core/components.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -60,6 +63,52 @@ function makeCannonTower(world: TowerWorld): number {
     size: 38,
     alpha: 1,
   });
+  return eid;
+}
+
+function makeNamedEntity(
+  world: TowerWorld,
+  opts: {
+    name: string;
+    category: CategoryVal;
+    x: number;
+    isElite?: boolean;
+    isBoss?: boolean;
+    outline?: number;
+  },
+): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: opts.x, y: 32 });
+  world.addComponent(eid, Health, { current: 100, max: 100 });
+  world.addComponent(eid, Category, { value: opts.category });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: 120,
+    colorG: 120,
+    colorB: 120,
+    size: 32,
+    alpha: 1,
+    outline: opts.outline ?? 0,
+  });
+  if (opts.category === CategoryVal.Enemy || opts.isBoss) {
+    world.addComponent(eid, UnitTag, {
+      isEnemy: 1,
+      isBoss: opts.isBoss ? 1 : 0,
+      isElite: opts.isElite ? 1 : 0,
+    });
+  }
+  if (opts.category === CategoryVal.Soldier) {
+    world.addComponent(eid, Movement, { moveRange: 96 });
+  }
+  if (opts.isBoss) {
+    world.addComponent(eid, Boss, {
+      bossType: 0,
+      phase: 1,
+      phase2HpRatio: 0.5,
+      transitionTimer: 0,
+    });
+  }
+  world.setDisplayName(eid, opts.name);
   return eid;
 }
 
@@ -151,5 +200,42 @@ describe('RenderSystem — 水晶显示', () => {
 
     expect(renderer.commands.some((cmd) => cmd.image)).toBe(false);
     expect(hasProceduralBarrel(renderer.commands)).toBe(true);
+  });
+
+  it('精英、Boss、我方士兵使用阵营化名称颜色', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    makeNamedEntity(world, { name: '精英怪', category: CategoryVal.Enemy, x: 48, isElite: true });
+    makeNamedEntity(world, { name: 'Boss', category: CategoryVal.Boss, x: 96, isBoss: true });
+    makeNamedEntity(world, { name: '士兵', category: CategoryVal.Soldier, x: 144 });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+
+    expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '精英怪', labelColor: '#FFD700' }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({ label: 'Boss', labelColor: '#ff1744' }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '士兵', labelColor: '#4ade80' }));
+  });
+
+  it('精英怪与未选中我方士兵不显示被动边框，选中士兵才显示边框', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    makeNamedEntity(world, { name: '精英怪', category: CategoryVal.Enemy, x: 48, isElite: true, outline: 1 });
+    const soldierId = makeNamedEntity(world, { name: '士兵', category: CategoryVal.Soldier, x: 144, outline: 1 });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap(), undefined, () => soldierId);
+
+    system.update(world, 0);
+
+    const eliteBody = renderer.commands.find((cmd) => cmd.x === 48 && cmd.y === 32 && cmd.size > 32 && !cmd.label);
+    const soldierBody = renderer.commands.find((cmd) => cmd.x === 144 && cmd.y === 32 && cmd.size === 32 && !cmd.label);
+
+    expect(eliteBody).toEqual(expect.objectContaining({ stroke: undefined, strokeWidth: undefined }));
+    expect(soldierBody).toEqual(expect.objectContaining({ stroke: '#ffffff', strokeWidth: 3 }));
   });
 });
