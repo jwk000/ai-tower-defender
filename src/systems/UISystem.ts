@@ -92,7 +92,7 @@ export type {
 // ============================================================
 
 interface CardIconDraw {
-  cx: number; cy: number; w: number; h: number; cardId: string; color: string; layer: UILayer;
+  cx: number; cy: number; w: number; h: number; cardId: string; color: string; layer: UILayer; alpha?: number;
 }
 
 interface UIImageDraw {
@@ -170,6 +170,7 @@ interface DragState {
   productionType?: ProductionType;
   trapTypeId?: string;
   spellCardId?: string;
+  cardIndex?: number;
 }
 
 const UI_Z = {
@@ -690,6 +691,7 @@ export class UISystem implements System {
     for (const icon of this.cardIconDraws) {
       if (icon.layer !== layer) continue;
       ctx.save();
+      ctx.globalAlpha = icon.alpha ?? 1;
       const x = icon.cx - icon.w / 2;
       const y = icon.cy - icon.h / 2;
       if (!drawLoadedImage(ctx, cardArtPath(icon.cardId), x, y, icon.w, icon.h)) {
@@ -1057,6 +1059,80 @@ export class UISystem implements System {
         size: 18, align: 'center',
       });
     }
+  }
+
+  private resolveDragCard(ds: DragState): { cardId: string; config: CardConfig } | null {
+    if (ds.cardIndex !== undefined) {
+      const handCard = this._world?.runContext?.hand.state.hand[ds.cardIndex];
+      const cardId = handCard?.cardId ?? handCard?.id;
+      if (cardId) {
+        const config = this._world?.runContext?.registry.get(cardId) ?? cardConfigRegistry.get(cardId);
+        if (config) return { cardId, config };
+      }
+    }
+
+    if (ds.spellCardId) {
+      const config = cardConfigRegistry.get(ds.spellCardId);
+      if (config) return { cardId: ds.spellCardId, config };
+    }
+
+    return null;
+  }
+
+  private drawDragCardGhost(cardId: string, config: CardConfig, x: number, y: number, alpha: number): void {
+    const scale = 0.72;
+    const width = HAND_ZONE_CARD_WIDTH * scale;
+    const height = HAND_ZONE_CARD_HEIGHT * scale;
+    const left = x - width / 2;
+    const top = y - height / 2;
+    const borderColor = rarityBorderColor(config.rarity);
+    const artW = 96 * scale;
+    const artH = 80 * scale;
+    const artCenterY = top + 12 * scale + artH / 2;
+
+    this.renderer.push({
+      shape: 'rect',
+      x,
+      y,
+      size: width,
+      h: height,
+      color: '#1a2332',
+      alpha: alpha * 0.8,
+      stroke: borderColor,
+      strokeWidth: 2,
+      z: UI_Z.BOARD_TIPS + 2,
+    });
+    this.imageDraws.push({
+      x: left,
+      y: top,
+      w: width,
+      h: height,
+      path: uiArtPath(`ui_card_frame_${config.rarity}`),
+      layer: 'board',
+      alpha,
+    });
+    this.renderer.push({
+      shape: 'rect',
+      x,
+      y: artCenterY,
+      size: artW,
+      h: artH,
+      color: '#0d1b2a',
+      alpha: alpha * 0.8,
+      stroke: '#37474f',
+      strokeWidth: 1,
+      z: UI_Z.BOARD_TIPS + 3,
+    });
+    this.cardIconDraws.push({
+      cx: x,
+      cy: artCenterY,
+      w: artW,
+      h: artH,
+      cardId,
+      color: borderColor,
+      layer: 'board',
+      alpha,
+    });
   }
 
   // renderEnergyBar 已移除 — 能量机制已移除
@@ -1450,6 +1526,7 @@ export class UISystem implements System {
 
     const ghostAlpha = 0.5;
     const z = UI_Z.BOARD_TIPS;
+    const dragCard = this.resolveDragCard(ds);
 
     // 1. 攻击范围圆圈（先渲染，显示在底层）
     if (range !== undefined && range > 0) {
@@ -1471,6 +1548,11 @@ export class UISystem implements System {
         strokeWidth: 2,
         z,
       });
+    }
+
+    if (dragCard) {
+      this.drawDragCardGhost(dragCard.cardId, dragCard.config, ptr.x, ptr.y, 0.68);
+      return;
     }
 
     // 2. 复合外观渲染（主体 + bodyParts + 武器 + 眼睛）

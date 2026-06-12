@@ -67,7 +67,7 @@ function makeUISystem(
   options: {
     isPaused?: boolean;
     pointer?: { x: number; y: number };
-    dragState?: { active: boolean };
+    dragState?: { active: boolean } & Record<string, unknown>;
   } = {},
 ): UISystem {
   return new UISystem(
@@ -110,6 +110,14 @@ function buttonsOf(ui: UISystem): Array<{ x: number; y: number; w: number; h: nu
 
 function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> {
   return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> }).infos;
+}
+
+function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number }> {
+  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number }> }).imageDraws;
+}
+
+function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; alpha?: number }> {
+  return (ui as unknown as { cardIconDraws: Array<{ cardId: string; layer: string; alpha?: number }> }).cardIconDraws;
 }
 
 describe('UISystem 顶部 HUD 布局', () => {
@@ -338,5 +346,47 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.size === CARD_TOOLTIP_WIDTH &&
       cmd.h === CARD_TOOLTIP_HEIGHT
     ))).toBe(false);
+  });
+
+  it('卡牌拖动 ghost 使用卡牌美术资源替换程序图标', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: 960, y: 540 },
+      dragState: {
+        active: true,
+        entityType: 'tower',
+        towerType: 'arrow',
+        cardIndex: 0,
+      },
+    });
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: () => ({
+          id: 'card_arrow_tower',
+          name: '箭塔',
+          type: 'unit',
+          energyCost: 0,
+          goldCost: 35,
+          rarity: 'common',
+          placement: { targetType: 'tile' },
+          description: '基础单体物理输出',
+        }),
+      },
+      hand: { state: { hand: [{ cardId: 'card_arrow_tower' }] } },
+    });
+
+    ui.update(world, 1 / 60);
+
+    expect(imageDrawsOf(ui).some((draw) => (
+      draw.layer === 'board' &&
+      draw.path === '/art/ui/ui_card_frame_common.png' &&
+      draw.alpha === 0.68
+    ))).toBe(true);
+    expect(cardIconDrawsOf(ui).some((draw) => (
+      draw.layer === 'board' &&
+      draw.cardId === 'card_arrow_tower' &&
+      draw.alpha === 0.68
+    ))).toBe(true);
   });
 });
