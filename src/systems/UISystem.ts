@@ -147,6 +147,10 @@ interface UIButton {
   enabled: boolean | (() => boolean);
   /** v5.0: ghost buttons are invisible click targets (no fill/stroke, only hit area) */
   ghost?: boolean;
+  /** Use the configured button color directly instead of themed 9-slice art. */
+  solidColor?: boolean;
+  /** Keep the configured button color even when disabled. */
+  keepDisabledColor?: boolean;
   layer?: UILayer;
 }
 
@@ -585,9 +589,11 @@ export class UISystem implements System {
       w: btnW,
       h: btnH,
       label: canUpgrade ? `升级 ${upgradeCost}G` : '满级',
-      color: canUpgrade && canAfford ? '#4caf50' : '#555555',
+      color: '#4caf50',
       textColor: '#ffffff',
       enabled: canUpgrade && canAfford,
+      solidColor: true,
+      keepDisabledColor: true,
       layer: 'board',
       onClick: () => {
         this.onUpgradeTower?.(id);
@@ -605,6 +611,7 @@ export class UISystem implements System {
       color: '#e53935',
       textColor: '#ffffff',
       enabled: true,
+      solidColor: true,
       layer: 'board',
       onClick: () => {
         this.onRecycleEntity?.(id);
@@ -747,19 +754,19 @@ export class UISystem implements System {
 
     ctx.save();
 
-    const usesSkin = enabled && btn.w >= 70 && btn.w / Math.max(1, btn.h) >= 2;
+    const usesSkin = !btn.solidColor && enabled && btn.w >= 70 && btn.w / Math.max(1, btn.h) >= 2;
     if (usesSkin) {
       if (!drawLoadedImage9Slice(ctx, uiArtPath('ui_button_green'), btn.x, btn.y, btn.w, btn.h, UI_BUTTON_SLICE)) {
         ctx.fillStyle = btn.color;
         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
       }
     } else {
-      ctx.fillStyle = enabled ? btn.color : '#555555';
+      ctx.fillStyle = enabled || btn.keepDisabledColor ? btn.color : '#555555';
       ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
     }
 
     // Button border
-    ctx.strokeStyle = usesSkin ? '#ffffff22' : enabled ? '#ffffff44' : '#333333';
+    ctx.strokeStyle = usesSkin ? '#ffffff22' : enabled || btn.keepDisabledColor ? '#ffffff44' : '#333333';
     ctx.lineWidth = 1;
     ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
 

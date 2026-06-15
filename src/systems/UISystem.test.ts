@@ -33,6 +33,7 @@ class LoadedImage {
 class RendererStub {
   commands: RenderCommand[] = [];
   redrawPredicates: Array<(cmd: RenderCommand) => boolean> = [];
+  fillRects: Array<{ x: number; y: number; w: number; h: number; color: string }> = [];
   context = {
     save: () => {},
     restore: () => {},
@@ -44,7 +45,9 @@ class RendererStub {
     lineTo: () => {},
     quadraticCurveTo: () => {},
     bezierCurveTo: () => {},
-    fillRect: () => {},
+    fillRect: (x: number, y: number, w: number, h: number) => {
+      this.fillRects.push({ x, y, w, h, color: this.context.fillStyle });
+    },
     strokeRect: () => {},
     fill: () => {},
     stroke: () => {},
@@ -252,6 +255,14 @@ describe('UISystem UI 层级', () => {
     const recycleButton = buttonsOf(ui).find((button) => button.label.startsWith('回收'));
     expect(recycleButton).toBeDefined();
     expect(recycleButton!.color).toBe('#e53935');
+
+    ui.renderUI();
+    expect(renderer.fillRects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ x: upgradeButton!.x, y: upgradeButton!.y, w: upgradeButton!.w, h: upgradeButton!.h, color: '#4caf50' }),
+        expect.objectContaining({ x: recycleButton!.x, y: recycleButton!.y, w: recycleButton!.w, h: recycleButton!.h, color: '#e53935' }),
+      ]),
+    );
 
     const titleInfo = infosOf(ui).find((info) => info.text.includes('Lv.1'));
     expect(titleInfo).toBeDefined();
