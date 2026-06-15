@@ -777,6 +777,7 @@ export class DecorationSystem implements System {
       const baseX = obs.col * this.ts + this.ts / 2 + this.ox;
       const baseY = obs.row * this.ts + this.ts / 2 + this.oy;
 
+      // 图片装饰可用时只叠加粒子，跳过 COMPOSITE_VISUALS 程序化集合图形。
       if (this.drawDecorArt(decorType, obs.row, obs.col, baseX, baseY)) {
         this.drawDecorParticles(decorType, obs.row, obs.col, baseX, baseY);
         continue;

@@ -262,7 +262,7 @@ dark fantasy casual tower defense boss sprite, {boss_subject}, oversized readabl
 
 场景装饰必须使用图片资产替换程序化几何体。`DecorationSystem.COMPOSITE_VISUALS` 只作为美术资源关闭、图片缺失或加载失败时的程序化兜底，不再作为默认表现。
 
-装饰物按 `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png` 命名。`theme` 使用运行时 `map.artTheme`，与地格主题一致；`decor_id` 使用关卡配置中的 `ObstacleType` 小写 snake_case。`idle_<variant>` 是静态外观变体，不是运行时动画帧；运行时按装饰物位置确定性选择一张显示，不随时间切换。植物、火焰、裂隙、蒸汽、菌孢、传送/能量类动态表现由 `DecorationSystem` 运行时粒子特效实现。
+装饰物按 `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png` 命名。`theme` 使用运行时 `map.artTheme`，与地格主题一致；`decor_id` 使用关卡配置中的 `ObstacleType` 小写 snake_case。`idle_<variant>` 是静态外观变体，不是运行时动画帧；运行时按装饰物位置确定性选择一张显示，不随时间切换。图片资产可用时绘制静态图并保留 `DecorationSystem` 的粒子效果，但不叠加 `COMPOSITE_VISUALS` 的程序化集合图形；植物、火焰、裂隙、蒸汽、菌孢、传送/能量类动态表现由运行时粒子特效实现。
 
 | 动态需求 | 适用装饰 | 静态变体与实现方式 |
 |----------|----------|----------|

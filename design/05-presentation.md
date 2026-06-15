@@ -163,7 +163,7 @@ Abyss（深渊层）    — 最低，预留
 
 ### 4.2 静态装饰物
 
-每个障碍物占用地格，默认使用 `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png` 静态图片资产绘制。`idle_<variant>` 不是时间轴动画帧，而是同一装饰物的静态外观变体；运行时按装饰物行列位置确定性选择一张显示，例如仙人掌可从 `idle_0/idle_1` 两张静态变体中选一张。树叶摆动、火光、裂隙闪烁、孢子、蒸汽、齿轮火花等动态效果统一由运行时粒子特效和轻量叠加几何实现。`DecorationSystem.COMPOSITE_VISUALS` 只作为美术资源关闭、图片缺失或加载失败时的程序化兜底，不能作为默认视觉目标。
+每个障碍物占用地格，默认使用 `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png` 静态图片资产绘制。`idle_<variant>` 不是时间轴动画帧，而是同一装饰物的静态外观变体；运行时按装饰物行列位置确定性选择一张显示，例如仙人掌可从 `idle_0/idle_1` 两张静态变体中选一张。图片资产可用时绘制静态图并保留树叶、火光、裂隙、孢子、蒸汽、齿轮火花等粒子效果，但不叠加 `DecorationSystem.COMPOSITE_VISUALS` 的程序化集合图形。`DecorationSystem.COMPOSITE_VISUALS` 只作为美术资源关闭、图片缺失或加载失败时的程序化兜底，不能作为默认视觉目标。
 
 装饰物图片必须与同主题地格一起进入主题图集；普通路径地格每个主题只保留一个方向无关图片 `tile_<theme>_path.png`，不再生成直线、转角、T 字或十字方向变体。
 
@@ -242,7 +242,7 @@ Abyss（深渊层）    — 最低，预留
 
 | 类别 | 说明 | 实现方式 |
 |------|------|---------|
-| 静态装饰物增强 | 静态装饰图 + 粒子动效，程序化几何仅作兜底 | `DecorationSystem` 绘制静态图后按类型叠加粒子 |
+| 静态装饰物增强 | 静态装饰图 + 粒子动效，程序化集合图形仅作兜底 | `DecorationSystem` 绘制静态图后按类型叠加粒子；图片不可用时绘制 `COMPOSITE_VISUALS` |
 | 动态环境生物 | 飞鸟、云朵、草叶 | `DecorationSystem` 内部状态数组驱动 |
 | 全屏环境 | 太阳、光束、风线、雾、雨、雪、乌云、星空、月亮、暗角 | `ScreenFXSystem.render(ctx, dt, weather)` 直接绘制 Canvas 2D |
 | 棋盘外侧光晕 | 夜晚关卡外侧 bloom 和微光粒子 | `BoardGlowSystem` |
