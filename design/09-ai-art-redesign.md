@@ -72,7 +72,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 | Buff 图标 | `public/art/buffs/` | `buff_<buff_id>.png` |
 | UI 元素 | `public/art/ui/` | `ui_<surface>_<part>.png` |
 | 地格 | `public/art/tiles/` | `tile_<theme>_<tile_type>.png` |
-| 场景装饰 | `public/art/decor/` | `decor_<theme>_<decor_id>.png` |
+| 场景装饰 | `public/art/decor/` | `decor_<theme>_<decor_id>_idle_<frame>.png` |
 | 背景 | `public/art/backgrounds/` | `bg_<theme>.webp` |
 
 ### 3.2 尺寸标准
@@ -91,6 +91,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 | UI 面板九宫格 | 512×512 | 是 | 作为 9-slice 源图 |
 | 按钮九宫格 | 384×128 | 是 | 普通/悬停/按下/禁用四状态可复用 |
 | 地格 | 128×128 | 否 | 64×64 的 2x 资产，必须支持连续拼接 |
+| 场景装饰 | 128×128 | 是 | 障碍/装饰物贴图，1-4 帧序列帧，锚点居中落在占用地格中心 |
 | 战斗背景 | 1920×1080 | 否 | 分层时用 far/mid/overlay |
 
 ### 3.3 动画状态规则
@@ -251,6 +252,40 @@ Boss 提示词：
 ```text
 dark fantasy casual tower defense boss sprite, {boss_subject}, oversized readable silhouette, unique crown or core motif, dramatic but clean, high contrast glowing weak point, 3/4 top-down view, transparent background, 192x192, no text
 ```
+
+---
+
+## 5.5 场景装饰美术需求
+
+场景装饰必须使用图片资产替换程序化几何体。`DecorationSystem.COMPOSITE_VISUALS` 只作为美术资源关闭、图片缺失或加载失败时的程序化兜底，不再作为默认表现。
+
+装饰物按 `public/art/decor/decor_<theme>_<decor_id>_idle_<frame>.png` 命名。`theme` 使用运行时 `map.artTheme`，与地格主题一致；`decor_id` 使用关卡配置中的 `ObstacleType` 小写 snake_case。普通静态物件交付 1 帧，植物、火焰、裂隙、蒸汽、菌孢、传送/能量类物件按动作复杂度交付 2-4 帧。所有帧必须保持同一构图、同一尺寸和同一锚点，不能改变占用地格或遮挡范围。
+
+| 动作复杂度 | 帧数 | 适用装饰 | 动画要求 |
+|------------|------|----------|----------|
+| 静态 | 1 | 岩石、枯骨、残柱、碎石、箱子、墙体、雕像、煤堆 | 只绘制完整物件，无抖动帧 |
+| 轻微循环 | 2 | 树、灌木、花丛、仙人掌、藤蔓、蘑菇、雪堆 | 风吹/呼吸/叶片摆动，轮廓变化小 |
+| 中等循环 | 3 | 火盆、紫火、浮标、齿轮、蒸汽管、孢子荚、虫洞 | 火光、旋转、蒸汽或光点有清晰节奏 |
+| 强循环 | 4 | 虚空裂隙、扭曲现实、熔岩口、传送/能量类装饰 | 能量扩张/收缩或裂隙闪烁，保持可读且不喧宾夺主 |
+
+装饰物通用提示词：
+
+```text
+dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}, 3/4 top-down view, centered object, transparent background, clean readable silhouette, subtle hand-painted texture, fits inside one 64x64 grid tile, no ground tile, no cast shadow, no text, no watermark
+```
+
+动画帧提示词追加：
+
+```text
+idle animation frame {frame}/{frame_count}, same object design, same camera, same anchor and size, only subtle loop motion in leaves, flame, steam, glow, rotation, spores, or rift energy
+```
+
+地格与装饰的关系：
+
+1. 装饰物图片只画物件本体，不画完整地格底图，不烘焙运行时投影。
+2. 装饰物图集必须与同主题地格共用主题图集，保证关卡进入时按主题一次预热。
+3. 美术资源总开关关闭时，装饰物必须回退到程序化几何体和微动表现。
+4. 装饰物动画只影响视觉，不参与碰撞、寻路、建造或攻击逻辑。
 
 ---
 

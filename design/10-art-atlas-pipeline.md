@@ -24,7 +24,7 @@
 | 优先级 | 资源目录 | 当前数量 | 是否进图集 | 打包方式 | 原因 |
 |--------|----------|----------|------------|----------|------|
 | P0 | `public/art/units/` | 376 | 是 | 敌人/士兵等通用单位分包；玩家塔每塔一个图集 | 数量最大，战斗中重复使用；塔单独分包可减少单图集尺寸并便于按卡牌/建造预热 |
-| P0 | `public/art/tiles/` | 80 | 是 | 按主题拆分 | 地图入场和战斗场景高频使用，尺寸统一 |
+| P0 | `public/art/tiles/` + `public/art/decor/` | 15+ | 是 | 按主题拆分，地格与同主题装饰合包 | 地图入场和战斗场景高频使用；装饰物随主题预热，避免额外请求 |
 | P1 | `public/art/fx/` | 12 | 是 | 全局 FX 图集 | 小图、透明背景、复用频繁 |
 | P1 | `public/art/ui/` | 8 | 是 | 全局 UI 图集 | 小型 UI 件和 9-slice 源图可共用图集 |
 | P1 | `public/art/buffs/` | 12 | 是 | 全局 icon 图集 | 图标尺寸统一，局外 UI 复用 |
@@ -88,7 +88,16 @@ public/art/atlases/themes/theme_meadow_tiles.png
 public/art/atlases/themes/theme_meadow_tiles.json
 ```
 
-每个主题一个地格图集，包含该主题所有 `tile_<theme>_*.png`。
+每个主题一个场景图集，包含该主题所有地格与装饰物：
+
+- `public/art/tiles/tile_<theme>_buildable.png`
+- `public/art/tiles/tile_<theme>_path.png`
+- `public/art/tiles/tile_<theme>_obstacle.png`
+- `public/art/tiles/tile_<theme>_path_endpoint_spawn.png`
+- `public/art/tiles/tile_<theme>_path_endpoint_crystal.png`
+- `public/art/decor/decor_<theme>_<decor_id>_idle_<frame>.png`
+
+普通路径地格每个主题只保留一个方向无关图片：`tile_<theme>_path.png`。路径直线、转角、T 字、十字等形状一律由关卡路径格拼接表达，不生成、不打包 `straight_*`、`corner_*`、`tee_*`、`cross` 等方向变体。出生口和水晶端点可保留专用端点地格，但底纹必须与普通路径一致。
 
 ### 3.4 局外 UI 图集
 
@@ -166,7 +175,7 @@ public/art/atlases/index.json
 
 ## 6. 打包约束
 
-1. 单张图集最大边长 2048；移动端或低端设备优先控制在 1024。塔图集必须每塔一张，打包宽度上限为 1024，6 个 256×256 帧通常排为 2 行，单张尺寸约 776×518（含 padding），不得再与其他单位混包。
+1. 单张图集最大边长 2048；移动端或低端设备优先控制在 1024。塔图集必须每塔一张，打包宽度上限为 1024，6 个 256×256 帧通常排为 2 行，单张尺寸约 776×518（含 padding），不得再与其他单位混包。主题图集必须合并同主题地格和场景装饰，禁止把装饰物另拆为全局图集。
 2. 帧间 padding 至少 2px，使用透明像素扩边，避免线性采样串色。
 3. 同一图集内尽量保持资源尺寸接近，禁止把 1920×1080 背景和 64×64 图标混包。
 4. 透明 PNG 使用 premultiplied alpha 兼容输出，禁止带黑边。
@@ -174,6 +183,7 @@ public/art/atlases/index.json
 6. 输出 manifest key 必须保留原路径，不能改成短名。
 7. 图集产物允许重复帧去重，但 manifest key 仍要完整保留。
 8. 每次新增、删除、重命名美术资源后必须重新生成 `index.json`。
+9. 路径地格方向变体属于废弃资源；资源生成脚本和图集打包脚本都不得重新引入。
 
 ---
 
