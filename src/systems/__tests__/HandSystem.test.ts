@@ -26,6 +26,10 @@ function makeSmallPool(): CardInstance[] {
   return makeTestPool().slice(0, 5);
 }
 
+function makeCard(id: string, name = id): CardInstance {
+  return { id, name, type: 'unit', description: '测试卡牌', goldCost: 0 };
+}
+
 describe('HandSystem — 手牌管理', () => {
   let handSystem: HandSystem;
   let world: TowerWorld;
@@ -105,6 +109,23 @@ describe('HandSystem — 手牌管理', () => {
       expect(ids).toContain('card_archer');
       expect(ids).not.toContain('card_mage');
     });
+
+    it('初始抽牌时同一张卡最多出现 2 张', () => {
+      const pool: CardInstance[] = [
+        makeCard('card_arrow_tower', '箭塔A'),
+        makeCard('card_arrow_tower', '箭塔B'),
+        makeCard('card_arrow_tower', '箭塔C'),
+        makeCard('card_ice_tower', '冰塔'),
+        makeCard('card_fire_tower', '火塔'),
+        makeCard('card_poison_tower', '毒塔'),
+      ];
+
+      handSystem.initialize(pool);
+      const ids = handSystem.getHand().map((c) => c?.id);
+
+      expect(ids.filter((id) => id === 'card_arrow_tower')).toHaveLength(2);
+      expect(handSystem.getCount()).toBe(5);
+    });
   });
 
   describe('drawCard — 抽牌', () => {
@@ -148,6 +169,16 @@ describe('HandSystem — 手牌管理', () => {
       handSystem.reset();
       const result = handSystem.drawCard('totally_fake_card');
       expect(result).toBe(false);
+    });
+
+    it('手动抽牌时同一张卡最多出现 2 张', () => {
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+
+      expect(handSystem.drawCard('card_arrow_tower')).toBe(true);
+      expect(handSystem.drawCard('card_arrow_tower')).toBe(true);
+      expect(handSystem.drawCard('card_arrow_tower')).toBe(false);
+      expect(handSystem.getHand().filter((card) => card?.id === 'card_arrow_tower')).toHaveLength(2);
     });
   });
 
@@ -211,6 +242,25 @@ describe('HandSystem — 手牌管理', () => {
       }
       // slot 1 被新牌填充（不同于旧牌）
       expect(handAfter[1]!.id).not.toBe(oldCard.id);
+    });
+
+    it('出牌后自动补牌不会让同一卡超过 2 张', () => {
+      handSystem.initialize([
+        makeCard('card_arrow_tower', '箭塔'),
+        makeCard('card_ice_tower', '冰塔'),
+        makeCard('card_fire_tower', '火塔'),
+      ]);
+      handSystem.reset();
+      handSystem.drawCard('card_arrow_tower');
+      handSystem.drawCard('card_arrow_tower');
+      handSystem.drawCard('card_ice_tower');
+
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      expect(handSystem.playCard(2)).toBe('card_ice_tower');
+
+      const ids = handSystem.getHand().map((c) => c?.id);
+      expect(ids.filter((id) => id === 'card_arrow_tower')).toHaveLength(2);
+      expect(handSystem.getCount()).toBe(3);
     });
   });
 

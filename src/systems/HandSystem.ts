@@ -33,6 +33,9 @@ export interface CardInstance {
 /** v5.0 手牌上限（固定 5 张，出牌后自动补满） */
 const MAX_HAND_SIZE = 5;
 
+/** 同一张卡在手牌中的最大重复数量 */
+const MAX_DUPLICATE_CARDS_IN_HAND = 2;
+
 // ---- HandSystem ----
 
 /**
@@ -94,18 +97,38 @@ export class HandSystem implements System {
       [shuffled[0], shuffled[arrowIdx]] = [shuffled[arrowIdx]!, shuffled[0]!];
     }
 
-    // 低空关卡需要防空兜底：若前 5 张没有 LowAir 对策，从后续卡池交换一张进手。
-    const initialSlice = shuffled.slice(0, MAX_HAND_SIZE);
+    // 按洗牌顺序抽牌，同一张卡最多保留 2 张。
+    const initialSlice: CardInstance[] = [];
+    for (const card of shuffled) {
+      if (initialSlice.length >= MAX_HAND_SIZE) break;
+      if (initialSlice.filter((selected) => selected.id === card.id).length >= MAX_DUPLICATE_CARDS_IN_HAND) continue;
+      initialSlice.push(card);
+    }
+
+    // 低空关卡需要防空兜底：若初始手牌没有 LowAir 对策，从后续卡池交换一张进手。
     if (!initialSlice.some((c) => cardCanCounterLowAir(c.id))) {
-      const counterIdx = shuffled.findIndex((c, idx) => idx >= MAX_HAND_SIZE && cardCanCounterLowAir(c.id));
-      if (counterIdx >= 0) {
-        [shuffled[MAX_HAND_SIZE - 1], shuffled[counterIdx]] = [shuffled[counterIdx]!, shuffled[MAX_HAND_SIZE - 1]!];
+      const counter = shuffled.find((c) => {
+        if (!cardCanCounterLowAir(c.id)) return false;
+        return initialSlice.filter((selected) => selected.id === c.id).length < MAX_DUPLICATE_CARDS_IN_HAND;
+      });
+      if (counter) {
+        let replaceIdx = -1;
+        for (let i = initialSlice.length - 1; i >= 0; i--) {
+          if (!cardCanCounterLowAir(initialSlice[i]!.id)) {
+            replaceIdx = i;
+            break;
+          }
+        }
+        if (replaceIdx >= 0) {
+          initialSlice[replaceIdx] = counter;
+        } else if (initialSlice.length < MAX_HAND_SIZE) {
+          initialSlice.push(counter);
+        }
       }
     }
 
-    const drawCount = Math.min(MAX_HAND_SIZE, shuffled.length);
-    for (let i = 0; i < drawCount; i++) {
-      this.hand[i] = shuffled[i]!;
+    for (let i = 0; i < initialSlice.length; i++) {
+      this.hand[i] = initialSlice[i]!;
     }
   }
 
@@ -117,6 +140,7 @@ export class HandSystem implements System {
     if (this.isFull()) return false;
     const card = this.cardLibrary.get(cardId);
     if (!card) return false;
+    if (!this.canAddCardToHand(cardId)) return false;
 
     const slot = this.hand.findIndex((s) => s === null);
     if (slot === -1) return false;
@@ -137,7 +161,9 @@ export class HandSystem implements System {
     if (slot === -1) return false;
 
     // 从卡牌库中随机选择一张
-    const cards = Array.from(this.cardLibrary.values());
+    const cards = Array.from(this.cardLibrary.values()).filter((card) => this.canAddCardToHand(card.id));
+    if (cards.length === 0) return false;
+
     const randomIndex = Math.floor(Math.random() * cards.length);
     const card = cards[randomIndex];
     if (!card) return false;
@@ -241,5 +267,13 @@ export class HandSystem implements System {
    */
   reset(): void {
     this.hand = Array.from({ length: MAX_HAND_SIZE }, () => null);
+  }
+
+  private canAddCardToHand(cardId: string): boolean {
+    return this.countCardInHand(cardId) < MAX_DUPLICATE_CARDS_IN_HAND;
+  }
+
+  private countCardInHand(cardId: string): number {
+    return this.hand.filter((card) => card?.id === cardId).length;
   }
 }
