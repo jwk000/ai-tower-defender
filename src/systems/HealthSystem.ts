@@ -12,6 +12,7 @@ import {
   GoldChest,
 } from '../core/components.js';
 import { GamePhase } from '../types/index.js';
+import { BossType } from './BossSystem.js';
 
 const healthQuery = defineQuery([Health]);
 const bossQuery = defineQuery([Health, Boss]);
@@ -47,6 +48,7 @@ export class HealthSystem implements System {
 
       // Enemy (includes bosses — they also have UnitTag.isEnemy === 1)
       if (UnitTag.isEnemy[eid] === 1) {
+        if (this.isPendingGiantSlimeSplit(world, eid)) continue;
         // TODO: play 'exploder_boom' when exploder enemy type detected
         this.onEnemyKilled(eid);
         world.destroyEntity(eid);
@@ -84,6 +86,12 @@ export class HealthSystem implements System {
       Sound.play('base_hit');
       this.setPhase(GamePhase.Defeat);
     }
+  }
+
+  private isPendingGiantSlimeSplit(world: TowerWorld, eid: number): boolean {
+    return hasComponent(world.world, Boss, eid)
+      && Boss.bossType[eid] === BossType.GiantSlime
+      && (Boss.splitCount[eid] ?? 0) < 2;
   }
 
   private updateBossPhaseTransitions(world: TowerWorld): void {

@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TowerWorld, defineQuery, hasComponent } from '../core/World.js';
+import type { System } from '../core/World.js';
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, UnitTag, Visual, Category, CategoryVal,
@@ -13,6 +14,8 @@ import {
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { BossSystem, BossType } from './BossSystem.js';
+import { HealthSystem } from './HealthSystem.js';
+import { GamePhase } from '../types/index.js';
 
 // ============================================================
 // Queries for tests
@@ -244,6 +247,49 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
       expect(Boss.splitCount[eid]).toBe(1);
       expect(Health.current[eid]).toBe(200);
       expect(world.getDisplayName(eid)).toBe('中型史莱姆');
+    }
+  });
+
+  it('后置伤害系统把史莱姆打到0血时，HealthSystem不应抢先清理分裂层级', () => {
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 800, maxHp: 800, splitCount: 0,
+    });
+    let killedCount = 0;
+    let lateDamageApplied = false;
+    const lateDamageSystem: System = {
+      name: 'LateDamageSystem',
+      update: () => {
+        if (!lateDamageApplied) {
+          lateDamageApplied = true;
+          Health.current[boss] = 0;
+        }
+      },
+    };
+
+    world.registerSystem(system);
+    world.registerSystem(lateDamageSystem);
+    world.registerSystem(new HealthSystem(
+      () => GamePhase.Battle,
+      () => {},
+      () => { killedCount += 1; },
+    ));
+
+    world.update(0.016);
+
+    expect(killedCount).toBe(0);
+    expect(bossQuery(world.world)).toContain(boss);
+    expect(Health.current[boss]).toBe(0);
+
+    world.update(0.016);
+
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter).not.toContain(boss);
+    expect(bossesAfter.length).toBe(2);
+    expect(killedCount).toBe(0);
+    for (const eid of bossesAfter) {
+      expect(Boss.bossType[eid]).toBe(BossType.GiantSlime);
+      expect(Boss.splitCount[eid]).toBe(1);
+      expect(Health.current[eid]).toBe(200);
     }
   });
 });
