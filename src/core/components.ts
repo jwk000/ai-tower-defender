@@ -566,6 +566,17 @@ export const BatSwarmMember = defineComponent({
   parentId: Types.eid,
 });
 
+/** 敌方低空鸟群/虫群成员（吸血蝗虫、吸血蝙蝠、无人机群） */
+export const EnemyFlockMember = defineComponent({
+  flockId: Types.ui16,
+  memberIndex: Types.ui8,
+  groupSize: Types.ui8,
+  velocityX: Types.f32,
+  velocityY: Types.f32,
+  anchorOffsetX: Types.f32,
+  anchorOffsetY: Types.f32,
+});
+
 // ============================================================
 // 激光束组件
 // ============================================================

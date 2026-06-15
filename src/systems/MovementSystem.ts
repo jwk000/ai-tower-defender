@@ -3,7 +3,7 @@ import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
-  Boss,
+  Boss, EnemyFlockMember,
 } from '../core/components.js';
 import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -22,9 +22,21 @@ const SOLDIER_REACH_THRESHOLD = 5;
 
 /** Moving enemy two-frame breath cadence. RenderSystem maps the phase to 100% / 104% scale. */
 const ENEMY_MOVE_BREATH_RATE = 8;
+const FLOCK_SEPARATION_RADIUS = 30;
+const FLOCK_ALIGNMENT_RADIUS = 72;
+const FLOCK_COHESION_RADIUS = 92;
+const FLOCK_MAX_FORCE = 420;
+const FLOCK_SEPARATION_WEIGHT = 2.8;
+const FLOCK_ALIGNMENT_WEIGHT = 1.1;
+const FLOCK_COHESION_WEIGHT = 0.9;
+const FLOCK_PATH_WEIGHT = 2.4;
+const FLOCK_OFFSET_WEIGHT = 1.1;
+const FLOCK_WANDER_STRENGTH = 50;
+const FLOCK_PATH_ADVANCE_RADIUS = 18;
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
+  private frameCounter = 0;
 
   /** Query: all moving units (enemies + player units) */
   private movingQuery = defineQuery([Position, Movement, UnitTag]);
@@ -34,7 +46,6 @@ export class MovementSystem implements System {
   private baseQuery = defineQuery([Position, Health, Category]);
   /** Query: player tower entities */
   private towerQuery = defineQuery([Position, Tower, Health]);
-
   /** Per-spawn paths: paths[spawnIdx] = ordered GridPos[] from spawn to crystal_anchor */
   private readonly paths: readonly (readonly GridPos[])[];
 
@@ -55,6 +66,7 @@ export class MovementSystem implements System {
   }
 
   update(world: TowerWorld, dt: number): void {
+    this.frameCounter++;
     // Phase 1: Process enemy movement (FollowPath + path-recovery)
     this.processEnemies(world, dt);
 
@@ -110,6 +122,11 @@ export class MovementSystem implements System {
         continue;
       }
 
+      if (hasComponent(world.world, EnemyFlockMember, eid)) {
+        this.processFlockEnemy(world, eid, entities, paths, ts, ox, oy, dt);
+        continue;
+      }
+
       // Select path for this enemy's spawn point
       const spawnIdx = Movement.spawnIdx[eid]!;
       const path = (spawnIdx >= 0 && spawnIdx < paths.length) ? paths[spawnIdx]! : paths[0]!;
@@ -118,49 +135,7 @@ export class MovementSystem implements System {
 
       // Reached end of path — attack animation + damage base
       if (pathIndex >= path.length - 1) {
-        Movement.currentSpeed[eid] = 0;
-        if (hasComponent(world.world, Boss, eid)) {
-          this.setPhase?.(GamePhase.Defeat);
-          world.destroyEntity(eid);
-          continue;
-        }
-
-        // Reach-crystal attack animation completed after damage was already applied.
-        if (Movement.progress[eid]! < 0) {
-          world.destroyEntity(eid);
-          continue;
-        }
-
-        // First time reaching end → deal damage and start attack animation.
-        const damage = UnitTag.atk[eid] ?? 0;
-
-        const bases = this.baseQuery(world.world);
-        for (let i = 0; i < bases.length; i++) {
-          const baseId = bases[i]!;
-          if (Category.value[baseId] !== CategoryVal.Objective) continue;
-          if (damage > 0) {
-            Health.current[baseId]! -= damage;
-            if (Health.current[baseId]! < 0) Health.current[baseId]! = 0;
-            if (Health.current[baseId]! <= 0) {
-              this.setPhase?.(GamePhase.Defeat);
-            }
-          }
-          // Hit flash on base — visual feedback for player
-          if (Visual.hitFlashTimer[baseId] !== undefined) {
-            Visual.hitFlashTimer[baseId] = 0.12;
-          }
-        }
-
-        // Start attack animation timer (pauses enemy movement via the timer check above)
-        Visual.attackAnimTimer[eid] = 0.4;
-        Visual.attackAnimDuration[eid] = 0.4;
-        Movement.progress[eid] = -1;
-
-        // Micro screen-shake on base hit
-        if (damage > 0) {
-          ScreenShakeSystem.triggerShake(world, 3, 0.25, 12);
-        }
-
+        this.processEnemyReachedPathEnd(world, eid);
         continue;
       }
 
@@ -229,6 +204,196 @@ export class MovementSystem implements System {
       }
 
       // 攻击逻辑已在移动前处理，确保攻击帧不移动。
+    }
+  }
+
+  private processFlockEnemy(
+    world: TowerWorld,
+    eid: number,
+    allMoving: readonly number[],
+    paths: readonly (readonly GridPos[])[],
+    ts: number,
+    ox: number,
+    oy: number,
+    dt: number,
+  ): void {
+    const spawnIdx = Movement.spawnIdx[eid]!;
+    const path = (spawnIdx >= 0 && spawnIdx < paths.length) ? paths[spawnIdx]! : paths[0]!;
+    let pathIndex = Movement.pathIndex[eid]!;
+
+    if (pathIndex >= path.length - 1) {
+      this.processEnemyReachedPathEnd(world, eid);
+      return;
+    }
+
+    const bx = Position.x[eid]!;
+    const by = Position.y[eid]!;
+    const next = path[pathIndex + 1]!;
+    const nextX = next.col * ts + ts / 2 + ox;
+    const nextY = next.row * ts + ts / 2 + oy;
+
+    const toNextX = nextX - bx;
+    const toNextY = nextY - by;
+    const toNextLen = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
+    if (toNextLen <= FLOCK_PATH_ADVANCE_RADIUS) {
+      Movement.pathIndex[eid] = pathIndex + 1;
+      Movement.progress[eid] = 0;
+      if (pathIndex >= path.length - 2) {
+        this.processEnemyReachedPathEnd(world, eid);
+        return;
+      }
+      pathIndex++;
+    }
+    this.syncEnemyFacingToPathSegment(eid, path, pathIndex);
+
+    const flockId = EnemyFlockMember.flockId[eid];
+    let sepX = 0, sepY = 0, sepCount = 0;
+    let aliX = 0, aliY = 0, aliCount = 0;
+    let cohX = 0, cohY = 0, cohCount = 0;
+
+    for (let i = 0; i < allMoving.length; i++) {
+      const otherId = allMoving[i]!;
+      if (otherId === eid) continue;
+      if (UnitTag.isEnemy[otherId] !== 1) continue;
+      if (Health.current[otherId]! <= 0) continue;
+      if (EnemyFlockMember.flockId[otherId] !== flockId) continue;
+
+      const ox2 = Position.x[otherId]!;
+      const oy2 = Position.y[otherId]!;
+      const dx = bx - ox2;
+      const dy = by - oy2;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 0.01) continue;
+
+      if (dist < FLOCK_SEPARATION_RADIUS) {
+        sepX += dx / dist;
+        sepY += dy / dist;
+        sepCount++;
+      }
+      if (dist < FLOCK_ALIGNMENT_RADIUS) {
+        aliX += EnemyFlockMember.velocityX[otherId] ?? 0;
+        aliY += EnemyFlockMember.velocityY[otherId] ?? 0;
+        aliCount++;
+      }
+      if (dist < FLOCK_COHESION_RADIUS) {
+        cohX += ox2;
+        cohY += oy2;
+        cohCount++;
+      }
+    }
+
+    const rawSpeed = Movement.speed[eid]!;
+    const buff = getEffectiveValue(eid, 'speed');
+    const speed = Math.max(rawSpeed * 0.5, (rawSpeed + buff.absolute) * (1 + buff.percent / 100));
+
+    let fx = 0, fy = 0;
+    if (sepCount > 0) {
+      fx += (sepX / sepCount) * speed * FLOCK_SEPARATION_WEIGHT;
+      fy += (sepY / sepCount) * speed * FLOCK_SEPARATION_WEIGHT;
+    }
+    if (aliCount > 0) {
+      fx += (aliX / aliCount) * FLOCK_ALIGNMENT_WEIGHT;
+      fy += (aliY / aliCount) * FLOCK_ALIGNMENT_WEIGHT;
+    }
+    if (cohCount > 0) {
+      const cx = cohX / cohCount - bx;
+      const cy = cohY / cohCount - by;
+      const len = Math.sqrt(cx * cx + cy * cy);
+      if (len > 0.01) {
+        fx += (cx / len) * speed * FLOCK_COHESION_WEIGHT;
+        fy += (cy / len) * speed * FLOCK_COHESION_WEIGHT;
+      }
+    }
+
+    const targetX = nextX + (EnemyFlockMember.anchorOffsetX[eid] ?? 0);
+    const targetY = nextY + (EnemyFlockMember.anchorOffsetY[eid] ?? 0);
+    const pathDx = targetX - bx;
+    const pathDy = targetY - by;
+    const pathLen = Math.sqrt(pathDx * pathDx + pathDy * pathDy);
+    if (pathLen > 0.01) {
+      fx += (pathDx / pathLen) * speed * FLOCK_PATH_WEIGHT;
+      fy += (pathDy / pathLen) * speed * FLOCK_PATH_WEIGHT;
+    }
+
+    const offsetDx = (nextX + (EnemyFlockMember.anchorOffsetX[eid] ?? 0) * 0.5) - bx;
+    const offsetDy = (nextY + (EnemyFlockMember.anchorOffsetY[eid] ?? 0) * 0.5) - by;
+    const offsetLen = Math.sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
+    if (offsetLen > 0.01) {
+      fx += (offsetDx / offsetLen) * speed * FLOCK_OFFSET_WEIGHT;
+      fy += (offsetDy / offsetLen) * speed * FLOCK_OFFSET_WEIGHT;
+    }
+
+    const wanderAngle = ((EnemyFlockMember.memberIndex[eid] ?? 0) * 1.947 + (Movement.progress[eid] ?? 0) * 9.1 + this.frameCounter * 0.04) % (Math.PI * 2);
+    fx += Math.cos(wanderAngle) * FLOCK_WANDER_STRENGTH;
+    fy += Math.sin(wanderAngle * 1.37) * FLOCK_WANDER_STRENGTH;
+
+    const forceLen = Math.sqrt(fx * fx + fy * fy);
+    if (forceLen > FLOCK_MAX_FORCE) {
+      fx = (fx / forceLen) * FLOCK_MAX_FORCE;
+      fy = (fy / forceLen) * FLOCK_MAX_FORCE;
+    }
+
+    let vx = (EnemyFlockMember.velocityX[eid] ?? 0) + fx * dt;
+    let vy = (EnemyFlockMember.velocityY[eid] ?? 0) + fy * dt;
+    const vLen = Math.sqrt(vx * vx + vy * vy);
+    if (vLen > speed) {
+      vx = (vx / vLen) * speed;
+      vy = (vy / vLen) * speed;
+    }
+
+    Position.x[eid] = bx + vx * dt;
+    Position.y[eid] = by + vy * dt;
+    EnemyFlockMember.velocityX[eid] = vx;
+    EnemyFlockMember.velocityY[eid] = vy;
+    Movement.currentSpeed[eid] = Math.sqrt(vx * vx + vy * vy);
+    Movement.progress[eid] = Math.min(0.999, (Movement.progress[eid] ?? 0) + (Movement.currentSpeed[eid]! * dt) / Math.max(ts, 1));
+
+    if (Math.abs(vx) > 0.05) Visual.facing[eid] = vx > 0 ? 1 : -1;
+    if (Movement.currentSpeed[eid]! > 0.05) {
+      Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
+      Visual.breathPhase[eid] = ((Visual.breathPhase[eid] ?? 0) + dt * ENEMY_MOVE_BREATH_RATE) % (Math.PI * 2);
+    }
+  }
+
+  private processEnemyReachedPathEnd(world: TowerWorld | null, eid: number): void {
+    Movement.currentSpeed[eid] = 0;
+    if (!world) return;
+
+    if (hasComponent(world.world, Boss, eid)) {
+      this.setPhase?.(GamePhase.Defeat);
+      world.destroyEntity(eid);
+      return;
+    }
+
+    // Reach-crystal attack animation completed after damage was already applied.
+    if (Movement.progress[eid]! < 0) {
+      world.destroyEntity(eid);
+      return;
+    }
+
+    const damage = UnitTag.atk[eid] ?? 0;
+    const bases = this.baseQuery(world.world);
+    for (let i = 0; i < bases.length; i++) {
+      const baseId = bases[i]!;
+      if (Category.value[baseId] !== CategoryVal.Objective) continue;
+      if (damage > 0) {
+        Health.current[baseId]! -= damage;
+        if (Health.current[baseId]! < 0) Health.current[baseId]! = 0;
+        if (Health.current[baseId]! <= 0) {
+          this.setPhase?.(GamePhase.Defeat);
+        }
+      }
+      if (Visual.hitFlashTimer[baseId] !== undefined) {
+        Visual.hitFlashTimer[baseId] = 0.12;
+      }
+    }
+
+    Visual.attackAnimTimer[eid] = 0.4;
+    Visual.attackAnimDuration[eid] = 0.4;
+    Movement.progress[eid] = -1;
+
+    if (damage > 0) {
+      ScreenShakeSystem.triggerShake(world, 3, 0.25, 12);
     }
   }
 

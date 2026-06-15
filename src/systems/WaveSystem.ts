@@ -18,6 +18,7 @@ import {
   DamageTypeVal,
   ExplosionEffect,
   ShapeVal,
+  EnemyFlockMember,
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
 import { EnemyType, GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
@@ -84,6 +85,16 @@ const BOSS_TYPE_BY_CONFIG: Record<string, number> = {
   AbyssLord: BossType.AbyssLord,
 };
 
+const FLOCK_ENEMY_TYPES = new Set<string>([
+  EnemyType.Locust,
+  EnemyType.VampireBat,
+  EnemyType.Drone,
+]);
+
+const FLOCK_MIN_SIZE = 4;
+const FLOCK_MAX_SIZE = 7;
+const FLOCK_SPAWN_SPREAD = 28;
+
 function resolveBossType(configType?: string): number {
   if (!configType) return 0xFF;
   return BOSS_TYPE_BY_CONFIG[configType] ?? 0xFF;
@@ -111,6 +122,13 @@ export interface SpawnEnemyOptions {
   cardOptions?: number;
   spawnPointIndex?: number;
   spawnId?: string;
+  flock?: {
+    flockId: number;
+    memberIndex: number;
+    groupSize: number;
+    offsetX: number;
+    offsetY: number;
+  };
 }
 
 /** Manages wave progression and enemy spawning */
@@ -155,6 +173,8 @@ export class WaveSystem implements System {
 
   /** Throttle counter for enemy spawn sounds */
   private spawnSoundCounter: number = 0;
+
+  private nextFlockId: number = 1;
 
   private readonly resolvedSpawns: readonly SpawnPoint[];
 
@@ -379,7 +399,7 @@ export class WaveSystem implements System {
       this.spawnIntervalTimer -= dt;
       if (this.spawnIntervalTimer <= 0) {
         const group = this.spawnQueue[0]!;
-        this.spawnEnemy(group.enemyType, { spawnId: group.spawnId });
+        this.spawnEnemyGroup(group.enemyType, { spawnId: group.spawnId });
         group.count--;
         this.spawnedInWave++;
 
@@ -413,6 +433,34 @@ export class WaveSystem implements System {
     // v4.0: elite death → card draft is now handled in HealthSystem's onEnemyKilled
     // callback (see main.ts) which checks UnitTag.isElite, avoiding pipeline
     // ordering issues (damage sources after WaveSystem were missed).
+  }
+
+  private spawnEnemyGroup(type: string, options?: SpawnEnemyOptions): number[] {
+    if (!FLOCK_ENEMY_TYPES.has(type)) {
+      return [this.spawnEnemy(type, options)].filter((eid) => eid !== 0);
+    }
+
+    const groupSize = FLOCK_MIN_SIZE + Math.floor(Math.random() * (FLOCK_MAX_SIZE - FLOCK_MIN_SIZE + 1));
+    const flockId = this.nextFlockId++;
+    const spawned: number[] = [];
+
+    for (let i = 0; i < groupSize; i++) {
+      const angle = (i / groupSize) * Math.PI * 2;
+      const radius = FLOCK_SPAWN_SPREAD * (0.45 + (i % 3) * 0.22);
+      const eid = this.spawnEnemy(type, {
+        ...options,
+        flock: {
+          flockId,
+          memberIndex: i,
+          groupSize,
+          offsetX: Math.cos(angle) * radius,
+          offsetY: Math.sin(angle) * radius,
+        },
+      });
+      if (eid !== 0) spawned.push(eid);
+    }
+
+    return spawned;
   }
 
   /** v5.0: finish the current wave and transition to the next one (countdown → next wave).
@@ -479,8 +527,9 @@ export class WaveSystem implements System {
     const ts = this.map.tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
-    const x = spawn.col * ts + ts / 2 + ox;
-    const y = spawn.row * ts + ts / 2 + oy;
+    const flock = options?.flock;
+    const x = spawn.col * ts + ts / 2 + ox + (flock?.offsetX ?? 0);
+    const y = spawn.row * ts + ts / 2 + oy + (flock?.offsetY ?? 0);
 
     const eid = this.world.createEntity();
     const rgb = hexToRGB(config.color);
@@ -506,6 +555,19 @@ export class WaveSystem implements System {
       moveMode: MoveModeVal.FollowPath,
       spawnIdx: spawnIdx,
     });
+
+    if (flock) {
+      const angle = Math.atan2(flock.offsetY, flock.offsetX);
+      this.world.addComponent(eid, EnemyFlockMember, {
+        flockId: flock.flockId,
+        memberIndex: flock.memberIndex,
+        groupSize: flock.groupSize,
+        velocityX: Math.cos(angle) * config.speed * 0.35,
+        velocityY: Math.sin(angle) * config.speed * 0.35,
+        anchorOffsetX: flock.offsetX,
+        anchorOffsetY: flock.offsetY,
+      });
+    }
 
     const effectiveAtk = Math.max(1, Math.round(config.atk * atkMult));
     this.world.addComponent(eid, UnitTag, {
@@ -548,7 +610,7 @@ export class WaveSystem implements System {
 
     // Ground enemies — all default to Ground layer
     this.world.addComponent(eid, Layer, {
-      value: LayerVal.Ground,
+      value: FLOCK_ENEMY_TYPES.has(type) ? LayerVal.LowAir : LayerVal.Ground,
     });
     this.world.addComponent(eid, Faction, {
       value: FactionVal.Evil,

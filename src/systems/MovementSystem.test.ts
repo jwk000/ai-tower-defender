@@ -31,6 +31,7 @@ import {
   FactionVal,
   Layer,
   LayerVal,
+  EnemyFlockMember,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -167,6 +168,50 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     system.update(world, 0.016);
 
     expect(Health.current[base]).toBe(88);
+  });
+
+  it('LowAir 鸟群敌人靠近最后路径点时会结算基地伤害', () => {
+    const base = makeBase(world, 100);
+    const enemy = world.createEntity();
+    world.addComponent(enemy, Position, { x: TILE + TILE / 2 - 4, y: TILE / 2 });
+    world.addComponent(enemy, Health, { current: 30, max: 30, armor: 0, magicResist: 0 });
+    world.addComponent(enemy, Movement, {
+      speed: 50,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+    });
+    world.addComponent(enemy, UnitTag, {
+      isEnemy: 1,
+      rewardGold: 4,
+      canAttackBuildings: 0,
+      atk: 8,
+    });
+    world.addComponent(enemy, Visual, {
+      shape: 1,
+      colorR: 120,
+      colorG: 120,
+      colorB: 255,
+      size: 12,
+      alpha: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+    });
+    world.addComponent(enemy, EnemyFlockMember, {
+      flockId: 1,
+      memberIndex: 0,
+      groupSize: 4,
+      velocityX: 0,
+      velocityY: 0,
+      anchorOffsetX: 0,
+      anchorOffsetY: 0,
+    });
+
+    system.update(world, 0.016);
+
+    expect(Health.current[base]).toBe(92);
+    expect(Movement.progress[enemy]).toBe(-1);
   });
 
   it('真实刷怪的初始 attackAnimDuration > 0 时，到达水晶第一帧仍会扣血', () => {

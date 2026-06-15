@@ -3,12 +3,13 @@ import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
-import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal } from '../../core/components.js';
+import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal, EnemyFlockMember, Layer, LayerVal } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
 
 const enemyQuery = defineQuery([Position, UnitTag]);
+const flockEnemyQuery = defineQuery([Position, UnitTag, EnemyFlockMember]);
 const eliteQuery = defineQuery([Position, UnitTag, Elite]);
 const bossQuery = defineQuery([Position, UnitTag, Boss]);
 const explosionQuery = defineQuery([Position, ExplosionEffect, Visual]);
@@ -94,6 +95,89 @@ describe('WaveSystem B.15 — spawn coords via resolveGraphFromMap (pathGraph-on
     const world = new TowerWorld();
     const badMap = { ...makeBaseMap() } as MapConfig;
     expect(() => new WaveSystem(world, badMap, makeSingleWave(), getPhase, setPhase)).toThrow();
+  });
+});
+
+describe('WaveSystem — LowAir flock spawning', () => {
+  let phase: GamePhase;
+  const getPhase = (): GamePhase => phase;
+  const setPhase = (p: GamePhase): void => { phase = p; };
+
+  beforeEach(() => {
+    phase = GamePhase.Deployment;
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+  });
+
+  it('吸血蝗虫每个配置 count 生成一群4-7个 LowAir 鸟群成员', () => {
+    const oldRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const world = new TowerWorld();
+      const { pathGraph, spawns } = migrateEnemyPathToGraph({
+        enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+      });
+      const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+      const waves: WaveConfig[] = [{
+        waveNumber: 1,
+        spawnDelay: 0,
+        enemies: [{ enemyType: EnemyType.Locust, count: 1, spawnInterval: 0 }],
+      }];
+
+      const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+      ws.startWave();
+      ws.update(world, 0.1);
+
+      const enemies = enemyQuery(world.world).filter((eid) => UnitTag.isEnemy[eid] === 1 && UnitTag.isElite[eid] !== 1);
+      const flockEnemies = flockEnemyQuery(world.world);
+      expect(enemies.length).toBe(4);
+      expect(flockEnemies.length).toBe(4);
+
+      const flockId = EnemyFlockMember.flockId[flockEnemies[0]!];
+      for (let i = 0; i < flockEnemies.length; i++) {
+        const eid = flockEnemies[i]!;
+        expect(EnemyFlockMember.flockId[eid]).toBe(flockId);
+        expect(EnemyFlockMember.groupSize[eid]).toBe(4);
+        expect(EnemyFlockMember.memberIndex[eid]).toBe(i);
+        expect(Layer.value[eid]).toBe(LayerVal.LowAir);
+      }
+    } finally {
+      Math.random = oldRandom;
+    }
+  });
+
+  it('吸血蝙蝠和无人机也使用群体出生，普通敌人仍单个出生', () => {
+    const oldRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      const world = new TowerWorld();
+      const { pathGraph, spawns } = migrateEnemyPathToGraph({
+        enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+      });
+      const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+      const waves: WaveConfig[] = [{
+        waveNumber: 1,
+        spawnDelay: 0,
+        enemies: [
+          { enemyType: EnemyType.VampireBat, count: 1, spawnInterval: 0 },
+          { enemyType: EnemyType.Drone, count: 1, spawnInterval: 0 },
+          { enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 },
+        ],
+      }];
+
+      const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+      ws.startWave();
+      ws.update(world, 0.1);
+      ws.update(world, 0.1);
+      ws.update(world, 0.1);
+
+      const enemies = enemyQuery(world.world).filter((eid) => UnitTag.isEnemy[eid] === 1 && UnitTag.isElite[eid] !== 1);
+      const flockEnemies = flockEnemyQuery(world.world);
+      expect(enemies.length).toBe(9);
+      expect(flockEnemies.length).toBe(8);
+    } finally {
+      Math.random = oldRandom;
+    }
   });
 });
 
