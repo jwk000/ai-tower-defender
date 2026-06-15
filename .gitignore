@@ -40,3 +40,10 @@ tmp/
 /playwright/.cache/
 .tmp-debug
 .codegraph/
+
+# Graphify generated artifacts
+.graphify_*.json
+.graphify_*.txt
+graphify-out/*
+!graphify-out/
+!graphify-out/.graphify_python
