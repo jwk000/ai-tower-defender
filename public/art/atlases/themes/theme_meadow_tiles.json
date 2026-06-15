@@ -1,0 +1,102 @@
+{
+  "id": "theme_meadow_tiles",
+  "image": "/art/atlases/themes/theme_meadow_tiles.png",
+  "frames": {
+    "/art/tiles/tile_meadow_buildable.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_obstacle.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_corner_es.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_corner_ne.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_corner_sw.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_corner_wn.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_cross.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_endpoint_crystal.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_endpoint_spawn.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_straight_h.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_straight_v.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_tee_e.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_tee_n.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_tee_s.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/tiles/tile_meadow_path_tee_w.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

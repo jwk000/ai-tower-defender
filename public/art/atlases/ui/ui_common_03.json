@@ -1,0 +1,18 @@
+{
+  "id": "ui_common_03",
+  "image": "/art/atlases/ui/ui_common_03.png",
+  "frames": {
+    "/art/ui/ui_card_frame_rare.png": {
+      "x": 2,
+      "y": 2,
+      "w": 888,
+      "h": 1490
+    },
+    "/art/ui/ui_hand_panel.png": {
+      "x": 892,
+      "y": 2,
+      "w": 1024,
+      "h": 320
+    }
+  }
+}

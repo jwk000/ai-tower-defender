@@ -1,0 +1,18 @@
+{
+  "id": "ui_common_04",
+  "image": "/art/atlases/ui/ui_common_04.png",
+  "frames": {
+    "/art/ui/ui_hud_bar.png": {
+      "x": 2,
+      "y": 2,
+      "w": 1504,
+      "h": 308
+    },
+    "/art/ui/ui_panel_dark.png": {
+      "x": 2,
+      "y": 312,
+      "w": 985,
+      "h": 625
+    }
+  }
+}

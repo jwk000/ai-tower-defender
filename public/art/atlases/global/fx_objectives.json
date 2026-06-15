@@ -1,0 +1,96 @@
+{
+  "id": "fx_objectives",
+  "image": "/art/atlases/global/fx_objectives.png",
+  "frames": {
+    "/art/fx/fx_arrow_rain_impact_1.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_bomb_explosion_impact_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_crystal_aura_loop_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_fire_explosion_charge_0.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_fire_explosion_impact_1.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_heal_aura_loop_0.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_ice_burst_impact_1.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_laser_beam_loop_0.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_lightning_chain_loop_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_magic_shield_loop_0.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_poison_cloud_loop_0.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_spawn_portal_loop_0.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_crystal.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_crystal_low_hp.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_spawn_portal.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

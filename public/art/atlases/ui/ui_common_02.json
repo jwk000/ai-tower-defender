@@ -1,0 +1,18 @@
+{
+  "id": "ui_common_02",
+  "image": "/art/atlases/ui/ui_common_02.png",
+  "frames": {
+    "/art/ui/ui_card_frame_epic.png": {
+      "x": 2,
+      "y": 2,
+      "w": 876,
+      "h": 1520
+    },
+    "/art/ui/ui_card_frame_legendary.png": {
+      "x": 880,
+      "y": 2,
+      "w": 776,
+      "h": 1508
+    }
+  }
+}

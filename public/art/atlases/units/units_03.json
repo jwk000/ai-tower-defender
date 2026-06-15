@@ -1,0 +1,300 @@
+{
+  "id": "units_03",
+  "image": "/art/atlases/units/units_03.png",
+  "frames": {
+    "/art/units/unit_enemy_giant_death_0.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_death_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_idle_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_idle_1.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_move_0.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_move_1.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_attack_0.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_attack_1.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_death_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_death_1.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_idle_0.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_idle_1.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_move_0.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_robot_move_1.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_attack_0.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_attack_1.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_death_0.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_death_1.png": {
+      "x": 776,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_idle_0.png": {
+      "x": 1034,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_idle_1.png": {
+      "x": 1292,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_move_0.png": {
+      "x": 1550,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_giant_slime_move_1.png": {
+      "x": 2,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_attack_0.png": {
+      "x": 260,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_attack_1.png": {
+      "x": 518,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_death_0.png": {
+      "x": 776,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_death_1.png": {
+      "x": 1034,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_idle_0.png": {
+      "x": 1292,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_idle_1.png": {
+      "x": 1550,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_move_0.png": {
+      "x": 2,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_goblin_move_1.png": {
+      "x": 260,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_attack_0.png": {
+      "x": 518,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_attack_1.png": {
+      "x": 776,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_death_0.png": {
+      "x": 1034,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_death_1.png": {
+      "x": 1292,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_idle_0.png": {
+      "x": 1550,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_idle_1.png": {
+      "x": 2,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_move_0.png": {
+      "x": 260,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_locust_move_1.png": {
+      "x": 518,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_attack_0.png": {
+      "x": 776,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_attack_1.png": {
+      "x": 1034,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_death_0.png": {
+      "x": 1292,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_death_1.png": {
+      "x": 1550,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_idle_0.png": {
+      "x": 2,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_idle_1.png": {
+      "x": 260,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_move_0.png": {
+      "x": 518,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_lucifer_move_1.png": {
+      "x": 776,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_oil_truck_attack_0.png": {
+      "x": 1034,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_oil_truck_attack_1.png": {
+      "x": 1292,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_oil_truck_death_0.png": {
+      "x": 1550,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

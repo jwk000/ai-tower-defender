@@ -1,0 +1,18 @@
+{
+  "id": "ui_common_01",
+  "image": "/art/atlases/ui/ui_common_01.png",
+  "frames": {
+    "/art/ui/ui_button_green.png": {
+      "x": 2,
+      "y": 2,
+      "w": 945,
+      "h": 439
+    },
+    "/art/ui/ui_card_frame_common.png": {
+      "x": 949,
+      "y": 2,
+      "w": 835,
+      "h": 1479
+    }
+  }
+}

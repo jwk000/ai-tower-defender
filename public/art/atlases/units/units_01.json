@@ -1,0 +1,300 @@
+{
+  "id": "units_01",
+  "image": "/art/atlases/units/units_01.png",
+  "frames": {
+    "/art/units/unit_archer_attack_0.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_attack_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_death_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_death_1.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_idle_0.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_idle_1.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_move_0.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_archer_move_1.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_attack_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_attack_1.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_death_0.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_death_1.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_idle_0.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_idle_1.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_move_0.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_assassin_move_1.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_attack_0.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_attack_1.png": {
+      "x": 776,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_death_0.png": {
+      "x": 1034,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_death_1.png": {
+      "x": 1292,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_idle_0.png": {
+      "x": 1550,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_idle_1.png": {
+      "x": 2,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_move_0.png": {
+      "x": 260,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_bear_trap_move_1.png": {
+      "x": 518,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_attack_0.png": {
+      "x": 776,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_attack_1.png": {
+      "x": 1034,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_death_0.png": {
+      "x": 1292,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_death_1.png": {
+      "x": 1550,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_idle_0.png": {
+      "x": 2,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_idle_1.png": {
+      "x": 260,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_move_0.png": {
+      "x": 518,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_boulder_move_1.png": {
+      "x": 776,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_attack_0.png": {
+      "x": 1034,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_attack_1.png": {
+      "x": 1292,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_death_0.png": {
+      "x": 1550,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_death_1.png": {
+      "x": 2,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_idle_0.png": {
+      "x": 260,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_idle_1.png": {
+      "x": 518,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_move_0.png": {
+      "x": 776,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_move_1.png": {
+      "x": 1034,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_attack_0.png": {
+      "x": 1292,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_attack_1.png": {
+      "x": 1550,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_death_0.png": {
+      "x": 2,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_death_1.png": {
+      "x": 260,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_idle_0.png": {
+      "x": 518,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_idle_1.png": {
+      "x": 776,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_move_0.png": {
+      "x": 1034,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_move_1.png": {
+      "x": 1292,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_attack_0.png": {
+      "x": 1550,
+      "y": 1550,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

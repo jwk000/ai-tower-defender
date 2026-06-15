@@ -1,0 +1,150 @@
+{
+  "id": "icons_common",
+  "image": "/art/atlases/ui/icons_common.png",
+  "frames": {
+    "/art/buffs/buff_arcane_wisdom.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_double_bounty.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_flame_power.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_gold_reserve.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_ice_heart.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_iron_wall.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_magic_surge.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_quick_march.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_reinforced_arrow.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_sharpshooter.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_tactical_master.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/buffs/buff_unbreakable_wall.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/solider-archer.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/solider-mage.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/solider-shield-guard.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-arrow.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-bat.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-cannon.png": {
+      "x": 776,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-ice.png": {
+      "x": 1034,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-laser.png": {
+      "x": 1292,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-lightning.png": {
+      "x": 1550,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-missle.png": {
+      "x": 2,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-mu.png": {
+      "x": 260,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/card-icon/tower-poison.png": {
+      "x": 518,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    }
+  }
+}
