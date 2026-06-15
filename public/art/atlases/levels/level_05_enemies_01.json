@@ -1,0 +1,258 @@
+{
+  "id": "level_05_enemies_01",
+  "image": "/art/atlases/levels/level_05_enemies_01.png",
+  "frames": {
+    "/art/units/unit_enemy_abyss_lord_attack_0.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_attack_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_death_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_death_1.png": {
+      "x": 776,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_idle_0.png": {
+      "x": 1034,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_idle_1.png": {
+      "x": 1292,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_move_0.png": {
+      "x": 1550,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_abyss_lord_move_1.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_attack_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_attack_1.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_death_0.png": {
+      "x": 776,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_death_1.png": {
+      "x": 1034,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_idle_0.png": {
+      "x": 1292,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_idle_1.png": {
+      "x": 1550,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_move_0.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_boar_move_1.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_attack_0.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_attack_1.png": {
+      "x": 776,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_death_0.png": {
+      "x": 1034,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_death_1.png": {
+      "x": 1292,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_idle_0.png": {
+      "x": 1550,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_idle_1.png": {
+      "x": 2,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_move_0.png": {
+      "x": 260,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_bomb_beetle_move_1.png": {
+      "x": 518,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_attack_0.png": {
+      "x": 776,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_attack_1.png": {
+      "x": 1034,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_death_0.png": {
+      "x": 1292,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_death_1.png": {
+      "x": 1550,
+      "y": 776,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_idle_0.png": {
+      "x": 2,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_idle_1.png": {
+      "x": 260,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_move_0.png": {
+      "x": 518,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_burrow_beetle_move_1.png": {
+      "x": 776,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_attack_0.png": {
+      "x": 1034,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_attack_1.png": {
+      "x": 1292,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_death_0.png": {
+      "x": 1550,
+      "y": 1034,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_death_1.png": {
+      "x": 2,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_idle_0.png": {
+      "x": 260,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_idle_1.png": {
+      "x": 518,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_move_0.png": {
+      "x": 776,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_dark_priest_move_1.png": {
+      "x": 1034,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_desert_beetle_attack_0.png": {
+      "x": 1292,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_enemy_desert_beetle_attack_1.png": {
+      "x": 1550,
+      "y": 1292,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

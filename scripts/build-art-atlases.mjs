@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import sys
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from PIL import Image
 
 ROOT = Path(sys.argv[1]).resolve()
 ART_ROOT = ROOT / "public" / "art"
+LEVEL_ROOT = ROOT / "src" / "config" / "levels"
 ATLAS_ROOT = ART_ROOT / "atlases"
 MAX_SIZE = 2048
 PADDING = 2
@@ -88,18 +90,46 @@ def tower_id_from_path(path: Path) -> str | None:
     return None
 
 
+def enemy_id_from_path(path: Path) -> str | None:
+    name = path.stem
+    prefix = "unit_enemy_"
+    if not name.startswith(prefix):
+        return None
+    rest = name[len(prefix):]
+    for suffix in ["_idle_0", "_idle_1", "_move_0", "_move_1", "_attack_0", "_attack_1", "_death_0", "_death_1"]:
+        if rest.endswith(suffix):
+            return rest[:-len(suffix)]
+    return None
+
+
+def level_id_from_file(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"^id:\s*([A-Za-z0-9_\-]+)\s*$", text, re.MULTILINE)
+    return match.group(1) if match else path.stem.replace("-", "_")
+
+
+def level_enemy_ids(path: Path) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    return sorted(set(re.findall(r"enemyType:\s*([A-Za-z0-9_]+)", text)))
+
+
 def build_plans() -> list[AtlasPlan]:
     plans: list[AtlasPlan] = []
 
     unit_files = image_files("units")
     tower_groups: dict[str, list[Path]] = {}
-    non_tower_unit_files: list[Path] = []
+    enemy_groups: dict[str, list[Path]] = {}
+    player_unit_files: list[Path] = []
     for file in unit_files:
         tower_id = tower_id_from_path(file)
-        if tower_id is None:
-            non_tower_unit_files.append(file)
-        else:
+        if tower_id is not None:
             tower_groups.setdefault(tower_id, []).append(file)
+            continue
+        enemy_id = enemy_id_from_path(file)
+        if enemy_id is not None:
+            enemy_groups.setdefault(enemy_id, []).append(file)
+            continue
+        player_unit_files.append(file)
 
     for tower_id, files in sorted(tower_groups.items()):
         plans.append(AtlasPlan(
@@ -109,12 +139,29 @@ def build_plans() -> list[AtlasPlan]:
             max_width=1024,
         ))
 
-    for index, files in enumerate(chunked(non_tower_unit_files, 49), start=1):
+    for index, files in enumerate(chunked(sorted(player_unit_files), 42), start=1):
         plans.append(AtlasPlan(
-            atlas_id=f"units_{index:02d}",
-            image_path=f"/art/atlases/units/units_{index:02d}.png",
+            atlas_id=f"player_units_{index:02d}",
+            image_path=f"/art/atlases/global/player_units_{index:02d}.png",
             files=files,
         ))
+
+    for level_file in sorted(LEVEL_ROOT.glob("level-*.yaml")):
+        files: list[Path] = []
+        for enemy_id in level_enemy_ids(level_file):
+            files.extend(enemy_groups.get(enemy_id, []))
+        level_id = level_id_from_file(level_file)
+        for index, chunk in enumerate(chunked(sorted(set(files)), 42), start=1):
+            atlas_id = f"{level_id}_enemies"
+            image_path = f"/art/atlases/levels/{level_id}_enemies.png"
+            if len(files) > 42:
+                atlas_id = f"{level_id}_enemies_{index:02d}"
+                image_path = f"/art/atlases/levels/{level_id}_enemies_{index:02d}.png"
+            plans.append(AtlasPlan(
+                atlas_id=atlas_id,
+                image_path=image_path,
+                files=chunk,
+            ))
 
     for theme in ["meadow", "desert", "castle", "wasteland", "abyss"]:
         files = theme_scene_files(theme)
