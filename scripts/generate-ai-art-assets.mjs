@@ -222,51 +222,71 @@ function pathEndpointAssets(theme, material) {
 
 function sceneDecorSpriteAssets() {
   const commonDecor = [
-    ['meadow', 'tree', 2, 'gnarled dark green fantasy tree with wet bark and compact leafy crown'],
-    ['meadow', 'bush', 2, 'round dark green thorn bush cluster with wet leaf highlights'],
-    ['meadow', 'flower', 2, 'small pink wildflower cluster with dark leaves'],
-    ['desert', 'rock', 1, 'dark sandstone rock cluster with cracked faces'],
-    ['desert', 'cactus', 2, 'dark green cactus with two arms and small pale thorns'],
-    ['desert', 'bones', 1, 'bleached animal bones half buried in sand, readable simple shape'],
-    ['desert', 'sand_dune', 1, 'small crescent sand dune mound with dark golden rim'],
-    ['desert', 'tunnel_entrance', 3, 'round insect tunnel entrance with dark hole and sandy chitin rim'],
-    ['desert', 'tunnel_exit', 3, 'round insect tunnel exit with cracked sand and faint amber glow'],
-    ['castle', 'pillar', 1, 'broken gothic stone pillar with moss cracks'],
-    ['castle', 'brazier', 3, 'black iron gothic brazier with orange flame'],
-    ['castle', 'rubble', 1, 'small pile of dark castle stone rubble'],
-    ['castle', 'dead_tree', 2, 'leafless twisted dead tree with grey bark'],
-    ['castle', 'wall', 1, 'broken dark stone wall segment with jagged top'],
-    ['wasteland', 'pillar', 1, 'broken concrete pillar with blackened cracks and red ash'],
-    ['wasteland', 'car', 1, 'rusted broken compact car wreck with charcoal metal and red dust'],
-    ['wasteland', 'rubble', 1, 'wasteland concrete rubble pile with rusted rebar'],
-    ['wasteland', 'scorched_tree', 2, 'burned leafless tree stump with charcoal branches and ember cracks'],
-    ['wasteland', 'volcanic_rock', 1, 'charcoal volcanic rock with red ash cracks'],
-    ['wasteland', 'lava_vent', 4, 'small cracked lava vent with orange ember glow'],
-    ['abyss', 'floating_rock', 2, 'floating jagged void rock with violet rim light'],
-    ['abyss', 'purple_flame', 3, 'small black stone pedestal with purple flame'],
-    ['abyss', 'crystal_obstacle', 2, 'dark violet crystal cluster with pale purple highlights'],
-    ['abyss', 'void_rift', 4, 'small vertical purple black void rift energy crack'],
-    ['abyss', 'reality_warp', 4, 'compact circular reality warp distortion with violet core'],
+    ['meadow', 'tree', 'gnarled dark green fantasy tree with wet bark and compact leafy crown'],
+    ['meadow', 'bush', 'round dark green thorn bush cluster with wet leaf highlights'],
+    ['meadow', 'flower', 'small pink wildflower cluster with dark leaves'],
+    ['desert', 'rock', 'dark sandstone rock cluster with cracked faces'],
+    ['desert', 'cactus', 'dark green cactus with two arms and small pale thorns'],
+    ['desert', 'bones', 'bleached animal bones half buried in sand, readable simple shape'],
+    ['desert', 'sand_dune', 'small crescent sand dune mound with dark golden rim'],
+    ['desert', 'tunnel_entrance', 'round insect tunnel entrance with dark hole and sandy chitin rim'],
+    ['desert', 'tunnel_exit', 'round insect tunnel exit with cracked sand and faint amber glow'],
+    ['castle', 'pillar', 'broken gothic stone pillar with moss cracks'],
+    ['castle', 'brazier', 'black iron gothic brazier with orange flame'],
+    ['castle', 'rubble', 'small pile of dark castle stone rubble'],
+    ['castle', 'dead_tree', 'leafless twisted dead tree with grey bark'],
+    ['castle', 'wall', 'broken dark stone wall segment with jagged top'],
+    ['wasteland', 'pillar', 'broken concrete pillar with blackened cracks and red ash'],
+    ['wasteland', 'car', 'rusted broken compact car wreck with charcoal metal and red dust'],
+    ['wasteland', 'rubble', 'wasteland concrete rubble pile with rusted rebar'],
+    ['wasteland', 'scorched_tree', 'burned leafless tree stump with charcoal branches and ember cracks'],
+    ['wasteland', 'volcanic_rock', 'charcoal volcanic rock with red ash cracks'],
+    ['wasteland', 'lava_vent', 'small cracked lava vent with orange ember glow'],
+    ['abyss', 'floating_rock', 'floating jagged void rock with violet rim light'],
+    ['abyss', 'purple_flame', 'small black stone pedestal with purple flame'],
+    ['abyss', 'crystal_obstacle', 'dark violet crystal cluster with pale purple highlights'],
+    ['abyss', 'void_rift', 'small vertical purple black void rift energy crack'],
+    ['abyss', 'reality_warp', 'compact circular reality warp distortion with violet core'],
   ];
 
-  return commonDecor.flatMap(([theme, decorId, frameCount, subject]) => (
-    Array.from({ length: frameCount }, (_, frame) => ({
-      id: `decor_${theme}_${decorId}_idle_${frame}`,
+  return commonDecor.flatMap(([theme, decorId, subject]) => {
+    const variantCount = decorVariantCount(decorId);
+    return Array.from({ length: variantCount }, (_, variant) => ({
+      id: `decor_${theme}_${decorId}_idle_${variant}`,
       priority: 'P0',
       type: 'decor',
-      output: `public/art/decor/decor_${theme}_${decorId}_idle_${frame}.png`,
+      output: `public/art/decor/decor_${theme}_${decorId}_idle_${variant}.png`,
       size: '1024x1024',
       transparent: true,
       prompt: [
-        `${subject}, battlefield decoration sprite`,
-        `idle animation frame ${frame + 1}/${frameCount}`,
-        'same object design, same camera, same centered anchor and size',
-        frameCount === 1 ? 'static complete object' : 'only subtle loop motion in leaves, flame, glow, steam, spores, rotation, or rift energy',
+        `${subject}, static battlefield decoration sprite`,
+        `static appearance variant ${variant + 1} of ${variantCount}, same object identity, not an animation frame`,
+        'single complete object, no animation frame sheet, no sequence frame, no timeline motion',
         '3/4 top-down tower defense view, centered object, fits inside one 64x64 grid tile',
         'transparent background, no ground tile, no cast shadow, no frame',
       ].join(', '),
-    }))
-  ));
+    }));
+  });
+}
+
+function decorVariantCount(decorId) {
+  return {
+    tree: 2,
+    bush: 2,
+    flower: 2,
+    cactus: 2,
+    tunnel_entrance: 3,
+    tunnel_exit: 3,
+    brazier: 3,
+    dead_tree: 2,
+    scorched_tree: 2,
+    lava_vent: 4,
+    floating_rock: 2,
+    purple_flame: 3,
+    crystal_obstacle: 2,
+    void_rift: 4,
+    reality_warp: 4,
+  }[decorId] ?? 1;
 }
 
 function enemyPortraitAssets() {

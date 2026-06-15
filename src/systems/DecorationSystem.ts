@@ -14,7 +14,13 @@ import { computeSceneLayout } from './RenderSystem.js';
 import { assetUrl, backgroundArtPath } from '../utils/artAssets.js';
 import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 import { getLoadedImageFrame } from '../utils/imageCache.js';
-import { decorArtPath, getDecorFrameCount, normalizeDecorType } from '../utils/decorArt.js';
+import {
+  decorArtPath,
+  getDecorParticleKind,
+  getDecorVariantIndex,
+  normalizeDecorType,
+  type DecorParticleKind,
+} from '../utils/decorArt.js';
 
 /**
  * 复合几何体部件 —— 由多个简单形状组合成一个装饰物
@@ -772,6 +778,7 @@ export class DecorationSystem implements System {
       const baseY = obs.row * this.ts + this.ts / 2 + this.oy;
 
       if (this.drawDecorArt(decorType, obs.row, obs.col, baseX, baseY)) {
+        this.drawDecorParticles(decorType, obs.row, obs.col, baseX, baseY);
         continue;
       }
 
@@ -862,17 +869,11 @@ export class DecorationSystem implements System {
   private drawDecorArt(type: ObstacleType, row: number, col: number, x: number, y: number): boolean {
     if (!areArtResourcesEnabled()) return false;
 
-    const frameCount = getDecorFrameCount(type);
-    const phase = (row * 13 + col * 7) * 0.173;
-    const fps = frameCount <= 1 ? 0 : 4;
-    const frame = frameCount <= 1
-      ? 0
-      : Math.floor((this.currentTime + phase) * fps) % frameCount;
-    const path = decorArtPath(type, frame, this.map.artTheme);
+    const variant = getDecorVariantIndex(type, row, col, this.map.artTheme);
+    const path = decorArtPath(type, variant, this.map.artTheme);
     if (!path) return false;
     let sprite = getLoadedImageFrame(path);
-
-    if (!sprite && frame !== 0) {
+    if (!sprite && variant !== 0) {
       const fallbackPath = decorArtPath(type, 0, this.map.artTheme);
       sprite = fallbackPath ? getLoadedImageFrame(fallbackPath) : null;
     }
@@ -891,6 +892,106 @@ export class DecorationSystem implements System {
       z: 1,
     });
     return true;
+  }
+
+  private drawDecorParticles(type: ObstacleType, row: number, col: number, x: number, y: number): void {
+    const kind = getDecorParticleKind(type);
+    if (kind === 'none') return;
+
+    switch (kind) {
+      case 'leaf_motes':
+        this.drawLeafMotes(row, col, x, y);
+        break;
+      case 'ember_motes':
+        this.drawEmberMotes(type, row, col, x, y);
+        break;
+      case 'rift_sparks':
+        this.drawRiftSparks(row, col, x, y);
+        break;
+      case 'steam_puffs':
+        this.drawSteamPuffs(row, col, x, y);
+        break;
+    }
+  }
+
+  private particlePhase(row: number, col: number, index: number, speed: number): number {
+    return (this.currentTime * speed + row * 0.37 + col * 0.19 + index * 0.23) % 1;
+  }
+
+  private drawLeafMotes(row: number, col: number, x: number, y: number): void {
+    const weather = this.getWeather();
+    const windBoost = DecorationSystem.STRONG_WIND_WEATHERS.has(weather) ? 1.6 : 1;
+    const count = 3 + ((row + col) % 3);
+    for (let i = 0; i < count; i++) {
+      const t = this.particlePhase(row, col, i, 0.18 * windBoost);
+      const angle = (row * 1.7 + col * 0.9 + i * 2.1);
+      const drift = (t - 0.5) * this.ts * 0.35 * windBoost;
+      const bob = Math.sin((this.currentTime * 1.8 + i) * Math.PI) * 3;
+      this.renderer.push({
+        shape: i % 2 === 0 ? 'diamond' : 'circle',
+        x: x + Math.cos(angle) * 14 + drift,
+        y: y - 18 + Math.sin(angle) * 8 + bob + t * 8,
+        size: 2.2 + (i % 2),
+        color: i % 2 === 0 ? '#9ccc65' : '#dce775',
+        alpha: 0.18 + (1 - Math.abs(t - 0.5) * 2) * 0.28,
+        z: 1.15,
+      });
+    }
+  }
+
+  private drawEmberMotes(type: ObstacleType, row: number, col: number, x: number, y: number): void {
+    const isVoid = type === ObstacleType.PurpleFlame || type === ObstacleType.CorruptedObelisk;
+    const colors = isVoid ? ['#b388ff', '#7c4dff', '#e1bee7'] : ['#ffcc80', '#ff8f00', '#ff5722'];
+    const count = 4 + ((row * 2 + col) % 4);
+    for (let i = 0; i < count; i++) {
+      const t = this.particlePhase(row, col, i, 0.42);
+      const wave = Math.sin((this.currentTime * 2.3 + i * 1.7) * Math.PI);
+      this.renderer.push({
+        shape: i % 3 === 0 ? 'diamond' : 'circle',
+        x: x + (i - count / 2) * 3.2 + wave * 4,
+        y: y + 8 - t * 30,
+        size: 2.5 + (i % 3),
+        color: colors[i % colors.length]!,
+        alpha: (1 - t) * 0.62,
+        z: 1.2,
+      });
+    }
+  }
+
+  private drawRiftSparks(row: number, col: number, x: number, y: number): void {
+    const count = 5 + ((row + col) % 4);
+    const pulse = 0.5 + Math.sin(this.currentTime * 3 + row + col) * 0.5;
+    for (let i = 0; i < count; i++) {
+      const t = this.particlePhase(row, col, i, 0.28);
+      const angle = this.currentTime * 0.9 + i * (Math.PI * 2 / count) + row * 0.2;
+      const radius = this.ts * (0.18 + t * 0.18);
+      this.renderer.push({
+        shape: i % 2 === 0 ? 'diamond' : 'circle',
+        x: x + Math.cos(angle) * radius,
+        y: y + Math.sin(angle) * radius * 0.72,
+        size: 3 + pulse * 2 + (i % 2),
+        color: i % 2 === 0 ? '#b388ff' : '#80deea',
+        alpha: 0.22 + (1 - t) * 0.38,
+        z: 1.25,
+      });
+    }
+  }
+
+  private drawSteamPuffs(row: number, col: number, x: number, y: number): void {
+    const count = 3 + ((row + col) % 2);
+    for (let i = 0; i < count; i++) {
+      const t = this.particlePhase(row, col, i, 0.22);
+      const side = i % 2 === 0 ? -1 : 1;
+      this.renderer.push({
+        shape: 'circle',
+        x: x + side * (8 + i * 2) + Math.sin(this.currentTime + i) * 3,
+        y: y - 4 - t * 26,
+        size: 7 + t * 10,
+        color: '#cfd8dc',
+        alpha: (1 - t) * 0.18,
+        z: 1.1,
+      });
+    }
   }
 
   // ============================================================
