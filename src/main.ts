@@ -202,6 +202,7 @@ class TowerDefenderGame extends Game {
       onLevelProgressChanged: () => this.levelSelectUI?.refresh?.(),
       onSkipToVictory: () => this.skipToVictory(),
       onSkipToDefeat: () => this.skipToDefeat(),
+      onSkipToFinalWave: () => this.skipToFinalWave(),
     });
 
     // Wheel event for encyclopedia scroll
@@ -1336,6 +1337,13 @@ class TowerDefenderGame extends Game {
       Health.current[this.baseEntityId] = 0;
     }
     this.phase = GamePhase.Defeat;
+  }
+
+  /** 👑 调试：直接进入最后一波（测试 Boss 技能） */
+  private skipToFinalWave(): boolean {
+    if (this.currentScreen !== GameScreen.Battle) return false;
+    if (this.phase === GamePhase.Victory || this.phase === GamePhase.Defeat) return false;
+    return this.waveSystem.skipToFinalWave();
   }
 
   // ================================================================

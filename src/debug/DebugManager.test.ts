@@ -184,6 +184,26 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
     expect(action?.isEnabled()).toBe(true);
   });
 
+  it('调试面板提供直接进入最后一波入口，并调用战斗 hook', async () => {
+    const { TowerWorld } = await import('../core/World.js');
+    const { DebugManager } = await import('./DebugManager.js');
+    const { EconomySystem } = await import('../systems/EconomySystem.js');
+
+    const world = new TowerWorld();
+    const economy = new EconomySystem();
+    const skipToFinalWave = vi.fn(() => true);
+    const debug = new DebugManager(world, {
+      getEconomy: () => economy,
+      onSkipToFinalWave: skipToFinalWave,
+    });
+    const action = debug.getActions().find((a) => a.id === 'skip_to_final_wave');
+
+    expect(action).toBeDefined();
+    expect(action?.isEnabled()).toBe(true);
+    expect(debug.skipToFinalWave()).toBe(true);
+    expect(skipToFinalWave).toHaveBeenCalledTimes(1);
+  });
+
   it('单位动作预览按塔、士兵、每关敌人分页并对关卡敌人去重', async () => {
     const { buildPreviewTabs } = await import('./UnitAnimationPreviewWindow.js');
     const { TowerType, UnitType, LevelTheme, TileType } = await import('../types/index.js');

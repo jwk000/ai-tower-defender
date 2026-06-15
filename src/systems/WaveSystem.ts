@@ -273,6 +273,33 @@ export class WaveSystem implements System {
     this.spawnTimer = 0;
   }
 
+  /** 调试：直接切到最后一波并立即开始，用于 Boss 技能测试。 */
+  skipToFinalWave(): boolean {
+    if (this.isEndless || this.waves.length === 0) return false;
+    if (this.currentWaveIndex >= this.waves.length) return false;
+
+    this.countdown = 0;
+    this.lastCountdownInt = 0;
+    this.currentWaveIndex = this.waves.length - 1;
+    this.spawnQueue = [];
+    this.spawnTimer = 0;
+    this.spawnIntervalTimer = 0;
+    this.spawnedInWave = 0;
+    this.totalInWave = 0;
+    this.waveActive = false;
+    this.isBossWave = false;
+    this.waveElapsed = 0;
+    this.eliteSpawned = false;
+    this.eliteEid = 0;
+    this.eliteEnemyType = null;
+    this.waveSpawnPointIndex = undefined;
+    this.spawnDistributionCounter = 0;
+
+    this.startWave();
+    this.spawnTimer = 0;
+    return this.waveActive;
+  }
+
   /** Stub endless wave generator — Phase 3 will rewrite */
   private generateEndlessWaveStub(waveNum: number): WaveConfig {
     return {

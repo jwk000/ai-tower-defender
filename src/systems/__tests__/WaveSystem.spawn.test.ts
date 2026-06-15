@@ -369,6 +369,31 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     ]);
     expect(explosionQuery(world.world).length).toBeGreaterThan(0);
   });
+
+  it('调试跳波会直接进入最后一波并按正常流程生成 Boss', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [
+      { waveNumber: 1, spawnDelay: 0, enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }] },
+      { waveNumber: 2, spawnDelay: 0, isBossWave: true, enemies: [{ enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 }] },
+    ];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+
+    expect(ws.skipToFinalWave()).toBe(true);
+    expect(ws.currentWave).toBe(2);
+    expect(ws.currentIsBossWave).toBe(true);
+    expect(phase).toBe(GamePhase.Battle);
+
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+    const bosses = bossQuery(world.world);
+    expect(bosses.length).toBe(1);
+    expect(world.getDisplayName(bosses[0]!)).toBe('巨型史莱姆');
+  });
 });
 
 describe('WaveSystem v4.0 — difficulty scaling', () => {

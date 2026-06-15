@@ -24,6 +24,8 @@ export interface DebugManagerHooks {
   onSkipToVictory?: () => void;
   /** v6.0: 跳过当前关卡直接失败（测试失败界面用） */
   onSkipToDefeat?: () => void;
+  /** 调试：直接进入最后一波，用于测试 Boss 技能 */
+  onSkipToFinalWave?: () => boolean;
 }
 
 const GOLD_BONUS = 99999;
@@ -48,6 +50,7 @@ export class DebugManager {
   private onOpenLevelEditorFn: (() => void) | null = null;
   private onSkipToVictoryFn: (() => void) | null = null;
   private onSkipToDefeatFn: (() => void) | null = null;
+  private onSkipToFinalWaveFn: (() => boolean) | null = null;
 
   constructor(world: TowerWorld, hooks: DebugManagerHooks = {}) {
     this.world = world;
@@ -57,6 +60,7 @@ export class DebugManager {
     this.onOpenLevelEditorFn = hooks.onOpenLevelEditor ?? null;
     this.onSkipToVictoryFn = hooks.onSkipToVictory ?? null;
     this.onSkipToDefeatFn = hooks.onSkipToDefeat ?? null;
+    this.onSkipToFinalWaveFn = hooks.onSkipToFinalWave ?? null;
 
     this.cardListWindow = new CardListWindow();
     this.unitAnimationPreviewWindow = new UnitAnimationPreviewWindow();
@@ -157,6 +161,14 @@ export class DebugManager {
         onClick: () => this.showUnitAnimationPreview(),
       },
       {
+        id: 'skip_to_final_wave',
+        label: '直接进入最后一波',
+        icon: '👑',
+        isEnabled: () => this.onSkipToFinalWaveFn !== null && this.getEconomy() !== null,
+        disabledHint: '仅战斗中可用',
+        onClick: () => this.skipToFinalWave(),
+      },
+      {
         id: 'skip_to_victory',
         label: '🏁 直接通关（测试用）',
         icon: '🏁',
@@ -231,6 +243,14 @@ export class DebugManager {
 
   private skipToDefeat(): void {
     this.onSkipToDefeatFn?.();
+  }
+
+  skipToFinalWave(): boolean {
+    const ok = this.onSkipToFinalWaveFn?.() ?? false;
+    if (ok) {
+      this.debugPanel.flashButton('skip_to_final_wave', '✅ 已进入最后一波');
+    }
+    return ok;
   }
 
   completeAllLevels(): { stars: number; unlocked: number } {
