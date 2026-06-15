@@ -5,7 +5,7 @@ import {
   Category,
   CategoryVal,
   Elite,
-  ExplosionEffect,
+  EnemySkillParticleEffect,
   Faction,
   FactionVal,
   Health,
@@ -20,8 +20,21 @@ import {
 } from '../core/components.js';
 import { unitConfigRegistry, type UnitConfig } from '../config/registry.js';
 import { EnemySkillSystem, registerEnemySkillEntity } from './EnemySkillSystem.js';
+import { EnemySkillParticleSystem } from './EnemySkillParticleSystem.js';
+import type { Renderer } from '../render/Renderer.js';
+import type { RenderCommand } from '../types/index.js';
 
-const explosionQuery = defineQuery([Position, ExplosionEffect, Visual]);
+const skillParticleQuery = defineQuery([Position, EnemySkillParticleEffect]);
+
+function makeRenderer(): { renderer: Renderer; commands: RenderCommand[] } {
+  const commands: RenderCommand[] = [];
+  return {
+    renderer: {
+      push: (cmd: RenderCommand) => commands.push(cmd),
+    } as unknown as Renderer,
+    commands,
+  };
+}
 
 function registerSkillConfig(config: UnitConfig): void {
   unitConfigRegistry.register(config);
@@ -161,7 +174,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
 
     expect(Health.current[tower]).toBe(65);
     expect(Visual.hitFlashTimer[tower]).toBeGreaterThan(0);
-    expect(explosionQuery(world.world).length).toBeGreaterThan(0);
+    expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
   });
 
   it('冷却未结束时不会重复释放精英技能', () => {
@@ -194,5 +207,41 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     system.update(world, 0.1);
 
     expect(Health.current[tower]).toBe(65);
+  });
+
+  it('敌人技能粒子效果由粒子系统渲染为多粒子命令', () => {
+    registerSkillConfig({
+      id: 'test_elite_guard',
+      name: '测试精英守卫',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      tier: 'L2',
+      stats: { hp: 100, atk: 10 },
+      visual: { shape: 'circle', color: '#90caf9', size: 28 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'shield_wall',
+          name: '盾墙推进',
+          cooldown: 8,
+          range: 0,
+          value: 40,
+          duration: 4,
+          description: '自身获得护甲并播放护盾粒子',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    makeElite(world, 'test_elite_guard');
+    system.update(world, 0.1);
+
+    const { renderer, commands } = makeRenderer();
+    const particleSystem = new EnemySkillParticleSystem(renderer);
+    particleSystem.update(world, 0.1);
+
+    expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
+    expect(commands.length).toBeGreaterThan(10);
+    expect(commands.every((cmd) => cmd.shape === 'circle' || cmd.shape === 'rect')).toBe(true);
   });
 });

@@ -20,6 +20,7 @@ import { ExplosionEffectSystem } from './systems/ExplosionEffectSystem.js';
 import { FadingMarkSystem } from './systems/FadingMarkSystem.js';
 import { HandSystem } from './systems/HandSystem.js';
 import { HealthSystem } from './systems/HealthSystem.js';
+import { EnemySkillParticleSystem } from './systems/EnemySkillParticleSystem.js';
 import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
 import { LaserBeamSystem } from './systems/LaserBeamSystem.js';
 import { LifecycleSystem } from './systems/LifecycleSystem.js';
@@ -781,6 +782,7 @@ class TowerDefenderGame extends Game {
     const explosionEffectSystem = new ExplosionEffectSystem();
     const bloodParticleSystem = new BloodParticleSystem();
     const fadingMarkSystem = new FadingMarkSystem();
+    const enemySkillParticleSystem = new EnemySkillParticleSystem(this.renderer);
     const lightningBoltSystem = new LightningBoltSystem(this.renderer);
     this.laserBeamSystem = new LaserBeamSystem(this.renderer);
     this.spellProjectileSystem = new SpellProjectileSystem(this.renderer);
@@ -1138,6 +1140,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.buildSystem);
     this.world.registerSystem(this.soldierAISystem);
     this.world.registerSystem(this.spellProjectileSystem);
+    this.world.registerSystem(enemySkillParticleSystem);
     this.world.registerSystem(slashEffectSystem);
     this.world.registerSystem(this.decorationSystem);
     this.world.registerSystem(this.levelIntroSystem);   // v4.1: 入场动画（装饰物之后、棋盘之前）

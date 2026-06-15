@@ -12,8 +12,9 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
-  Tower, ScreenShake, ExplosionEffect, Elite, FadingMark,
+  Tower, ScreenShake, Elite,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
+  EnemySkillParticleEffect, EnemySkillParticleEffectVal,
 } from '../core/components.js';
 import { unitConfigRegistry } from '../config/registry.js';
 import { Sound } from '../utils/Sound.js';
@@ -226,62 +227,33 @@ function dealAoeDamage(
 }
 
 // ============================================================
-// Create explosion visual effect
+// Enemy skill particle helpers
 // ============================================================
 
-function createExplosionEffect(
+function createSkillParticles(
   world: TowerWorld,
   x: number, y: number,
-  color: { r: number; g: number; b: number },
-  maxRadius: number, duration: number,
-): void {
-  const eid = world.createEntity();
-  world.addComponent(eid, Position, { x, y });
-  world.addComponent(eid, Category, { value: CategoryVal.Effect });
-  world.addComponent(eid, ExplosionEffect, {
-    duration, elapsed: 0,
-    radius: 10, maxRadius,
-    colorR: color.r, colorG: color.g, colorB: color.b,
-  });
-  world.addComponent(eid, Visual, {
-    shape: ShapeVal.Circle,
-    colorR: color.r, colorG: color.g, colorB: color.b,
-    size: maxRadius * 2, alpha: 0.8, outline: 0, facing: 1,
-    hitFlashTimer: 0, idlePhase: 0,
-    bobPhase: 0, breathPhase: 0,
-    attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
-  });
-}
-
-function createGroundMark(
-  world: TowerWorld,
-  x: number,
-  y: number,
+  effectType: number,
   color: { r: number; g: number; b: number },
   radius: number,
   duration: number,
-  alpha: number = 0.35,
+  targetX: number = x,
+  targetY: number = y,
 ): void {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x, y });
   world.addComponent(eid, Category, { value: CategoryVal.Effect });
-  world.addComponent(eid, FadingMark, { duration, elapsed: 0, maxAlpha: alpha });
-  world.addComponent(eid, Visual, {
-    shape: ShapeVal.Circle,
+  world.addComponent(eid, EnemySkillParticleEffect, {
+    effectType,
+    duration,
+    elapsed: 0,
+    radius,
+    targetX,
+    targetY,
     colorR: color.r,
     colorG: color.g,
     colorB: color.b,
-    size: radius * 2,
-    alpha,
-    outline: 1,
-    facing: 1,
-    hitFlashTimer: 0,
-    idlePhase: 0,
-    bobPhase: 0,
-    breathPhase: 0,
-    attackAnimTimer: 0,
-    attackAnimDuration: 0,
-    partsId: 0,
+    seed: Math.random() * 1000,
   });
 }
 
@@ -397,6 +369,15 @@ const handleSummon: SkillHandler = (world, bossEid, skill, _phase) => {
     });
   }
 
+  createSkillParticles(
+    world,
+    bx,
+    by,
+    EnemySkillParticleEffectVal.Summon,
+    { r: 180, g: 120, b: 255 },
+    90,
+    0.8,
+  );
   Sound.play('boss_summon');
   triggerScreenShake(world, 2, 0.2, 12);
 };
@@ -456,7 +437,7 @@ const handleAoeAttack: SkillHandler = (world, bossEid, skill, _phase) => {
     }
   }
 
-  createExplosionEffect(world, bx, by, color, radius, 0.6);
+  createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.AoeSlam, color, radius, 0.7);
   Sound.play(soundKey);
   triggerScreenShake(world, 6, 0.4, 15);
 };
@@ -491,7 +472,7 @@ const handleWarCry: SkillHandler = (world, bossEid, skill, _phase) => {
     }
   }
 
-  createExplosionEffect(world, bx, by, { r: 255, g: 200, b: 50 }, radius, 0.8);
+  createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.WarCry, { r: 255, g: 200, b: 50 }, radius, 0.9);
   Sound.play('boss_summon');
   triggerScreenShake(world, 3, 0.3, 10);
 };
@@ -520,7 +501,7 @@ const handleMassPetrify: SkillHandler = (world, bossEid, skill, _phase) => {
   }
 
   if (petrified > 0) {
-    createExplosionEffect(world, bx, by, { r: 180, g: 180, b: 180 }, radius, 1.0);
+    createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.Petrify, { r: 180, g: 180, b: 180 }, radius, 1.0);
     Sound.play('boss_phase2');
     triggerScreenShake(world, 4, 0.3, 8);
   }
@@ -550,6 +531,15 @@ const handleRealityWarp: SkillHandler = (world, bossEid, skill, _phase) => {
   }
 
   if (targets.length > 0) {
+    createSkillParticles(
+      world,
+      Position.x[bossEid] ?? 0,
+      Position.y[bossEid] ?? 0,
+      EnemySkillParticleEffectVal.RealityWarp,
+      { r: 180, g: 80, b: 255 },
+      skill.range || 180,
+      1.0,
+    );
     Sound.play('boss_missile');
     triggerScreenShake(world, 5, 0.4, 12);
   }
@@ -569,7 +559,17 @@ const handleSingleTargetDamage: SkillHandler = (world, casterEid, skill, _phase)
 
   const x = Position.x[target] ?? Position.x[casterEid] ?? 0;
   const y = Position.y[target] ?? Position.y[casterEid] ?? 0;
-  createExplosionEffect(world, x, y, { r: 190, g: 80, b: 255 }, 36, 0.35);
+  createSkillParticles(
+    world,
+    Position.x[casterEid] ?? x,
+    Position.y[casterEid] ?? y,
+    EnemySkillParticleEffectVal.ArcaneBolt,
+    { r: 190, g: 80, b: 255 },
+    36,
+    0.45,
+    x,
+    y,
+  );
   Sound.play('mage_attack');
 };
 
@@ -577,13 +577,14 @@ const handleSelfGuard: SkillHandler = (world, casterEid, skill, _phase) => {
   const bonus = skill.value;
   applyTemporaryArmor(casterEid, bonus, skill.duration ?? 1);
   flashEntity(casterEid, skill.duration ?? 1);
-  createExplosionEffect(
+  createSkillParticles(
     world,
     Position.x[casterEid] ?? 0,
     Position.y[casterEid] ?? 0,
+    EnemySkillParticleEffectVal.Guard,
     { r: 120, g: 210, b: 255 },
     52,
-    0.45,
+    Math.max(0.6, skill.duration ?? 1),
   );
   Sound.play('arcane_shield');
 };
@@ -613,7 +614,17 @@ const handleChargeStrike: SkillHandler = (world, casterEid, skill, _phase) => {
   Position.x[target] = tx + nx * 48;
   Position.y[target] = ty + ny * 48;
   flashEntity(target, 0.4);
-  createExplosionEffect(world, Position.x[casterEid] ?? sx, Position.y[casterEid] ?? sy, { r: 255, g: 180, b: 60 }, 56, 0.4);
+  createSkillParticles(
+    world,
+    sx,
+    sy,
+    EnemySkillParticleEffectVal.Charge,
+    { r: 255, g: 180, b: 60 },
+    56,
+    0.45,
+    Position.x[casterEid] ?? sx,
+    Position.y[casterEid] ?? sy,
+  );
   Sound.play('enemy_attack');
 };
 
@@ -633,7 +644,17 @@ const handleTowerDebuff: SkillHandler = (world, casterEid, skill, _phase) => {
     Attack.targetId[casterEid] = target;
   }
   flashEntity(target, skill.duration ?? 1);
-  createGroundMark(world, Position.x[target] ?? 0, Position.y[target] ?? 0, { r: 120, g: 210, b: 255 }, 42, skill.duration ?? 2);
+  createSkillParticles(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    EnemySkillParticleEffectVal.Debuff,
+    { r: 120, g: 210, b: 255 },
+    42,
+    skill.duration ?? 2,
+    Position.x[target] ?? 0,
+    Position.y[target] ?? 0,
+  );
   Sound.play('stun_apply');
 };
 
@@ -653,7 +674,7 @@ const handleSporeSpawn: SkillHandler = (world, casterEid, skill, _phase) => {
       faction: Faction.value[casterEid] ?? FactionVal.Evil,
     });
   }
-  createExplosionEffect(world, bx, by, { r: 120, g: 220, b: 120 }, 64, 0.5);
+  createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.Summon, { r: 120, g: 220, b: 120 }, 64, 0.7);
   Sound.play('boss_summon');
 };
 
@@ -668,7 +689,7 @@ const handlePoisonPool: SkillHandler = (world, casterEid, skill, _phase) => {
   const x = Position.x[target] ?? 0;
   const y = Position.y[target] ?? 0;
   Health.current[target] = Math.max(0, (Health.current[target] ?? 0) - skill.value);
-  createGroundMark(world, x, y, { r: 100, g: 190, b: 60 }, 44, skill.duration ?? 3, 0.45);
+  createSkillParticles(world, x, y, EnemySkillParticleEffectVal.PoisonPool, { r: 100, g: 190, b: 60 }, 44, skill.duration ?? 3);
   Sound.play('poison_hit');
 };
 
@@ -680,8 +701,8 @@ const handleSlimePulse: SkillHandler = (world, bossEid, skill, _phase) => {
     slowDuration: skill.duration ?? 4,
     damageType: DamageTypeVal.Magic,
   });
-  createGroundMark(world, x, y, { r: 100, g: 220, b: 100 }, skill.range, skill.duration ?? 4, 0.3);
-  createExplosionEffect(world, x, y, { r: 100, g: 220, b: 100 }, skill.range, 0.5);
+  createSkillParticles(world, x, y, EnemySkillParticleEffectVal.PoisonPool, { r: 100, g: 220, b: 100 }, skill.range, skill.duration ?? 4);
+  createSkillParticles(world, x, y, EnemySkillParticleEffectVal.AoeSlam, { r: 100, g: 220, b: 100 }, skill.range, 0.5);
   Sound.play('boss_phase2');
 };
 
@@ -692,8 +713,7 @@ const handleTargetedMissile: SkillHandler = (world, bossEid, skill, _phase) => {
   const x = Position.x[target] ?? 0;
   const y = Position.y[target] ?? 0;
   dealAoeDamage(world, x, y, 80, skill.value, FactionVal.Justice, { falloff: true });
-  createGroundMark(world, x, y, { r: 220, g: 40, b: 40 }, 80, skill.duration ?? 2, 0.45);
-  createExplosionEffect(world, x, y, { r: 255, g: 80, b: 40 }, 80, 0.6);
+  createSkillParticles(world, x, y, EnemySkillParticleEffectVal.Missile, { r: 255, g: 80, b: 40 }, 80, Math.max(0.8, skill.duration ?? 2));
   Sound.play('boss_missile');
   triggerScreenShake(world, 7, 0.4, 16);
 };
@@ -720,20 +740,77 @@ const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
       (Health.current[bossEid] ?? 0) + (Health.max[bossEid] ?? 0) * (skill.value / 100) * devoured,
     );
   }
-  createExplosionEffect(world, bx, by, { r: 80, g: 0, b: 140 }, skill.range, 0.8);
+  createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.DarkDevour, { r: 80, g: 0, b: 140 }, skill.range, 0.9);
   Sound.play('boss_devour');
   triggerScreenShake(world, 8, 0.5, 12);
 };
 
 const handlePassiveWarning: SkillHandler = (world, casterEid, skill, _phase) => {
   flashEntity(casterEid, Math.max(0.5, skill.duration ?? 0.5));
-  createExplosionEffect(
+  createSkillParticles(
     world,
     Position.x[casterEid] ?? 0,
     Position.y[casterEid] ?? 0,
+    EnemySkillParticleEffectVal.Warning,
     { r: 255, g: 90, b: 40 },
     Math.max(32, skill.range || 40),
     0.35,
+  );
+};
+
+const handleAuraParticles: SkillHandler = (world, casterEid, skill, _phase) => {
+  const isHeal = skill.id === 'heal_aura' || skill.id === 'revive_aura' || skill.id === 'revive';
+  const isFrost = skill.id === 'frost_aura';
+  const effectType = isHeal
+    ? EnemySkillParticleEffectVal.HealAura
+    : isFrost
+      ? EnemySkillParticleEffectVal.FrostAura
+      : EnemySkillParticleEffectVal.Guard;
+  const color = isHeal
+    ? { r: 120, g: 220, b: 120 }
+    : isFrost
+      ? { r: 120, g: 210, b: 255 }
+      : { r: 255, g: 230, b: 120 };
+  createSkillParticles(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    effectType,
+    color,
+    Math.max(32, skill.range || 72),
+    Math.max(0.9, skill.duration ?? 1.2),
+  );
+  if (isHeal) Sound.play('soldier_heal');
+};
+
+const handleGenericSkillParticles: SkillHandler = (world, casterEid, skill, _phase) => {
+  let effectType: number = EnemySkillParticleEffectVal.Warning;
+  let color = { r: 220, g: 120, b: 255 };
+  if (skill.id.includes('burrow')) {
+    effectType = EnemySkillParticleEffectVal.AoeSlam;
+    color = { r: 160, g: 110, b: 60 };
+  } else if (skill.id.includes('void') || skill.id.includes('blink')) {
+    effectType = EnemySkillParticleEffectVal.RealityWarp;
+    color = { r: 150, g: 70, b: 255 };
+  } else if (skill.id.includes('petrify') || skill.id.includes('polymorph')) {
+    effectType = EnemySkillParticleEffectVal.Petrify;
+    color = { r: 180, g: 180, b: 180 };
+  } else if (skill.id.includes('curse') || skill.id.includes('mark')) {
+    effectType = EnemySkillParticleEffectVal.Debuff;
+    color = { r: 190, g: 60, b: 255 };
+  } else if (skill.id.includes('tendril')) {
+    effectType = EnemySkillParticleEffectVal.DarkDevour;
+    color = { r: 90, g: 40, b: 140 };
+  }
+
+  createSkillParticles(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    effectType,
+    color,
+    Math.max(36, skill.range || 64),
+    Math.max(0.5, skill.duration ?? 0.8),
   );
 };
 
@@ -782,6 +859,18 @@ const SKILL_HANDLERS: Record<string, SkillHandler> = {
   unstable_countdown: handlePassiveWarning,
   spore_burst: handlePassiveWarning,
   blood_rebirth: handlePassiveWarning,
+  frost_aura: handleAuraParticles,
+  heal_aura: handleAuraParticles,
+  shield_aura: handleAuraParticles,
+  revive_aura: handleAuraParticles,
+  revive: handleAuraParticles,
+  burrow_phase: handleGenericSkillParticles,
+  void_blink: handleGenericSkillParticles,
+  curse_volatile: handleGenericSkillParticles,
+  mark_for_destruction: handleGenericSkillParticles,
+  petrify: handleGenericSkillParticles,
+  polymorph_sheep: handleGenericSkillParticles,
+  tendril_grab: handleGenericSkillParticles,
   // Special
   self_destruct_timer: handleSelfDestruct,
 };

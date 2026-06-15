@@ -564,7 +564,8 @@ Abyss（深渊层）    — 最低，预留
 | 血粒子 | 受击或死亡 | `BloodParticleSystem` 驱动小粒子 |
 | 屏幕震动 | 爆炸、Boss 技能等 | `ScreenShakeSystem.state` 被 `RenderSystem` 消费为 Canvas 平移 |
 | Boss 出场 | Boss 首次生成 | 红色飘字“xxx出现！” + 暗红冲击环 + 常驻粒子开始 |
-| Boss 技能 | Boss 主动技能释放 | 技能必须附带范围环、爆发、震屏、地面残留或召唤闪光，禁止无视觉的纯数值技能 |
+| 敌人技能粒子 | 精英/Boss 主动技能释放 | `EnemySkillParticleSystem` 播放奥术光点、护盾环绕粒子、冲锋拖尾、毒泡、召唤微粒、吞噬旋涡等；禁止用单个 Canvas 大圆、地面标记或序列帧图片作为技能主体 |
+| Boss 技能 | Boss 主动技能释放 | 技能必须附带粒子预警、粒子爆发、震屏、召唤粒子或持续粒子之一，禁止无视觉的纯数值技能 |
 
 ### 8.4 伤害飘字系统（Damage Numbers）
 

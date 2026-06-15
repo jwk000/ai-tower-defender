@@ -64,6 +64,26 @@ export const DamageTypeVal = {
   True: 2,
 } as const;
 
+export const EnemySkillParticleEffectVal = {
+  ArcaneBolt: 0,
+  Guard: 1,
+  Charge: 2,
+  Debuff: 3,
+  PoisonPool: 4,
+  Summon: 5,
+  AoeSlam: 6,
+  WarCry: 7,
+  Petrify: 8,
+  RealityWarp: 9,
+  Missile: 10,
+  DarkDevour: 11,
+  Warning: 12,
+  FrostAura: 13,
+  HealAura: 14,
+} as const;
+export type EnemySkillParticleEffectVal =
+  (typeof EnemySkillParticleEffectVal)[keyof typeof EnemySkillParticleEffectVal];
+
 export const MoveModeVal = {
   FollowPath: 0,
   ChaseTarget: 1,
@@ -442,6 +462,20 @@ export const SpellEffect = defineComponent({
   radius: Types.f32,          // 效果半径
   damage: Types.f32,          // 伤害值
   hasDealtDamage: Types.ui8,  // 是否已造成伤害
+});
+
+/** 敌人技能粒子特效：技能逻辑只创建此组件，表现由 EnemySkillParticleSystem 统一播放 */
+export const EnemySkillParticleEffect = defineComponent({
+  effectType: Types.ui8,      // EnemySkillParticleEffectVal
+  duration: Types.f32,
+  elapsed: Types.f32,
+  radius: Types.f32,
+  targetX: Types.f32,
+  targetY: Types.f32,
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+  seed: Types.f32,
 });
 
 // ============================================================
