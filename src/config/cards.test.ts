@@ -1,12 +1,12 @@
 /**
- * 卡牌 YAML 配置数值验证 — 6 塔 + 6 兵
+ * 卡牌 YAML 配置数值验证 — 6 塔 + 5 兵
  *
  * 对应设计文档:
  * - design/25-card-roguelike-refactor.md §2 卡牌系统
  * - design/03-unit-data.md §8.1 单位/建筑卡目录
  * - design/21-mda-numerical-design.md §12.2 卡牌能量消耗表（数值真理源）
  *
- * TDD 阶段: A1.2 — 实现 6 塔 + 6 兵的卡牌 YAML 配置
+ * TDD 阶段: A1.2 — 实现 6 塔 + 5 兵的卡牌 YAML 配置
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { loadAllCardConfigs, loadAllCardConfigsSync } from './loader.js';
@@ -27,13 +27,12 @@ const SOLDIER_CARDS = [
   { id: 'archer_card', unit: 'archer', rarity: 'common', energy: 2 },
   { id: 'shield_guard_card', unit: 'shield_guard', rarity: 'common', energy: 3 },
   { id: 'priest_card', unit: 'priest', rarity: 'rare', energy: 4 },
-  { id: 'engineer_card', unit: 'engineer', rarity: 'rare', energy: 3 },
   { id: 'assassin_card', unit: 'assassin', rarity: 'epic', energy: 4 },
 ] as const;
 
 const ALL_A12_CARDS = [...TOWER_CARDS, ...SOLDIER_CARDS];
 
-describe('A1.2 卡牌 YAML 配置 (6 塔 + 6 兵)', () => {
+describe('A1.2 卡牌 YAML 配置 (6 塔 + 5 兵)', () => {
   beforeAll(async () => {
     cardConfigRegistry.clear();
     for (const { unit } of ALL_A12_CARDS) {
@@ -123,11 +122,11 @@ describe('A1.2 卡牌 YAML 配置 (6 塔 + 6 兵)', () => {
       expect(commons).toHaveLength(5);
     });
 
-    it('Rare 卡 = 4 张 (ice/lightning 塔 + priest/engineer 兵)', () => {
+    it('Rare 卡 = 3 张 (ice/lightning 塔 + priest 兵)', () => {
       const rares = cardConfigRegistry
         .getByRarity('rare')
         .filter((c) => ALL_A12_CARDS.some((x) => x.id === c.id));
-      expect(rares).toHaveLength(4);
+      expect(rares).toHaveLength(3);
     });
 
     it('Epic 卡 = 3 张 (laser/bat 塔 + assassin 兵)', () => {

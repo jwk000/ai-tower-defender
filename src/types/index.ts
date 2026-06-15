@@ -394,7 +394,6 @@ export enum UnitType {
   Swordsman = 'swordsman',
   Archer = 'archer',
   Priest = 'priest',
-  Engineer = 'engineer',
   Assassin = 'assassin',
   Mage = 'mage',
 }

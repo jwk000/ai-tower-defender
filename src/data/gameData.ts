@@ -1039,43 +1039,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
       },
     },
   },
-  // ---- 3.6 工程师 ----
-  [UnitType.Engineer]: {
-    type: UnitType.Engineer,
-    name: '工程师',
-    hp: 90,
-    atk: 0,
-    attackSpeed: 0,
-    attackRange: 120,
-    alertRange: 180,
-    speed: 25,
-    defense: 10,
-    popCost: 3,
-    color: '#ffa726',
-    size: 22,
-    skillId: 'repair',
-    cost: 30,
-    moveRange: 100,
-    repairAmount: 16,
-    repairRange: 180,
-    maxLevel: 3,
-    upgradeCosts: [45, 65],
-    upgradeHpBonus: [30, 50],
-    upgradeAtkBonus: [2, 4],
-    shape: 'circle',
-    attackAnimDuration: 0.4,
-    visualParts: {
-      eyes: {
-        offsetX: 4,
-        offsetY: -3,
-        scleraRadius: 3,
-        scleraColor: '#ffffff',
-        pupilRadius: 1.5,
-        pupilColor: '#e65100',
-      },
-    },
-  },
-  // ---- 3.7 刺客 ----
+  // ---- 3.6 刺客 ----
   [UnitType.Assassin]: {
     type: UnitType.Assassin,
     name: '刺客',
@@ -1198,7 +1162,6 @@ export const UNIT_TYPE_BY_ID: readonly UnitType[] = [
   UnitType.Swordsman,
   UnitType.Archer,
   UnitType.Priest,
-  UnitType.Engineer,
   UnitType.Assassin,
   UnitType.Mage,
 ];
@@ -1208,9 +1171,8 @@ export const UNIT_ID_BY_TYPE: Readonly<Record<UnitType, number>> = {
   [UnitType.Swordsman]: 1,
   [UnitType.Archer]: 2,
   [UnitType.Priest]: 3,
-  [UnitType.Engineer]: 4,
-  [UnitType.Assassin]: 5,
-  [UnitType.Mage]: 6,
+  [UnitType.Assassin]: 4,
+  [UnitType.Mage]: 5,
 };
 
 // ---- Skill Configs (v4.0 士兵技能) ----

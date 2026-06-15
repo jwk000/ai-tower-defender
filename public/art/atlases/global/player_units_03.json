@@ -2,63 +2,15 @@
   "id": "player_units_03",
   "image": "/art/atlases/global/player_units_03.png",
   "frames": {
-    "/art/units/unit_swordsman_idle_0.png": {
-      "x": 2,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_swordsman_idle_1.png": {
-      "x": 260,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_swordsman_move_0.png": {
-      "x": 518,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_swordsman_move_1.png": {
-      "x": 776,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_tar_pit_attack_0.png": {
-      "x": 1034,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_tar_pit_attack_1.png": {
-      "x": 1292,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_tar_pit_death_0.png": {
-      "x": 1550,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/units/unit_tar_pit_death_1.png": {
-      "x": 2,
-      "y": 260,
-      "w": 256,
-      "h": 256
-    },
     "/art/units/unit_tar_pit_idle_0.png": {
-      "x": 260,
-      "y": 260,
+      "x": 2,
+      "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/units/unit_tar_pit_idle_1.png": {
-      "x": 518,
-      "y": 260,
+      "x": 260,
+      "y": 2,
       "w": 256,
       "h": 256
     }

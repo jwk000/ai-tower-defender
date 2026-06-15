@@ -98,6 +98,14 @@ const shieldGuard: CardInstance = {
   goldCost: 35,
 };
 
+const swordsman: CardInstance = {
+  id: 'card_swordsman',
+  name: '剑士',
+  type: 'unit',
+  description: '近战物理输出，旋风斩对周围敌人造成范围伤害',
+  goldCost: 50,
+};
+
 const archer: CardInstance = {
   id: 'card_archer',
   name: '弓手',
@@ -120,14 +128,6 @@ const priest: CardInstance = {
   type: 'unit',
   description: '治疗支援，恢复我方士兵并提供少量攻击',
   goldCost: 35,
-};
-
-const engineer: CardInstance = {
-  id: 'card_engineer',
-  name: '工程师',
-  type: 'unit',
-  description: '无攻击修复位，持续维修我方塔的生命',
-  goldCost: 30,
 };
 
 const assassin: CardInstance = {
@@ -243,10 +243,10 @@ export const UNIT_CARDS: CardInstance[] = [
   poisonTower,
   lightningTower,
   shieldGuard,
+  swordsman,
   archer,
   mage,
   priest,
-  engineer,
   assassin,
   spikeTrap,
   bearTrap,
@@ -272,6 +272,7 @@ export const LEVEL_1_CARD_POOL: CardInstance[] = [
   arrowTower,
   iceTower,
   shieldGuard,
+  swordsman,
   archer,
   spikeTrap,
   bearTrap,
@@ -283,9 +284,9 @@ export const LEVEL_2_CARD_POOL: CardInstance[] = [
   cannonTower,
   fireTower,
   poisonTower,
+  swordsman,
   archer,
   mage,
-  engineer,
   tarPit,
   fireball,
 ];
@@ -296,9 +297,9 @@ export const LEVEL_3_CARD_POOL: CardInstance[] = [
   laserTower,
   batTower,
   shieldGuard,
+  swordsman,
   mage,
   priest,
-  engineer,
   assassin,
   bearTrap,
 ];
@@ -309,9 +310,9 @@ export const LEVEL_4_CARD_POOL: CardInstance[] = [
   lightningTower,
   cannonTower,
   iceTower,
+  swordsman,
   archer,
   mage,
-  engineer,
   assassin,
 ];
 

@@ -781,24 +781,6 @@ describe('SoldierAISystem — differentiated soldier mechanics', () => {
     expect(Attack.damage[priest]).toBe(6);
   });
 
-  it('工程师修复我方塔且没有攻击力', () => {
-    const engineer = makeSoldier(world, {
-      x: 200, y: 200,
-      homeX: 200, homeY: 200,
-      moveRange: 200,
-      attackRange: 120,
-      alertRange: 180,
-      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Engineer],
-      damage: 0,
-    });
-    const damagedTower = makeTower(world, { x: 240, y: 200, hp: 120 });
-
-    system.update(world, 0.016);
-
-    expect(Attack.damage[engineer]).toBe(0);
-    expect(Health.current[damagedTower]).toBe(136);
-  });
-
   it('法师周期法术造成魔法伤害并施加负面buff', () => {
     const mage = makeSoldier(world, {
       x: 200, y: 200,

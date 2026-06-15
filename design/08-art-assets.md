@@ -242,7 +242,6 @@ Dark fantasy card illustration, [tower description], [color] energy glow, dark b
 | `card_art_mage` | `#9c27b0` 紫 | 紫色法杖+魔法光效 |
 | `card_art_priest` | `#eeeeee` 白 | 白色长袍+金色十字架/法杖光芒 |
 | `card_art_swordsman` | `#e57373` 红 | 长剑+攻击姿势 |
-| `card_art_engineer` | `#ffa726` 橙 | 扳手+安全帽 |
 | `card_art_assassin` | `#ab47bc` 紫 | 匕首+兜帽暗影 |
 
 ### 4.4 机关卡（4 张）
@@ -348,11 +347,6 @@ Fantasy tower defense card art: a priest in flowing white robes (#eeeeee), holdi
 **剑士**:
 ```
 Fantasy tower defense card art: a swordsman in a battle-ready stance, a long steel blade gleaming red (#e57373 highlights), dynamic slashing pose, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
-```
-
-**工程师**:
-```
-Fantasy tower defense card art: an engineer wearing an orange (#ffa726) hard hat, holding a large wrench, mechanical gears floating nearby, ready-to-build pose, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
 ```
 
 **刺客**:

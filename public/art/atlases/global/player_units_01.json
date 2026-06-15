@@ -206,49 +206,49 @@
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_attack_0.png": {
+    "/art/units/unit_gold_mine_attack_0.png": {
       "x": 1550,
       "y": 1034,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_attack_1.png": {
+    "/art/units/unit_gold_mine_attack_1.png": {
       "x": 2,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_death_0.png": {
+    "/art/units/unit_gold_mine_death_0.png": {
       "x": 260,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_death_1.png": {
+    "/art/units/unit_gold_mine_death_1.png": {
       "x": 518,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_idle_0.png": {
+    "/art/units/unit_gold_mine_idle_0.png": {
       "x": 776,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_idle_1.png": {
+    "/art/units/unit_gold_mine_idle_1.png": {
       "x": 1034,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_move_0.png": {
+    "/art/units/unit_gold_mine_move_0.png": {
       "x": 1292,
       "y": 1292,
       "w": 256,
       "h": 256
     },
-    "/art/units/unit_engineer_move_1.png": {
+    "/art/units/unit_gold_mine_move_1.png": {
       "x": 1550,
       "y": 1292,
       "w": 256,

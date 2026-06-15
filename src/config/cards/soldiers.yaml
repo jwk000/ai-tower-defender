@@ -52,17 +52,6 @@ priest_card:
   placement:
     targetType: tile
 
-engineer_card:
-  name: 工程师
-  description: 修复辅助，维修建筑结构
-  type: unit
-  rarity: rare
-  energyCost: 3
-  goldCost: 30
-  unitConfigId: engineer
-  placement:
-    targetType: tile
-
 assassin_card:
   name: 刺客
   description: 高爆发刺杀位，优先打击高威胁目标

@@ -77,9 +77,6 @@ function soldierParts(unit: UnitConfig): UnitVisualParts {
   } else if (id.includes('priest')) {
     weapon = { anchorX: size * 0.44, anchorY: -size * 0.08, length: size * 0.8, width: 4, color: '#fff59d', stroke: '#f9a825', strokeWidth: 1, restAngle: -0.85, swingAngle: 0.35, glowColor: '#fff176', glowRadius: size * 0.5, glowAlpha: 0.18 };
     bodyParts.push(part('circle', 0, -size * 0.35, size * 0.22, '#fff176', { alpha: 0.9 }));
-  } else if (id.includes('engineer')) {
-    weapon = { anchorX: size * 0.45, anchorY: size * 0.03, length: size * 0.65, width: size * 0.14, color: '#ffb74d', stroke: '#e65100', strokeWidth: 1, restAngle: 0.15, swingAngle: 0.55 };
-    bodyParts.push(part('rect', 0, -size * 0.42, size * 0.56, '#ffcc80', { h: size * 0.12, stroke: '#ef6c00', strokeWidth: 1 }));
   } else if (id.includes('assassin')) {
     weapon = { anchorX: size * 0.44, anchorY: -size * 0.02, length: size * 0.7, width: 3, color: '#cfd8dc', stroke: '#37474f', strokeWidth: 1, restAngle: -0.75, swingAngle: 1.15 };
     bodyParts.push(part('triangle', 0, -size * 0.36, size * 0.5, '#212121', { alpha: 0.8 }));

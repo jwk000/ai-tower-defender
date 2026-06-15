@@ -153,7 +153,6 @@ dark fantasy casual tower defense card illustration, {subject}, centered heroic 
 | 弓箭手 | 士兵 | 兜帽拉弓 | `green hooded archer drawing a bow, arrow aimed forward, agile silhouette` |
 | 盾卫 | 士兵 | 塔盾短剑 | `armored shield guard, large cyan tower shield, short sword, defensive stance` |
 | 牧师 | 士兵 | 白袍治疗 | `white robed priest, golden healing staff, soft holy aura, calm support pose` |
-| 工程师 | 士兵 | 扳手齿轮 | `orange hard hat engineer, large wrench, small gears and repair sparks` |
 | 刺客 | 士兵 | 双匕首暗影 | `shadow assassin with twin purple daggers, crouched stealth pose, smoke trail` |
 | 法师 | 士兵 | 尖帽法杖 | `purple mage with pointed hat, glowing staff crystal, swirling arcane orb` |
 | 地刺 | 机关 | 三根尖刺 | `three dark metal spikes bursting from cracked ground, trap mechanism visible` |
