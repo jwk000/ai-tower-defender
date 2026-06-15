@@ -19,6 +19,24 @@ TRAP_STATE_PROFILES = {
     "tar_pit": ("idle", "attack", "death"),
     "boulder": ("idle", "death"),
 }
+TRAP_ATTACK_NOTES = {
+    "spike_trap": (
+        "Attack frame 0 must be the retracted trap: no tall spikes visible, only a low cracked floor plate, "
+        "dark slits, and tiny metal tips at most. It must look flat before triggering. "
+        "Attack frame 1 must be the fired trap: tall sharp spikes fully thrust upward from the exact same base. "
+        "The height difference between attack frame 0 and attack frame 1 must be very obvious."
+    ),
+    "bear_trap": (
+        "Attack frame 0 must be the armed trap: jaws wide open around the trigger plate. "
+        "Attack frame 1 must be the fired trap: jaws snapped shut with teeth interlocked."
+    ),
+    "tar_pit": (
+        "Attack frame 0 must be the dormant trap: low flat tar surface with only subtle bubbles, "
+        "no tall tendrils, splashes, or raised columns. "
+        "Attack frame 1 must be the fired trap: sticky tar tendrils or a dark splash rising upward from the same pit. "
+        "The vertical height difference between attack frame 0 and attack frame 1 must be very obvious."
+    ),
+}
 CELL_COLS = 4
 CELL_ROWS = 2
 OUT_SIZE = 256
@@ -37,10 +55,11 @@ def prompt_for(uid: str) -> str:
     states = states_for(uid)
     columns = ", ".join(states)
     trap_note = ""
-    if uid in {"spike_trap", "bear_trap", "tar_pit"}:
+    if uid in TRAP_ATTACK_NOTES:
         trap_note = (
             " This is a stationary trap. Do not draw movement frames. "
-            "Attack frames mean trap trigger animation: spikes extend, jaws snap, or tar bubbles and pulls."
+            "Attack frames are a two-key-state trigger animation, not a walking or combat pose. "
+            f"{TRAP_ATTACK_NOTES[uid]}"
         )
     elif uid == "boulder":
         trap_note = (
@@ -59,7 +78,8 @@ def prompt_for(uid: str) -> str:
         "Idle frames: close to reference with tiny breathing pose. "
         "Move frames, if requested: newly drawn step/run/flying-motion poses with changed limbs/body/weapon positions, "
         "not scaling or stretching. "
-        "Attack frames, if requested: newly drawn wind-up and release or trigger poses with weapon/action changed, not scaling or stretching. "
+        "Attack frames, if requested: frame 0 is the stored/retracted/armed state and frame 1 is the fired/trigger-peak state, "
+        "with the same base position and silhouette family, not scaling or stretching. "
         "Death frames: newly drawn collapse and dissolve/broken poses, not scaling or stretching. "
         f"{trap_note} "
         f"Center one complete unit per cell with padding. Unit id: {uid}."
