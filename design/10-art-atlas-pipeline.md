@@ -95,9 +95,18 @@ public/art/atlases/themes/theme_meadow_tiles.json
 - `public/art/tiles/tile_<theme>_obstacle.png`
 - `public/art/tiles/tile_<theme>_path_endpoint_spawn.png`
 - `public/art/tiles/tile_<theme>_path_endpoint_crystal.png`
-- `public/art/decor/decor_<theme>_<decor_id>_idle_<frame>.png`
+- `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png`
+
+装饰物进入主题图集的是静态变体，不是逐帧动画。`idle_<variant>` manifest key 必须完整保留，运行时按位置确定性选择其中一个 key；动态效果由运行时粒子实现，不能按时间轮播这些变体。
 
 普通路径地格每个主题只保留一个方向无关图片：`tile_<theme>_path.png`。路径直线、转角、T 字、十字等形状一律由关卡路径格拼接表达，不生成、不打包 `straight_*`、`corner_*`、`tee_*`、`cross` 等方向变体。出生口和水晶端点可保留专用端点地格，但底纹必须与普通路径一致。
+
+AI 资源流水线必须按“生成图片 -> 抠白底 -> 打包图集”的顺序执行。项目入口为 `npm run art:pipeline`：
+
+- 默认调用 `scripts/generate-ai-art-assets.mjs` 生成缺失资源，再处理白底，最后调用 `npm run build:atlases`。
+- `--skip-generate` 用于复用已有图片，只执行白底处理和图集重建。
+- `--target=<path>` 指定抠白底范围，装饰物默认处理 `public/art/decor`。
+- 抠白底只移除与图片边缘连通的近白背景，避免误删物件内部高光。
 
 ### 3.4 局外 UI 图集
 
