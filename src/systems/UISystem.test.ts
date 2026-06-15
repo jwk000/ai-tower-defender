@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
 import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
@@ -18,6 +18,17 @@ import { RenderSystem } from './RenderSystem.js';
 import { CardDraftSystem } from './CardDraftSystem.js';
 import { HandSystem } from './HandSystem.js';
 import { LEVEL_1_CARD_POOL } from '../data/cards.js';
+import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
+
+class LoadedImage {
+  complete = true;
+  naturalWidth = 256;
+  naturalHeight = 256;
+  width = 256;
+  height = 256;
+  src = '';
+  onerror: (() => void) | null = null;
+}
 
 class RendererStub {
   commands: RenderCommand[] = [];
@@ -41,6 +52,7 @@ class RendererStub {
     translate: () => {},
     rotate: () => {},
     scale: () => {},
+    drawImage: vi.fn(),
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 1,
@@ -123,6 +135,11 @@ function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; a
 describe('UISystem 顶部 HUD 布局', () => {
   beforeEach(() => {
     LayoutManager.update(1920, 1080);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setArtResourcesEnabled(true);
   });
 
   it('右侧暂停按钮距离屏幕右边缘 200px，与左侧 HUD 内边距对称', () => {
@@ -348,7 +365,73 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('单位卡拖动 ghost 使用场景单位外观而不是卡牌外观', () => {
+  it('单位卡拖动 ghost 在美术资源可用时使用场景单位图片而不是卡牌外观', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    vi.stubGlobal('fetch', undefined);
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: 960, y: 540 },
+      dragState: {
+        active: true,
+        entityType: 'tower',
+        towerType: 'arrow',
+        cardIndex: 0,
+      },
+    });
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: () => ({
+          id: 'card_arrow_tower',
+          name: '箭塔',
+          type: 'unit',
+          energyCost: 0,
+          goldCost: 35,
+          rarity: 'common',
+          placement: { targetType: 'tile' },
+          description: '基础单体物理输出',
+        }),
+      },
+      hand: { state: { hand: [{ cardId: 'card_arrow_tower' }] } },
+    });
+
+    ui.update(world, 1 / 60);
+    renderer.commands = [];
+    ui.update(world, 1 / 60);
+
+    expect(imageDrawsOf(ui).some((draw) => (
+      draw.layer === 'board' &&
+      draw.path === '/art/ui/ui_card_frame_common.png' &&
+      draw.alpha === 0.68
+    ))).toBe(false);
+    expect(cardIconDrawsOf(ui).some((draw) => (
+      draw.layer === 'board' &&
+      draw.cardId === 'card_arrow_tower' &&
+      draw.alpha === 0.68
+    ))).toBe(false);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.x === 960 &&
+      cmd.y === 540 - (32 * 1.35) * 0.08 &&
+      cmd.size === 32 * 1.35 &&
+      cmd.h === 32 * 1.35 &&
+      cmd.image instanceof LoadedImage &&
+      cmd.alpha === 0.5
+    ))).toBe(true);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 32 &&
+      cmd.color === '#4fc3f7' &&
+      cmd.alpha === 0.5
+    ))).toBe(false);
+  });
+
+  it('单位卡拖动 ghost 在美术资源关闭时回退到程序绘制场景外观', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    vi.stubGlobal('fetch', undefined);
+    setArtResourcesEnabled(false);
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0, {
       pointer: { x: 960, y: 540 },
@@ -378,15 +461,9 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     ui.update(world, 1 / 60);
 
-    expect(imageDrawsOf(ui).some((draw) => (
-      draw.layer === 'board' &&
-      draw.path === '/art/ui/ui_card_frame_common.png' &&
-      draw.alpha === 0.68
-    ))).toBe(false);
-    expect(cardIconDrawsOf(ui).some((draw) => (
-      draw.layer === 'board' &&
-      draw.cardId === 'card_arrow_tower' &&
-      draw.alpha === 0.68
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.image instanceof LoadedImage
     ))).toBe(false);
     expect(renderer.commands.some((cmd) => (
       cmd.shape === 'circle' &&

@@ -59,8 +59,8 @@ import type {
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
 import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
-import { cardArtPath, buffArtPath, uiArtPath } from '../utils/artAssets.js';
-import { drawLoadedImage, drawLoadedImage9Slice, type NineSliceInsets } from '../utils/imageCache.js';
+import { cardArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
+import { drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
 
 // Re-export for backward compatibility
 export {
@@ -131,6 +131,8 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Ballista,  // 9
 ];
 
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+
 // ============================================================
 // Interface types (unchanged from original)
 // ============================================================
@@ -171,6 +173,16 @@ interface DragState {
   trapTypeId?: string;
   spellCardId?: string;
   cardIndex?: number;
+}
+
+interface DragGhostVisual {
+  shape: ShapeType;
+  size: number;
+  color: string;
+  label: string;
+  visualParts?: UnitVisualParts;
+  range?: number;
+  sceneArtId?: string;
 }
 
 const UI_Z = {
@@ -1344,112 +1356,8 @@ export class UISystem implements System {
     const ptr = this.getPointerPosition?.();
     if (!ptr) return;
 
-    let shape: ShapeType = 'circle';
-    let size = 32;
-    let color = '#ffffff';
-    let label = '';
-    let visualParts: UnitVisualParts | undefined;
-    let range: number | undefined;
-
-    switch (ds.entityType) {
-      case 'tower': {
-        const tt = ds.towerType ?? this.getSelectedTower();
-        if (tt) {
-          const cfg = TOWER_CONFIGS[tt];
-          if (cfg) {
-            shape = cfg.shape ?? 'circle';
-            size = cfg.size ?? 32;
-            color = cfg.color;
-            label = cfg.name;
-            visualParts = cfg.visualParts;
-            range = cfg.range;
-          }
-        }
-        break;
-      }
-      case 'unit': {
-        const ut = ds.unitType;
-        if (ut) {
-          const cfg = UNIT_CONFIGS[ut];
-          if (cfg) {
-            shape = cfg.shape ?? 'circle';
-            size = cfg.size;
-            color = cfg.color;
-            label = cfg.name;
-            visualParts = cfg.visualParts;
-            range = cfg.attackRange;
-          }
-        }
-        break;
-      }
-      case 'trap': {
-        const tid = ds.trapTypeId;
-        if (tid) {
-          const cfg = TRAP_CONFIGS[tid];
-          if (cfg) {
-            shape = cfg.shape ?? 'circle';
-            size = cfg.size;
-            color = cfg.color;
-            label = cfg.name;
-            visualParts = cfg.visualParts;
-            range = cfg.radius ?? cfg.range;
-          }
-        } else {
-          color = '#e53935';
-          shape = 'triangle';
-          size = 24;
-          label = '陷阱';
-        }
-        break;
-      }
-      case 'production': {
-        const pt = ds.productionType;
-        if (pt) {
-          const cfg = PRODUCTION_CONFIGS[pt];
-          if (cfg) {
-            shape = 'circle';
-            size = 30;
-            color = cfg.color;
-            label = cfg.name;
-          }
-        }
-        break;
-      }
-      case 'spell': {
-        const spellId = ds.spellCardId;
-        if (spellId) {
-          const cardCfg = cardConfigRegistry.get(spellId);
-          if (cardCfg) {
-            const extras = cardCfg as Record<string, unknown>;
-            const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;
-            const spellRadius = spellEffect?.radius as number | undefined;
-            const subtype = cardCfg.spellSubtype;
-            switch (subtype) {
-              case 'damage': color = '#ff5722'; break;
-              case 'control': color = '#7c4dff'; break;
-              case 'buff' as string: case 'buff_instance' as string: case 'buff_card' as string: color = '#66bb6a'; break;
-              case 'utility': color = '#ffd700'; break;
-              default: color = '#7c4dff';
-            }
-            shape = 'circle';
-            size = 28;
-            label = cardCfg.name;
-            range = spellRadius;
-          } else {
-            color = '#7c4dff';
-            shape = 'circle';
-            size = 28;
-            label = '法术';
-          }
-        } else {
-          color = '#7c4dff';
-          shape = 'circle';
-          size = 28;
-          label = '法术';
-        }
-        break;
-      }
-    }
+    const visual = this.resolveDragGhostVisual(ds);
+    const { shape, size, color, label, visualParts, range, sceneArtId } = visual;
 
     const ghostAlpha = 0.5;
     const z = UI_Z.BOARD_TIPS;
@@ -1474,6 +1382,10 @@ export class UISystem implements System {
         strokeWidth: 2,
         z,
       });
+    }
+
+    if (sceneArtId && this.drawDragGhostSprite(sceneArtId, ptr.x, ptr.y, size, ghostAlpha, z)) {
+      return;
     }
 
     // 2. 复合外观渲染（主体 + bodyParts + 武器 + 眼睛）
@@ -1570,6 +1482,157 @@ export class UISystem implements System {
         labelSize: 14,
       });
     }
+  }
+
+  private resolveDragGhostVisual(ds: DragState): DragGhostVisual {
+    switch (ds.entityType) {
+      case 'tower': {
+        const tt = ds.towerType ?? this.getSelectedTower();
+        if (tt) {
+          const cfg = TOWER_CONFIGS[tt];
+          if (cfg) {
+            return {
+              shape: cfg.shape ?? 'circle',
+              size: cfg.size ?? 32,
+              color: cfg.color,
+              label: cfg.name,
+              visualParts: cfg.visualParts,
+              range: cfg.range,
+              sceneArtId: `tower_${tt}`,
+            };
+          }
+        }
+        break;
+      }
+      case 'unit': {
+        const ut = ds.unitType;
+        if (ut) {
+          const cfg = UNIT_CONFIGS[ut];
+          if (cfg) {
+            return {
+              shape: cfg.shape ?? 'circle',
+              size: cfg.size,
+              color: cfg.color,
+              label: cfg.name,
+              visualParts: cfg.visualParts,
+              range: cfg.attackRange,
+              sceneArtId: ut,
+            };
+          }
+        }
+        break;
+      }
+      case 'trap': {
+        const tid = ds.trapTypeId;
+        if (tid) {
+          const cfg = TRAP_CONFIGS[tid];
+          if (cfg) {
+            return {
+              shape: cfg.shape ?? 'circle',
+              size: cfg.size,
+              color: cfg.color,
+              label: cfg.name,
+              visualParts: cfg.visualParts,
+              range: cfg.radius ?? cfg.range,
+              sceneArtId: this.resolveTrapSceneArtId(tid),
+            };
+          }
+        }
+        return {
+          shape: 'triangle',
+          size: 24,
+          color: '#e53935',
+          label: '陷阱',
+          sceneArtId: 'spike_trap',
+        };
+      }
+      case 'production': {
+        const pt = ds.productionType;
+        if (pt) {
+          const cfg = PRODUCTION_CONFIGS[pt];
+          if (cfg) {
+            return {
+              shape: 'circle',
+              size: 30,
+              color: cfg.color,
+              label: cfg.name,
+              sceneArtId: pt,
+            };
+          }
+        }
+        break;
+      }
+      case 'spell': {
+        const spellId = ds.spellCardId;
+        if (spellId) {
+          const cardCfg = cardConfigRegistry.get(spellId);
+          if (cardCfg) {
+            const extras = cardCfg as Record<string, unknown>;
+            const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;
+            const spellRadius = spellEffect?.radius as number | undefined;
+            const subtype = cardCfg.spellSubtype;
+            let spellColor = '#7c4dff';
+            switch (subtype) {
+              case 'damage': spellColor = '#ff5722'; break;
+              case 'control': spellColor = '#7c4dff'; break;
+              case 'buff' as string: case 'buff_instance' as string: case 'buff_card' as string: spellColor = '#66bb6a'; break;
+              case 'utility': spellColor = '#ffd700'; break;
+              default: spellColor = '#7c4dff';
+            }
+            return {
+              shape: 'circle',
+              size: 28,
+              color: spellColor,
+              label: cardCfg.name,
+              range: spellRadius,
+            };
+          }
+        }
+        return {
+          shape: 'circle',
+          size: 28,
+          color: '#7c4dff',
+          label: '法术',
+        };
+      }
+    }
+
+    return {
+      shape: 'circle',
+      size: 32,
+      color: '#ffffff',
+      label: '',
+    };
+  }
+
+  private resolveTrapSceneArtId(trapTypeId: string): string | undefined {
+    if ((TRAP_TYPE_BY_ID as readonly string[]).includes(trapTypeId)) return trapTypeId;
+    return undefined;
+  }
+
+  private drawDragGhostSprite(sceneArtId: string, x: number, y: number, size: number, alpha: number, z: number): boolean {
+    const sprite = getLoadedImageFrame(unitArtPath(sceneArtId, 'idle', 0));
+    if (!sprite) return false;
+
+    const sourceW = sprite.width;
+    const sourceH = sprite.height;
+    if (sourceW <= 0 || sourceH <= 0) return false;
+
+    const h = size * 1.35;
+    const w = h * (sourceW / sourceH);
+    this.renderer.push({
+      shape: 'rect',
+      x,
+      y: y - h * 0.08,
+      size: w,
+      h,
+      color: '#ffffff',
+      alpha,
+      image: sprite.image,
+      imageSource: sprite.source ?? undefined,
+      z,
+    });
+    return true;
   }
 
   // ============================================================
