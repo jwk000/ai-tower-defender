@@ -3,7 +3,7 @@ import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
-import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect } from '../../core/components.js';
+import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
@@ -375,6 +375,33 @@ describe('WaveSystem v4.0 — difficulty scaling', () => {
       expect(UnitTag.atk[regularEid]).toBe(1);
     } finally {
       ENEMY_CONFIGS[EnemyType.Goblin]!.atk = oldAtk;
+    }
+  });
+
+  it('敌人攻击伤害类型来自配置，不固定为物理伤害', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const oldDamageType = ENEMY_CONFIGS[EnemyType.Wizard]!.damageType;
+    ENEMY_CONFIGS[EnemyType.Wizard]!.damageType = 'magic';
+
+    try {
+      const waves: WaveConfig[] = [{
+        waveNumber: 1,
+        spawnDelay: 0,
+        enemies: [{ enemyType: EnemyType.Wizard, count: 1, spawnInterval: 0 }],
+      }];
+      const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+      ws.startWave();
+      for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+      const allEnemies = enemyQuery(world.world);
+      const regularEid = allEnemies.find((eid) => UnitTag.isElite[eid] === 0)!;
+      expect(Attack.damageType[regularEid]).toBe(DamageTypeVal.Magic);
+    } finally {
+      ENEMY_CONFIGS[EnemyType.Wizard]!.damageType = oldDamageType;
     }
   });
 });

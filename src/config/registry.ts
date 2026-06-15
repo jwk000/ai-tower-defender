@@ -27,6 +27,7 @@ export interface UnitStats {
   speed?: number;
   armor?: number;
   mr?: number; // magic resist
+  damageType?: 'physical' | 'magic' | 'magical' | 'true';
 }
 
 /** Economy: construction and upgrade costs */
@@ -35,6 +36,9 @@ export interface UnitCost {
   upgrade?: number[];
   atkGrowth?: number[];
   rangeGrowth?: number[];
+  hpGrowth?: number[];
+  tauntCapacityGrowth?: number[];
+  maxLevel?: number;
   pop?: number;
 }
 
@@ -124,6 +128,11 @@ export class UnitConfigRegistry {
   /** Filter by faction string */
   getByFaction(faction: string): UnitConfig[] {
     return [...this.configs.values()].filter((c) => c.faction === faction);
+  }
+
+  /** Clear all registered configs. Primarily used by tests before reloading fixtures. */
+  clear(): void {
+    this.configs.clear();
   }
 }
 

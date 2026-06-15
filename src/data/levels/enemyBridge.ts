@@ -20,6 +20,19 @@ function mapShape(yamlShape: string | undefined): ShapeType {
   }
 }
 
+function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic' | 'true' {
+  switch (yamlDamageType) {
+    case 'true':
+      return 'true';
+    case 'magic':
+    case 'magical':
+      return 'magic';
+    case 'physical':
+    default:
+      return 'physical';
+  }
+}
+
 export function injectEnemyConfigsFromRegistry(): number {
   const enemies = unitConfigRegistry.getByCategory('Enemy');
   let injected = 0;
@@ -42,6 +55,7 @@ export function injectEnemyConfigsFromRegistry(): number {
       atk: Math.max(1, stats?.atk ?? 5),
       defense: stats?.armor ?? 0,
       magicResist: stats?.mr ?? 0,
+      damageType: mapDamageType(stats?.damageType as string),
       attackRange: stats?.range ?? 0,
       attackSpeed: stats?.attackSpeed ?? 1,
       canAttackBuildings,
@@ -59,12 +73,9 @@ export function injectEnemyConfigsFromRegistry(): number {
         : undefined,
       bossPhase2HpRatio: typeof u['bossPhase2HpRatio'] === 'number' ? u['bossPhase2HpRatio'] as number : undefined,
     };
-    if (cfg.isBoss) {
-      cfg.radius = Math.max(35, Math.min(45, cfg.radius));
-      cfg.attackAnimDuration = 0.95;
-    } else {
-      cfg.attackAnimDuration = 0.3;
-    }
+    cfg.attackAnimDuration = typeof u['attackAnimDuration'] === 'number'
+      ? u['attackAnimDuration'] as number
+      : (cfg.isBoss ? 0.95 : 0.3);
 
     ENEMY_CONFIGS[u.id] = cfg;
     injected += 1;

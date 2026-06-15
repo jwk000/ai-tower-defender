@@ -34,7 +34,7 @@ export function clearDamageObservers(): void {
  * @param world     ECS世界实例
  * @param targetId  目标实体ID
  * @param rawDamage 原始攻击力（减伤前）
- * @param damageType 伤害类型 (DamageTypeVal.Physical=0, Magic=1)
+ * @param damageType 伤害类型 (DamageTypeVal.Physical=0, Magic=1, True=2)
  * @returns 实际造成的伤害值（减伤后）
  */
 export function applyDamageToTarget(
@@ -50,7 +50,9 @@ export function applyDamageToTarget(
   const magicResist = Health.magicResist[targetId] ?? 0;
 
   let actualDamage: number;
-  if (damageType === DamageTypeVal.Magic) {
+  if (damageType === DamageTypeVal.True) {
+    actualDamage = rawDamage;
+  } else if (damageType === DamageTypeVal.Magic) {
     actualDamage = calcMagicDamage(rawDamage, magicResist);
   } else {
     // 默认物理伤害

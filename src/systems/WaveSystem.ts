@@ -89,6 +89,18 @@ function resolveBossType(configType?: string): number {
   return BOSS_TYPE_BY_CONFIG[configType] ?? 0xFF;
 }
 
+function damageTypeToVal(damageType?: string): number {
+  switch (damageType) {
+    case 'true':
+      return DamageTypeVal.True;
+    case 'magic':
+      return DamageTypeVal.Magic;
+    case 'physical':
+    default:
+      return DamageTypeVal.Physical;
+  }
+}
+
 // ---- spawn options ----
 
 export interface SpawnEnemyOptions {
@@ -548,7 +560,7 @@ export class WaveSystem implements System {
         damage: effectiveAtk,
         attackSpeed: config.attackSpeed,
         range: config.attackRange,
-        damageType: DamageTypeVal.Physical,
+        damageType: damageTypeToVal(config.damageType),
         isRanged: config.attackRange > 60 ? 1 : 0, // 远程阈值 60px
         canTargetLowAir: 0,
       });

@@ -23,8 +23,10 @@ function mapShape(yamlShape: string | undefined): ShapeType {
   }
 }
 
-function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic' {
+function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic' | 'true' {
   switch (yamlDamageType) {
+    case 'true':
+      return 'true';
     case 'magic':
       return 'magic';
     case 'physical':
@@ -78,8 +80,7 @@ export function injectTowerConfigsFromRegistry(): number {
     // 导弹塔特殊属性
     const projectileCount = (special['projectileCount'] as number[]) ?? [1];
 
-    // 从 special 中获取 damageType
-    const damageType = mapDamageType(special['damageType'] as string);
+    const damageType = mapDamageType(stats?.damageType as string);
 
     const cfg: TowerConfig = {
       type,
@@ -97,7 +98,7 @@ export function injectTowerConfigsFromRegistry(): number {
       size: visual?.size,
       shape: mapShape(visual?.shape),
       visualParts: getProceduralVisualParts(u),
-      buildTime: 1.5,
+      buildTime: (u['buildTime'] as number | undefined) ?? (special['buildTime'] as number | undefined) ?? 1.5,
       canTargetLowAir: towerCanTargetLowAir(type),
     };
 

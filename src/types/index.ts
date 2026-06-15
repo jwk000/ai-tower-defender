@@ -241,7 +241,7 @@ export interface TowerConfig {
   atk: number;
   attackSpeed: number;
   range: number;
-  damageType: 'physical' | 'magic';
+  damageType: 'physical' | 'magic' | 'true';
   upgradeCosts: number[];
   upgradeAtkBonus: number[];
   upgradeRangeBonus: number[];
@@ -330,6 +330,7 @@ export interface EnemyConfig {
   atk: number;
   defense: number;
   magicResist: number;
+  damageType?: 'physical' | 'magic' | 'true';
   attackRange: number;
   attackSpeed: number;
   canAttackBuildings: boolean;
@@ -406,6 +407,7 @@ export interface UnitConfig {
   attackRange: number;
   speed: number;
   defense: number;
+  damageType?: 'physical' | 'magic' | 'true';
   popCost: number;
   color: string;
   size: number;

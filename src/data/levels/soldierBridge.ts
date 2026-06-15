@@ -22,8 +22,10 @@ function mapShape(yamlShape: string | undefined): ShapeType {
   }
 }
 
-function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic' {
+function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic' | 'true' {
   switch (yamlDamageType) {
+    case 'true':
+      return 'true';
     case 'magic':
       return 'magic';
     case 'physical':
@@ -53,6 +55,7 @@ export function injectSoldierConfigsFromRegistry(): number {
 
     // 解析技能
     const skillId = skills && skills.length > 0 ? (skills[0]?.['id'] as string) ?? '' : '';
+    const damageType = mapDamageType(stats?.damageType as string);
 
     // 解析特殊属性
     const splashRadius = (special['splashRadius'] as number) ?? 0;
@@ -61,10 +64,11 @@ export function injectSoldierConfigsFromRegistry(): number {
     const tauntCapacityPerLevel = (special['tauntCapacityPerLevel'] as number) ?? 0;
 
     // 解析升级配置
-    const maxLevel = 3; // 默认最大等级
+    const maxLevel = (cost?.maxLevel as number) ?? 3; // 默认最大等级
     const upgradeCosts = (cost?.upgrade as number[]) ?? [40, 60];
-    const upgradeHpBonus = [40, 60]; // 默认值
-    const upgradeAtkBonus = [5, 8]; // 默认值
+    const upgradeHpBonus = (cost?.hpGrowth as number[]) ?? [40, 60]; // 默认值
+    const upgradeAtkBonus = (cost?.atkGrowth as number[]) ?? [5, 8]; // 默认值
+    const upgradeTauntCapacityBonus = cost?.tauntCapacityGrowth as number[] | undefined;
 
     // 解析 visualParts；未显式配置时按程序化美术规范生成默认复合外观。
     const visualParts = getProceduralVisualParts(u) as UnitVisualParts | undefined;
@@ -79,6 +83,7 @@ export function injectSoldierConfigsFromRegistry(): number {
       alertRange: (special['alertRange'] as number) ?? Math.max(200, (stats?.range ?? 50) * 1.5),
       speed: stats?.speed ?? 50,
       defense: stats?.armor ?? 0,
+      damageType,
       popCost: cost?.pop ?? 2,
       color: visual?.color ?? '#ffffff',
       size: visual?.size ?? 24,
@@ -89,6 +94,7 @@ export function injectSoldierConfigsFromRegistry(): number {
       upgradeCosts,
       upgradeHpBonus,
       upgradeAtkBonus,
+      upgradeTauntCapacityBonus,
       shape: mapShape(visual?.shape),
       attackAnimDuration: 0.35,
       targetSelection: behavior?.targetSelection,

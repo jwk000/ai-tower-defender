@@ -37,6 +37,16 @@
 | | `specialEffects` | string[] | 特殊机制标签 | 部分单位 |
 | | `skill` | string | 技能引用 | 部分单位 |
 
+### 1.1 配置驱动约束
+
+运行时单位数值必须优先来自 `src/config/units/*.yaml`，桥接层只允许在配置字段缺失时使用兜底默认值，不能用代码默认值覆盖已配置字段。
+
+- 塔、士兵、敌人的 `stats.damageType` 必须注入运行时攻击组件；`true` 表示真实伤害，绕过护甲和魔抗。
+- 塔的 `buildTime`、`cost.atkGrowth`、`cost.rangeGrowth` 必须来自配置；未配置时才使用旧默认值。
+- 士兵的 `cost.hpGrowth`、`cost.atkGrowth`、`cost.tauntCapacityGrowth`、`cost.maxLevel` 必须来自配置；未配置时才使用旧默认值。
+- 敌人的 `visual.size` 必须决定运行时半径，Boss 不允许被桥接层强制压缩到固定尺寸；`attackAnimDuration` 可由配置覆盖，缺失时再按 Boss/非 Boss 使用默认值。
+- 配置中历史遗留的 `damageType: magical` 在加载时归一为 `magic`，运行时不保留新枚举。
+
 ---
 
 ## 2. 塔类单位

@@ -79,6 +79,8 @@ function targetSelectionStrToVal(sel: string | undefined): number {
 /** YAML damageType 字符串 → DamageTypeVal 数字 */
 function damageTypeStrToVal(dt: string | undefined): number {
   switch (dt) {
+    case 'true': return DamageTypeVal.True;
+    case 'magical':
     case 'magic': return DamageTypeVal.Magic;
     default: return DamageTypeVal.Physical;
   }
@@ -243,16 +245,15 @@ export class UnitFactory {
         batSize: (cfg.batSize as number) ?? 10,
       });
     } else {
-      const isMissile = towerType === TowerType.Missile;
       this.world.addComponent(eid, Attack, {
         damage: (cfg.atk as number) ?? 0,
         attackSpeed: (cfg.attackSpeed as number) ?? 1,
         range: (cfg.range as number) ?? 100,
-        damageType: isMissile ? DamageTypeVal.Physical : damageTypeStrToVal(cfg.damageType as string),
+        damageType: damageTypeStrToVal(cfg.damageType as string),
         cooldownTimer: 0,
         targetId: 0,
         targetSelection: TargetSelectionVal.Nearest,
-        attackMode: isMissile ? AttackModeVal.AoeSplash : ((cfg.splashRadius as number) ?? 0) > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget,
+        attackMode: towerType === TowerType.Missile ? AttackModeVal.AoeSplash : ((cfg.splashRadius as number) ?? 0) > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget,
         isRanged: 1,
         canTargetLowAir: ((cfg.canTargetLowAir as boolean | undefined) ?? towerCanTargetLowAir(towerType)) ? 1 : 0,
         splashRadius: (cfg.splashRadius as number) ?? 0,

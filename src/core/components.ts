@@ -61,6 +61,7 @@ export type ShapeVal = (typeof ShapeVal)[keyof typeof ShapeVal];
 export const DamageTypeVal = {
   Physical: 0,
   Magic: 1,
+  True: 2,
 } as const;
 
 export const MoveModeVal = {
