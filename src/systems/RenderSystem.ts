@@ -177,6 +177,10 @@ export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): numbe
   return artFacesLeft ? -normalizedFacing : normalizedFacing;
 }
 
+export function getUnitSpriteArtFacesLeft(isEnemy: boolean, isBoss: boolean): boolean {
+  return isEnemy && !isBoss;
+}
+
 export class RenderSystem implements System {
   readonly name = 'RenderSystem';
 
@@ -1505,7 +1509,12 @@ export class RenderSystem implements System {
           attackAnimSize * (isTower ? 1.35 : isEnemy ? 1.45 * movingEnemyBreathScale : 1.35),
           displayAlpha,
           renderZ,
-          { state: unitSpriteState, stroke: strokeColor, strokeWidth: strokeW, artFacesLeft: isEnemy },
+          {
+            state: unitSpriteState,
+            stroke: strokeColor,
+            strokeWidth: strokeW,
+            artFacesLeft: getUnitSpriteArtFacesLeft(isEnemy, isBossEntity),
+          },
         );
         bodySpriteDrawn = spriteDrawn;
         if (spriteDrawn) {
