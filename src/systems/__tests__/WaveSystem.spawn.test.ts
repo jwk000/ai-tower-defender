@@ -704,6 +704,42 @@ describe('WaveSystem v4.0 — wave rewards', () => {
 
     expect(phase).toBe(GamePhase.Victory);
   });
+
+  it('最后一波巨型史莱姆归零待分裂时不能判定胜利', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [{ enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 }],
+    }];
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    const bossSystem = new BossSystem();
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+    const [slime] = bossQuery(world.world);
+    expect(slime).toBeDefined();
+    expect(Boss.bossType[slime!]).toBe(BossType.GiantSlime);
+
+    Health.current[slime!] = 0;
+    ws.update(world, 1.0);
+
+    expect(phase).toBe(GamePhase.Battle);
+
+    bossSystem.update(world, 0.016);
+    world.cleanupDeadEntities();
+    ws.update(world, 0.1);
+
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter.length).toBe(2);
+    expect(phase).toBe(GamePhase.Battle);
+  });
 });
 
 describe('WaveSystem v4.0 — multiple spawn points', () => {

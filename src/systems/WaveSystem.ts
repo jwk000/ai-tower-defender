@@ -1,4 +1,4 @@
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
   Position,
   Health,
@@ -549,11 +549,18 @@ export class WaveSystem implements System {
   hasAliveEnemies(): boolean {
     const enemies = aliveEnemyQuery(this.world.world);
     for (const eid of enemies) {
-      if (UnitTag.isEnemy[eid] === 1 && Health.current[eid]! > 0) {
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if (Health.current[eid]! > 0 || this.isPendingGiantSlimeSplit(eid)) {
         return true;
       }
     }
     return false;
+  }
+
+  private isPendingGiantSlimeSplit(eid: number): boolean {
+    return hasComponent(this.world.world, Boss, eid)
+      && Boss.bossType[eid] === BossType.GiantSlime
+      && (Boss.splitCount[eid] ?? 0) < 2;
   }
 
   private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {
