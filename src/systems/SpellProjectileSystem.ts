@@ -19,12 +19,14 @@ import {
 import { Renderer } from '../render/Renderer.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { Sound } from '../utils/Sound.js';
+import { RenderSystem } from './RenderSystem.js';
 
 // Spell type constants
 const SPELL_FIREBALL = 0;
 const SPELL_ARROW_RAIN = 1;
 const SPELL_BLIZZARD = 2;
 const SPELL_BOMB = 3;
+const SPELL_EARTHQUAKE = 4;
 
 const projectileQuery = defineQuery([SpellProjectile, Position]);
 const effectQuery = defineQuery([SpellEffect, Position]);
@@ -117,6 +119,7 @@ export class SpellProjectileSystem implements System {
 
   private updateEffects(world: TowerWorld, dt: number): void {
     const entities = effectQuery(world.world);
+    RenderSystem.tileJitter.intensity = 0;
 
     for (const eid of entities) {
       SpellEffect.elapsed[eid]! += dt;
@@ -129,8 +132,9 @@ export class SpellProjectileSystem implements System {
       const y = Position.y[eid]!;
       const radius = SpellEffect.radius[eid]!;
 
-      // Deal damage on first frame
-      if (SpellEffect.hasDealtDamage[eid] === 0) {
+      if (spellType === SPELL_EARTHQUAKE) {
+        this.updateEarthquakeDamage(world, eid, x, y, radius);
+      } else if (SpellEffect.hasDealtDamage[eid] === 0) {
         this.dealAreaDamage(world, eid, x, y, radius, spellType);
         SpellEffect.hasDealtDamage[eid] = 1;
       }
@@ -640,6 +644,82 @@ export class SpellProjectileSystem implements System {
           });
         }
         break;
+
+      case SPELL_EARTHQUAKE: {
+        const z = 8;
+        const boardX = RenderSystem.sceneOffsetX;
+        const boardY = RenderSystem.sceneOffsetY;
+        const boardW = RenderSystem.sceneW;
+        const boardH = RenderSystem.sceneH;
+        const centerX = boardX + boardW / 2;
+        const centerY = boardY + boardH / 2;
+        const elapsed = progress * 3.0;
+        const quakeAlpha = Math.max(0, 1 - progress * 0.42);
+        const pulse = Math.abs(Math.sin(elapsed * Math.PI * 2));
+        const jitterIntensity = (1 - progress * 0.45) * (5 + pulse * 7);
+        RenderSystem.tileJitter.intensity = Math.max(RenderSystem.tileJitter.intensity, jitterIntensity);
+        RenderSystem.tileJitter.seed = elapsed * 42;
+
+        this.renderer.push({
+          shape: 'rect',
+          x: centerX,
+          y: centerY,
+          size: boardW,
+          h: boardH,
+          color: '#3e2723',
+          alpha: quakeAlpha * 0.18,
+          z,
+        });
+
+        for (let i = 0; i < 9; i++) {
+          const lane = (i - 4) / 4;
+          const crackProgress = Math.min(1, progress * 2.4 - i * 0.035);
+          if (crackProgress <= 0) continue;
+          const startX = centerX + lane * boardW * 0.35;
+          const startY = boardY + boardH * 0.06;
+          const length = boardH * (0.28 + crackProgress * 0.62);
+          const wobble = Math.sin(elapsed * 9 + i * 2.1) * 18;
+          const rotation = lane * 0.24 + Math.sin(i * 1.9) * 0.13;
+          this.renderer.push({
+            shape: 'rect',
+            x: startX + wobble,
+            y: startY + length / 2,
+            size: 8 + (i % 3) * 3,
+            h: length,
+            color: '#1b0f0a',
+            alpha: quakeAlpha * 0.82,
+            rotation,
+            z: z + 2,
+          });
+          this.renderer.push({
+            shape: 'rect',
+            x: startX + wobble + 8,
+            y: startY + length * 0.56,
+            size: 4,
+            h: length * 0.5,
+            color: '#ffb74d',
+            alpha: quakeAlpha * 0.2,
+            rotation: rotation + 0.18,
+            z: z + 3,
+          });
+        }
+
+        for (let i = 0; i < 28; i++) {
+          const dustPhase = (progress * 1.7 + i * 0.071) % 1;
+          const dustX = boardX + ((Math.sin(i * 19.19) * 0.5 + 0.5) * boardW);
+          const dustY = boardY + ((Math.cos(i * 11.73) * 0.5 + 0.5) * boardH);
+          this.renderer.push({
+            shape: 'circle',
+            x: dustX + Math.sin(elapsed * 8 + i) * 18,
+            y: dustY - dustPhase * 24,
+            size: 10 + dustPhase * 24,
+            color: '#8d6e63',
+            alpha: quakeAlpha * (1 - dustPhase) * 0.26,
+            z: z + 1,
+          });
+        }
+        break;
+      }
     }
   }
 
@@ -653,7 +733,7 @@ export class SpellProjectileSystem implements System {
     world.addComponent(effectId, Position, { x, y });
     world.addComponent(effectId, SpellEffect, {
       spellType,
-      duration: isFireball ? 1.0 : (spellType === SPELL_BOMB ? 0.5 : 0.8),
+      duration: isFireball ? 1.0 : (spellType === SPELL_BOMB ? 0.5 : spellType === SPELL_EARTHQUAKE ? 3.0 : 0.8),
       elapsed: 0,
       radius: SpellProjectile.radius[projectileId]!,
       damage: SpellProjectile.damage[projectileId]!,
@@ -661,13 +741,13 @@ export class SpellProjectileSystem implements System {
     });
 
     // Screen shake for impactful spells
-    if (isFireball || spellType === SPELL_BOMB) {
+    if (isFireball || spellType === SPELL_BOMB || spellType === SPELL_EARTHQUAKE) {
       const shakeEid = world.createEntity();
       world.addComponent(shakeEid, ScreenShake, {
-        intensity: isFireball ? 4 : 6,
-        duration: isFireball ? 0.3 : 0.5,
+        intensity: spellType === SPELL_EARTHQUAKE ? 10 : isFireball ? 4 : 6,
+        duration: spellType === SPELL_EARTHQUAKE ? 3.0 : isFireball ? 0.3 : 0.5,
         elapsed: 0,
-        frequency: isFireball ? 40 : 30,
+        frequency: spellType === SPELL_EARTHQUAKE ? 18 : isFireball ? 40 : 30,
       });
     }
 
@@ -685,13 +765,52 @@ export class SpellProjectileSystem implements System {
       case SPELL_BOMB:
         Sound.play('exploder_boom');
         break;
+      case SPELL_EARTHQUAKE:
+        Sound.play('exploder_boom');
+        break;
     }
+  }
+
+  spawnGlobalEffect(world: TowerWorld, spellType: number, damage: number, duration: number): void {
+    const effectId = world.createEntity();
+    world.addComponent(effectId, Position, {
+      x: RenderSystem.sceneOffsetX + RenderSystem.sceneW / 2,
+      y: RenderSystem.sceneOffsetY + RenderSystem.sceneH / 2,
+    });
+    world.addComponent(effectId, SpellEffect, {
+      spellType,
+      duration,
+      elapsed: 0,
+      radius: Math.max(RenderSystem.sceneW, RenderSystem.sceneH),
+      damage,
+      hasDealtDamage: 0,
+    });
+
+    const shakeEid = world.createEntity();
+    world.addComponent(shakeEid, ScreenShake, {
+      intensity: 10,
+      duration,
+      elapsed: 0,
+      frequency: 18,
+    });
+    Sound.play('exploder_boom');
+  }
+
+  private updateEarthquakeDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {
+    const elapsed = SpellEffect.elapsed[effectId]!;
+    const dealtTicks = SpellEffect.hasDealtDamage[effectId]!;
+    const dueTicks = Math.min(3, Math.floor(elapsed));
+    for (let tick = dealtTicks + 1; tick <= dueTicks; tick++) {
+      this.dealAreaDamage(world, effectId, x, y, radius, SPELL_EARTHQUAKE);
+    }
+    SpellEffect.hasDealtDamage[effectId] = dueTicks;
   }
 
   private dealAreaDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number, spellType: number): void {
     const damage = SpellEffect.damage[effectId]!;
     const damageType = spellType === SPELL_FIREBALL ? DamageTypeVal.Magic :
                        spellType === SPELL_BLIZZARD ? DamageTypeVal.Magic :
+                       spellType === SPELL_EARTHQUAKE ? DamageTypeVal.Physical :
                        DamageTypeVal.Physical;
 
     for (let eid = 1; eid < Position.x.length; eid++) {
@@ -700,7 +819,7 @@ export class SpellProjectileSystem implements System {
       const px = Position.x[eid] ?? 0;
       const py = Position.y[eid] ?? 0;
       const dist = Math.hypot(px - x, py - y);
-      if (dist < radius) {
+      if (dist < radius || spellType === SPELL_EARTHQUAKE) {
         applyDamageToTarget(world, eid, damage, damageType);
 
         // Blizzard slow effect

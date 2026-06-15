@@ -80,6 +80,24 @@ bomb_card:
     delay: 2.0
     affectAlly: false
 
+earthquake_card:
+  name: 大地裂变
+  description: 全棋盘震动，3秒内每秒对所有敌人造成100点物理伤害
+  type: spell
+  rarity: epic
+  energyCost: 6
+  goldCost: 140
+  spellSubtype: damage
+  placement:
+    targetType: global
+  spellEffect:
+    handler: global_dot_damage
+    damagePerTick: 100
+    tickInterval: 1.0
+    duration: 3.0
+    damageType: physical
+    affectAlly: false
+
 gold_rush_card:
   name: 淘金热
   description: 立即获得80金币

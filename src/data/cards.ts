@@ -174,7 +174,7 @@ const boulder: CardInstance = {
 
 
 
-// ---- 技能卡（4种）----
+// ---- 技能卡（5种）----
 
 const fireball: CardInstance = {
   id: 'card_fireball',
@@ -206,6 +206,14 @@ const bomb: CardInstance = {
   type: 'spell',
   description: '2×2格范围80点伤害，放置后2秒爆炸',
   goldCost: 60,
+};
+
+const earthquake: CardInstance = {
+  id: 'card_earthquake',
+  name: '大地裂变',
+  type: 'spell',
+  description: '全棋盘震动，3秒内每秒对所有敌人造成100点物理伤害',
+  goldCost: 140,
 };
 
 // ---- 自施法技能卡（经济）----
@@ -247,7 +255,7 @@ export const UNIT_CARDS: CardInstance[] = [
 ];
 
 /** 所有技能卡（含自施法经济卡） */
-export const SPELL_CARDS: CardInstance[] = [fireball, arrowRain, blizzard, bomb, goldRush];
+export const SPELL_CARDS: CardInstance[] = [fireball, arrowRain, blizzard, bomb, earthquake, goldRush];
 
 /** 全部卡牌 */
 export const ALL_CARDS: CardInstance[] = [

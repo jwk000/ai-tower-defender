@@ -140,6 +140,7 @@ export function drawCardIcon(
     case 'card_arrow_rain':      drawArrowRain(ctx, cx, cy, w, h); break;
     case 'card_blizzard':        drawBlizzard(ctx, cx, cy, w, h); break;
     case 'card_bomb':            drawBomb(ctx, cx, cy, w, h); break;
+    case 'card_earthquake':      drawEarthquake(ctx, cx, cy, w, h); break;
     case 'card_gold_rush':        drawGoldRush(ctx, cx, cy, w, h); break;
     // fallback
     default:
@@ -741,6 +742,60 @@ function drawBomb(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: numb
     ctx.lineTo(cx + Math.cos(a) * s * 0.25, cy - s * 0.85 + Math.sin(a) * s * 0.25);
     ctx.stroke();
   }
+}
+
+/** 大地裂变 — 裂缝 + 地震冲击 */
+function drawEarthquake(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number): void {
+  const s = Math.min(w, h) * 0.42;
+  ctx.save();
+
+  ctx.fillStyle = '#5d4037';
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 0.35, s * 0.95, s * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = '#1b0f0a';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.12, cy - s * 0.75);
+  ctx.lineTo(cx - s * 0.32, cy - s * 0.2);
+  ctx.lineTo(cx + s * 0.08, cy + s * 0.08);
+  ctx.lineTo(cx - s * 0.08, cy + s * 0.6);
+  ctx.lineTo(cx + s * 0.28, cy + s * 0.85);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ffb74d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - s * 0.06, cy - s * 0.52);
+  ctx.lineTo(cx - s * 0.18, cy - s * 0.18);
+  ctx.lineTo(cx + s * 0.12, cy + s * 0.04);
+  ctx.lineTo(cx + s * 0.02, cy + s * 0.38);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#8d6e63';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) {
+    const r = s * (0.55 + i * 0.22);
+    ctx.globalAlpha = 0.65 - i * 0.16;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + s * 0.18, r, r * 0.34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#a1887f';
+  for (let i = 0; i < 7; i++) {
+    const a = i * Math.PI * 0.55;
+    const d = s * (0.52 + (i % 3) * 0.14);
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.45, s * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
 }
 
 // ============================================================

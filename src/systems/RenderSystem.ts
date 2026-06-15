@@ -194,6 +194,8 @@ export class RenderSystem implements System {
   static introActive = false;
   /** v4.1: 入场动画系统引用（用于水晶 alpha 动画） */
   static introSystem: { crystalRenderAlpha: number } | null = null;
+  /** 大地裂变期间地格独立抖动强度（由 SpellProjectileSystem 写入，RenderSystem 每帧消费） */
+  static tileJitter = { intensity: 0, seed: 0 };
 
   constructor(
     private renderer: Renderer,
@@ -248,8 +250,11 @@ export class RenderSystem implements System {
     for (let r = 0; r < map.rows; r++) {
       for (let c = 0; c < map.cols; c++) {
         const tile = map.tiles[r]![c]!;
-        const x = c * ts + ts / 2 + ox;
-        const y = r * ts + ts / 2 + oy;
+        const jitter = RenderSystem.tileJitter.intensity;
+        const jitterSeed = RenderSystem.tileJitter.seed;
+        const jitterPhase = jitterSeed + r * 12.9898 + c * 78.233;
+        const x = c * ts + ts / 2 + ox + (jitter > 0 ? Math.sin(jitterPhase) * jitter : 0);
+        const y = r * ts + ts / 2 + oy + (jitter > 0 ? Math.cos(jitterPhase * 1.37) * jitter : 0);
         let color: string;
 
         switch (tile) {

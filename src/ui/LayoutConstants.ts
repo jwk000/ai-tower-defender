@@ -226,7 +226,7 @@ export function resolveCardToEntityType(
   }
 
   // 技能卡（area-target，需要拖拽到场景）
-  const SPELL_IDS = ['fireball', 'arrow_rain', 'blizzard', 'bomb', 'gold_rush'];
+  const SPELL_IDS = ['fireball', 'arrow_rain', 'blizzard', 'bomb', 'earthquake', 'gold_rush'];
   if (SPELL_IDS.includes(unitConfigId)) {
     return { entityType: 'spell', spellCardId: unitConfigId };
   }
@@ -248,7 +248,7 @@ export function resolveCardToEntityType(
 }
 
 /** 自施法技能卡（点击即生效，无需拖拽到场景） */
-const SELF_TARGET_SPELL_IDS = ['gold_rush'];
+const SELF_TARGET_SPELL_IDS = ['gold_rush', 'earthquake'];
 
 export function isSelfTargetSpell(spellCardId: string): boolean {
   return SELF_TARGET_SPELL_IDS.includes(spellCardId);

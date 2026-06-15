@@ -133,6 +133,7 @@ const assets = [
   ['card_arrow_rain', 'cards', '192x160 game card art of rain of sharp arrows falling from above, stormy dark sky, bright metal arrowheads'],
   ['card_blizzard', 'cards', '192x160 game card art of blizzard vortex, swirling snow, blue white ice shards, freezing wind spiral'],
   ['card_bomb', 'cards', '192x160 game card art of round black bomb with lit fuse, sparks and imminent explosion glow'],
+  ['card_earthquake', 'cards', '192x160 game card art of cracked battlefield ground splitting open, glowing orange fissures, flying rock shards, seismic shockwave, dark fantasy tower defense icon'],
   ['card_emergency_shield', 'cards', '192x160 game card art of red crystal protected by blue shield bubble, hexagonal barrier pattern'],
   ['card_arrow_boost', 'cards', '192x160 game card art of single arrow empowered by green magical runes, precision aura'],
   ['card_shield_boost', 'cards', '192x160 game card art of golden reinforced shield, radiant protective ward, sturdy dark metal rim'],

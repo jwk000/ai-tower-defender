@@ -422,7 +422,7 @@ export const SlashEffect = defineComponent({
 
 /** 技能卡投射物（火球术、剑雨、暴风雪等动画） */
 export const SpellProjectile = defineComponent({
-  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb, 4=earthquake
   targetX: Types.f32,         // 目标位置X
   targetY: Types.f32,         // 目标位置Y
   startX: Types.f32,          // 起始位置X
@@ -436,7 +436,7 @@ export const SpellProjectile = defineComponent({
 
 /** 技能卡爆炸/效果动画 */
 export const SpellEffect = defineComponent({
-  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb
+  spellType: Types.ui8,       // 0=fireball, 1=arrow_rain, 2=blizzard, 3=bomb, 4=earthquake
   duration: Types.f32,        // 效果持续时长
   elapsed: Types.f32,         // 已用时间
   radius: Types.f32,          // 效果半径

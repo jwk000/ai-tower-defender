@@ -389,6 +389,7 @@ cardPool:
   - card_arrow_rain
   - card_blizzard
   - card_bomb
+  - card_earthquake
   - card_gold_rush
 
 draftPool:
@@ -414,6 +415,7 @@ draftPool:
   - card_arrow_rain
   - card_blizzard
   - card_bomb
+  - card_earthquake
   - card_gold_rush
 
 banPool: []

@@ -11,6 +11,7 @@ import {
 import type { Renderer } from '../render/Renderer.js';
 import type { RenderCommand } from '../types/index.js';
 import { clearDamageObservers, registerDamageObserver } from '../utils/damageUtils.js';
+import { RenderSystem } from './RenderSystem.js';
 import { SpellProjectileSystem } from './SpellProjectileSystem.js';
 
 const effectQuery = defineQuery([SpellEffect, Position]);
@@ -29,6 +30,14 @@ function makeEnemy(world: TowerWorld, x: number, y: number): number {
   world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
   world.addComponent(eid, UnitTag, { isEnemy: 1 });
   world.addComponent(eid, Movement, { speed: 100, currentSpeed: 100 });
+  return eid;
+}
+
+function makeAlly(world: TowerWorld, x: number, y: number): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+  world.addComponent(eid, UnitTag, { isEnemy: 0 });
   return eid;
 }
 
@@ -97,5 +106,47 @@ describe('SpellProjectileSystem', () => {
     expect(commands.some((cmd) => cmd.image)).toBe(false);
     expect(commands.some((cmd) => cmd.shape === 'arrow')).toBe(true);
     expect(commands.some((cmd) => cmd.shape === 'diamond')).toBe(true);
+  });
+
+  it('earthquake damages every enemy once per second and jitters board tiles', () => {
+    const { renderer, commands } = makeRenderer();
+    const world = new TowerWorld();
+    const system = new SpellProjectileSystem(renderer);
+    reserveEntityZero(world);
+    RenderSystem.sceneOffsetX = 100;
+    RenderSystem.sceneOffsetY = 80;
+    RenderSystem.sceneW = 640;
+    RenderSystem.sceneH = 384;
+
+    const enemyA = makeEnemy(world, 120, 100);
+    Health.current[enemyA] = 350;
+    Health.max[enemyA] = 350;
+    const enemyB = makeEnemy(world, 700, 430);
+    Health.current[enemyB] = 350;
+    Health.max[enemyB] = 350;
+    const ally = makeAlly(world, 300, 220);
+
+    system.spawnGlobalEffect(world, 4, 100, 3);
+
+    system.update(world, 0.5);
+    expect(Health.current[enemyA]).toBe(350);
+    expect(Health.current[enemyB]).toBe(350);
+    expect(Health.current[ally]).toBe(100);
+
+    system.update(world, 0.5);
+    expect(Health.current[enemyA]).toBe(250);
+    expect(Health.current[enemyB]).toBe(250);
+    expect(Health.current[ally]).toBe(100);
+    expect(RenderSystem.tileJitter.intensity).toBeGreaterThan(0);
+    expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#1b0f0a')).toBe(true);
+
+    system.update(world, 1.0);
+    expect(Health.current[enemyA]).toBe(150);
+    expect(Health.current[enemyB]).toBe(150);
+
+    system.update(world, 1.0);
+    expect(Health.current[enemyA]).toBe(50);
+    expect(Health.current[enemyB]).toBe(50);
+    expect(Health.current[ally]).toBe(100);
   });
 });

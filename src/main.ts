@@ -151,6 +151,7 @@ class TowerDefenderGame extends Game {
   private screenFXSystem!: ScreenFXSystem;
   private screenShakeSystem!: ScreenShakeSystem;
   private tileDamageSystem!: TileDamageSystem;
+  private spellProjectileSystem!: SpellProjectileSystem;
 
   // ---- Debug system ----
   public debugManager: DebugManager;
@@ -735,6 +736,8 @@ class TowerDefenderGame extends Game {
       },
     );
 
+    this.screenShakeSystem = new ScreenShakeSystem();
+
     // ---- Core systems ----
     const renderSystem = new RenderSystem(
       this.renderer, map,
@@ -756,7 +759,6 @@ class TowerDefenderGame extends Game {
     this.levelIntroSystem.setBaseEntityId(this.baseEntityId!);
     this.boardGlowSystem = new BoardGlowSystem(map);
     this.screenFXSystem = new ScreenFXSystem();
-    this.screenShakeSystem = new ScreenShakeSystem();
     this.tileDamageSystem = new TileDamageSystem(map);
 
     const movementSystem = new MovementSystem(map, (phase) => { this.phase = phase; });
@@ -781,7 +783,7 @@ class TowerDefenderGame extends Game {
     const fadingMarkSystem = new FadingMarkSystem();
     const lightningBoltSystem = new LightningBoltSystem(this.renderer);
     this.laserBeamSystem = new LaserBeamSystem(this.renderer);
-    const spellProjectileSystem = new SpellProjectileSystem(this.renderer);
+    this.spellProjectileSystem = new SpellProjectileSystem(this.renderer);
     const slashEffectSystem = new SlashEffectSystem(this.renderer);
 
     // ---- UI overlay (onPostRender) ----
@@ -1135,7 +1137,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.economy);
     this.world.registerSystem(this.buildSystem);
     this.world.registerSystem(this.soldierAISystem);
-    this.world.registerSystem(spellProjectileSystem);
+    this.world.registerSystem(this.spellProjectileSystem);
     this.world.registerSystem(slashEffectSystem);
     this.world.registerSystem(this.decorationSystem);
     this.world.registerSystem(this.levelIntroSystem);   // v4.1: 入场动画（装饰物之后、棋盘之前）
@@ -1731,6 +1733,12 @@ class TowerDefenderGame extends Game {
         // 淘金热：立即获得 80 金币
         this.economy.addGold(80);
         Sound.play('gold_earn');
+        break;
+      }
+
+      case 'earthquake': {
+        // 大地裂变：全棋盘持续震动，每秒对全部敌人造成物理伤害
+        this.spellProjectileSystem.spawnGlobalEffect(this.world, 4, 100, 3.0);
         break;
       }
 
