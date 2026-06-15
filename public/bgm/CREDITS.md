@@ -14,6 +14,11 @@
 | battle_intense.mp3 | Epic Boss Battle (Colossal 3) | N/A | [OpenGameArt](https://opengameart.org/content/epic-boss-battle) | CC-BY-SA |
 | wave_break.ogg | Fauxdoor Fields (original 2025) | Sperry Lion / remix | [OpenGameArt](https://opengameart.org/content/fauxdoor-fields) | CC0 |
 | victory.ogg | Glorious Victory Fanfare (NES) | Airos | [OpenGameArt](https://opengameart.org/content/glorious-victory-fanfare-nes) | CC0 |
+| victory_meadow.ogg | Glorious victory fanfare NES | congusbongus | [OpenGameArt](https://opengameart.org/content/glorious-victory-fanfare-nes) | CC0 |
+| victory_desert.ogg | SEGA Mega Drive/Genesis victory jingle | Spring Spring | [OpenGameArt](https://opengameart.org/content/sega-mega-drivegenesis-victory-jingle) | CC0 |
+| victory_castle.ogg | Win Jingle | Fupi | [OpenGameArt](https://opengameart.org/content/win-jingle) | CC0 |
+| victory_waste.ogg | Winning the Race | section31 | [OpenGameArt](https://opengameart.org/content/winning-the-race) | CC0 |
+| victory_abyss.ogg | Orcs Victorious | Bobjt | [OpenGameArt](https://opengameart.org/content/orcs-victorious) | CC0 |
 | defeat.mp3 | Bittersweet | N/A | [OpenGameArt](https://opengameart.org/content/bittersweet) | CC0 |
 | endless.ogg | Futuristic Junk | N/A | [OpenGameArt](https://opengameart.org/content/futuristicjunk) | CC-BY-SA |
 

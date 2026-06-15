@@ -29,9 +29,9 @@
 
 | 来源 | 说明 | 覆盖 |
 |------|------|------|
-| **OGG 文件** | `public/sfx/` 中的外部音频文件 | ~44 个键 |
-| **SoundSynth 合成** | `src/utils/SoundSynth.ts` 程序化生成 WAV | ~35 个键（波形合成） |
-| **回退机制** | 优先使用 OGG 文件，不存在时回退到 SoundSynth | 全部覆盖 |
+| **OGG 文件** | `public/sfx/` 中的外部音频文件 | 70 个 SFX 键 |
+| **SoundSynth 合成** | `src/utils/SoundSynth.ts` 程序化生成 WAV | 运行时备用波形 |
+| **BGM 文件** | `public/bgm/` 中的外部音乐文件 | 19 个 BGM 键 |
 
 ---
 
@@ -48,9 +48,9 @@
 | `tower_laser` | 激光塔 | 持续能量束扫掠 | OGG + Synth |
 | `tower_bat` | 蝙蝠塔 | 低频扑翼扫掠 | OGG + Synth |
 | `tower_missile` | 导弹塔 | 重型发射轰鸣 + 低频拖尾 | OGG + Synth |
-| `tower_fire` | 火塔 | 火焰喷发声 + 温暖谐波 | **仅 Synth** |
-| `tower_poison` | 毒塔 | 毒液喷射 + 低沉气泡 | **仅 Synth** |
-| `tower_ballista` | 弩塔 | 弩机重击 + 穿透呼啸 | **仅 Synth** |
+| `tower_fire` | 火塔 | 火焰喷发声 + 温暖谐波 | OGG + Synth |
+| `tower_poison` | 毒塔 | 毒液喷射 + 低沉气泡 | OGG + Synth |
+| `tower_ballista` | 弩塔 | 弩机重击 + 穿透呼啸 | OGG + Synth |
 
 ### 2.2 弹道命中音效
 
@@ -61,9 +61,9 @@
 | `ice_hit` | 冰晶命中 | 晶体碎裂 + 叮当声 | OGG + Synth |
 | `lightning_hit` | 闪电命中 | 电击滋啦 + 低频闷响 | OGG + Synth |
 | `missile_impact` | 导弹命中 | 巨型爆炸 + 长混响拖尾 | OGG + Synth |
-| `fire_hit` | 火焰命中 | 灼烧嘶嘶声 | **仅 Synth** |
-| `poison_hit` | 毒液命中 | 液体溅射 + 腐蚀声 | **仅 Synth** |
-| `ballista_hit` | 弩箭命中 | 穿透式重击 | **仅 Synth** |
+| `fire_hit` | 火焰命中 | 灼烧嘶嘶声 | OGG + Synth |
+| `poison_hit` | 毒液命中 | 液体溅射 + 腐蚀声 | OGG + Synth |
+| `ballista_hit` | 弩箭命中 | 穿透式重击 | OGG + Synth |
 
 ### 2.3 敌人事件音效
 
@@ -82,10 +82,10 @@
 
 | SFX Key | Boss | 技能 | 实现来源 |
 |---------|------|------|---------|
-| `boss_split` | 巨型史莱姆 | 死亡分裂 | **仅 Synth** |
-| `boss_summon` | 虫族女王 / 路西法 | 召唤随从 | **仅 Synth** |
-| `boss_missile` | 超级机器人 | 远程导弹轰炸 | **仅 Synth** |
-| `boss_devour` | 深渊领主 | 黑暗吞噬 | **仅 Synth** |
+| `boss_split` | 巨型史莱姆 | 死亡分裂 | OGG + Synth |
+| `boss_summon` | 虫族女王 / 路西法 | 召唤随从 | OGG + Synth |
+| `boss_missile` | 超级机器人 | 远程导弹轰炸 | OGG + Synth |
+| `boss_devour` | 深渊领主 | 黑暗吞噬 | OGG + Synth |
 
 ### 2.5 波次系统音效
 
@@ -119,8 +119,8 @@
 |---------|------|---------|---------|
 | `ui_click` | UI 点击 | 温暖三角波短音 | OGG + Synth |
 | `ui_error` | UI 错误 | 低沉三角波 + 低通 | OGG + Synth |
-| `draft_select` | 3 选 1 确认 | 卡牌确认音 | **仅 Synth** |
-| `buff_select` | Buff 选择确认 | 强化确认音 | **仅 Synth** |
+| `draft_select` | 3 选 1 确认 | 卡牌确认音 | OGG + Synth |
+| `buff_select` | Buff 选择确认 | 强化确认音 | OGG + Synth |
 
 ### 2.9 技能卡音效
 
@@ -128,10 +128,10 @@
 |---------|------|---------|---------|
 | `skill_taunt` | 嘲讽 | 深沉战吼 | OGG + Synth |
 | `skill_whirlwind` | 旋风斩 | 旋转扫掠 + 风声 | OGG + Synth |
-| `skill_fireball` | 火球术 | 火焰爆发 | **仅 Synth** |
-| `skill_arrow_rain` | 剑雨 | 箭矢齐发呼啸 | **仅 Synth** |
-| `skill_blizzard` | 暴风雪 | 寒风呼啸 | **仅 Synth** |
-| `skill_bomb` | 炸弹 | 计时滴答 + 爆炸 | **仅 Synth** |
+| `skill_fireball` | 火球术 | 火焰爆发 | OGG + Synth |
+| `skill_arrow_rain` | 剑雨 | 箭矢齐发呼啸 | OGG + Synth |
+| `skill_blizzard` | 暴风雪 | 寒风呼啸 | OGG + Synth |
+| `skill_bomb` | 炸弹 | 计时滴答 + 爆炸 | OGG + Synth |
 
 ### 2.10 自施法技能音效
 
@@ -150,29 +150,29 @@
 | SFX Key | 关卡 | 设计意图 | 实现来源 |
 |---------|------|---------|---------|
 | `victory` | 通用 | 四音阶上升胜利号角 | OGG + Synth |
-| `victory_meadow` | 第 1 关 | 草原主题胜利 | **仅 Synth** |
-| `victory_desert` | 第 2 关 | 沙漠主题胜利 | **仅 Synth** |
-| `victory_castle` | 第 3 关 | 古堡主题胜利 | **仅 Synth** |
-| `victory_waste` | 第 4 关 | 废土主题胜利 | **仅 Synth** |
-| `victory_abyss` | 第 5 关 | 深渊主题胜利 | **仅 Synth** |
+| `victory_meadow` | 第 1 关 | 草原主题胜利 | OGG + Synth |
+| `victory_desert` | 第 2 关 | 沙漠主题胜利 | OGG + Synth |
+| `victory_castle` | 第 3 关 | 古堡主题胜利 | OGG + Synth |
+| `victory_waste` | 第 4 关 | 废土主题胜利 | OGG + Synth |
+| `victory_abyss` | 第 5 关 | 深渊主题胜利 | OGG + Synth |
 | `defeat` | 全部 | 下行旋律失败 | OGG + Synth |
 
 ### 2.13 状态效果音效
 
 | SFX Key | 状态效果 | 设计意图 | 实现来源 |
 |---------|---------|---------|---------|
-| `freeze_apply` | 冰冻施加 | 结冰晶体声 | **仅 Synth** |
-| `stun_apply` | 眩晕施加 | 撞击眩晕声 | **仅 Synth** |
-| `poison_tick` | 中毒跳伤 | 腐蚀滴答 | **仅 Synth** |
-| `burn_tick` | 灼烧跳伤 | 火焰噼啪 | **仅 Synth** |
+| `freeze_apply` | 冰冻施加 | 结冰晶体声 | OGG + Synth |
+| `stun_apply` | 眩晕施加 | 撞击眩晕声 | OGG + Synth |
+| `poison_tick` | 中毒跳伤 | 腐蚀滴答 | OGG + Synth |
+| `burn_tick` | 灼烧跳伤 | 火焰噼啪 | OGG + Synth |
 
 ### 2.14 士兵音效
 
 | SFX Key | 事件 | 设计意图 | 实现来源 |
 |---------|------|---------|---------|
-| `soldier_deploy` | 士兵部署 | 单位放置确认 | **仅 Synth** |
-| `soldier_death` | 士兵阵亡 | 单位死亡哀嚎 | **仅 Synth** |
-| `soldier_heal` | 治疗生效 | 温暖治疗音 | **仅 Synth** |
+| `soldier_deploy` | 士兵部署 | 单位放置确认 | OGG + Synth |
+| `soldier_death` | 士兵阵亡 | 单位死亡哀嚎 | OGG + Synth |
+| `soldier_heal` | 治疗生效 | 温暖治疗音 | OGG + Synth |
 
 ---
 
@@ -199,11 +199,11 @@
 |---------|------|------|------|
 | `wave_break` | 波间休息 | `bgm/wave_break.ogg` | OpenGameArt CC0 |
 | `victory` | 胜利通用 | `bgm/victory.ogg` | OpenGameArt CC0 |
-| `victory_meadow` | 第 1 关胜利 | `bgm/victory_meadow.ogg` | **待补充** |
-| `victory_desert` | 第 2 关胜利 | `bgm/victory_desert.ogg` | **待补充** |
-| `victory_castle` | 第 3 关胜利 | `bgm/victory_castle.ogg` | **待补充** |
-| `victory_waste` | 第 4 关胜利 | `bgm/victory_waste.ogg` | **待补充** |
-| `victory_abyss` | 第 5 关胜利 | `bgm/victory_abyss.ogg` | **待补充** |
+| `victory_meadow` | 第 1 关胜利 | `bgm/victory_meadow.ogg` | OpenGameArt CC0 |
+| `victory_desert` | 第 2 关胜利 | `bgm/victory_desert.ogg` | OpenGameArt CC0 |
+| `victory_castle` | 第 3 关胜利 | `bgm/victory_castle.ogg` | OpenGameArt CC0 |
+| `victory_waste` | 第 4 关胜利 | `bgm/victory_waste.ogg` | OpenGameArt CC0 |
+| `victory_abyss` | 第 5 关胜利 | `bgm/victory_abyss.ogg` | OpenGameArt CC0 |
 | `defeat` | 失败 | `bgm/defeat.mp3` | OpenGameArt CC0 |
 | `endless` | 无限模式 | `bgm/endless.ogg` | OpenGameArt CC-BY-SA |
 
@@ -215,20 +215,20 @@
 
 | 类别 | 覆盖数 | 状态 |
 |------|--------|------|
-| 塔攻击 (10 种) | 10/10 | ✅ fire/poison/ballista 无 OGG 但有 Synth |
-| 弹道命中 (8 种) | 8/8 | ✅ 同上 |
+| 塔攻击 (10 种) | 10/10 | ✅ 全部有 OGG 文件 |
+| 弹道命中 (8 种) | 8/8 | ✅ 全部有 OGG 文件 |
 | 敌人事件 (8 种) | 8/8 | ✅ |
-| Boss 技能 (4 种) | 4/4 | ✅ 仅 Synth |
+| Boss 技能 (4 种) | 4/4 | ✅ 全部有 OGG 文件 |
 | 波次系统 (5 种) | 5/5 | ✅ |
 | 建造升级 (4 种) | 4/4 | ✅ |
 | 经济 (2 种) | 2/2 | ✅ |
-| UI (4 种) | 4/4 | ✅ draft/buff 仅 Synth |
-| 技能卡 (6 种) | 6/6 | ✅ 新增 4 种仅 Synth |
+| UI (4 种) | 4/4 | ✅ 全部有 OGG 文件 |
+| 技能卡 (6 种) | 6/6 | ✅ 全部有 OGG 文件 |
 | 自施法技能 (1 种) | 1/1 | ✅ 使用金币获得音效 |
 | 天气 (1 种) | 1/1 | ✅ |
-| 胜利/失败 (7 种) | 7/7 | ✅ 6 种仅 Synth |
-| 状态效果 (4 种) | 4/4 | ✅ 新增仅 Synth |
-| 士兵 (3 种) | 3/3 | ✅ 新增仅 Synth |
+| 胜利/失败 (7 种) | 7/7 | ✅ SFX 全部有 OGG 文件，BGM 主题胜利曲已补齐 |
+| 状态效果 (4 种) | 4/4 | ✅ 全部有 OGG 文件 |
+| 士兵 (3 种) | 3/3 | ✅ 全部有 OGG 文件 |
 | **合计** | **69** | ✅ 全部覆盖 |
 
 ### 4.2 低优先级 - 暂缓
@@ -305,8 +305,9 @@ Sound.play('your_sfx_key');
 
 | 来源 | 数量 | 许可 |
 |------|------|------|
-| OGG 文件 (public/sfx/) | ~44 | OpenGameArt / 合成 / 混合来源 |
-| SoundSynth 程序化合成 | ~35 | 原创代码生成，无版权限制 |
+| OGG 文件 (public/sfx/) | 70 | OpenGameArt / 合成 / 混合来源 |
+| BGM 文件 (public/bgm/) | 17 | OpenGameArt |
+| SoundSynth 程序化合成 | 运行时备用 | 原创代码生成，无版权限制 |
 
 ### 7.3 目标
 
@@ -320,13 +321,13 @@ Sound.play('your_sfx_key');
 
 | 类别 | 文件数 | 总大小（约） |
 |------|--------|------------|
-| public/sfx/ | 44 | ~2 MB |
-| public/bgm/ | 12 | ~15 MB |
-| SoundSynth 生成（运行时） | ~35 键 | <500 KB（内存缓存） |
-| **合计运行时音频** | ~91 键 | ~17.5 MB |
+| public/sfx/ | 70 | ~2 MB |
+| public/bgm/ | 17 | ~21 MB |
+| SoundSynth 生成（运行时） | 备用生成器 | <500 KB（内存缓存） |
+| **合计运行时音频** | 89 个声明键 | ~23 MB |
 
 ---
 
-> **版本**: v1.0 — 音效系统完整设计
-> **最后更新**: 2026-06-07
-> **原则**: 先程序化合成覆盖全部缺口，再逐步补充高质量 OGG 外部文件
+> **版本**: v1.1 — 音效资源完整性校验
+> **最后更新**: 2026-06-15
+> **原则**: 所有代码声明的 SFX/BGM 路径必须有实体文件；新增外部音频优先使用 CC0 / Public Domain 来源
