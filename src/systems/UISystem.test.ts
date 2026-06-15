@@ -116,8 +116,8 @@ function makeUISystem(
   );
 }
 
-function buttonsOf(ui: UISystem): Array<{ x: number; y: number; w: number; h: number; label: string }> {
-  return (ui as unknown as { buttons: Array<{ x: number; y: number; w: number; h: number; label: string }> }).buttons;
+function buttonsOf(ui: UISystem): Array<{ x: number; y: number; w: number; h: number; label: string; color: string }> {
+  return (ui as unknown as { buttons: Array<{ x: number; y: number; w: number; h: number; label: string; color: string }> }).buttons;
 }
 
 function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> {
@@ -247,6 +247,11 @@ describe('UISystem UI 层级', () => {
     const upgradeButton = buttonsOf(ui).find((button) => button.label.startsWith('升级'));
     expect(upgradeButton).toBeDefined();
     expect((upgradeButton as { layer?: string }).layer).toBe('board');
+    expect(upgradeButton!.color).toBe('#4caf50');
+
+    const recycleButton = buttonsOf(ui).find((button) => button.label.startsWith('回收'));
+    expect(recycleButton).toBeDefined();
+    expect(recycleButton!.color).toBe('#e53935');
 
     const titleInfo = infosOf(ui).find((info) => info.text.includes('Lv.1'));
     expect(titleInfo).toBeDefined();
