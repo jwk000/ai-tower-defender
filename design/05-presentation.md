@@ -537,7 +537,7 @@ Abyss（深渊层）    — 最低，预留
 | floating bob | Y 方向约 ±4px，无 X 摇摆 |
 | static | 塔和机关不做行走 bob，仅保留约 1.5% 呼吸缩放 |
 | 攻击 | 敌人使用 squash-stretch 与短距离 lunge；带武器的复合外观使用 `attackAnimTimer/Duration` 驱动武器摆动 |
-| 受击 | `Visual.hitFlashTimer` 触发 1 帧颜色叠加；有精灵图时必须在当前 `idle/move/attack` 精灵上叠加 tint，不切换到程序化主体；无精灵图时才对复合外观/基础形状做同色闪烁 |
+| 受击 | `Visual.hitFlashTimer` 触发 1 帧颜色叠加；有精灵图时必须在当前 `idle/move/attack` 精灵的有效像素 alpha mask 上叠加 tint，不切换到程序化主体、不染色透明矩形区域；无精灵图时才对复合外观/基础形状做同色闪烁 |
 | 中毒/减速/冻结/眩晕 | 在实体颜色上叠加 tint，毒额外绘制绿色光环 |
 | 精英/Boss | 精英敌人放大20%且名称显示黄色；Boss 尺寸固定在 70-90px，名称显示红色，二阶段红色混色/闪烁，常驻主题粒子 |
 | 敌方死亡 | 所有敌方单位播放灰飞烟灭破碎动画：本体灰化、碎片外扩、淡出；Boss 死亡额外触发大范围暗红/主题色冲击波 |

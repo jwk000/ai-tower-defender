@@ -8,6 +8,8 @@ export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private commands: RenderCommand[] = [];
+  private tintCanvas: HTMLCanvasElement | null = null;
+  private tintCtx: CanvasRenderingContext2D | null = null;
 
   /** PixiJS container bridge — for systems migrated to Graphics API */
   readonly container: Container = new Container();
@@ -94,6 +96,65 @@ export class Renderer {
     }
   }
 
+  private getTintContext(w: number, h: number): CanvasRenderingContext2D | null {
+    const width = Math.max(1, Math.ceil(w));
+    const height = Math.max(1, Math.ceil(h));
+    if (!this.tintCanvas) {
+      this.tintCanvas = document.createElement('canvas');
+      this.tintCtx = this.tintCanvas.getContext('2d');
+    }
+    if (!this.tintCanvas || !this.tintCtx) return null;
+    if (this.tintCanvas.width !== width) this.tintCanvas.width = width;
+    if (this.tintCanvas.height !== height) this.tintCanvas.height = height;
+    return this.tintCtx;
+  }
+
+  private drawImageTintMask(
+    image: CanvasImageSource,
+    imageSource: RenderCommand['imageSource'],
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+    tint: { color: string; alpha: number },
+  ): void {
+    const alpha = Math.max(0, Math.min(1, tint.alpha));
+    if (alpha <= 0) return;
+
+    const tintCtx = this.getTintContext(dw, dh);
+    if (!tintCtx || !this.tintCanvas) return;
+
+    tintCtx.save();
+    tintCtx.setTransform(1, 0, 0, 1, 0, 0);
+    tintCtx.globalAlpha = 1;
+    tintCtx.globalCompositeOperation = 'source-over';
+    tintCtx.clearRect(0, 0, this.tintCanvas.width, this.tintCanvas.height);
+    if (imageSource) {
+      tintCtx.drawImage(
+        image,
+        imageSource.x,
+        imageSource.y,
+        imageSource.w,
+        imageSource.h,
+        0,
+        0,
+        dw,
+        dh,
+      );
+    } else {
+      tintCtx.drawImage(image, 0, 0, dw, dh);
+    }
+    tintCtx.globalCompositeOperation = 'source-in';
+    tintCtx.fillStyle = tint.color;
+    tintCtx.fillRect(0, 0, dw, dh);
+    tintCtx.restore();
+
+    this.ctx.save();
+    this.ctx.globalAlpha = alpha;
+    this.ctx.drawImage(this.tintCanvas, dx, dy, dw, dh);
+    this.ctx.restore();
+  }
+
   private drawCommand(cmd: RenderCommand): void {
     const ctx = this.ctx;
     ctx.save();
@@ -127,12 +188,7 @@ export class Renderer {
             ctx.drawImage(cmd.image, dx, dy, dw, dh);
           }
           if (cmd.imageTint && cmd.imageTint.alpha > 0) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.globalAlpha = Math.max(0, Math.min(1, cmd.imageTint.alpha));
-            ctx.fillStyle = cmd.imageTint.color;
-            ctx.fillRect(dx, dy, dw, dh);
-            ctx.restore();
+            this.drawImageTintMask(cmd.image, cmd.imageSource, dx, dy, dw, dh, cmd.imageTint);
           }
         };
 
