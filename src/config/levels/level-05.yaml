@@ -389,11 +389,7 @@ cardPool:
   - card_arrow_rain
   - card_blizzard
   - card_bomb
-  - card_emergency_shield
-  - card_arrow_boost
-  - card_shield_boost
   - card_gold_rush
-  - card_speed_boost
 
 draftPool:
   - card_arrow_tower
@@ -418,11 +414,7 @@ draftPool:
   - card_arrow_rain
   - card_blizzard
   - card_bomb
-  - card_emergency_shield
-  - card_arrow_boost
-  - card_shield_boost
   - card_gold_rush
-  - card_speed_boost
 
 banPool: []
 neutralPool: []

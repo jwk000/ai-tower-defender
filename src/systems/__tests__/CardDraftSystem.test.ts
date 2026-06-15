@@ -23,9 +23,9 @@ function makeDraftPool(): CardInstance[] {
     { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
     { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '减速AOE区域', goldCost: 0 },
     { id: 'card_bomb', name: '炸弹', type: 'spell', description: '2秒延时爆炸', goldCost: 0 },
-    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌', goldCost: 0 },
-    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%', goldCost: 0 },
-    { id: 'card_gold_rush', name: '淘金热', type: 'arcane', description: '立即获得80金币', goldCost: 0 },
+    { id: 'card_gold_rush', name: '淘金热', type: 'spell', description: '立即获得80金币', goldCost: 0 },
+    { id: 'card_spike_trap', name: '地刺', type: 'trap', description: '路径陷阱', goldCost: 0 },
+    { id: 'card_bear_trap', name: '捕兽夹', type: 'trap', description: '控制陷阱', goldCost: 0 },
   ];
 }
 

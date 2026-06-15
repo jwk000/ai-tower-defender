@@ -1,7 +1,7 @@
 // ============================================================
 // cards.ts — v4.0 卡牌定义（per design/03-units.md §7）
 //
-// 导出 31 张完整卡牌的定义数组，供 HandSystem 等模块使用。
+// 导出完整卡牌定义数组，供 HandSystem 等模块使用。
 // ============================================================
 
 import type { CardInstance } from '../systems/HandSystem.js';
@@ -208,46 +208,14 @@ const bomb: CardInstance = {
   goldCost: 60,
 };
 
-// ---- 奥术卡（5种）----
-
-const emergencyShield: CardInstance = {
-  id: 'card_emergency_shield',
-  name: '紧急防护',
-  type: 'arcane',
-  description: '水晶10秒内无敌',
-  goldCost: 50,
-};
-
-const arrowBoost: CardInstance = {
-  id: 'card_arrow_boost',
-  name: '箭术精通',
-  type: 'arcane',
-  description: '本关箭塔和弩塔ATK+20%',
-  goldCost: 60,
-};
-
-const shieldBoost: CardInstance = {
-  id: 'card_shield_boost',
-  name: '坚韧守护',
-  type: 'arcane',
-  description: '本关所有盾卫HP+30%',
-  goldCost: 55,
-};
+// ---- 自施法技能卡（经济）----
 
 const goldRush: CardInstance = {
   id: 'card_gold_rush',
   name: '淘金热',
-  type: 'arcane',
+  type: 'spell',
   description: '立即获得80金币',
   goldCost: 20,
-};
-
-const speedBoost: CardInstance = {
-  id: 'card_speed_boost',
-  name: '疾风步',
-  type: 'arcane',
-  description: '本关所有士兵移速+25%',
-  goldCost: 50,
 };
 
 // ============================================================
@@ -278,23 +246,13 @@ export const UNIT_CARDS: CardInstance[] = [
   boulder,
 ];
 
-/** 所有 4 张技能卡 */
-export const SPELL_CARDS: CardInstance[] = [fireball, arrowRain, blizzard, bomb];
+/** 所有技能卡（含自施法经济卡） */
+export const SPELL_CARDS: CardInstance[] = [fireball, arrowRain, blizzard, bomb, goldRush];
 
-/** 所有 5 张奥术卡 */
-export const ARCANE_CARDS: CardInstance[] = [
-  emergencyShield,
-  arrowBoost,
-  shieldBoost,
-  goldRush,
-  speedBoost,
-];
-
-/** 全部 28 张卡牌 */
+/** 全部卡牌 */
 export const ALL_CARDS: CardInstance[] = [
   ...UNIT_CARDS,
   ...SPELL_CARDS,
-  ... ARCANE_CARDS,
 ];
 
 // ============================================================
@@ -352,7 +310,7 @@ export const LEVEL_4_CARD_POOL: CardInstance[] = [
 /** 第5关卡池：深渊裂隙（全部卡牌可用） */
 export const LEVEL_5_CARD_POOL: CardInstance[] = [...ALL_CARDS];
 
-/** 完整抽卡池（单位卡 + 技能卡，不含奥术卡 — 奥术卡为即时效果不参与抽卡） */
+/** 完整抽卡池（单位卡 + 技能卡） */
 export const FULL_DRAFT_POOL: CardInstance[] = [
   ...UNIT_CARDS,
   ...SPELL_CARDS,

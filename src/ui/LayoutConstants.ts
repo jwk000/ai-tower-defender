@@ -182,7 +182,6 @@ export function cardTypeLabel(type: string): string {
   switch (type) {
     case 'unit':       return '单位';
     case 'spell':      return '法术';
-    case 'arcane':     return '奥术';
     case 'trap':       return '陷阱';
     case 'production': return '生产';
     default:           return '未知';
@@ -193,7 +192,6 @@ export function cardTypeGlyph(type: string): string {
   switch (type) {
     case 'unit':       return '⚔';
     case 'spell':      return '✦';
-    case 'arcane':     return '✧';
     case 'trap':       return '✜';
     case 'production': return '⛏';
     default:           return '?';
@@ -228,14 +226,8 @@ export function resolveCardToEntityType(
   }
 
   // 技能卡（area-target，需要拖拽到场景）
-  const SPELL_IDS = ['fireball', 'arrow_rain', 'blizzard', 'bomb'];
+  const SPELL_IDS = ['fireball', 'arrow_rain', 'blizzard', 'bomb', 'gold_rush'];
   if (SPELL_IDS.includes(unitConfigId)) {
-    return { entityType: 'spell', spellCardId: unitConfigId };
-  }
-
-  // 奥术卡（self-target，不需要拖拽，但统一走 resolve 路径由调用方判断）
-  const ARCANE_IDS = ['emergency_shield', 'arrow_boost', 'shield_boost', 'gold_rush', 'speed_boost'];
-  if (ARCANE_IDS.includes(unitConfigId)) {
     return { entityType: 'spell', spellCardId: unitConfigId };
   }
 
@@ -255,11 +247,11 @@ export function resolveCardToEntityType(
   return null;
 }
 
-/** 自施法奥术卡（点击即生效，无需拖拽到场景） */
-const SELF_TARGET_ARCANE_IDS = ['emergency_shield', 'arrow_boost', 'shield_boost', 'gold_rush', 'speed_boost'];
+/** 自施法技能卡（点击即生效，无需拖拽到场景） */
+const SELF_TARGET_SPELL_IDS = ['gold_rush'];
 
 export function isSelfTargetSpell(spellCardId: string): boolean {
-  return SELF_TARGET_ARCANE_IDS.includes(spellCardId);
+  return SELF_TARGET_SPELL_IDS.includes(spellCardId);
 }
 
 // ============================================================

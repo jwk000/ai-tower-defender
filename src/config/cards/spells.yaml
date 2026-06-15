@@ -80,54 +80,6 @@ bomb_card:
     delay: 2.0
     affectAlly: false
 
-emergency_shield_card:
-  name: 紧急防护
-  description: 水晶10秒内无敌
-  type: spell
-  rarity: epic
-  energyCost: 5
-  goldCost: 50
-  spellSubtype: buff
-  placement:
-    targetType: self
-  spellEffect:
-    handler: crystal_shield
-    duration: 10.0
-
-arrow_boost_card:
-  name: 箭术精通
-  description: 本关内所有箭塔和弩塔攻击力+20%
-  type: spell
-  rarity: rare
-  energyCost: 4
-  goldCost: 60
-  spellSubtype: buff
-  placement:
-    targetType: self
-  spellEffect:
-    handler: global_buff
-    targetType: [arrow_tower, ballista_tower]
-    stat: atk
-    bonus: 0.2
-    duration: -1
-
-shield_boost_card:
-  name: 坚韧守护
-  description: 本关内所有盾卫HP+30%
-  type: spell
-  rarity: rare
-  energyCost: 4
-  goldCost: 55
-  spellSubtype: buff
-  placement:
-    targetType: self
-  spellEffect:
-    handler: global_buff
-    targetType: [shield_guard]
-    stat: hp
-    bonus: 0.3
-    duration: -1
-
 gold_rush_card:
   name: 淘金热
   description: 立即获得80金币
@@ -135,26 +87,9 @@ gold_rush_card:
   rarity: common
   energyCost: 0
   goldCost: 20
-  spellSubtype: economy
+  spellSubtype: utility
   placement:
-    targetType: self
+    targetType: global
   spellEffect:
     handler: gain_gold
     amount: 80
-
-speed_boost_card:
-  name: 疾风步
-  description: 本关内所有士兵移动速度+25%
-  type: spell
-  rarity: rare
-  energyCost: 4
-  goldCost: 50
-  spellSubtype: buff
-  placement:
-    targetType: self
-  spellEffect:
-    handler: global_buff
-    targetType: [soldier]
-    stat: speed
-    bonus: 0.25
-    duration: -1

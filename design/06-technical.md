@@ -448,7 +448,7 @@ npm run release      # clean + typecheck + build
 - [ ] 全部5关+5个BOSS
 - [ ] 10种塔+全部升级路径
 - [ ] 4种士兵+8种机关
-- [ ] 全部技能卡+奥术卡
+- [ ] 全部技能卡
 - [ ] Buff系统
 - [ ] 天气视觉+场景装饰
 - [ ] 关间Buff选择

@@ -263,15 +263,11 @@ Dark fantasy card illustration, [tower description], [color] energy glow, dark b
 | `card_art_blizzard` | 暴风雪+冰晶漩涡 |
 | `card_art_bomb` | 炸弹+引信火花 |
 
-### 4.6 奥术卡（5 张）
+### 4.6 自施法技能卡（1 张）
 
 | 卡牌 | 核心视觉元素 |
 |------|------------|
-| `card_art_emergency_shield` | 水晶被蓝色护盾包裹 |
-| `card_art_arrow_boost` | 箭矢被绿色能量强化 |
-| `card_art_shield_boost` | 盾牌被金色光芒加固 |
 | `card_art_gold_rush` | 金币堆+闪光 |
-| `card_art_speed_boost` | 风之靴/疾跑效果 |
 
 ### 4.7 卡图 AI 提示词（30 张完整版）
 
@@ -408,31 +404,11 @@ Fantasy tower defense card art: a fierce blizzard vortex, swirling snow and ice 
 Fantasy tower defense card art: a round black bomb with a lit fuse, sparks flying from the burning fuse tip, imminent explosion energy, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
 ```
 
-#### 奥术卡（5 张）
-
-**紧急防护**:
-```
-Fantasy tower defense card art: a red crystal (#ff1744) surrounded by a glowing blue protective shield bubble, energy barrier shimmering with hexagonal patterns, defensive ward, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
-```
-
-**箭术精通**:
-```
-Fantasy tower defense card art: a single arrow being empowered by green (#66bb6a) magical energy, glowing runes along the arrow shaft, power-up effect, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
-```
-
-**坚韧守护**:
-```
-Fantasy tower defense card art: a shield radiating golden (#ffc107) protective light, reinforced edges glowing, unbreakable ward, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
-```
+#### 自施法技能卡（1 张）
 
 **淘金热**:
 ```
 Fantasy tower defense card art: a pile of gold coins sparkling with golden light (#ffd54f), coins mid-bounce, wealth and prosperity, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
-```
-
-**疾风步**:
-```
-Fantasy tower defense card art: a pair of boots surrounded by swirling wind currents, cyan speed lines, swift movement effect, dark background, stylized game icon, 96x80 pixels, no text --ar 6:5
 ```
 
 ---

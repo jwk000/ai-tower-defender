@@ -881,9 +881,9 @@ class TowerDefenderGame extends Game {
             console.log('[CardDrag] onPointerDown - cardId:', card.cardId, 'unitConfigId:', unitConfigId, 'resolved:', resolved, 'cardIdx:', cardIdx);
             if (resolved) {
               if (resolved.entityType === 'spell') {
-                // 技能卡/奥术卡
+                // 技能卡
                 if (isSelfTargetSpell(resolved.spellCardId)) {
-                  // 自施法奥术卡：点击即生效，无需拖拽
+                  // 自施法技能卡：点击即生效，无需拖拽
                   // v5.0: 出牌前检查金币
                   const handCards = this.handSystem.getHand();
                   const handCard = handCards[cardIdx];
@@ -1597,12 +1597,12 @@ class TowerDefenderGame extends Game {
   }
 
   // ================================================================
-  // executeSpellAt — 技能卡/奥术卡效果执行
+  // executeSpellAt — 技能卡效果执行
   // ================================================================
 
   /**
    * 在指定坐标执行法术效果。
-   * 对于自施法奥术卡（targetType: self），x/y 参数被忽略。
+   * 对于自施法技能卡，x/y 参数被忽略。
    * 对于区域技能卡，创建投射物动画，由 SpellProjectileSystem 处理。
    */
   private executeSpellAt(spellCardId: string, x: number, y: number): void {
@@ -1726,80 +1726,11 @@ class TowerDefenderGame extends Game {
         break;
       }
 
-      // ---- 自施法奥术卡 ----
-      case 'emergency_shield': {
-        // 紧急防护：水晶 10 秒内无敌
-        if (this.baseEntityId !== null) {
-          const bid = this.baseEntityId;
-          const origArmor = Health.armor[bid] ?? 0;
-          const origMr = Health.magicResist[bid] ?? 0;
-          Health.armor[bid] = 99999;
-          Health.magicResist[bid] = 99999;
-          setTimeout(() => {
-            Health.armor[bid] = origArmor;
-            Health.magicResist[bid] = origMr;
-          }, 10000);
-        }
-        Sound.play('build_place');
-        break;
-      }
-
-      case 'arrow_boost': {
-        // 箭术精通：本关内所有箭塔和弩塔攻击力 +20%
-        for (let eid = 1; eid < Tower.towerType.length; eid++) {
-          const tt = Tower.towerType[eid];
-          if (tt === undefined) continue;
-          // Arrow=0, Ballista=1
-          if (tt === 0 || tt === 1) {
-            const curAtk = Attack.damage[eid];
-            if (curAtk !== undefined) {
-              Attack.damage[eid] = curAtk * 1.2;
-            }
-          }
-        }
-        Sound.play('upgrade');
-        break;
-      }
-
-      case 'shield_boost': {
-        // 坚韧守护：本关内所有盾卫 HP +30%
-        for (let eid = 1; eid < UnitTag.unitTypeNum.length; eid++) {
-          if (UnitTag.isEnemy[eid] === 1) continue;
-          const unitTypeNum = UnitTag.unitTypeNum[eid];
-          if (unitTypeNum === undefined) continue;
-          // shield_guard 的 unitTypeNum 需要查表
-          const unitType = UNIT_TYPE_BY_ID[unitTypeNum];
-          if (unitType === UnitType.ShieldGuard) {
-            const curMaxHp = Health.max[eid];
-            if (curMaxHp !== undefined) {
-              const bonus = Math.floor(curMaxHp * 0.3);
-              Health.max[eid] = curMaxHp + bonus;
-              Health.current[eid] = (Health.current[eid] ?? curMaxHp) + bonus;
-            }
-          }
-        }
-        Sound.play('upgrade');
-        break;
-      }
-
+      // ---- 自施法技能卡 ----
       case 'gold_rush': {
         // 淘金热：立即获得 80 金币
         this.economy.addGold(80);
         Sound.play('gold_earn');
-        break;
-      }
-
-      case 'speed_boost': {
-        // 疾风步：本关内所有士兵移动速度 +25%
-        for (let eid = 1; eid < Movement.speed.length; eid++) {
-          if (UnitTag.isEnemy[eid] === 1) continue;
-          if (!hasComponent(w, Soldier, eid)) continue;
-          const curSpeed = Movement.speed[eid];
-          if (curSpeed !== undefined) {
-            Movement.speed[eid] = curSpeed * 1.25;
-          }
-        }
-        Sound.play('upgrade');
         break;
       }
 

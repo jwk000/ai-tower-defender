@@ -16,8 +16,8 @@ function makeTestPool(): CardInstance[] {
     { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
     { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
     { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
-    { id: 'card_emergency_shield', name: '紧急防护', type: 'arcane', description: '水晶10秒无敌', goldCost: 0 },
-    { id: 'card_arrow_boost', name: '箭术精通', type: 'arcane', description: '本关箭塔ATK+20%', goldCost: 0 },
+    { id: 'card_gold_rush', name: '淘金热', type: 'spell', description: '立即获得80金币', goldCost: 0 },
+    { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '减速AOE区域', goldCost: 0 },
   ];
 }
 
@@ -254,7 +254,7 @@ describe('HandSystem — 手牌管理', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);
       const countBefore = handSystem.getCount();
-      handSystem.replaceCard(0, 'card_emergency_shield');
+      handSystem.replaceCard(0, 'card_gold_rush');
       expect(handSystem.getCount()).toBe(countBefore);
     });
   });

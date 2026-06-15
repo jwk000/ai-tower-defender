@@ -193,8 +193,6 @@ draftPool:
   - card_priest
   - card_boulder
   - card_blizzard
-  - card_emergency_shield
-  - card_arrow_boost
 
 banPool: []
 neutralPool: []

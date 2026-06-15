@@ -12,7 +12,7 @@
 
 覆盖范围：
 
-1. 所有卡牌：塔、士兵、机关、技能、奥术、生产建筑。
+1. 所有卡牌：塔、士兵、机关、技能、生产建筑。
 2. 所有单位：玩家塔、士兵、机关、生产建筑、敌人、Boss、中立目标。
 3. 所有技能、Buff 与状态：卡牌技能、敌人技能、关间 Buff、战斗状态标记。
 4. 所有场景地格：可建造地、路径、障碍、出生点、基地、水晶、关卡主题装饰。
@@ -124,7 +124,7 @@ photorealistic, cinematic poster, complex background, tiny details, horror gore,
 |------|----------|
 | 外框 | 黑铁材质，稀有度发光边；圆角不超过 8px |
 | 插画窗 | 暗底、有微弱景深，不能和外框粘连 |
-| 类型角标 | 单位/法术/奥术/陷阱/生产 5 套小图标 |
+| 类型角标 | 单位/法术/陷阱/生产 4 套小图标 |
 | 费用徽章 | 暗金圆形或菱形底，不烘焙数字 |
 | 名称条 | 暗色条 + 细亮边，不烘焙文字 |
 | 描述区 | 简洁深色底纹，保证运行时文字可读 |
@@ -164,11 +164,8 @@ dark fantasy casual tower defense card illustration, {subject}, centered heroic 
 | 剑雨 | 技能 | 箭矢雨 | `rain of sharp arrows falling from above, stormy dark sky, bright metal arrowheads` |
 | 暴风雪 | 技能 | 冰晶旋涡 | `blizzard vortex, swirling snow, blue white ice shards, freezing wind spiral` |
 | 炸弹 | 技能 | 黑色圆弹 | `round black bomb with lit fuse, sparks and imminent explosion glow` |
-| 紧急防护 | 奥术 | 水晶护盾 | `red crystal protected by blue shield bubble, hexagonal barrier pattern` |
-| 箭术精通 | 奥术 | 强化箭矢 | `single arrow empowered by green magical runes, precision aura` |
-| 坚韧守护 | 奥术 | 金色盾牌 | `golden reinforced shield, radiant protective ward, sturdy dark metal rim` |
-| 淘金热 | 奥术 | 金币爆发 | `pile of gold coins sparkling, dark fantasy treasure glow, bouncing coin shapes` |
-| 疾风步 | 奥术 | 风之靴 | `boots surrounded by cyan wind trails, swift movement effect, curved speed lines` |
+| 淘金热 | 技能 | 金币爆发 | `pile of gold coins sparkling, dark fantasy treasure glow, bouncing coin shapes` |
+
 | 金矿 | 生产 | 暗金矿井 | `small dark gold mine building, glowing ore vein, mine cart silhouette` |
 | 能量塔 | 生产 | 蓝紫能量尖塔 | `arcane energy tower, blue violet crystal battery, pulsing mana ring` |
 

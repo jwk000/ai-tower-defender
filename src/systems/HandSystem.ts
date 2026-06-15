@@ -21,7 +21,7 @@ export interface CardInstance {
   /** 显示名称 */
   name: string;
   /** 卡牌类型 */
-  type: 'unit' | 'spell' | 'arcane' | 'trap' | 'production';
+  type: 'unit' | 'spell' | 'trap' | 'production';
   /** 一句话机制描述 */
   description: string;
   /** v5.0 出牌消耗金币 */

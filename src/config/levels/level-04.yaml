@@ -268,7 +268,6 @@ draftPool:
   - card_mage
   - card_bomb
   - card_gold_rush
-  - card_shield_boost
 
 banPool: []
 neutralPool: []

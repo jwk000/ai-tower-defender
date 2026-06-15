@@ -84,7 +84,7 @@ function fillAndStrokeRoundedRect(
 // 类型与常量
 // ============================================================
 
-export type CardFilterCategory = 'all' | 'tower' | 'soldier' | 'trap' | 'spell' | 'arcane';
+export type CardFilterCategory = 'all' | 'tower' | 'soldier' | 'trap' | 'spell';
 
 interface FilterTab { key: CardFilterCategory; label: string; color: string; }
 
@@ -94,11 +94,10 @@ const FILTER_TABS: FilterTab[] = [
   { key: 'soldier', label: '士兵', color: '#66bb6a' },
   { key: 'trap',    label: '机关', color: '#ef5350' },
   { key: 'spell',   label: '技能', color: '#ab47bc' },
-  { key: 'arcane',  label: '奥术', color: '#ffa726' },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc', arcane: '#ffa726',
+  tower: '#42a5f5', soldier: '#66bb6a', trap: '#ef5350', spell: '#ab47bc',
 };
 
 /** 在美术区绘制卡牌专属矢量图标（可跨模块复用） */
@@ -141,12 +140,7 @@ export function drawCardIcon(
     case 'card_arrow_rain':      drawArrowRain(ctx, cx, cy, w, h); break;
     case 'card_blizzard':        drawBlizzard(ctx, cx, cy, w, h); break;
     case 'card_bomb':            drawBomb(ctx, cx, cy, w, h); break;
-    // ============ 奥术 (5) ============
-    case 'card_emergency_shield': drawEmergencyShield(ctx, cx, cy, w, h); break;
-    case 'card_arrow_boost':      drawArrowBoost(ctx, cx, cy, w, h); break;
-    case 'card_shield_boost':     drawShieldBoost(ctx, cx, cy, w, h); break;
     case 'card_gold_rush':        drawGoldRush(ctx, cx, cy, w, h); break;
-    case 'card_speed_boost':      drawSpeedBoost(ctx, cx, cy, w, h); break;
     // fallback
     default:
       drawGenericIcon(ctx, cx, cy, w, h, color); break;
@@ -888,7 +882,6 @@ function drawGenericIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
 
 function getCardCategory(card: CardInstance): Exclude<CardFilterCategory, 'all'> {
   if (card.type === 'spell') return 'spell';
-  if (card.type === 'arcane') return 'arcane';
   if (card.type === 'trap') return 'trap';
   if (card.id.includes('_tower')) return 'tower';
   return 'soldier';
@@ -1187,7 +1180,7 @@ export class CardEncyclopediaUI {
       ctx.restore();
 
       // 类型标签
-      const labels: Record<string, string> = { tower: '塔', soldier: '兵', trap: '机关', spell: '技能', arcane: '奥术' };
+      const labels: Record<string, string> = { tower: '塔', soldier: '兵', trap: '机关', spell: '技能' };
       ctx.save();
       ctx.fillStyle = borderColor; ctx.font = getFont(10, false);
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
