@@ -134,6 +134,7 @@ function spawnMinion(
     range: config.attackRange ?? 32,
     damageType: DamageTypeVal.Physical,
     isRanged: (config.attackRange ?? 32) > 60 ? 1 : 0,
+    canTargetLowAir: 0,
     alertRange: 200,
     cooldownTimer: 0, targetId: 0,
     targetSelection: 0, attackMode: 0,

@@ -688,6 +688,7 @@ export const splitInto: RuleHandlerFn = (world, entityId, params, _context) => {
     Attack.targetSelection[childId] = 0;
     Attack.attackMode[childId] = 0;
     Attack.isRanged[childId] = 0;
+    Attack.canTargetLowAir[childId] = 0;
     Attack.splashRadius[childId] = 0;
     Attack.chainCount[childId] = 0;
     Attack.chainRange[childId] = 0;
@@ -813,6 +814,7 @@ export const spawnUnit: RuleHandlerFn = (world, entityId, params, _context) => {
     Attack.targetSelection[spawnedId] = 0;
     Attack.attackMode[spawnedId] = 0;
     Attack.isRanged[spawnedId] = 0;
+    Attack.canTargetLowAir[spawnedId] = 0;
     Attack.splashRadius[spawnedId] = 0;
     Attack.chainCount[spawnedId] = 0;
     Attack.chainRange[spawnedId] = 0;

@@ -14,7 +14,7 @@ import {
   Stunned, ExplosionEffect, BloodParticle, FadingMark,
   UnitTag, Boss, ShapeVal, DamageTypeVal,
   TargetingMark, Layer, LayerVal,
-  Tower, Poisoned,
+  Tower, Poisoned, Attack,
 } from '../core/components.js';
 import { calcPhysicalDamage } from '../utils/combatFormulas.js';
 import { addBuff, BuffPriority } from './BuffSystem.js';
@@ -73,6 +73,11 @@ interface VineDOT {
 function isAlive(eid: number): boolean {
   const hp = Health.current[eid];
   return hp !== undefined && hp > 0;
+}
+
+function canProjectileSourceAffectLowAir(sourceId: number, isMissile: boolean): boolean {
+  if (isMissile) return false;
+  return sourceId > 0 && (Attack.canTargetLowAir[sourceId] ?? 0) === 1;
 }
 
 // ============================================================
@@ -501,7 +506,6 @@ export class ProjectileSystem implements System {
       ? (radius * (missileCfg?.centerBonusRadiusRatio ?? 0.1)) ** 2
       : 0;
     const centerMult = missileCfg?.centerBonusMultiplier ?? 1.0;
-    const cantTargetFlying = isMissile && missileCfg?.cantTargetFlying === true;
 
     for (const enemyId of enemyQuery(world.world)) {
       if (!isAlive(enemyId)) continue;
@@ -510,8 +514,9 @@ export class ProjectileSystem implements System {
       if (UnitTag.isEnemy[enemyId] !== 1) continue;
       if (enemyId === sourceTowerId) continue;
 
-      // Missile: skip flying enemies (ground explosion doesn't reach them)
-      if (cantTargetFlying && (Layer.value[enemyId] ?? LayerVal.Ground) === LayerVal.LowAir) {
+      // Ground splash without anti-air reach does not affect LowAir enemies.
+      const enemyLayer = Layer.value[enemyId] ?? LayerVal.Ground;
+      if (enemyLayer === LayerVal.LowAir && !canProjectileSourceAffectLowAir(sourceTowerId, isMissile)) {
         continue;
       }
 
@@ -577,6 +582,7 @@ export class ProjectileSystem implements System {
 
       for (const enemyId of enemyQuery(world.world)) {
         if (hitIds.has(enemyId) || !isAlive(enemyId)) continue;
+        if ((Layer.value[enemyId] ?? LayerVal.Ground) === LayerVal.LowAir && !canProjectileSourceAffectLowAir(sourceId, false)) continue;
 
         const ex = Position.x[enemyId];
         const ey = Position.y[enemyId];

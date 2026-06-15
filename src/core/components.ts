@@ -198,7 +198,8 @@ export const Attack = defineComponent({
   targetId: Types.eid,      // 当前目标实体ID
   targetSelection: Types.ui8,  // TargetSelectionVal
   attackMode: Types.ui8,       // AttackModeVal
-  isRanged: Types.ui8,         // 是否远程攻击 (0=近战, 1=远程)，决定能否攻击 LowAir
+  isRanged: Types.ui8,         // 是否远程攻击 (0=近战, 1=远程)
+  canTargetLowAir: Types.ui8,  // 是否能主动选择/命中 LowAir 目标
   splashRadius: Types.f32,     // AOE溅射半径
   chainCount: Types.ui8,       // 弹跳次数
   chainRange: Types.f32,       // 弹跳搜索半径

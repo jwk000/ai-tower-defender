@@ -13,7 +13,7 @@ import type { World as BitecsWorld } from 'bitecs';
 import { TowerWorld } from '../core/World.js';
 import {
   Position, Projectile, Health, UnitTag, Layer, LayerVal,
-  TargetingMark, Visual, DamageTypeVal,
+  TargetingMark, Visual, DamageTypeVal, Attack,
 } from '../core/components.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { computeMissileParabola } from './AttackSystem.js';
@@ -83,13 +83,13 @@ function makeMissile(
   return id;
 }
 
-function makeEnemy(world: TowerWorld, x: number, y: number, hp: number = 200): number {
+function makeEnemy(world: TowerWorld, x: number, y: number, hp: number = 200, layer: number = LayerVal.Ground): number {
   const w = world.world;
   const id = addEntity(w);
   addComp(w, id, Position, { x, y });
   addComp(w, id, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   addComp(w, id, UnitTag, { isEnemy: 1, isBoss: 0, isRanged: 0 });
-  addComp(w, id, Layer, { value: LayerVal.Ground });
+  addComp(w, id, Layer, { value: layer });
   return id;
 }
 
@@ -100,6 +100,19 @@ function makeAlliedTower(world: TowerWorld, x: number, y: number, hp: number = 5
   addComp(w, id, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   addComp(w, id, UnitTag, { isEnemy: 0, isBoss: 0, isRanged: 1 });
   addComp(w, id, Layer, { value: LayerVal.Ground });
+  addComp(w, id, Attack, {
+    damage: 10,
+    attackSpeed: 1,
+    range: 160,
+    alertRange: 320,
+    damageType: DamageTypeVal.Physical,
+    cooldownTimer: 0,
+    targetId: 0,
+    targetSelection: 0,
+    attackMode: 0,
+    isRanged: 1,
+    canTargetLowAir: 0,
+  });
   return id;
 }
 
@@ -175,6 +188,30 @@ describe('ProjectileSystem — Splash friendly-fire guard', () => {
 
     expect(Health.current[alliedTower]).toBe(alliedHpBefore);
     expect(Health.current[enemy]).toBeLessThan(enemyHpBefore);
+  });
+
+  it('低空敌人不受无对空能力的地面 splash 伤害', () => {
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+
+    const hitX = 500, hitY = 500;
+    const markId = makeMark(world, hitX, hitY);
+    const sourceTowerId = makeAlliedTower(world, 0, 0, 500);
+    Attack.canTargetLowAir[sourceTowerId] = 0;
+
+    const groundEnemy = makeEnemy(world, hitX + 20, hitY, 200, LayerVal.Ground);
+    const lowAirEnemy = makeEnemy(world, hitX - 20, hitY, 200, LayerVal.LowAir);
+    const groundHpBefore = Health.current[groundEnemy]!;
+    const lowAirHpBefore = Health.current[lowAirEnemy]!;
+
+    makeMissile(world, hitX, hitY - 50, markId, sourceTowerId, 130, 100);
+
+    for (let i = 0; i < 180; i++) {
+      sys.update(world, 1 / 60);
+    }
+
+    expect(Health.current[groundEnemy]).toBeLessThan(groundHpBefore);
+    expect(Health.current[lowAirEnemy]).toBe(lowAirHpBefore);
   });
 
   it('Bug 2: splash 不应伤害发射弹体的源塔本身（即使源塔在范围内）', () => {

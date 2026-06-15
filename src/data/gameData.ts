@@ -162,6 +162,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     projectileCount: [1, 2, 3],
     color: '#4fc3f7',
     buildTime: 1.5,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Arrow],
   },
 
@@ -182,6 +183,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#8d6e63',
     buildTime: 2.0,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Ballista],
   },
 
@@ -202,6 +204,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#ff8a65',
     buildTime: 2.0,
+    canTargetLowAir: false,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Cannon],
   },
 
@@ -221,6 +224,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#e040fb',
     buildTime: 2.0,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Laser],
   },
 
@@ -247,6 +251,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 0],
     color: '#7c4dff',
     buildTime: 2.0,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Bat],
   },
 
@@ -262,6 +267,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     damageType: 'physical',
     splashRadius: 80,
     cantTargetFlying: true,
+    canTargetLowAir: false,
     // L2: 2 missiles × 60 dmg; L3: 3 missiles × 45 dmg
     upgradeCosts: [200, 300],
     upgradeAtkBonus: [0, 0],
@@ -290,6 +296,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20],
     color: '#81d4fa',
     buildTime: 1.5,
+    canTargetLowAir: false,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Ice],
   },
 
@@ -311,6 +318,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#ff5722',
     buildTime: 2.0,
+    canTargetLowAir: false,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Fire],
   },
 
@@ -332,6 +340,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0],
     color: '#66bb6a',
     buildTime: 1.5,
+    canTargetLowAir: false,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Poison],
   },
 
@@ -354,6 +363,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [0, 20, 0],
     color: '#fff176',
     buildTime: 2.0,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Lightning],
   },
 };
@@ -901,6 +911,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [8, 12],
     shape: 'rect',
     attackAnimDuration: 0.35,
+    canTargetLowAir: true,
     visualParts: {
       eyes: {
         offsetX: 4,
@@ -944,6 +955,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [7, 11],
     shape: 'rect',
     attackAnimDuration: 0.4,
+    canTargetLowAir: false,
     visualParts: {
       eyes: {
         offsetX: 3,

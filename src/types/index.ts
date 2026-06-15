@@ -258,6 +258,7 @@ export interface TowerConfig {
   freezeDuration?: number;
   chainCount?: number;
   chainDecay?: number;
+  canTargetLowAir?: boolean;
   chainRange?: number;
   // Bat tower specific
   batCount?: number;
@@ -446,6 +447,7 @@ export interface UnitConfig {
   attackAnimDuration?: number;
   /** 目标选择策略（默认 'nearest'） */
   targetSelection?: string;
+  canTargetLowAir?: boolean;
 }
 
 // ---- Trap ----

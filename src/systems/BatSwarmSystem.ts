@@ -751,6 +751,7 @@ export class BatSwarmSystem implements System {
       targetSelection: TargetSelectionVal.Nearest,
       attackMode: AttackModeVal.SingleTarget,
       isRanged: 0,  // bats are flying melee (LowAir can attack all ≤ LowAir anyway)
+      canTargetLowAir: 1,
       splashRadius: 0,
       chainCount: 0,
       chainRange: 0,

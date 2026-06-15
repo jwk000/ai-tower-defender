@@ -526,6 +526,7 @@ export class WaveSystem implements System {
         range: config.attackRange,
         damageType: DamageTypeVal.Physical,
         isRanged: config.attackRange > 60 ? 1 : 0, // 远程阈值 60px
+        canTargetLowAir: 0,
       });
     }
 

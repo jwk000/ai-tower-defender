@@ -87,6 +87,24 @@ describe('HandSystem — 手牌管理', () => {
       expect(firstIds.length).toBe(5);
       expect(secondIds.length).toBe(5);
     });
+
+    it('初始手牌前 5 张没有防空牌时，从卡池后续交换 1 张防空牌进手', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.999);
+      const pool: CardInstance[] = [
+        { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '控制', goldCost: 0 },
+        { id: 'card_cannon_tower', name: '炮塔', type: 'unit', description: '地面群伤', goldCost: 0 },
+        { id: 'card_fire_tower', name: '火塔', type: 'unit', description: '地面灼烧', goldCost: 0 },
+        { id: 'card_poison_tower', name: '毒塔', type: 'unit', description: '地面中毒', goldCost: 0 },
+        { id: 'card_mage', name: '法师', type: 'unit', description: '地面AOE', goldCost: 0 },
+        { id: 'card_archer', name: '弓手', type: 'unit', description: '防空士兵', goldCost: 0 },
+      ];
+
+      handSystem.initialize(pool);
+      const ids = handSystem.getHand().map((c) => c?.id);
+
+      expect(ids).toContain('card_archer');
+      expect(ids).not.toContain('card_mage');
+    });
   });
 
   describe('drawCard — 抽牌', () => {

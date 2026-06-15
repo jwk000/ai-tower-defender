@@ -10,6 +10,7 @@
 // ============================================================
 
 import type { TowerWorld, System } from '../core/World.js';
+import { cardCanCounterLowAir } from '../utils/lowAirTargeting.js';
 
 // ---- 数据类型 ----
 
@@ -69,7 +70,7 @@ export class HandSystem implements System {
    * 初始化手牌：注入卡牌库并从池中随机抽满手牌（v5.0: 5张）。
    * 若池不足 5 张，有多少抽多少。
    *
-   * 保证第一张手牌为箭塔卡（card_arrow_tower），降低第一波难度。
+   * 保证初始手牌至少有 1 张 LowAir 对策；若有箭塔卡则优先放到第一位，降低第一波难度。
    */
   initialize(cardPool: CardInstance[]): void {
     this.cardLibrary.clear();
@@ -91,6 +92,15 @@ export class HandSystem implements System {
     const arrowIdx = shuffled.findIndex((c) => c.id === 'card_arrow_tower');
     if (arrowIdx > 0) {
       [shuffled[0], shuffled[arrowIdx]] = [shuffled[arrowIdx]!, shuffled[0]!];
+    }
+
+    // 低空关卡需要防空兜底：若前 5 张没有 LowAir 对策，从后续卡池交换一张进手。
+    const initialSlice = shuffled.slice(0, MAX_HAND_SIZE);
+    if (!initialSlice.some((c) => cardCanCounterLowAir(c.id))) {
+      const counterIdx = shuffled.findIndex((c, idx) => idx >= MAX_HAND_SIZE && cardCanCounterLowAir(c.id));
+      if (counterIdx >= 0) {
+        [shuffled[MAX_HAND_SIZE - 1], shuffled[counterIdx]] = [shuffled[counterIdx]!, shuffled[MAX_HAND_SIZE - 1]!];
+      }
     }
 
     const drawCount = Math.min(MAX_HAND_SIZE, shuffled.length);

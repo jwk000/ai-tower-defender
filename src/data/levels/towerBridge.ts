@@ -2,6 +2,7 @@ import { TowerType, type TowerConfig, type ShapeType } from '../../types/index.j
 import { unitConfigRegistry } from '../../config/registry.js';
 import { TOWER_CONFIGS } from '../gameData.js';
 import { getProceduralVisualParts } from '../../utils/proceduralArt.js';
+import { towerCanTargetLowAir } from '../../utils/lowAirTargeting.js';
 
 const VALID_TOWER_TYPES = new Set<string>(Object.values(TowerType));
 
@@ -97,6 +98,7 @@ export function injectTowerConfigsFromRegistry(): number {
       shape: mapShape(visual?.shape),
       visualParts: getProceduralVisualParts(u),
       buildTime: 1.5,
+      canTargetLowAir: towerCanTargetLowAir(type),
     };
 
     // 添加可选属性

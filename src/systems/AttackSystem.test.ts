@@ -2,8 +2,7 @@
  * AttackSystem 测试 — P1-#12 弹道层级穿透规则 + v4.0 阵营过滤
  *
  * 对应设计文档:
- * - design/18-layer-system.md §5.2 攻击目标可达性矩阵
- * - design/18-layer-system.md §5.3 实现方式 (isRanged 字段)
+ * - design/03-units.md §2.0 低空攻击规则
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -34,8 +33,12 @@ describe('AttackSystem.canAttackLayer (P1-#12)', () => {
       expect(AttackSystem.canAttackLayer(LayerVal.Ground, LayerVal.LowAir, false)).toBe(false);
     });
 
-    it('远程地面塔可以攻击 LowAir 目标 (飞行敌)', () => {
-      expect(AttackSystem.canAttackLayer(LayerVal.Ground, LayerVal.LowAir, true)).toBe(true);
+    it('远程地面单位没有对空能力时无法攻击 LowAir 目标', () => {
+      expect(AttackSystem.canAttackLayer(LayerVal.Ground, LayerVal.LowAir, true, false)).toBe(false);
+    });
+
+    it('远程地面单位有对空能力时可以攻击 LowAir 目标', () => {
+      expect(AttackSystem.canAttackLayer(LayerVal.Ground, LayerVal.LowAir, true, true)).toBe(true);
     });
 
     it('远程地面塔可以攻击 Ground 目标', () => {
@@ -64,8 +67,8 @@ describe('AttackSystem.canAttackLayer (P1-#12)', () => {
       expect(AttackSystem.canAttackLayer(LayerVal.AboveGrid, LayerVal.LowAir, false)).toBe(false);
     });
 
-    it('远程 AboveGrid 单位可攻击 LowAir 目标', () => {
-      expect(AttackSystem.canAttackLayer(LayerVal.AboveGrid, LayerVal.LowAir, true)).toBe(true);
+    it('远程 AboveGrid 单位没有对空能力时无法攻击 LowAir 目标', () => {
+      expect(AttackSystem.canAttackLayer(LayerVal.AboveGrid, LayerVal.LowAir, true, false)).toBe(false);
     });
   });
 
@@ -108,7 +111,7 @@ describe('AttackSystem.canAttackLayer (P1-#12)', () => {
       [LayerVal.Ground, LayerVal.Ground, false, true, 'Ground 近战 → Ground'],
       [LayerVal.Ground, LayerVal.AboveGrid, false, true, 'Ground 近战 → AboveGrid'],
       [LayerVal.Ground, LayerVal.LowAir, false, false, 'Ground 近战 → LowAir (禁)'],
-      [LayerVal.Ground, LayerVal.LowAir, true, true, 'Ground 远程 → LowAir'],
+      [LayerVal.Ground, LayerVal.LowAir, true, false, 'Ground 远程无对空 → LowAir (禁)'],
       [LayerVal.Ground, LayerVal.Space, true, false, 'Ground 远程 → Space (禁)'],
       [LayerVal.LowAir, LayerVal.Ground, false, true, 'LowAir → Ground'],
       [LayerVal.LowAir, LayerVal.LowAir, false, true, 'LowAir → LowAir'],
@@ -136,6 +139,7 @@ function makeAttackable(
   hp: number = 100,
   layer: number = LayerVal.Ground,
   isRanged: 0 | 1 = 0,
+  canTargetLowAir: 0 | 1 = 0,
 ): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x, y });
@@ -143,7 +147,7 @@ function makeAttackable(
   world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   world.addComponent(eid, UnitTag, { isEnemy: 1, isBoss: 0, isRanged: 0, canAttackBuildings: 0, rewardGold: 0, rewardEnergy: 0, popCost: 0, cost: 0 });
   world.addComponent(eid, Layer, { value: layer });
-  world.addComponent(eid, Attack, { damage: 10, attackSpeed: 1, range: 100, alertRange: 150, damageType: 0, cooldownTimer: 0, targetId: 0, targetSelection: 0, attackMode: 0, isRanged });
+  world.addComponent(eid, Attack, { damage: 10, attackSpeed: 1, range: 100, alertRange: 150, damageType: 0, cooldownTimer: 0, targetId: 0, targetSelection: 0, attackMode: 0, isRanged, canTargetLowAir });
   return eid;
 }
 
@@ -251,8 +255,14 @@ describe('AttackSystem.isValidTarget — 阵营过滤 + 存活 + 层级', () => 
       expect(AttackSystem.isValidTarget(world, attacker, target)).toBe(false);
     });
 
-    it('Ground 远程可以攻击 LowAir (远程穿透 LowAir)', () => {
-      const attacker = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 1);
+    it('Ground 远程没有对空能力时无法攻击 LowAir', () => {
+      const attacker = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 1, 0);
+      const target = makeAttackable(world, 50, 0, FactionVal.Evil, 100, LayerVal.LowAir, 0);
+      expect(AttackSystem.isValidTarget(world, attacker, target)).toBe(false);
+    });
+
+    it('Ground 远程有对空能力时可以攻击 LowAir', () => {
+      const attacker = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 1, 1);
       const target = makeAttackable(world, 50, 0, FactionVal.Evil, 100, LayerVal.LowAir, 0);
       expect(AttackSystem.isValidTarget(world, attacker, target)).toBe(true);
     });
@@ -271,7 +281,7 @@ describe('findEnemiesInRange — 阵营过滤', () => {
     const towerId = world.createEntity();
     world.addComponent(towerId, Position, { x: 0, y: 0 });
     world.addComponent(towerId, Faction, { value: FactionVal.Justice });
-    world.addComponent(towerId, Attack, { damage: 10, attackSpeed: 1, range: 100, alertRange: 150, damageType: 0, cooldownTimer: 0, targetId: 0, targetSelection: 0, attackMode: 0, isRanged: 1 });
+    world.addComponent(towerId, Attack, { damage: 10, attackSpeed: 1, range: 100, alertRange: 150, damageType: 0, cooldownTimer: 0, targetId: 0, targetSelection: 0, attackMode: 0, isRanged: 1, canTargetLowAir: 1 });
 
     // Evil in range → should be included
     const evilInRange = makeAttackable(world, 50, 0, FactionVal.Evil, 100);

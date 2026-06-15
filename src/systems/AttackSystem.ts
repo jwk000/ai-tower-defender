@@ -379,18 +379,19 @@ export class AttackSystem implements System {
   /**
    * Check whether an attacker at `attackerLayer` can target a unit at `targetLayer`.
    *
-   * 对应设计 design/18-layer-system.md §5.2 攻击目标可达性矩阵:
+   * 对应设计 design/03-units.md §2.0 低空攻击规则:
    * - 近战 (isRanged=false): only AboveGrid + Ground
-   * - 远程 (isRanged=true): AboveGrid + Ground + LowAir
+   * - 远程 (isRanged=true): AboveGrid + Ground
+   * - canTargetLowAir=true: 可额外攻击 LowAir
    * - LowAir attackers (蝙蝠、飞行敌): can attack all ≤ LowAir
    * - Abyss/BelowGrid/Space: 默认放行 (未来扩展点)
    *
    * P1-#12: 提为 static 便于纯函数单测覆盖。
    */
-  static canAttackLayer(attackerLayer: number, targetLayer: number, isRanged: boolean): boolean {
+  static canAttackLayer(attackerLayer: number, targetLayer: number, isRanged: boolean, canTargetLowAir = false): boolean {
     if (attackerLayer === LayerVal.Ground || attackerLayer === LayerVal.AboveGrid) {
       if (targetLayer === LayerVal.Ground || targetLayer === LayerVal.AboveGrid) return true;
-      if (targetLayer === LayerVal.LowAir) return isRanged;
+      if (targetLayer === LayerVal.LowAir) return isRanged && canTargetLowAir;
       return false;
     }
     if (attackerLayer === LayerVal.LowAir) {
@@ -423,7 +424,8 @@ export class AttackSystem implements System {
     const attackerLayer = Layer.value[attackerEid] ?? LayerVal.Ground;
     const targetLayer = Layer.value[targetEid] ?? LayerVal.Ground;
     const isRanged = (Attack.isRanged[attackerEid] ?? 0) === 1;
-    if (!AttackSystem.canAttackLayer(attackerLayer, targetLayer, isRanged)) return false;
+    const canTargetLowAir = (Attack.canTargetLowAir[attackerEid] ?? 0) === 1;
+    if (!AttackSystem.canAttackLayer(attackerLayer, targetLayer, isRanged, canTargetLowAir)) return false;
 
     return true;
   }
@@ -489,6 +491,7 @@ export class AttackSystem implements System {
           const tf = Faction.value[eid];
           if (tf === undefined || !areHostile(towerFaction, tf)) continue;
           if ((Health.current[eid] ?? 0) <= 0) continue;
+          if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
           const ex = Position.x[eid]!;
           const ey = Position.y[eid]!;
@@ -850,6 +853,7 @@ export function doLightningAttack(
         const tf = Faction.value[eid];
         if (tf === undefined || !areHostile(towerFaction, tf)) continue;
         if ((Health.current[eid] ?? 0) <= 0) continue;
+        if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
         const ex = Position.x[eid]!;
         const ey = Position.y[eid]!;
@@ -886,6 +890,7 @@ export function findEnemiesInRange(
     const tf = Faction.value[eid];
     if (tf === undefined || !areHostile(towerFaction, tf)) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
     const ex = Position.x[eid]!;
     const ey = Position.y[eid]!;
     const dx = ex - tx;

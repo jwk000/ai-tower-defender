@@ -43,6 +43,7 @@ import {
   TRAP_TYPE_VAL,
 } from '../data/gameData.js';
 import { shapeTypeToVal, hexToRgb, layerStrToVal } from '../utils/visualHelpers.js';
+import { soldierCanTargetLowAir, towerCanTargetLowAir } from '../utils/lowAirTargeting.js';
 
 // ============================================================
 // 映射表
@@ -253,6 +254,7 @@ export class UnitFactory {
         targetSelection: TargetSelectionVal.Nearest,
         attackMode: isMissile ? AttackModeVal.AoeSplash : ((cfg.splashRadius as number) ?? 0) > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget,
         isRanged: 1,
+        canTargetLowAir: ((cfg.canTargetLowAir as boolean | undefined) ?? towerCanTargetLowAir(towerType)) ? 1 : 0,
         splashRadius: (cfg.splashRadius as number) ?? 0,
         chainCount: (cfg.chainCount as number) ?? 0,
         chainRange: (cfg.chainRange as number) ?? 0,
@@ -341,6 +343,7 @@ export class UnitFactory {
       targetSelection: TargetSelectionVal.Nearest,
       attackMode: AttackModeVal.SingleTarget,
       isRanged: 0,
+      canTargetLowAir: 0,
       splashRadius: 0,
       chainCount: 0,
       chainRange: 0,
@@ -415,6 +418,7 @@ export class UnitFactory {
       targetSelection: targetSelectionStrToVal(cfg.targetSelection as string),
       attackMode,
       isRanged: attackRange > 80 ? 1 : 0,
+      canTargetLowAir: ((cfg.canTargetLowAir as boolean | undefined) ?? soldierCanTargetLowAir(unitType)) ? 1 : 0,
       splashRadius,
       chainCount: 0,
       chainRange: 0,
