@@ -36,6 +36,7 @@ import {
   TrapTypeVal,
   Barrel,
 } from '../core/components.js';
+import { ruleEngine } from '../core/RuleEngine.js';
 import {
   TOWER_CONFIGS,
   UNIT_CONFIGS,
@@ -61,6 +62,20 @@ export const TOWER_TYPE_ID: Record<TowerType, number> = {
   [TowerType.Fire]: 7,
   [TowerType.Poison]: 8,
   [TowerType.Ballista]: 9,
+};
+
+/** TowerType 枚举 → YAML unit config id */
+const TOWER_CONFIG_ID: Record<TowerType, string> = {
+  [TowerType.Arrow]: 'arrow_tower',
+  [TowerType.Cannon]: 'cannon_tower',
+  [TowerType.Ice]: 'ice_tower',
+  [TowerType.Lightning]: 'lightning_tower',
+  [TowerType.Laser]: 'laser_tower',
+  [TowerType.Bat]: 'bat_tower',
+  [TowerType.Missile]: 'missile_tower',
+  [TowerType.Fire]: 'fire_tower',
+  [TowerType.Poison]: 'poison_tower',
+  [TowerType.Ballista]: 'ballista_tower',
 };
 
 /** YAML targetSelection 字符串 → TargetSelectionVal 数字 */
@@ -231,6 +246,7 @@ export class UnitFactory {
       level: 1,
       totalInvested: (cfg.cost as number) ?? 0,
     });
+    ruleEngine.registerEntityConfig(eid, TOWER_CONFIG_ID[towerType]);
 
     // Attack or BatTower
     if (isBatTower) {

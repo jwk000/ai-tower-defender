@@ -70,6 +70,9 @@ export class RuleEngine {
   /** 单位类型 → 行为规则提供者 */
   private behaviorRules: Map<string, BehaviorRuleProvider> = new Map();
 
+  /** 实体 → YAML 单位配置 ID */
+  private entityConfigIds: Map<number, string> = new Map();
+
   /** 已触发的一次性事件 */
   private firedOnceEvents: Map<string, Set<LifecycleEvent>> = new Map();
 
@@ -101,6 +104,16 @@ export class RuleEngine {
     this.lifecycleRules.set(unitConfigId, rules);
   }
 
+  /**
+   * Register which YAML unit config an entity was created from.
+   *
+   * UnitRef.configId is a ui16 component and cannot store string YAML IDs,
+   * so runtime lifecycle dispatch uses this side-channel map.
+   */
+  registerEntityConfig(entityId: number, unitConfigId: string): void {
+    this.entityConfigIds.set(entityId, unitConfigId);
+  }
+
   // ---- 行为规则注册 ----
 
   /**
@@ -123,11 +136,8 @@ export class RuleEngine {
     context: EventContext = { time: 0 },
   ): boolean {
     // 获取单位类型
-    const unitRef = UnitRef.configId[entityId];
-    if (unitRef === undefined) return false;
-
-    // 查找配置
-    const configId = String(unitRef); // 通过 registry 查找实际 ID
+    const configId = this.entityConfigIds.get(entityId) ?? String(UnitRef.configId[entityId] ?? '');
+    if (!configId) return false;
 
     // 获取该类型的生命周期规则
     const eventRules = this.lifecycleRules.get(configId)?.get(event);
@@ -151,7 +161,11 @@ export class RuleEngine {
       // 查找并执行处理器
       const handler = this.handlers.get(rule.type);
       if (handler) {
-        handler(world, entityId, (rule.params ?? {}) as Record<string, unknown>, context);
+        const { type: _type, fireOnce: _fireOnce, params, ...inlineParams } = rule;
+        handler(world, entityId, {
+          ...inlineParams,
+          ...((params ?? {}) as Record<string, unknown>),
+        }, context);
         handled = true;
       } else {
         console.warn(`[RuleEngine] Unknown handler: ${rule.type}`);
@@ -220,6 +234,7 @@ export class RuleEngine {
    * 清除实体的触法记录
    */
   clearTriggeredEvents(entityId: number): void {
+    this.entityConfigIds.delete(entityId);
     // 清除所有匹配此实体ID的已触发事件
     for (const [key, _events] of this.firedOnceEvents) {
       if (key.endsWith(':' + entityId)) {
@@ -235,6 +250,7 @@ export class RuleEngine {
     this.handlers.clear();
     this.lifecycleRules.clear();
     this.behaviorRules.clear();
+    this.entityConfigIds.clear();
     this.firedOnceEvents.clear();
   }
 }

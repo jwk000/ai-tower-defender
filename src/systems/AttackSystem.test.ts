@@ -5,7 +5,7 @@
  * - design/03-units.md §2.0 低空攻击规则
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AttackSystem, doLaserAttack, findEnemiesInRange, hasActiveLaserBeam } from './AttackSystem.js';
 import { TowerWorld } from '../core/World.js';
 import {
@@ -21,6 +21,9 @@ import {
   LayerVal,
   DamageTypeVal,
 } from '../core/components.js';
+import { ruleEngine } from '../core/RuleEngine.js';
+import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
+import { Sound } from '../utils/Sound.js';
 
 describe('AttackSystem.canAttackLayer (P1-#12)', () => {
   describe('Ground attacker', () => {
@@ -416,5 +419,57 @@ describe('findEnemiesInRange — 阵营过滤', () => {
     const ids = result.map((r) => r.id);
 
     expect(ids).toEqual([near, mid, far]);
+  });
+});
+
+describe('AttackSystem — 配置驱动攻击音效', () => {
+  let world: TowerWorld;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    ruleEngine.reset();
+    ruleEngine.registerHandlers(BUILTIN_HANDLERS);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    ruleEngine.reset();
+  });
+
+  it('塔成功开火时派发 onAttack 并播放 YAML 配置的音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Layer, { value: LayerVal.Ground });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+    world.addComponent(towerId, Attack, {
+      damage: 10,
+      attackSpeed: 1,
+      range: 200,
+      alertRange: 400,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 1,
+      canTargetLowAir: 1,
+      splashRadius: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+    });
+    world.addComponent(towerId, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+    ruleEngine.registerEntityConfig(towerId, 'arrow_tower');
+    ruleEngine.registerLifecycleRules('arrow_tower', new Map([
+      ['onAttack', [{ type: 'play_sound', sound: 'tower_arrow' }]],
+    ]));
+
+    makeAttackable(world, 80, 0, FactionVal.Evil, 100);
+
+    new AttackSystem().update(world, 1 / 60);
+
+    expect(playSpy).toHaveBeenCalledWith('tower_arrow');
   });
 });

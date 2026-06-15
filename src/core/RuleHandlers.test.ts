@@ -4,7 +4,7 @@
  * 覆盖所有 BUILTIN_HANDLERS 中的规则处理器。
  * 设计文档: design/02-unit-system.md (Section 3.1)
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createWorld, addEntity, addComponent, entityExists, resetGlobals } from 'bitecs';
 import type { World as BitecsWorld } from 'bitecs';
 
@@ -59,6 +59,7 @@ import {
 } from '../core/RuleHandlers.js';
 
 import type { BuffData } from '../systems/BuffSystem.js';
+import { Sound } from '../utils/Sound.js';
 
 // ============================================================
 // 测试辅助函数
@@ -583,6 +584,15 @@ describe('spawnProjectile / playSound', () => {
 
   it('playSound 不抛出异常', () => {
     expect(() => playSound(world, 0, {}, mkCtx())).not.toThrow();
+  });
+
+  it('playSound 根据配置 sound key 播放音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+
+    playSound(world, 0, { sound: 'tower_arrow' }, mkCtx());
+
+    expect(playSpy).toHaveBeenCalledWith('tower_arrow');
+    playSpy.mockRestore();
   });
 });
 

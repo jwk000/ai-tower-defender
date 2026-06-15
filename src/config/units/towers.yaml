@@ -52,7 +52,7 @@ arrow_tower:
       - type: spawn_projectile
         projectile: arrow
       - type: play_sound
-        sound: SFX_ARROW_SHOOT
+        sound: tower_arrow
 
   passives:
     l3:
@@ -115,7 +115,7 @@ cannon_tower:
       - type: spawn_projectile
         projectile: cannonball
       - type: play_sound
-        sound: SFX_CANNON_SHOOT
+        sound: tower_cannon
 
   passives:
     l3:
@@ -178,7 +178,7 @@ ice_tower:
       - type: spawn_projectile
         projectile: ice_crystal
       - type: play_sound
-        sound: SFX_ICE_SHOOT
+        sound: tower_ice
 
   passives:
     l3:
@@ -240,7 +240,7 @@ lightning_tower:
     onAttack:
       - type: spawn_lightning_bolt
       - type: play_sound
-        sound: SFX_LIGHTNING
+        sound: tower_lightning
 
   passives:
     l3:
@@ -299,7 +299,7 @@ laser_tower:
     onAttack:
       - type: spawn_laser_beam
       - type: play_sound
-        sound: SFX_LASER
+        sound: tower_laser
 
 ---
 # 蝙蝠塔 — 特殊条件激活塔
@@ -360,7 +360,7 @@ bat_tower:
     onAttack:
       - type: spawn_bat_swarm
       - type: play_sound
-        sound: SFX_BAT_ATTACK
+        sound: tower_bat
 
 ---
 # 弩塔 — 穿透型单体物理输出，攻速慢、单发伤害高
@@ -411,7 +411,7 @@ ballista_tower:
       - type: spawn_projectile
         projectile: bolt
       - type: play_sound
-        sound: SFX_BALLISTA_SHOOT
+        sound: tower_ballista
 
   passives:
     l3:
@@ -475,7 +475,7 @@ missile_tower:
       - type: spawn_projectile
         projectile: missile
       - type: play_sound
-        sound: SFX_MISSILE_LAUNCH
+        sound: tower_missile
 
   passives:
     l2:
@@ -546,7 +546,7 @@ fire_tower:
       - type: spawn_projectile
         projectile: fireball
       - type: play_sound
-        sound: SFX_FIRE_SHOOT
+        sound: tower_fire
 
   passives:
     l2:
@@ -615,7 +615,7 @@ poison_tower:
       - type: spawn_projectile
         projectile: poison
       - type: play_sound
-        sound: SFX_POISON_SHOOT
+        sound: tower_poison
 
   passives:
     l2:

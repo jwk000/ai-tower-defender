@@ -20,6 +20,7 @@ import {
 } from '../core/components.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { Renderer } from '../render/Renderer.js';
+import { ruleEngine } from '../core/RuleEngine.js';
 
 // ============================================================
 // Boid tuning constants
@@ -443,6 +444,15 @@ export class BatSwarmSystem implements System {
         console.warn(`[BatSwarm] bat ${batId} range=${range} — enemies in query: ${enemyCount}, alive enemies: ${aliveEnemies}`);
       }
       return;
+    }
+
+    const parentId = BatSwarmMember.parentId[batId];
+    if (parentId !== undefined) {
+      ruleEngine.dispatch(world.world, parentId, 'onAttack', {
+        time: performance.now() / 1000,
+        sourceId: nearestId,
+        data: { batId },
+      });
     }
 
     // Compute total attack duration from attackSpeed (attacks/sec).

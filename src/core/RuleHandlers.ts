@@ -33,6 +33,7 @@ import {
 import { getGlobalRandom } from '../utils/Random.js';
 import type { BuffData } from '../systems/BuffSystem.js';
 import { hexToRgb } from '../utils/visualHelpers.js';
+import { Sound, type SfxKey } from '../utils/Sound.js';
 
 // ============================================================
 // 回调注册（用于系统间解耦）
@@ -523,10 +524,12 @@ export const spawnProjectile: RuleHandlerFn = (_world, _entityId, _params, _cont
 
 /**
  * 播放音效
- * YAML: { type: play_sound, sound: SFX_ARROW_SHOOT }
+ * YAML: { type: play_sound, sound: tower_arrow }
  */
-export const playSound: RuleHandlerFn = (_world, _entityId, _params, _context) => {
-  // Sound.play(soundId);
+export const playSound: RuleHandlerFn = (_world, _entityId, params, _context) => {
+  const sound = params['sound'];
+  if (typeof sound !== 'string') return;
+  Sound.play(sound as SfxKey);
 };
 
 // ============================================================

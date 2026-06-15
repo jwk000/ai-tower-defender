@@ -38,6 +38,8 @@ import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
 import { TileDamageSystem } from './systems/TileDamageSystem.js';
 import { TrapSystem } from './systems/TrapSystem.js';
 import { UISystem } from './systems/UISystem.js';
+import type { LifecycleEvent } from './core/RuleEngine.js';
+import type { LifecycleRule } from './config/registry.js';
 import { VictoryScreenSystem } from './systems/VictoryScreenSystem.js';
 import { UnitAnimationSystem } from './systems/UnitAnimationSystem.js';
 import { UnitFactory } from './systems/UnitFactory.js';
@@ -1770,7 +1772,32 @@ if (!canvas) throw new Error('Canvas element not found');
 async function bootstrapGame(): Promise<void> {
   // 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
   const { loadAllUnitConfigs } = await import('./config/loader.js');
-  await loadAllUnitConfigs();
+  const unitConfigs = await loadAllUnitConfigs();
+
+  const { ruleEngine } = await import('./core/RuleEngine.js');
+  const { BUILTIN_HANDLERS } = await import('./core/RuleHandlers.js');
+  ruleEngine.registerHandlers(BUILTIN_HANDLERS);
+  const lifecycleEvents = [
+    'onCreate',
+    'onDeath',
+    'onHit',
+    'onAttack',
+    'onKill',
+    'onUpgrade',
+    'onDestroy',
+  ] as const;
+  for (const config of unitConfigs) {
+    const rules = new Map<LifecycleEvent, LifecycleRule[]>();
+    for (const event of lifecycleEvents) {
+      const eventRules = config.lifecycle?.[event];
+      if (eventRules && eventRules.length > 0) {
+        rules.set(event, eventRules);
+      }
+    }
+    if (rules.size > 0) {
+      ruleEngine.registerLifecycleRules(config.id, rules);
+    }
+  }
 
   // 从 YAML 配置注入到硬编码配置对象
   const { injectEnemyConfigsFromRegistry } = await import('./data/levels/enemyBridge.js');

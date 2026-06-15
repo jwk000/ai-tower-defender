@@ -22,11 +22,12 @@ import {
 import { TowerType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
-import { Sound, type SfxKey } from '../utils/Sound.js';
+import { Sound } from '../utils/Sound.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
+import { ruleEngine } from '../core/RuleEngine.js';
 
 // ============================================================
 // TowerType numeric ID → enum mapping (ui8 values)
@@ -43,22 +44,6 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Fire,      // 7
   TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
-];
-
-// Tower type → sound key lookup (index matches towerTypeVal).
-// Exported for BT nodes (SpawnProjectileTowerNode et al.) which must play
-// the matching SFX when firing — same as AttackSystem.update line 211.
-export const TOWER_SHOOT_SOUNDS: SfxKey[] = [
-  'tower_arrow',     // 0
-  'tower_cannon',    // 1
-  'tower_ice',       // 2
-  'tower_lightning', // 3
-  'tower_laser',     // 4
-  'tower_bat',       // 5
-  'tower_missile',   // 6
-  'tower_fire',      // 7  fire — dedicated synth
-  'tower_poison',    // 8  poison — dedicated synth
-  'tower_ballista',  // 9  ballista — dedicated synth
 ];
 
 // ============================================================
@@ -196,13 +181,11 @@ export class AttackSystem implements System {
             const target = enemies[i]!.id;
             spawnProjectile(world, eid, target, towerTypeVal);
           }
-          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
           break;
         }
         case 1: case 2: case 7: case 8: case 9:
           // Cannon/Ice/Fire/Poison/Ballista → single projectile
           spawnProjectile(world, eid, primaryTarget, towerTypeVal);
-          Sound.play(TOWER_SHOOT_SOUNDS[towerTypeVal]!);
           break;
         case 3:
           // Lightning → chain attack (damage + LightningBolt visual)
@@ -211,7 +194,6 @@ export class AttackSystem implements System {
         case 4:
           // Laser → beam attack
           doLaserAttack(world, eid, enemies, level);
-          Sound.play('tower_laser');
           break;
         case 6: {
           // Missile → multi-shot: L1: 1枚, L2: 2枚, L3: 3枚
@@ -235,10 +217,15 @@ export class AttackSystem implements System {
             });
             spawnMissileProjectile(world, eid, markId, tx, ty);
           }
-          Sound.play('tower_missile');
           break;
         }
       }
+
+      ruleEngine.dispatch(world.world, eid, 'onAttack', {
+        time: performance.now() / 1000,
+        sourceId: primaryTarget,
+        data: { towerType: towerTypeVal, level },
+      });
 
       // Trigger tower attack animation (brief brighten pulse)
       Visual.attackAnimTimer[eid] = 0.25;
