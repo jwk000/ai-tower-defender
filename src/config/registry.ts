@@ -33,6 +33,8 @@ export interface UnitStats {
 export interface UnitCost {
   build?: number;
   upgrade?: number[];
+  atkGrowth?: number[];
+  rangeGrowth?: number[];
   pop?: number;
 }
 

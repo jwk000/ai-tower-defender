@@ -6,7 +6,7 @@
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AttackSystem, findEnemiesInRange } from './AttackSystem.js';
+import { AttackSystem, doLaserAttack, findEnemiesInRange, hasActiveLaserBeam } from './AttackSystem.js';
 import { TowerWorld } from '../core/World.js';
 import {
   Faction,
@@ -14,9 +14,12 @@ import {
   Health,
   Position,
   Attack,
+  LaserBeam,
+  Tower,
   UnitTag,
   Layer,
   LayerVal,
+  DamageTypeVal,
 } from '../core/components.js';
 
 describe('AttackSystem.canAttackLayer (P1-#12)', () => {
@@ -123,6 +126,77 @@ describe('AttackSystem.canAttackLayer (P1-#12)', () => {
         expect(AttackSystem.canAttackLayer(attacker, target, ranged)).toBe(expected);
       });
     }
+  });
+});
+
+describe('doLaserAttack — 激光塔单束锁敌', () => {
+  let world: TowerWorld;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+  });
+
+  function makeLaserTower(damage: number): number {
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Tower, { towerType: 4, level: 1, totalInvested: 125 });
+    world.addComponent(towerId, Attack, {
+      damage,
+      attackSpeed: 0.5,
+      range: 250,
+      alertRange: 500,
+      damageType: DamageTypeVal.Magic,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 1,
+      canTargetLowAir: 1,
+    });
+    return towerId;
+  }
+
+  function activeLaserBeamsFor(towerId: number): number[] {
+    const result: number[] = [];
+    for (let eid = 1; eid < LaserBeam.sourceId.length; eid++) {
+      if (LaserBeam.sourceId[eid] !== towerId) continue;
+      if ((LaserBeam.elapsed[eid] ?? 0) < (LaserBeam.duration[eid] ?? 0)) {
+        result.push(eid);
+      }
+    }
+    return result;
+  }
+
+  it('同一座塔已有存活光束时不会再生成第二束', () => {
+    const towerId = makeLaserTower(6);
+    const near = makeAttackable(world, 40, 0, FactionVal.Evil, 100);
+    const far = makeAttackable(world, 80, 0, FactionVal.Evil, 100);
+
+    doLaserAttack(world, towerId, [{ id: near, dist: 40 }, { id: far, dist: 80 }], 5);
+    doLaserAttack(world, towerId, [{ id: far, dist: 80 }, { id: near, dist: 40 }], 5);
+
+    const beams = activeLaserBeamsFor(towerId);
+    expect(beams).toHaveLength(1);
+    expect(LaserBeam.targetId[beams[0]!]!).toBe(near);
+    expect(hasActiveLaserBeam(world, towerId)).toBe(true);
+  });
+
+  it('光束伤害上限读取塔当前攻击力，升级后下一束上限提高', () => {
+    const towerId = makeLaserTower(6);
+    const target = makeAttackable(world, 40, 0, FactionVal.Evil, 100);
+
+    doLaserAttack(world, towerId, [{ id: target, dist: 40 }], 1);
+    const firstBeam = activeLaserBeamsFor(towerId)[0]!;
+    expect(LaserBeam.maxDamage[firstBeam]).toBe(6);
+
+    LaserBeam.elapsed[firstBeam] = LaserBeam.duration[firstBeam]!;
+    Attack.damage[towerId] = 12;
+
+    doLaserAttack(world, towerId, [{ id: target, dist: 40 }], 2);
+    const activeBeams = activeLaserBeamsFor(towerId);
+    expect(activeBeams).toHaveLength(1);
+    expect(LaserBeam.maxDamage[activeBeams[0]!]!).toBe(12);
   });
 });
 

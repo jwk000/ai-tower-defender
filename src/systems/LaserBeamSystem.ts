@@ -5,7 +5,7 @@ import type { Renderer } from '../render/Renderer.js';
 
 const GLOW_COLOR = '#e040fb';
 const CORE_COLOR = '#ffffff';
-const DAMAGE_INTERVAL = 0.1;
+const DAMAGE_INTERVAL = 0.25;
 /** Minimum damage ratio at t=0 (10% of maxDamage) */
 const MIN_RATIO = 0.10;
 

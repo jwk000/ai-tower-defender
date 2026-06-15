@@ -214,13 +214,13 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     name: '激光塔',
     cost: 90,
     hp: 80,
-    atk: 8,
-    attackSpeed: 0.5, // CD = 2s；激光束持续 5s，伤害 S 形递增（拐点 2.5s），上限 = 箭塔 atk × 3 = 45
+    atk: 6,
+    attackSpeed: 0.5, // CD = 2s；同一座塔只能维持 1 束 5s 激光，伤害 S 形递增，上限 = 自身 atk
     range: 200,
     damageType: 'magic',
-    // 激光束伤害随照射时间 S 形递增，上限为箭塔 atk × 3 = 45
+    // 激光束伤害随照射时间 S 形递增，升级只提升伤害上限。
     upgradeCosts: [150],
-    upgradeAtkBonus: [0],
+    upgradeAtkBonus: [6],
     upgradeRangeBonus: [0],
     color: '#e040fb',
     buildTime: 2.0,

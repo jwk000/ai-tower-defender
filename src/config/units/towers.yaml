@@ -262,8 +262,8 @@ laser_tower:
 
   stats:
     hp: 150
-    atk: 7
-    attackSpeed: 0.5       # CD = 2s；激光束持续 5s，伤害 S 形递增（拐点 2.5s），上限 = 箭塔 atk × 3
+    atk: 6
+    attackSpeed: 0.5       # CD = 2s；同一座塔只能维持 1 束 5s 激光，伤害 S 形递增，上限 = 激光塔自身 atk
     range: 250
     armor: 0
     mr: 0
@@ -272,7 +272,7 @@ laser_tower:
   cost:
     build: 125
     upgrade: [55, 85, 130, 190]
-    atkGrowth: [2, 3, 4, 5]
+    atkGrowth: [3, 4, 5, 6]
     rangeGrowth: [15, 15, 20, 20]
 
   visual:
@@ -283,10 +283,10 @@ laser_tower:
 
   behavior:
     targetSelection: nearest
-    attackMode: piercing
+    attackMode: single_target
     movementMode: hold_position
     special:
-      pierceDecay: 0.15
+      lockSingleBeam: true
 
   lifecycle:
     onDeath:

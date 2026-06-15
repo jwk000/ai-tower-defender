@@ -114,6 +114,7 @@ const potentialTargetQuery = defineQuery([Position, Health, UnitTag]);
 const chargingQuery = defineQuery([MissileCharge]);
 const targetingMarkQuery = defineQuery([TargetingMark, Position]);
 const projectileQueryForCleanup = defineQuery([Projectile]);
+const laserBeamQuery = defineQuery([LaserBeam]);
 
 // ============================================================
 // AttackSystem — towers find nearest enemy and fire
@@ -527,38 +528,28 @@ export class AttackSystem implements System {
 
   // ---- Laser Beam ----
 
-  private getBeamCount(level: number): number {
-    if (level >= 5) return 3;
-    if (level >= 3) return 2;
-    return 1;
-  }
-
   private doLaserAttack(
     world: TowerWorld,
     towerId: number,
     enemiesInRange: Array<{ id: number; dist: number }>,
     level: number,
   ): void {
-    const beamCount = Math.min(this.getBeamCount(level), enemiesInRange.length);
-    const damage = this.getDamage(towerId);
-    // 激光束伤害上限 = 箭塔 atk × 3
-    const maxDamage = TOWER_CONFIGS[TowerType.Arrow].atk * 3;
+    if (hasActiveLaserBeam(world, towerId)) return;
+    const target = enemiesInRange[0];
+    if (!target) return;
+    const maxDamage = this.getDamage(towerId);
     // 激光束初始伤害 = maxDamage × 10%（beam 开始时伤害最低，smoothstep 递增）
     const initialDamage = maxDamage * 0.1;
 
-    for (let i = 0; i < beamCount; i++) {
-      const targetId = enemiesInRange[i]!.id;
-
-      const beamId = world.createEntity();
-      world.addComponent(beamId, LaserBeam, {
-        sourceId: towerId,
-        targetId,
-        damage: initialDamage,
-        maxDamage,
-        duration: 5.0,
-        elapsed: 0,
-      });
-    }
+    const beamId = world.createEntity();
+    world.addComponent(beamId, LaserBeam, {
+      sourceId: towerId,
+      targetId: target.id,
+      damage: initialDamage,
+      maxDamage,
+      duration: 5.0,
+      elapsed: 0,
+    });
   }
 }
 
@@ -913,10 +904,15 @@ export function findEnemiesInRange(
  *
  * 与 AttackSystem.doLaserAttack 私有方法等价。
  */
-export function getLaserBeamCount(level: number): number {
-  if (level >= 5) return 3;
-  if (level >= 3) return 2;
-  return 1;
+export function hasActiveLaserBeam(world: TowerWorld, towerId: number): boolean {
+  const beams = laserBeamQuery(world.world);
+  for (const eid of beams) {
+    if (LaserBeam.sourceId[eid] !== towerId) continue;
+    if ((LaserBeam.elapsed[eid] ?? 0) < (LaserBeam.duration[eid] ?? 0)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function doLaserAttack(
@@ -925,21 +921,19 @@ export function doLaserAttack(
   enemiesInRange: Array<{ id: number; dist: number }>,
   level: number,
 ): void {
-  const beamCount = Math.min(getLaserBeamCount(level), enemiesInRange.length);
-  const damage = getEffectiveDamage(towerId);
-  const maxDamage = TOWER_CONFIGS[TowerType.Arrow].atk * 3;
+  if (hasActiveLaserBeam(world, towerId)) return;
+  const target = enemiesInRange[0];
+  if (!target) return;
+  const maxDamage = getEffectiveDamage(towerId);
   const initialDamage = maxDamage * 0.1;
 
-  for (let i = 0; i < beamCount; i++) {
-    const targetId = enemiesInRange[i]!.id;
-    const beamId = world.createEntity();
-    world.addComponent(beamId, LaserBeam, {
-      sourceId: towerId,
-      targetId,
-      damage: initialDamage,
-      maxDamage,
-      duration: 5.0,
-      elapsed: 0,
-    });
-  }
+  const beamId = world.createEntity();
+  world.addComponent(beamId, LaserBeam, {
+    sourceId: towerId,
+    targetId: target.id,
+    damage: initialDamage,
+    maxDamage,
+    duration: 5.0,
+    elapsed: 0,
+  });
 }

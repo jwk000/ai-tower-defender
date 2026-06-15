@@ -52,8 +52,8 @@ export function injectTowerConfigsFromRegistry(): number {
 
     // 解析升级配置
     const upgradeCosts = (cost?.upgrade as number[]) ?? [];
-    const atkGrowth = [5, 8, 12, 16]; // 默认值
-    const rangeGrowth = [20, 20, 30, 30]; // 默认值
+    const atkGrowth = (cost?.atkGrowth as number[]) ?? [5, 8, 12, 16]; // 默认值
+    const rangeGrowth = (cost?.rangeGrowth as number[]) ?? [20, 20, 30, 30]; // 默认值
 
     // 解析特殊属性
     const splashRadius = (special['splashRadius'] as number) ?? 0;
