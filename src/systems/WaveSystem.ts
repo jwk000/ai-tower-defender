@@ -85,6 +85,14 @@ const BOSS_TYPE_BY_CONFIG: Record<string, number> = {
   AbyssLord: BossType.AbyssLord,
 };
 
+const BOSS_TYPE_BY_ENEMY_TYPE: Partial<Record<EnemyType, number>> = {
+  [EnemyType.GiantSlime]: BossType.GiantSlime,
+  [EnemyType.QueenBeetle]: BossType.QueenWorm,
+  [EnemyType.Lucifer]: BossType.Lucifer,
+  [EnemyType.SuperRobot]: BossType.SuperRobot,
+  [EnemyType.AbyssLord]: BossType.AbyssLord,
+};
+
 const FLOCK_ENEMY_TYPES = new Set<string>([
   EnemyType.Locust,
   EnemyType.VampireBat,
@@ -95,7 +103,10 @@ const FLOCK_MIN_SIZE = 4;
 const FLOCK_MAX_SIZE = 7;
 const FLOCK_SPAWN_SPREAD = 28;
 
-function resolveBossType(configType?: string): number {
+function resolveBossType(configType?: string, enemyType?: string): number {
+  if (!configType && enemyType !== undefined) {
+    return BOSS_TYPE_BY_ENEMY_TYPE[enemyType as EnemyType] ?? 0xFF;
+  }
   if (!configType) return 0xFF;
   return BOSS_TYPE_BY_CONFIG[configType] ?? 0xFF;
 }
@@ -658,7 +669,7 @@ export class WaveSystem implements System {
     // Boss component
     if (config.isBoss) {
       this.world.addComponent(eid, Boss, {
-        bossType: resolveBossType(config.bossType),
+        bossType: resolveBossType(config.bossType, config.type),
         phase: 1,
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
         splitCount: config.splitCount ?? 0,

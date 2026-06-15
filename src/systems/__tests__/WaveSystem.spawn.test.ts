@@ -7,6 +7,7 @@ import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
+import { BossSystem, BossType } from '../BossSystem.js';
 
 const enemyQuery = defineQuery([Position, UnitTag]);
 const flockEnemyQuery = defineQuery([Position, UnitTag, EnemyFlockMember]);
@@ -368,6 +369,74 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
       expect.objectContaining({ name: '巨型史莱姆' }),
     ]);
     expect(explosionQuery(world.world).length).toBeGreaterThan(0);
+  });
+
+  it('生成所有Boss时挂载专用Boss类型，避免退化成数据驱动Boss', () => {
+    const cases: Array<[EnemyType, number]> = [
+      [EnemyType.GiantSlime, BossType.GiantSlime],
+      [EnemyType.QueenBeetle, BossType.QueenWorm],
+      [EnemyType.Lucifer, BossType.Lucifer],
+      [EnemyType.SuperRobot, BossType.SuperRobot],
+      [EnemyType.AbyssLord, BossType.AbyssLord],
+    ];
+
+    for (const [enemyType, expectedBossType] of cases) {
+      const world = new TowerWorld();
+      const { pathGraph, spawns } = migrateEnemyPathToGraph({
+        enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+      });
+      const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+      const waves: WaveConfig[] = [{
+        waveNumber: 1,
+        spawnDelay: 0,
+        isBossWave: true,
+        enemies: [{ enemyType, count: 1, spawnInterval: 0 }],
+      }];
+
+      const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+      ws.startWave();
+      for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+      const bosses = bossQuery(world.world);
+      expect(bosses.length).toBe(1);
+      expect(Boss.bossType[bosses[0]!]).toBe(expectedBossType);
+    }
+  });
+
+  it('生成巨型史莱姆后血量归零可分裂', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [{ enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 }],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.startWave();
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+    const bosses = bossQuery(world.world);
+    expect(bosses.length).toBe(1);
+    const slime = bosses[0]!;
+    expect(Boss.bossType[slime]).toBe(BossType.GiantSlime);
+    expect(Boss.splitCount[slime]).toBe(0);
+
+    Health.current[slime] = 0;
+    new BossSystem().update(world, 0.016);
+    world.cleanupDeadEntities();
+
+    const children = bossQuery(world.world);
+    expect(children.length).toBe(2);
+    for (const child of children) {
+      expect(Boss.bossType[child]).toBe(BossType.GiantSlime);
+      expect(Boss.splitCount[child]).toBe(1);
+      expect(Health.current[child]).toBe(200);
+    }
   });
 
   it('调试跳波会直接进入最后一波并按正常流程生成 Boss', () => {

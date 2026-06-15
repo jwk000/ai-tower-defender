@@ -713,31 +713,31 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: EnemyType.GiantSlime, name: '巨型史莱姆', hp: 800, speed: 15, atk: 20,
     defense: 10, magicResist: 5, attackRange: 50, attackSpeed: 0.5,
     canAttackBuildings: true, rewardGold: 100, color: '#66bb6a', radius: 35,
-    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.85,
+    isBoss: true, bossType: 'GiantSlime', splitCount: 0, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.85,
   },
   [EnemyType.QueenBeetle]: {
     type: EnemyType.QueenBeetle, name: '虫族女王', hp: 1000, speed: 20, atk: 30,
     defense: 15, magicResist: 20, attackRange: 80, attackSpeed: 0.6,
     canAttackBuildings: true, rewardGold: 150, color: '#d32f2f', radius: 38,
-    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.9,
+    isBoss: true, bossType: 'QueenWorm', bossPhase2HpRatio: 0.5, attackAnimDuration: 0.9,
   },
   [EnemyType.Lucifer]: {
     type: EnemyType.Lucifer, name: '路西法', hp: 1200, speed: 18, atk: 40,
     defense: 20, magicResist: 25, attackRange: 60, attackSpeed: 0.5,
     canAttackBuildings: true, rewardGold: 200, color: '#b71c1c', radius: 40,
-    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.95,
+    isBoss: true, bossType: 'Lucifer', bossPhase2HpRatio: 0.5, attackAnimDuration: 0.95,
   },
   [EnemyType.SuperRobot]: {
     type: EnemyType.SuperRobot, name: '超级机器人', hp: 2000, speed: 10, atk: 60,
     defense: 40, magicResist: 15, attackRange: 100, attackSpeed: 0.3,
     canAttackBuildings: true, rewardGold: 250, color: '#212121', radius: 44,
-    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 1.05,
+    isBoss: true, bossType: 'SuperRobot', bossPhase2HpRatio: 0.5, attackAnimDuration: 1.05,
   },
   [EnemyType.AbyssLord]: {
     type: EnemyType.AbyssLord, name: '深渊领主', hp: 3000, speed: 8, atk: 50,
     defense: 30, magicResist: 30, attackRange: 150, attackSpeed: 0.5,
     canAttackBuildings: true, rewardGold: 400, color: '#4a148c', radius: 45,
-    isBoss: true, bossPhase2HpRatio: 0.5, attackAnimDuration: 1.1,
+    isBoss: true, bossType: 'AbyssLord', bossPhase2HpRatio: 0.5, attackAnimDuration: 1.1,
   },
 };
 
