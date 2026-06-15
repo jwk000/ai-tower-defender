@@ -178,8 +178,9 @@ export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): numbe
   return artFacesLeft ? -normalizedFacing : normalizedFacing;
 }
 
-export function getUnitSpriteArtFacesLeft(isEnemy: boolean, _isBoss = false): boolean {
-  return isEnemy;
+export function getUnitSpriteArtFacesLeft(isEnemy: boolean, _isBoss = false, unitId = ''): boolean {
+  if (isEnemy) return true;
+  return unitId === UnitType.Swordsman || unitId === UnitType.Mage;
 }
 
 export class RenderSystem implements System {
@@ -1660,7 +1661,7 @@ export class RenderSystem implements System {
             state: unitSpriteState,
             stroke: strokeColor,
             strokeWidth: strokeW,
-            artFacesLeft: getUnitSpriteArtFacesLeft(isEnemy, isBossEntity),
+            artFacesLeft: getUnitSpriteArtFacesLeft(isEnemy, isBossEntity, sceneUnitArtId),
             tint: hitTint,
           },
         );

@@ -178,6 +178,14 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
     expect(getUnitSpriteScaleX(-1, getUnitSpriteArtFacesLeft(true, true))).toBe(1);
   });
 
+  it('swordsman and mage player sprites are mirrored from left-facing source art', () => {
+    expect(getUnitSpriteArtFacesLeft(false, false, 'swordsman')).toBe(true);
+    expect(getUnitSpriteArtFacesLeft(false, false, 'mage')).toBe(true);
+    expect(getUnitSpriteArtFacesLeft(false, false, 'archer')).toBe(false);
+    expect(getUnitSpriteScaleX(1, getUnitSpriteArtFacesLeft(false, false, 'swordsman'))).toBe(-1);
+    expect(getUnitSpriteScaleX(1, getUnitSpriteArtFacesLeft(false, false, 'mage'))).toBe(-1);
+  });
+
   it('turning from vertical path into right segment flips enemy facing on the turn frame', () => {
     const path: GridPos[] = [
       { row: 0, col: 0 },
