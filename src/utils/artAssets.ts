@@ -9,7 +9,10 @@ export function assetUrl(path: string, base = ((import.meta as any).env?.BASE_UR
 }
 
 export function cardArtPath(cardId: string): string {
-  return `/art/cards/${cardId}.png`;
+  const artId = cardId.endsWith('_card')
+    ? `card_${cardId.slice(0, -'_card'.length)}`
+    : cardId;
+  return `/art/cards/${artId}.png`;
 }
 
 export function buffArtPath(buffId: string): string {

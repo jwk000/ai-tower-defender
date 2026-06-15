@@ -215,6 +215,9 @@ export function resolveCardToEntityType(
   unitConfigId: string | undefined,
 ): ResolvedCardEntity | null {
   if (!unitConfigId) return null;
+  if (unitConfigId.endsWith('_card')) {
+    return resolveCardToEntityType(unitConfigId.slice(0, -'_card'.length));
+  }
 
   // 8种机关类型
   const TRAP_IDS = [
