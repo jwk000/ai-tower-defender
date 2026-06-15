@@ -53,6 +53,7 @@ export interface UnitVisual {
   shape: string;
   color: string;
   size: number;
+  outline?: boolean;
 }
 
 /** Runtime behavior rules */

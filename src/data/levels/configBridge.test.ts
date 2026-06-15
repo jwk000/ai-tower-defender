@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { unitConfigRegistry, type UnitConfig as RegistryUnitConfig } from '../../config/registry.js';
-import { DamageTypeVal } from '../../core/components.js';
+import { DamageTypeVal, Visual } from '../../core/components.js';
 import { TowerType, UnitType } from '../../types/index.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS } from '../gameData.js';
 import { injectTowerConfigsFromRegistry } from './towerBridge.js';
@@ -53,6 +53,15 @@ describe('unit config bridge', () => {
     const factory = new UnitFactory(world);
     const eid = factory.createTower(TowerType.Missile, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 6 })!;
     expect(Attack.damageType[eid]).toBe(DamageTypeVal.True);
+  });
+
+  it('塔默认不显示白色描边，选中态由渲染选中状态负责', () => {
+    const world = new TowerWorld();
+    const factory = new UnitFactory(world);
+
+    const eid = factory.createTower(TowerType.Arrow, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 0 })!;
+
+    expect(Visual.outline[eid]).toBe(0);
   });
 
   it('士兵升级成长和伤害类型来自 cost/stats 配置', () => {

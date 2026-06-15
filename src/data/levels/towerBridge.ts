@@ -97,6 +97,7 @@ export function injectTowerConfigsFromRegistry(): number {
       color: visual?.color ?? '#ffffff',
       size: visual?.size,
       shape: mapShape(visual?.shape),
+      outline: visual?.outline ?? false,
       visualParts: getProceduralVisualParts(u),
       buildTime: (u['buildTime'] as number | undefined) ?? (special['buildTime'] as number | undefined) ?? 1.5,
       canTargetLowAir: towerCanTargetLowAir(type),

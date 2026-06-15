@@ -155,7 +155,7 @@ export class UnitFactory {
       colorB: rgb.b,
       size: baseSize,
       alpha: 1,
-      outline: 1,
+      outline: ((cfg.outline as boolean | undefined) ?? true) ? 1 : 0,
       hitFlashTimer: 0,
       idlePhase: 0,
       facing: 1,
@@ -223,6 +223,7 @@ export class UnitFactory {
     const { eid } = base;
 
     const isBatTower = towerType === TowerType.Bat;
+    Visual.outline[eid] = (cfg.outline as boolean | undefined) === true ? 1 : 0;
 
     // Tower component
     this.world.addComponent(eid, Tower, {

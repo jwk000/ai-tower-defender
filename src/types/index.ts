@@ -248,6 +248,7 @@ export interface TowerConfig {
   color: string;
   size?: number;
   shape?: ShapeType;
+  outline?: boolean;
   visualParts?: UnitVisualParts;
   /** 建造耗时（秒）— 安装后到可攻击之间的延迟。省略则按默认值 2.0s。 */
   buildTime?: number;
