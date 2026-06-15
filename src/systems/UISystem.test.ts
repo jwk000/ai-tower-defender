@@ -348,7 +348,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('卡牌拖动 ghost 使用卡牌美术资源替换程序图标', () => {
+  it('单位卡拖动 ghost 使用场景单位外观而不是卡牌外观', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0, {
       pointer: { x: 960, y: 540 },
@@ -382,11 +382,19 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       draw.layer === 'board' &&
       draw.path === '/art/ui/ui_card_frame_common.png' &&
       draw.alpha === 0.68
-    ))).toBe(true);
+    ))).toBe(false);
     expect(cardIconDrawsOf(ui).some((draw) => (
       draw.layer === 'board' &&
       draw.cardId === 'card_arrow_tower' &&
       draw.alpha === 0.68
+    ))).toBe(false);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 32 &&
+      cmd.color === '#4fc3f7' &&
+      cmd.alpha === 0.5
     ))).toBe(true);
   });
 });
