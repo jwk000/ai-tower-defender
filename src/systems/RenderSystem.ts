@@ -676,10 +676,10 @@ export class RenderSystem implements System {
     drawSize: number,
     alpha: number,
     z: number,
-    opts: { state?: string; stroke?: string; strokeWidth?: number; facing?: number; artFacesLeft?: boolean } = {},
+    opts: { state?: string; frame?: 0 | 1; stroke?: string; strokeWidth?: number; facing?: number; artFacesLeft?: boolean } = {},
   ): boolean {
     const state = opts.state ?? 'idle';
-    const frame = this.getUnitSpriteFrame(eid, state);
+    const frame = opts.frame ?? this.getUnitSpriteFrame(eid, state);
     let sprite: LoadedArtFrame | null = getLoadedImageFrame(unitArtPath(unitId, state, frame));
     if (!sprite && state !== 'idle') {
       sprite = getLoadedImageFrame(unitArtPath(unitId, 'idle', frame));
@@ -741,6 +741,20 @@ export class RenderSystem implements System {
       return 'move';
     }
     return 'idle';
+  }
+
+  private getTrapSpriteState(trapType: number, animTimer: number): 'idle' | 'attack' {
+    if (trapType === 3) {
+      return 'idle';
+    }
+    return animTimer > 0 ? 'attack' : 'idle';
+  }
+
+  private getTrapSpriteFrame(animTimer: number, animDuration: number): 0 | 1 {
+    if (animDuration <= 0 || animTimer <= 0) {
+      return 0;
+    }
+    return 1 - animTimer / animDuration >= 0.5 ? 1 : 0;
   }
 
   private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {
@@ -995,6 +1009,7 @@ export class RenderSystem implements System {
         const animFactor = Math.sin(animProgress * Math.PI);
         const trapRenderZ = LAYER_TO_Z[Layer.value[eid] ?? LayerVal.AboveGrid] ?? 2;
         const trapSpriteId = this.getSceneUnitArtId(world, eid);
+        const trapSpriteState = this.getTrapSpriteState(trapType, animTimer);
         if (
           trapSpriteId &&
           this.drawUnitSprite(
@@ -1006,6 +1021,8 @@ export class RenderSystem implements System {
             Visual.alpha[eid]!,
             trapRenderZ,
             {
+              state: trapSpriteState,
+              frame: this.getTrapSpriteFrame(animTimer, animDuration),
               stroke: Visual.outline[eid] ? '#ffffff' : undefined,
               strokeWidth: Visual.outline[eid] ? 2 : undefined,
             },

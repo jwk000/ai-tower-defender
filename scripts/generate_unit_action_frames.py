@@ -12,8 +12,13 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 UNIT_DIR = ROOT / "public" / "art" / "units"
 SHEET_DIR = ROOT / "tmp" / "ai-action-sheets"
-STATES = ("idle", "move", "attack", "death")
-ACTION_STATES = ("move", "attack", "death")
+DEFAULT_STATES = ("idle", "move", "attack", "death")
+TRAP_STATE_PROFILES = {
+    "spike_trap": ("idle", "attack", "death"),
+    "bear_trap": ("idle", "attack", "death"),
+    "tar_pit": ("idle", "attack", "death"),
+    "boulder": ("idle", "death"),
+}
 CELL_COLS = 4
 CELL_ROWS = 2
 OUT_SIZE = 256
@@ -24,20 +29,39 @@ def unit_ids() -> list[str]:
     return sorted(p.name[len("unit_") : -len("_idle_0.png")] for p in UNIT_DIR.glob("unit_*_idle_0.png"))
 
 
+def states_for(uid: str) -> tuple[str, ...]:
+    return TRAP_STATE_PROFILES.get(uid, DEFAULT_STATES)
+
+
 def prompt_for(uid: str) -> str:
+    states = states_for(uid)
+    columns = ", ".join(states)
+    trap_note = ""
+    if uid in {"spike_trap", "bear_trap", "tar_pit"}:
+        trap_note = (
+            " This is a stationary trap. Do not draw movement frames. "
+            "Attack frames mean trap trigger animation: spikes extend, jaws snap, or tar bubbles and pulls."
+        )
+    elif uid == "boulder":
+        trap_note = (
+            " This is a stationary boulder obstacle. It can only be attacked by enemies. "
+            "Do not draw movement or attack frames."
+        )
+
     return (
-        "Create a clean 4 columns x 2 rows sprite sheet for this exact existing tower defense unit asset. "
+        f"Create a clean {len(states)} columns x 2 rows sprite sheet for this exact existing tower defense unit asset. "
         "Preserve the reference sprite identity, palette, proportions, simplified dark fantasy casual game art, "
         "3/4 top-down camera, compact readable game-unit silhouette. "
         "Do not upgrade into a realistic character illustration, do not add face detail, do not change costume, "
         "do not change weapon design. Use a perfectly flat solid #00ff00 chroma-key background in every cell, "
         "no checkerboard, no shadows, no text, no labels, no grid lines. "
-        "Columns left to right: idle, move, attack, death. Row 1 frame 0, row 2 frame 1. "
+        f"Columns left to right: {columns}. Row 1 frame 0, row 2 frame 1. "
         "Idle frames: close to reference with tiny breathing pose. "
-        "Move frames: newly drawn step/run/flying-motion poses with changed limbs/body/weapon positions, "
+        "Move frames, if requested: newly drawn step/run/flying-motion poses with changed limbs/body/weapon positions, "
         "not scaling or stretching. "
-        "Attack frames: newly drawn wind-up and release poses with weapon/action changed, not scaling or stretching. "
+        "Attack frames, if requested: newly drawn wind-up and release or trigger poses with weapon/action changed, not scaling or stretching. "
         "Death frames: newly drawn collapse and dissolve/broken poses, not scaling or stretching. "
+        f"{trap_note} "
         f"Center one complete unit per cell with padding. Unit id: {uid}."
     )
 
@@ -105,13 +129,12 @@ def crop_to_square(cell: Image.Image) -> Image.Image:
 
 def slice_sheet(uid: str, sheet_path: Path, preserve_idle: bool) -> None:
     sheet = Image.open(sheet_path).convert("RGBA")
-    cell_w = sheet.width // CELL_COLS
+    states = states_for(uid)
+    cell_w = sheet.width // len(states)
     cell_h = sheet.height // CELL_ROWS
     for row in range(CELL_ROWS):
-        for col, state in enumerate(STATES):
+        for col, state in enumerate(states):
             if preserve_idle and state == "idle":
-                continue
-            if state not in ACTION_STATES and preserve_idle:
                 continue
             cell = sheet.crop((col * cell_w, row * cell_h, (col + 1) * cell_w, (row + 1) * cell_h))
             frame = row
@@ -122,7 +145,7 @@ def slice_sheet(uid: str, sheet_path: Path, preserve_idle: bool) -> None:
 def validate_assets(ids: list[str]) -> None:
     missing: list[Path] = []
     for uid in ids:
-        for state in STATES:
+        for state in states_for(uid):
             for frame in range(2):
                 path = UNIT_DIR / f"unit_{uid}_{state}_{frame}.png"
                 if not path.exists():
@@ -147,7 +170,7 @@ def main() -> None:
         sheet = run_generation(uid, args.model, args.force)
         slice_sheet(uid, sheet, preserve_idle=args.preserve_idle)
     validate_assets(ids)
-    print(f"validated {len(ids)} units x {len(STATES)} states x 2 frames")
+    print(f"validated {len(ids)} units with configured state profiles")
 
 
 if __name__ == "__main__":
