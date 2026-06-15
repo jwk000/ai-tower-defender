@@ -3,13 +3,14 @@ import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
-import { Position, UnitTag, Health, Elite, Visual } from '../../core/components.js';
+import { Position, UnitTag, Health, Elite, Visual, Boss } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
 
 const enemyQuery = defineQuery([Position, UnitTag]);
 const eliteQuery = defineQuery([Position, UnitTag, Elite]);
+const bossQuery = defineQuery([Position, UnitTag, Boss]);
 
 function makeBaseMap(): Omit<MapConfig, 'spawns' | 'pathGraph'> {
   return { name: 'test', cols: 10, rows: 10, tileSize: 64, tiles: [[]] };
@@ -212,6 +213,36 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
 
     const elites = eliteQuery(world.world);
     expect(elites.length).toBe(1);
+  });
+
+  it('Boss 波不会把最终 Boss 作为随机精英再次生成', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [
+        { enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 },
+        { enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 },
+      ],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.startWave();
+
+    for (let i = 0; i < 20; i++) ws.update(world, 0.1);
+
+    const bosses = bossQuery(world.world);
+    const elites = eliteQuery(world.world);
+    expect(bosses.length).toBe(1);
+    expect(world.getDisplayName(bosses[0]!)).toBe('巨型史莱姆');
+    expect(elites.length).toBe(1);
+    expect(world.getDisplayName(elites[0]!)).toBe('精英 哥布林');
   });
 });
 

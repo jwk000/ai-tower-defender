@@ -22,6 +22,7 @@ interface LevelWeatherConfig {
 
 interface RawEnemyUnit {
   category?: string;
+  isBoss?: boolean;
   stats?: {
     hp?: number;
     atk?: number;
@@ -38,6 +39,7 @@ interface RawLevelConfig {
   };
   waves: Array<{
     waveNumber: number;
+    isBossWave?: boolean;
     reward: number;
     enemies: Array<{
       enemyType: string;
@@ -175,6 +177,24 @@ describe('关卡 YAML 配置', () => {
       const raw = rawById.get(level.id);
       expect(raw).toBeDefined();
       expect(level.waves.map((wave) => wave.reward)).toEqual(raw!.waves.map((wave) => wave.reward));
+    }
+  });
+
+  it('每个 Boss 波恰好配置 1 个 Boss 敌人', () => {
+    const enemies = loadRawEnemyConfigs();
+
+    for (const level of loadRawLevels()) {
+      for (const wave of level.waves) {
+        const bossGroups = wave.enemies.filter((group) => {
+          const enemy = enemies[group.enemyType];
+          return enemy?.isBoss === true || enemy?.category === 'Boss';
+        });
+
+        if (wave.isBossWave === true || bossGroups.length > 0) {
+          const totalBossCount = bossGroups.reduce((sum, group) => sum + group.count, 0);
+          expect(totalBossCount, `${level.id} 第${wave.waveNumber}波必须只有 1 个最终 Boss`).toBe(1);
+        }
+      }
     }
   });
 

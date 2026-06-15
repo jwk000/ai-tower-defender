@@ -296,8 +296,9 @@ export class WaveSystem implements System {
   private resetEliteTracking(enemyTypes: string[]): void {
     this.eliteSpawned = false;
     this.eliteEid = 0;
-    if (enemyTypes.length > 0) {
-      this.eliteEnemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] ?? null;
+    const eligibleEnemyTypes = enemyTypes.filter((enemyType) => ENEMY_CONFIGS[enemyType]?.isBoss !== true);
+    if (eligibleEnemyTypes.length > 0) {
+      this.eliteEnemyType = eligibleEnemyTypes[Math.floor(Math.random() * eligibleEnemyTypes.length)] ?? null;
     } else {
       this.eliteEnemyType = null;
     }
