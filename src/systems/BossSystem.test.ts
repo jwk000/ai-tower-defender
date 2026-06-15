@@ -9,13 +9,15 @@ import { TowerWorld, defineQuery, hasComponent } from '../core/World.js';
 import type { System } from '../core/World.js';
 import {
   Position, Health, Boss, Faction, FactionVal,
-  Attack, UnitTag, Visual, Category, CategoryVal,
+  Attack, UnitTag, Visual, Category, CategoryVal, Movement,
   Tower, TargetingMark,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { BossSystem, BossType } from './BossSystem.js';
 import { HealthSystem } from './HealthSystem.js';
+import { MovementSystem } from './MovementSystem.js';
 import { GamePhase } from '../types/index.js';
+import { MAP_01 } from '../data/gameData.js';
 
 // ============================================================
 // Queries for tests
@@ -24,6 +26,7 @@ import { GamePhase } from '../types/index.js';
 const allHealthQuery = defineQuery([Health]);
 const allPositionedQuery = defineQuery([Position]);
 const bossQuery = defineQuery([Boss]);
+const GIANT_SLIME_UNIT_TYPE_NUM = 19;
 
 // ============================================================
 // Test helpers
@@ -247,6 +250,33 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
       expect(Boss.splitCount[eid]).toBe(1);
       expect(Health.current[eid]).toBe(200);
       expect(world.getDisplayName(eid)).toBe('中型史莱姆');
+    }
+  });
+
+  it('分裂子史莱姆沿用史莱姆单位类型，并从父体附近路径继续移动', () => {
+    new MovementSystem(MAP_01);
+    const parentX = 5 * MAP_01.tileSize + MAP_01.tileSize / 2;
+    const parentY = 4 * MAP_01.tileSize + MAP_01.tileSize / 2;
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 800,
+      maxHp: 800,
+      splitCount: 0,
+      x: parentX,
+      y: parentY,
+    });
+
+    Health.current[boss] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities();
+
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter.length).toBe(2);
+    for (const eid of bossesAfter) {
+      expect(UnitTag.unitTypeNum[eid]).toBe(GIANT_SLIME_UNIT_TYPE_NUM);
+      expect(Movement.spawnIdx[eid]).toBe(0);
+      expect(Movement.pathIndex[eid]).not.toBe(0);
+      expect(Position.x[eid]).toBe(parentX);
+      expect(Position.y[eid]).toBe(parentY);
     }
   });
 

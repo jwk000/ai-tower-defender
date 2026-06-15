@@ -18,7 +18,9 @@ import {
   Tower, TargetingMark, ScreenShake, ExplosionEffect,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
+import { EnemyType } from '../types/index.js';
 import { Sound } from '../utils/Sound.js';
+import { MovementSystem } from './MovementSystem.js';
 
 // ============================================================
 // Boss type enum
@@ -32,6 +34,34 @@ export const BossType = {
   AbyssLord: 4,
 } as const;
 export type BossTypeVal = (typeof BossType)[keyof typeof BossType];
+
+const ENEMY_TYPE_BY_ID: EnemyType[] = [
+  EnemyType.Goblin,
+  EnemyType.Boar,
+  EnemyType.Elephant,
+  EnemyType.Giant,
+  EnemyType.DesertBeetle,
+  EnemyType.BurrowBeetle,
+  EnemyType.Locust,
+  EnemyType.BombBeetle,
+  EnemyType.Werewolf,
+  EnemyType.VampireBat,
+  EnemyType.Wizard,
+  EnemyType.Priest,
+  EnemyType.Frankenstein,
+  EnemyType.Plane,
+  EnemyType.Tank,
+  EnemyType.OilTruck,
+  EnemyType.RobotDog,
+  EnemyType.GiantRobot,
+  EnemyType.Drone,
+  EnemyType.GiantSlime,
+  EnemyType.QueenBeetle,
+  EnemyType.Lucifer,
+  EnemyType.SuperRobot,
+  EnemyType.AbyssLord,
+];
+const GIANT_SLIME_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.GiantSlime);
 
 // ============================================================
 // Bitecs queries
@@ -251,10 +281,9 @@ export class BossSystem implements System {
     splitCount: number,
     faction: number,
   ): number {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 36 + Math.random() * 28;
-    const x = centerX + Math.cos(angle) * dist;
-    const y = centerY + Math.sin(angle) * dist;
+    const x = centerX;
+    const y = centerY;
+    const pathLocation = MovementSystem.findNearestPathLocation(world, x, y, 64);
 
     const eid = world.createEntity();
     world.addComponent(eid, Position, { x, y });
@@ -284,6 +313,7 @@ export class BossSystem implements System {
     world.addComponent(eid, UnitTag, {
       isEnemy: 1,
       isBoss: 1,
+      unitTypeNum: GIANT_SLIME_ENEMY_TYPE_NUM,
       atk,
       rewardGold: splitCount === 2 ? 15 : 30,
     });
@@ -321,9 +351,9 @@ export class BossSystem implements System {
       moveMode: MoveModeVal.FollowPath,
       targetX: 0,
       targetY: 0,
-      pathIndex: 0,
+      pathIndex: pathLocation.pathIndex,
       progress: 0,
-      spawnIdx: 0,
+      spawnIdx: pathLocation.spawnIdx,
       homeX: x,
       homeY: y,
       moveRange: 0,

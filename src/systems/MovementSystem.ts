@@ -957,12 +957,21 @@ export class MovementSystem implements System {
    * @returns Index of the nearest path waypoint (0-based), or 0 if path is empty
    */
   static findNearestPathIndex(_world: TowerWorld, x: number, y: number, tileSize: number): number {
+    return MovementSystem.findNearestPathLocation(_world, x, y, tileSize).pathIndex;
+  }
+
+  static findNearestPathLocation(
+    _world: TowerWorld,
+    x: number,
+    y: number,
+    tileSize: number,
+  ): { spawnIdx: number; pathIndex: number } {
     const allPaths = MovementSystem._paths;
     const ts = tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
 
-    if (allPaths.length === 0) return 0;
+    if (allPaths.length === 0) return { spawnIdx: 0, pathIndex: 0 };
 
     // Search across all paths, return the index within the nearest path
     let bestPathIdx = 0;
@@ -984,6 +993,6 @@ export class MovementSystem implements System {
         }
       }
     }
-    return bestPointIdx;
+    return { spawnIdx: bestPathIdx, pathIndex: bestPointIdx };
   }
 }
