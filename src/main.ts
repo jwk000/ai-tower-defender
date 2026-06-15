@@ -518,12 +518,7 @@ class TowerDefenderGame extends Game {
       if (atkBonus > 0 && Attack.damage[entityId] !== undefined) {
         Attack.damage[entityId]! += atkBonus;
       }
-      // 嘲讽容量增量：优先 upgradeTauntCapacityBonus[costIdx]，否则用 tauntCapacityPerLevel
-      const tauntBonus = cfg.upgradeTauntCapacityBonus?.[costIdx] ?? cfg.tauntCapacityPerLevel ?? 0;
-      if (tauntBonus > 0 && Attack.tauntCapacity[entityId] !== undefined) {
-        const next = Attack.tauntCapacity[entityId]! + tauntBonus;
-        Attack.tauntCapacity[entityId] = next > 255 ? 255 : next;
-      }
+      // 嘲讽改为无数量上限的自动光环，旧容量成长字段仅保留配置兼容。
 
       Visual.hitFlashTimer[entityId] = 0.2;
       Sound.play('upgrade');

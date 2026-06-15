@@ -49,12 +49,13 @@ shield_guard:
   skills:
     - id: taunt
       name: 嘲讽
-      cooldown: 8
-      energyCost: 20
+      trigger: passive
+      cooldown: 0
+      energyCost: 0
       range: 120
-      value: 0
+      value: 3
       buffId: taunt_buff
-      description: 强制周围敌人攻击自己，持续3秒
+      description: 自动嘲讽周围敌人停止移动并攻击自己，无数量上限
 
   lifecycle:
     onDeath:

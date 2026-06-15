@@ -1,4 +1,4 @@
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, entityExists, hasComponent } from '../core/World.js';
 import { Skill, Position, Health, UnitTag, Taunted, Attack, Visual, enemyQuery, DamageTypeVal } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { SKILL_CONFIGS } from '../data/gameData.js';
@@ -202,6 +202,44 @@ export class SkillSystem implements System {
   // ---- Private ----
 
   private applyPassive(_world: TowerWorld, _entityId: number, _config: SkillConfig): void {
-    // Passive skill framework — to be extended per-tower-skill
+    if (_config.id === 'taunt') {
+      this.refreshTauntAura(_world, _entityId, _config);
+    }
+  }
+
+  private refreshTauntAura(world: TowerWorld, sourceId: number, config: SkillConfig): void {
+    if (!entityExists(world.world, sourceId)) return;
+    if ((Health.current[sourceId] ?? 0) <= 0) return;
+
+    const sx = Position.x[sourceId];
+    const sy = Position.y[sourceId];
+    if (sx === undefined || sy === undefined) return;
+
+    const duration = Math.max(config.value, 0.25);
+    const enemies = enemyQuery(world.world);
+    for (let i = 0; i < enemies.length; i++) {
+      const eid = enemies[i]!;
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if ((Health.current[eid] ?? 0) <= 0) continue;
+
+      const ex = Position.x[eid];
+      const ey = Position.y[eid];
+      if (ex === undefined || ey === undefined) continue;
+
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > config.range) {
+        if (hasComponent(world.world, Taunted, eid) && Taunted.sourceId[eid] === sourceId) {
+          world.removeComponent(eid, Taunted);
+        }
+        continue;
+      }
+
+      world.addComponent(eid, Taunted, { sourceId, timer: duration });
+      if (Attack.targetId[eid] !== undefined) {
+        Attack.targetId[eid] = sourceId;
+      }
+    }
   }
 }

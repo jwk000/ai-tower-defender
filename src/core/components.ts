@@ -227,8 +227,8 @@ export const Attack = defineComponent({
   chainRange: Types.f32,       // 弹跳搜索半径
   chainDecay: Types.f32,     // 弹跳衰减比例
   drainPercent: Types.f32,     // 吸血比例（蝙蝠塔）
-  tauntCapacity: Types.ui8,   // 嘲讽容量 — 同时能吸引多少敌人攻击自己（0 = 无嘲讽）
-  attackerCount: Types.ui8,   // 当前正在攻击此单位的敌人数（与 tauntCapacity 配合限流）
+  tauntCapacity: Types.ui8,   // 嘲讽标记 — >0 表示具备嘲讽光环；不限制同时嘲讽数量
+  attackerCount: Types.ui8,   // 旧容量实现遗留字段；不再用于限制嘲讽目标数量
 });
 
 /** 弹道 */

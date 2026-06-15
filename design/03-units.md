@@ -43,7 +43,7 @@
 
 - 塔、士兵、敌人的 `stats.damageType` 必须注入运行时攻击组件；`true` 表示真实伤害，绕过护甲和魔抗。
 - 塔的 `buildTime`、`cost.atkGrowth`、`cost.rangeGrowth` 必须来自配置；未配置时才使用旧默认值。
-- 士兵的 `cost.hpGrowth`、`cost.atkGrowth`、`cost.tauntCapacityGrowth`、`cost.maxLevel` 必须来自配置；未配置时才使用旧默认值。
+- 士兵的 `cost.hpGrowth`、`cost.atkGrowth`、`cost.maxLevel` 必须来自配置；`cost.tauntCapacityGrowth` 为旧兼容字段，盾卫嘲讽不再使用数量上限。
 - 敌人的 `visual.size` 必须决定运行时半径，Boss 不允许被桥接层强制压缩到固定尺寸；`attackAnimDuration` 可由配置覆盖，缺失时再按 Boss/非 Boss 使用默认值。
 - 配置中历史遗留的 `damageType: magical` 在加载时归一为 `magic`，运行时不保留新枚举。
 
@@ -269,9 +269,11 @@
 | 造价 | 35 |
 | 伤害类型 | physical |
 | 层级 | Ground |
-| 特殊 | **嘲讽** ：范围内敌人优先攻击盾卫 |
+| 特殊 | **自动嘲讽光环** ：120px 范围内敌人停止路径移动并锁定攻击盾卫，无数量上限 |
 
 - 目标选择: nearest
+- 嘲讽自动触发，不消耗能量、不需要玩家手动释放；只要敌人在盾卫嘲讽范围内且可被嘲讽，就会持续刷新嘲讽状态。
+- 被嘲讽敌人不会继续沿路径推进，会持续以盾卫为攻击目标；多个敌人可同时被同一个盾卫嘲讽。
 - 视觉: 蓝色盾牌+短剑造型
 
 ### 3.2 弓手

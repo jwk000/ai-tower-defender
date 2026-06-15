@@ -415,8 +415,8 @@ export interface UnitConfig {
   cost: number;
   moveRange: number;
   alertRange?: number; // detection radius for soldier AI alert behavior (default 0)
-  tauntCapacity?: number; // 嘲讽容量基础值：能同时吸引多少敌人攻击自己（默认 0 = 无嘲讽）
-  tauntCapacityPerLevel?: number; // 每升一级嘲讽容量增量（默认 0）
+  tauntCapacity?: number; // 嘲讽光环标记：>0 表示可自动嘲讽，嘲讽目标无数量上限（默认 0 = 无嘲讽）
+  tauntCapacityPerLevel?: number; // 旧配置兼容字段；当前不再限制嘲讽数量
   splashRadius?: number; // 近战 AOE 半径（px），>0 时每次攻击对周围目标造成 60% 溅射伤害
   splashDamage?: number; // 近战 AOE 固定溅射伤害，未配置时使用攻击力 60%
   critChance?: number; // 暴击概率（0-1）
@@ -442,7 +442,7 @@ export interface UnitConfig {
   upgradeCosts?: readonly number[]; // 各级升级费用：[1→2, 2→3, ...]（长度 = maxLevel - 1）
   upgradeHpBonus?: readonly number[]; // 每级升级增加的最大 HP
   upgradeAtkBonus?: readonly number[]; // 每级升级增加的攻击力
-  upgradeTauntCapacityBonus?: readonly number[]; // 每级升级增加的嘲讽容量（与 tauntCapacityPerLevel 二选一；优先此字段）
+  upgradeTauntCapacityBonus?: readonly number[]; // 旧配置兼容字段；当前不再限制嘲讽数量
   /** 基础几何形状：'circle' / 'rect' / 'hexagon' 等。默认 'rect'（士兵历史上是方块） */
   shape?: ShapeType;
   /** 视觉部件配置（武器/身体细节/徽记）— 不填则由程序化美术生成器补齐 */

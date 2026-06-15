@@ -1,9 +1,9 @@
-import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, hasComponent, entityExists } from '../core/World.js';
 import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
-  Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal,
+  Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal, Taunted,
 } from '../core/components.js';
 import { createSkillParticles } from './EnemySkillSystem.js';
 import type { MapConfig, GridPos } from '../types/index.js';
@@ -100,6 +100,12 @@ export class MovementSystem implements System {
 
       // Skip frozen entities — completely immobilized
       if (hasComponent(world.world, Frozen, eid)) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
+
+      if (this.processTauntTimer(world, eid, dt) && hasComponent(world.world, Attack, eid)) {
+        this.processEnemyAttack(world, eid, dt);
         Movement.currentSpeed[eid] = 0;
         continue;
       }
@@ -561,39 +567,47 @@ export class MovementSystem implements System {
 
     if (damage <= 0 || attackSpeed <= 0) return false;
 
-    // Tick cooldown
+    const posX = Position.x[eid]!;
+    const posY = Position.y[eid]!;
+    const forcedTarget = this.getTauntTarget(world, eid, posX, posY, attackRange);
+
+    // Tick cooldown. 被嘲讽敌人即使冷却中也要停在原地盯住盾卫。
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
+      if (forcedTarget !== null) {
+        Attack.targetId[eid] = forcedTarget;
+        this.faceTarget(eid, forcedTarget, posX);
+        return true;
+      }
       return false;
     }
 
-    const posX = Position.x[eid]!;
-    const posY = Position.y[eid]!;
-
     // Find nearest player unit (soldier or tower) within range
-    let nearestTarget = 0;
+    let nearestTarget: number | null = forcedTarget;
     let nearestDist = attackRange;
 
     // Check soldiers
-    const soldiers = this.soldierQuery(world.world);
-    for (const sid of soldiers) {
-      const sx = Position.x[sid];
-      const sy = Position.y[sid];
-      if (sx === undefined || sy === undefined) continue;
+    if (nearestTarget === null) {
+      const soldiers = this.soldierQuery(world.world);
+      for (const sid of soldiers) {
+        const sx = Position.x[sid];
+        const sy = Position.y[sid];
+        if (sx === undefined || sy === undefined) continue;
 
-      const dx = sx - posX;
-      const dy = sy - posY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+        const dx = sx - posX;
+        const dy = sy - posY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearestTarget = sid;
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestTarget = sid;
+        }
       }
     }
 
     // Check towers (if no soldier found)
-    if (nearestTarget === 0) {
+    if (nearestTarget === null) {
       const towers = this.towerQuery(world.world);
       for (const tid of towers) {
         const tx = Position.x[tid];
@@ -612,17 +626,12 @@ export class MovementSystem implements System {
     }
 
     // Attack the target
-    if (nearestTarget !== 0) {
+    if (nearestTarget !== null) {
       const isRanged = attackRange > MovementSystem.MELEE_RANGE_THRESHOLD;
 
       // Face toward target
-      const targetX = Position.x[nearestTarget]!;
-      const targetY = Position.y[nearestTarget]!;
-      if (targetX > posX) {
-        Visual.facing[eid] = 1;
-      } else if (targetX < posX) {
-        Visual.facing[eid] = -1;
-      }
+      Attack.targetId[eid] = nearestTarget;
+      this.faceTarget(eid, nearestTarget, posX);
 
       if (isRanged) {
         // 远程：投射子弹，命中时造成伤害
@@ -648,6 +657,52 @@ export class MovementSystem implements System {
       return true;
     }
     return false;
+  }
+
+  private processTauntTimer(world: TowerWorld, eid: number, dt: number): boolean {
+    if (!hasComponent(world.world, Taunted, eid)) return false;
+
+    const sourceId = Taunted.sourceId[eid] ?? 0;
+    const sourceAlive = entityExists(world.world, sourceId)
+      && (Health.current[sourceId] ?? 0) > 0;
+    Taunted.timer[eid] = Math.max(0, (Taunted.timer[eid] ?? 0) - dt);
+
+    if (!sourceAlive || Taunted.timer[eid]! <= 0) {
+      world.removeComponent(eid, Taunted);
+      if (Attack.targetId[eid] === sourceId) {
+        Attack.targetId[eid] = 0;
+      }
+      return false;
+    }
+
+    Attack.targetId[eid] = sourceId;
+    return true;
+  }
+
+  private getTauntTarget(world: TowerWorld, eid: number, posX: number, posY: number, attackRange: number): number | null {
+    if (!hasComponent(world.world, Taunted, eid)) return null;
+
+    const sourceId = Taunted.sourceId[eid] ?? 0;
+    if (!entityExists(world.world, sourceId)) return null;
+    if ((Health.current[sourceId] ?? 0) <= 0) return null;
+
+    const tx = Position.x[sourceId];
+    const ty = Position.y[sourceId];
+    if (tx === undefined || ty === undefined) return null;
+
+    const dx = tx - posX;
+    const dy = ty - posY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return dist <= attackRange ? sourceId : null;
+  }
+
+  private faceTarget(eid: number, targetId: number, posX: number): void {
+    const targetX = Position.x[targetId]!;
+    if (targetX > posX) {
+      Visual.facing[eid] = 1;
+    } else if (targetX < posX) {
+      Visual.facing[eid] = -1;
+    }
   }
 
   private getEnemyAttackDamage(world: TowerWorld, enemyId: number, targetId: number, baseDamage: number): number {
