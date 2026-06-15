@@ -1109,7 +1109,6 @@ class TowerDefenderGame extends Game {
 
     // ---- Register systems ----
     const lifecycleSystem = new LifecycleSystem();
-    this.world.registerSystem(lifecycleSystem);
     this.world.registerSystem(this.weatherSystem);
     this.world.registerSystem(this.handSystem);
     this.world.registerSystem(this.cardDraftSystem);
@@ -1117,6 +1116,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(movementSystem);
     this.world.registerSystem(attackSystem);
     this.world.registerSystem(this.bossSystem);
+    this.world.registerSystem(lifecycleSystem);
     this.world.registerSystem(new EnemySkillSystem());
     this.world.registerSystem(this.batSwarmSystem);
     this.world.registerSystem(unitSystem);

@@ -227,6 +227,25 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
     // BossSystem不再分裂小型史莱姆；真正死亡由LifecycleSystem处理。
     expect(bossesAfter.length).toBe(1);
   });
+
+  it('在主循环管线中应先于生命周期死亡判定完成非最终分裂', () => {
+    const boss = makeBoss(world, BossType.GiantSlime, {
+      hp: 800, maxHp: 800, splitCount: 0,
+    });
+
+    world.registerSystem(system);
+
+    Health.current[boss] = 0;
+    world.update(0.016);
+
+    const bossesAfter = bossQuery(world.world);
+    expect(bossesAfter.length).toBe(2);
+    for (const eid of bossesAfter) {
+      expect(Boss.splitCount[eid]).toBe(1);
+      expect(Health.current[eid]).toBe(200);
+      expect(world.getDisplayName(eid)).toBe('中型史莱姆');
+    }
+  });
 });
 
 // ============================================================
