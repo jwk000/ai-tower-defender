@@ -759,9 +759,6 @@ export class RenderSystem implements System {
     if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Enemy) {
       return `enemy_${ENEMY_TYPE_BY_ID[UnitTag.unitTypeNum[eid] ?? 0] ?? EnemyType.Goblin}`;
     }
-    if (hasComponent(world.world, Production, eid)) {
-      return (Production.resourceType[eid] ?? 0) === 0 ? 'gold_mine' : 'energy_tower';
-    }
     return null;
   }
 

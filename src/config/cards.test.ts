@@ -186,11 +186,9 @@ describe('A4-YAML loadAllCardConfigsSync 同步装载契约', () => {
 
 const B3_TRAP_PRODUCTION_CARDS = [
   { id: 'spike_trap_card', unit: 'spike_trap', type: 'trap', rarity: 'common', energy: 2 },
-  { id: 'gold_mine_card', unit: 'gold_mine', type: 'production', rarity: 'rare', energy: 3 },
-  { id: 'energy_tower_card', unit: 'energy_tower', type: 'production', rarity: 'rare', energy: 4 },
 ] as const;
 
-describe('B3 扩展版 陷阱/生产卡 YAML 配置', () => {
+describe('B3 扩展版 陷阱卡 YAML 配置', () => {
   beforeAll(async () => {
     cardConfigRegistry.clear();
     for (const { unit } of B3_TRAP_PRODUCTION_CARDS) {
@@ -241,7 +239,7 @@ describe('B3 扩展版 陷阱/生产卡 YAML 配置', () => {
     expect(cfg!.placement.range).toBe('path');
   });
 
-  it('B3 后总卡数 ≥ 15 (12 A12 + 3 B3)', () => {
-    expect(cardConfigRegistry.getAll().length).toBeGreaterThanOrEqual(15);
+  it('B3 后总卡数 ≥ 13 (12 A12 + 1 B3 陷阱)', () => {
+    expect(cardConfigRegistry.getAll().length).toBeGreaterThanOrEqual(13);
   });
 });

@@ -142,7 +142,6 @@ const INITIAL_UNLOCKED_CARD_IDS = [
   'swordsman_card',
   'archer_card',
   'shield_guard_card',
-  'gold_mine_card',
   'fireball_spell',
   'energy_crystal_card',
 ] as const;

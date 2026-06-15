@@ -480,10 +480,7 @@ export interface TrapConfig {
 
 // ---- Production ----
 
-export enum ProductionType {
-  GoldMine = 'gold_mine',
-  EnergyTower = 'energy_tower',
-}
+export type ProductionType = string;
 
 export interface ProductionConfig {
   type: ProductionType;

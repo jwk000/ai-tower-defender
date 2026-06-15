@@ -16,7 +16,7 @@
  * - `unit`：场上单位/塔，由 BuildSystem.startDrag('tower'|'unit') 入位
  * - `spell`：即用即弃，playCard 后直接进弃牌堆（RunContext.playCard line 137）
  * - `trap`：陷阱（地刺等），BuildSystem.startDrag('trap')，仅可放在路径
- * - `production`：生产建筑（金矿/能量塔），BuildSystem.startDrag('production')
+ * - `production`：生产建筑预留类型，当前版本未配置可用生产建筑卡
  *
  * trap / production 与 unit 在 RunContext 中共享「不立即弃牌、需场上实体化」语义；
  * 区分它们的目的是让 UI / 卡池保底 / 拖卡路由各自识别。
