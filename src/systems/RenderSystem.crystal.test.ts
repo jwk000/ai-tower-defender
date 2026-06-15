@@ -202,6 +202,44 @@ describe('RenderSystem — 水晶显示', () => {
     expect(hasProceduralBarrel(renderer.commands)).toBe(true);
   });
 
+  it('敌人受击时在当前精灵上叠色，不回退成程序化敌人主体', () => {
+    class LoadedImage {
+      complete = true;
+      naturalWidth = 128;
+      naturalHeight = 128;
+      width = 128;
+      height = 128;
+      src = '';
+    }
+    vi.stubGlobal('Image', LoadedImage);
+
+    const world = new TowerWorld();
+    const enemyId = makeNamedEntity(world, { name: '敌人', category: CategoryVal.Enemy, x: 48 });
+    Visual.hitFlashTimer[enemyId] = 0.12;
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+    renderer.commands = [];
+    Visual.hitFlashTimer[enemyId] = 0.12;
+    system.update(world, 0);
+
+    const spriteBody = renderer.commands.find((cmd) => cmd.image instanceof LoadedImage && cmd.imageTint);
+    const proceduralBody = renderer.commands.find((cmd) =>
+      cmd.x === 48 &&
+      cmd.y === 32 &&
+      cmd.shape === 'circle' &&
+      !cmd.image &&
+      cmd.color === '#ffffff',
+    );
+
+    expect(spriteBody).toEqual(expect.objectContaining({
+      imageTint: { color: '#ffffff', alpha: 0.72 },
+    }));
+    expect(proceduralBody).toBeUndefined();
+  });
+
   it('精英、Boss、我方士兵使用阵营化名称颜色', () => {
     setArtResourcesEnabled(false);
 

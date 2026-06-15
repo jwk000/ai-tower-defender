@@ -643,6 +643,8 @@ export interface RenderCommand {
   image?: CanvasImageSource;
   /** 图片源矩形；用于从图集大图中裁剪单帧。未设置时绘制整张 image。 */
   imageSource?: { x: number; y: number; w: number; h: number };
+  /** 图片颜色叠加；用于受击、元素命中等短促状态，不影响几何 fallback 的主体选择。 */
+  imageTint?: { color: string; alpha: number };
   scaleX?: number;
   alpha?: number;
   rotation?: number;

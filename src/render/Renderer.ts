@@ -123,9 +123,17 @@ export class Renderer {
               dw,
               dh,
             );
-            return;
+          } else {
+            ctx.drawImage(cmd.image, dx, dy, dw, dh);
           }
-          ctx.drawImage(cmd.image, dx, dy, dw, dh);
+          if (cmd.imageTint && cmd.imageTint.alpha > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.globalAlpha = Math.max(0, Math.min(1, cmd.imageTint.alpha));
+            ctx.fillStyle = cmd.imageTint.color;
+            ctx.fillRect(dx, dy, dw, dh);
+            ctx.restore();
+          }
         };
 
         if (cmd.clipRadius) {

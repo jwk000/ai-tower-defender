@@ -686,7 +686,15 @@ export class RenderSystem implements System {
     drawSize: number,
     alpha: number,
     z: number,
-    opts: { state?: string; frame?: 0 | 1; stroke?: string; strokeWidth?: number; facing?: number; artFacesLeft?: boolean } = {},
+    opts: {
+      state?: string;
+      frame?: 0 | 1;
+      stroke?: string;
+      strokeWidth?: number;
+      facing?: number;
+      artFacesLeft?: boolean;
+      tint?: { color: string; alpha: number };
+    } = {},
   ): boolean {
     const state = opts.state ?? 'idle';
     const frame = opts.frame ?? this.getUnitSpriteFrame(eid, state);
@@ -716,6 +724,7 @@ export class RenderSystem implements System {
       alpha,
       image: sprite.image,
       imageSource: sprite.source ?? undefined,
+      imageTint: opts.tint,
       scaleX,
       stroke: opts.stroke,
       strokeWidth: opts.strokeWidth,
@@ -751,6 +760,16 @@ export class RenderSystem implements System {
       return 'move';
     }
     return 'idle';
+  }
+
+  private getHitFlashColor(eid: number, hasPoisoned: boolean, hasFrozen: boolean): string {
+    if (hasPoisoned) return '#8cff5a';
+    if (hasFrozen) return '#e0f7ff';
+    if (Health.current[eid] !== undefined && Health.max[eid] !== undefined) {
+      const maxHp = Math.max(1, Health.max[eid]!);
+      if (Health.current[eid]! / maxHp <= 0.25) return '#ff5252';
+    }
+    return '#ffffff';
   }
 
   private drawBossAura(eid: number, x: number, y: number, size: number, z: number): void {
@@ -1081,6 +1100,7 @@ export class RenderSystem implements System {
       const hasFrozen = hasComponent(world.world, Frozen, eid);
       const hasSlowed = hasComponent(world.world, Slowed, eid);
       const hasStunnedComponent = hasComponent(world.world, Stunned, eid);
+      const hasPoisoned = hasComponent(world.world, Poisoned, eid);
 
       // ========================================
       // TRAP rendering — 根据机关类型绘制不同外观
@@ -1266,10 +1286,13 @@ export class RenderSystem implements System {
       // Hit flash
       // ========================================
       const flashActive = Visual.hitFlashTimer[eid]! > 0;
+      const hitTint = flashActive
+        ? { color: this.getHitFlashColor(eid, hasPoisoned, hasFrozen), alpha: 0.72 }
+        : undefined;
       let displayColor = rgbFromVisual(eid);
       let displayAlpha = Visual.alpha[eid]!;
       if (flashActive) {
-        displayColor = '#ffffff';
+        displayColor = hitTint!.color;
         displayAlpha = 1;
         Visual.hitFlashTimer[eid]! = 0;
       }
@@ -1304,7 +1327,6 @@ export class RenderSystem implements System {
       // ========================================
       // Poison visual — green tint (shader effect via lerp)
       // ========================================
-      const hasPoisoned = hasComponent(world.world, Poisoned, eid);
       if (hasPoisoned && !flashActive && !hasFrozen) {
         const poisonIntensity = Poisoned.intensity[eid]! || 1.0;
         const poisonTimer = Poisoned.timer[eid]! || 0;
@@ -1609,6 +1631,7 @@ export class RenderSystem implements System {
             stroke: strokeColor,
             strokeWidth: strokeW,
             artFacesLeft: getUnitSpriteArtFacesLeft(isEnemy, isBossEntity),
+            tint: hitTint,
           },
         );
         bodySpriteDrawn = spriteDrawn;
