@@ -1076,12 +1076,23 @@ class TowerDefenderGame extends Game {
     };
 
     // ---- Phase transition watcher ----
-    this.onUpdate = null;
+    this.onUpdate = (dt: number) => {
+      if (
+        this.currentScreen === GameScreen.Battle &&
+        (this.phase === GamePhase.Victory || this.phase === GamePhase.Defeat)
+      ) {
+        this.debugManager.update();
+        this.victoryScreenSystem.update(this.world, dt);
+        return;
+      }
+      this.debugManager.update();
+      for (const sys of this.world.systems) {
+        sys.update(this.world, dt);
+      }
+      this.world.cleanupDeadEntities();
+    };
     this.onAfterUpdate = (dt: number) => {
       if (this.currentScreen !== GameScreen.Battle) return;
-
-      // Update debug manager
-      this.debugManager.update();
 
       // BGM: switch on phase change
       if (this.phase !== this.previousPhase) {
@@ -1281,6 +1292,7 @@ class TowerDefenderGame extends Game {
     }
 
     this.levelSelectUI?.refresh?.(this.currentLevelId);
+    this.stopBattleLogic();
 
     // 播放胜利音频
     Sound.play(victoryConfig.audio.sfx as never);
@@ -1299,6 +1311,7 @@ class TowerDefenderGame extends Game {
     // 此处删除重复调用，避免每帧触发刺耳连播。
     this.phase = GamePhase.Defeat;
     this.levelSelectUI?.refresh?.();
+    this.stopBattleLogic();
 
     // 显示失败故事覆盖层
     const levelConfig = LEVELS[this.currentLevelId - 1];
@@ -1310,6 +1323,22 @@ class TowerDefenderGame extends Game {
     };
     const typography = levelConfig?.victory?.typography ?? DEFAULT_VICTORY_CONFIG.typography;
     this.victoryScreenSystem.activateDefeat(defeatStory, typography);
+  }
+
+  private stopBattleLogic(): void {
+    this.world.clearEntities();
+    this.baseEntityId = null;
+    this.unitDragId = null;
+    this.buildSystem?.cancelDrag();
+    if (this.uiSystem) {
+      this.uiSystem.selectedEntityId = null;
+      this.uiSystem.selectedEntityType = null;
+      this.uiSystem.selectedTowerEntityId = null;
+      this.uiSystem.selectedUnitEntityId = null;
+      this.uiSystem.selectedTrapEntityId = null;
+      this.uiSystem.selectedProductionEntityId = null;
+      this.uiSystem.enemyEntityId = null;
+    }
   }
 
   /** 🏁 调试：直接通关当前关卡（跳过所有波次） */

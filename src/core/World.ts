@@ -181,18 +181,21 @@ export class TowerWorld {
     }
   }
 
-  /** Reset the world to a clean state (clears entities, systems, etc.) */
-  reset(): void {
+  /** Remove every live entity while keeping registered systems and run context. */
+  clearEntities(): void {
     this.deadEntities.clear();
     this.displayNames.clear();
     this.unitVisualPartsTable.length = 0;
-    this.systems.length = 0;
-    this.runContext = null;
-    // Remove all existing entities from current world before creating a new one
-    const allEntities = getAllEntities(this.world);
-    for (const eid of allEntities) {
+    for (const eid of getAllEntities(this.world)) {
       removeEntity(this.world, eid);
     }
+  }
+
+  /** Reset the world to a clean state (clears entities, systems, etc.) */
+  reset(): void {
+    this.clearEntities();
+    this.systems.length = 0;
+    this.runContext = null;
     this.world = createWorld();
   }
 
