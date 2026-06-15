@@ -331,7 +331,7 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(world.getDisplayName(elites[0]!)).toBe('精英 哥布林');
   });
 
-  it('Boss 出场尺寸为70-90px并触发红色飘字回调和出场冲击环', () => {
+  it('Boss 出场尺寸为70-180px并触发红色飘字回调和出场冲击环', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],

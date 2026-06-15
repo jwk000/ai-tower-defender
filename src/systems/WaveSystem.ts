@@ -75,7 +75,7 @@ function hexToRGB(hex: string): { r: number; g: number; b: number } {
 // ---- gold color constant for elite outline ----
 const GOLD_RGB = hexToRGB('#FFD700');
 const BOSS_MIN_SIZE = 70;
-const BOSS_MAX_SIZE = 90;
+const BOSS_MAX_SIZE = 180;
 
 const BOSS_TYPE_BY_CONFIG: Record<string, number> = {
   GiantSlime: BossType.GiantSlime,
