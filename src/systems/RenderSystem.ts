@@ -762,8 +762,33 @@ export class RenderSystem implements System {
     return 'idle';
   }
 
+  private getDotVisual(eid: number): {
+    tint: string;
+    flash: string;
+    glowOuter: string;
+    glowInner: string;
+    particle: string;
+  } {
+    if ((Poisoned.dotType[eid] ?? 0) === 1) {
+      return {
+        tint: '#ff5722',
+        flash: '#ffb74d',
+        glowOuter: '#bf360c',
+        glowInner: '#ff7043',
+        particle: '#ffcc80',
+      };
+    }
+    return {
+      tint: '#4caf50',
+      flash: '#8cff5a',
+      glowOuter: '#2e7d32',
+      glowInner: '#66bb6a',
+      particle: '#a5d6a7',
+    };
+  }
+
   private getHitFlashColor(eid: number, hasPoisoned: boolean, hasFrozen: boolean): string {
-    if (hasPoisoned) return '#8cff5a';
+    if (hasPoisoned) return this.getDotVisual(eid).flash;
     if (hasFrozen) return '#e0f7ff';
     if (Health.current[eid] !== undefined && Health.max[eid] !== undefined) {
       const maxHp = Math.max(1, Health.max[eid]!);
@@ -1325,17 +1350,18 @@ export class RenderSystem implements System {
       }
 
       // ========================================
-      // Poison visual — green tint (shader effect via lerp)
+      // DOT visual — poison uses green, burn uses red-orange
       // ========================================
       if (hasPoisoned && !flashActive && !hasFrozen) {
         const poisonIntensity = Poisoned.intensity[eid]! || 1.0;
         const poisonTimer = Poisoned.timer[eid]! || 0;
+        const dotVisual = this.getDotVisual(eid);
         // Pulse the tint intensity
         const pulse = 0.7 + 0.3 * Math.sin(poisonTimer * 4);
         const t = poisonIntensity * pulse * 0.6;
         displayColor = this.lerpColorRGB(
           Visual.colorR[eid]!, Visual.colorG[eid]!, Visual.colorB[eid]!,
-          '#4caf50', t,
+          dotVisual.tint, t,
         );
       }
 
@@ -1527,11 +1553,15 @@ export class RenderSystem implements System {
       }
 
       // ========================================
-      // Poison glow aura (below entity body)
+      // DOT glow aura (below entity body)
       // ========================================
       if (hasPoisoned && !isProjectile) {
         const poisonTimer = Poisoned.timer[eid]! || 0;
-        this.renderer.drawPoisonGlow(posX, posY, drawSize, poisonTimer);
+        const dotVisual = this.getDotVisual(eid);
+        this.renderer.drawPoisonGlow(posX, posY, drawSize, poisonTimer, {
+          outer: dotVisual.glowOuter,
+          inner: dotVisual.glowInner,
+        });
       }
 
       if (isBossEntity) {
@@ -2042,11 +2072,11 @@ export class RenderSystem implements System {
       }
 
       // ========================================
-      // Poison bubbles (green rising particles for poisoned enemies)
+      // DOT particles (green bubbles for poison, red-orange embers for burn)
       // ========================================
       if (hasPoisoned && !flashActive && !isProjectile) {
         const poisonTimer = Poisoned.timer[eid]! || 0;
-        this.renderer.drawPoisonBubbles(posX, posY, drawSize, poisonTimer);
+        this.renderer.drawPoisonBubbles(posX, posY, drawSize, poisonTimer, this.getDotVisual(eid).particle);
       }
     }
   }

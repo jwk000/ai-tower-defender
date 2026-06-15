@@ -383,14 +383,15 @@ export class Renderer {
   }
 
   /**
-   * Draw a pulsing green glow aura beneath a poisoned entity.
-   *
-   * @param x        Center X (design-space)
-   * @param y        Center Y (design-space)
-   * @param baseSize Base entity size
-   * @param timer    Animation timer for pulse
+   * Draw a pulsing DOT glow aura beneath an entity.
    */
-  drawPoisonGlow(x: number, y: number, baseSize: number, timer: number): void {
+  drawPoisonGlow(
+    x: number,
+    y: number,
+    baseSize: number,
+    timer: number,
+    colors = { outer: '#2e7d32', inner: '#66bb6a' },
+  ): void {
     const pulse = 0.7 + 0.3 * Math.sin(timer * 3);
     const glowSize = baseSize * 1.8 * pulse;
 
@@ -398,7 +399,7 @@ export class Renderer {
       shape: 'circle',
       x, y,
       size: glowSize,
-      color: '#2e7d32', // Dark green
+      color: colors.outer,
       alpha: 0.2 * pulse,
       z: 2, // Below entity (Ground=5)
     });
@@ -408,21 +409,22 @@ export class Renderer {
       shape: 'circle',
       x, y,
       size: glowSize * 0.6,
-      color: '#66bb6a', // Medium green
+      color: colors.inner,
       alpha: 0.15 * pulse,
       z: 2,
     });
   }
 
   /**
-   * Draw floating green poison bubbles around an entity.
-   *
-   * @param x        Center X (design-space)
-   * @param y        Center Y (design-space)
-   * @param baseSize Base entity size
-   * @param timer    Animation timer
+   * Draw floating DOT particles around an entity.
    */
-  drawPoisonBubbles(x: number, y: number, baseSize: number, timer: number): void {
+  drawPoisonBubbles(
+    x: number,
+    y: number,
+    baseSize: number,
+    timer: number,
+    color = '#a5d6a7',
+  ): void {
     const bubbleCount = 4;
     const spread = baseSize * 0.8;
 
@@ -448,7 +450,7 @@ export class Renderer {
           x: bubbleX,
           y: bubbleY,
           size: bubbleSize,
-          color: '#a5d6a7', // Light green
+          color,
           alpha,
           z: 8, // Above entity
         });

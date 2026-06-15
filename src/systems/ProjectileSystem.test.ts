@@ -13,13 +13,15 @@ import type { World as BitecsWorld } from 'bitecs';
 import { TowerWorld } from '../core/World.js';
 import {
   Position, Projectile, Health, UnitTag, Layer, LayerVal,
-  TargetingMark, Visual, DamageTypeVal, Attack,
+  TargetingMark, Visual, DamageTypeVal, Attack, Poisoned,
 } from '../core/components.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { computeMissileParabola } from './AttackSystem.js';
 import { MAP_01 } from '../data/gameData.js';
 
 const MISSILE_TOWER_TYPE = 6;
+const FIRE_TOWER_TYPE = 7;
+const POISON_TOWER_TYPE = 8;
 
 function addComp(world: BitecsWorld, eid: number, comp: object, values: Record<string, unknown>): void {
   addComponent(world, comp, eid);
@@ -77,6 +79,47 @@ function makeMissile(
   });
   addComp(w, id, Visual, {
     shape: 1, colorR: 0, colorG: 0, colorB: 0,
+    size: 10, alpha: 1, outline: 0, hitFlashTimer: 0, idlePhase: 0,
+  });
+  addComp(w, id, Layer, { value: LayerVal.Ground });
+  return id;
+}
+
+function makeDotProjectile(
+  world: TowerWorld,
+  fromX: number,
+  fromY: number,
+  targetId: number,
+  sourceId: number,
+  sourceTowerType: number,
+): number {
+  const w = world.world;
+  const targetX = Position.x[targetId] ?? fromX;
+  const targetY = Position.y[targetId] ?? fromY;
+  const id = addEntity(w);
+  addComp(w, id, Position, { x: fromX, y: fromY });
+  addComp(w, id, Projectile, {
+    speed: 600,
+    damage: 1,
+    damageType: DamageTypeVal.Magic,
+    targetId,
+    sourceId,
+    fromX,
+    fromY,
+    shape: 1,
+    colorR: 255, colorG: 87, colorB: 34,
+    size: 10,
+    splashRadius: 0,
+    stunDuration: 0,
+    sourceTowerType,
+    targetX,
+    targetY,
+    flightTime: 0,
+    totalTime: 0,
+    vyInitial: 0,
+  });
+  addComp(w, id, Visual, {
+    shape: 1, colorR: 255, colorG: 87, colorB: 34,
     size: 10, alpha: 1, outline: 0, hitFlashTimer: 0, idlePhase: 0,
   });
   addComp(w, id, Layer, { value: LayerVal.Ground });
@@ -276,5 +319,40 @@ describe('ProjectileSystem — Missile landing accuracy', () => {
 
     expect(Math.abs(hitX - markX)).toBeLessThan(tolerance);
     expect(Math.abs(hitY - markY)).toBeLessThan(tolerance);
+  });
+});
+
+describe('ProjectileSystem — DOT visual type', () => {
+  function runUntilProjectileHits(world: TowerWorld, sys: ProjectileSystem): void {
+    for (let i = 0; i < 60; i++) {
+      sys.update(world, 1 / 60);
+      world.cleanupDeadEntities();
+    }
+  }
+
+  it('火塔命中后挂载红橙灼烧视觉类型', () => {
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+    const tower = makeAlliedTower(world, 100, 100);
+    const enemy = makeEnemy(world, 120, 100);
+
+    makeDotProjectile(world, 100, 100, enemy, tower, FIRE_TOWER_TYPE);
+    runUntilProjectileHits(world, sys);
+
+    expect(hasComponent(world.world, Poisoned, enemy)).toBe(true);
+    expect(Poisoned.dotType[enemy]).toBe(1);
+  });
+
+  it('毒塔命中后仍挂载绿色中毒视觉类型', () => {
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+    const tower = makeAlliedTower(world, 100, 100);
+    const enemy = makeEnemy(world, 120, 100);
+
+    makeDotProjectile(world, 100, 100, enemy, tower, POISON_TOWER_TYPE);
+    runUntilProjectileHits(world, sys);
+
+    expect(hasComponent(world.world, Poisoned, enemy)).toBe(true);
+    expect(Poisoned.dotType[enemy]).toBe(0);
   });
 });

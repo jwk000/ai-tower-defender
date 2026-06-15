@@ -56,7 +56,7 @@ const EXPLOSION_G = 0x6d;
 const EXPLOSION_B = 0x00;
 
 // ============================================================
-// Vine tower DOT tracking
+// Tower DOT tracking
 // ============================================================
 
 interface VineDOT {
@@ -64,7 +64,13 @@ interface VineDOT {
   ticksRemaining: number;
   stackCount: number;
   timer: number;
+  dotType: DotVisualType;
 }
+
+const DOT_VISUAL_POISON = 0;
+const DOT_VISUAL_BURN = 1;
+
+type DotVisualType = typeof DOT_VISUAL_POISON | typeof DOT_VISUAL_BURN;
 
 // ============================================================
 // Helpers
@@ -282,19 +288,20 @@ export class ProjectileSystem implements System {
       }
     }
 
-    // ---- Vine tower DOT ticking ----
+    // ---- Tower DOT ticking ----
     for (const [targetId, dot] of this.dotEntries) {
       if (!isAlive(targetId)) {
         this.dotEntries.delete(targetId);
-        // 移除中毒视觉组件
+        // 移除DOT视觉组件
         if (hasComponent(world.world, Poisoned, targetId)) {
           world.removeComponent(targetId, Poisoned);
         }
         continue;
       }
-      // 更新中毒动画计时器
+      // 更新DOT动画计时器
       if (hasComponent(world.world, Poisoned, targetId)) {
         Poisoned.timer[targetId]! += dt;
+        Poisoned.dotType[targetId]! = dot.dotType;
       }
       dot.timer -= dt;
       while (dot.timer <= 0) {
@@ -313,7 +320,7 @@ export class ProjectileSystem implements System {
         dot.ticksRemaining--;
         if (dot.ticksRemaining <= 0) {
           this.dotEntries.delete(targetId);
-          // DOT结束，移除中毒视觉组件
+          // DOT结束，移除DOT视觉组件
           if (hasComponent(world.world, Poisoned, targetId)) {
             world.removeComponent(targetId, Poisoned);
           }
@@ -443,8 +450,10 @@ export class ProjectileSystem implements System {
 
     // -- DOT: stacking poison/fire damage (sourceTowerType 7=Fire, 8=Poison) --
     if ((sourceTowerType === 7 || sourceTowerType === 8) && isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile)) {
-      const dotCfg = TOWER_CONFIGS[TowerType.Poison];
+      const isFireDot = sourceTowerType === 7;
+      const dotCfg = TOWER_CONFIGS[isFireDot ? TowerType.Fire : TowerType.Poison];
       if (dotCfg?.dotDamage !== undefined && dotCfg?.dotDuration !== undefined) {
+        const dotType = isFireDot ? DOT_VISUAL_BURN : DOT_VISUAL_POISON;
         const existing = this.dotEntries.get(targetId);
         if (existing) {
           existing.stackCount = Math.min(
@@ -452,17 +461,24 @@ export class ProjectileSystem implements System {
             dotCfg.dotMaxStacks ?? 5,
           );
           existing.ticksRemaining = dotCfg.dotDuration;
+          existing.damagePerTick = dotCfg.dotDamage;
+          existing.dotType = dotType;
         } else {
           this.dotEntries.set(targetId, {
             damagePerTick: dotCfg.dotDamage,
             ticksRemaining: dotCfg.dotDuration,
             stackCount: 1,
             timer: 1.0,
+            dotType,
           });
-          // 添加中毒视觉组件
+          // 添加DOT视觉组件
           if (!hasComponent(world.world, Poisoned, targetId)) {
-            world.addComponent(targetId, Poisoned, { timer: 0, intensity: 1.0 });
+            world.addComponent(targetId, Poisoned, { timer: 0, intensity: 1.0, dotType });
           }
+        }
+        if (hasComponent(world.world, Poisoned, targetId)) {
+          Poisoned.dotType[targetId]! = dotType;
+          Poisoned.intensity[targetId]! = 1.0;
         }
       }
     }
