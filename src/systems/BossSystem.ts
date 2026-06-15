@@ -85,6 +85,10 @@ const SUPERROBOT_WARNING_DURATION = 2;
 const ABYSSLORD_ANNIHILATE_INTERVAL = 5;
 const ABYSSLORD_ANNIHILATE_RADIUS = 150;
 const ABYSSLORD_HEAL_RATIO = 0.02;     // 2% max HP per kill
+const SLIME_CHILD_STATS: Record<number, { hp: number; atk: number; size: number; speed: number }> = {
+  1: { hp: 200, atk: 15, size: 86, speed: 20 },
+  2: { hp: 80, atk: 12, size: 58, speed: 28 },
+};
 
 // ============================================================
 // Screen shake helper
@@ -258,13 +262,12 @@ export class BossSystem implements System {
     const x = Position.x[eid] ?? 0;
     const y = Position.y[eid] ?? 0;
     const faction = Faction.value[eid] ?? FactionVal.Evil;
-    const childStats = splitCount === 0
-      ? { hp: 200, atk: 15, size: 74 }
-      : { hp: 80, atk: 12, size: 70 };
+    const nextSplitCount = splitCount + 1;
+    const childStats = SLIME_CHILD_STATS[nextSplitCount] ?? SLIME_CHILD_STATS[2]!;
 
     spawnBossSkillBurst(world, x, y, 130, { r: 90, g: 220, b: 90 }, 0.7);
     for (let i = 0; i < 2; i++) {
-      this.spawnSlimeChild(world, x, y, childStats.hp, childStats.atk, childStats.size, splitCount + 1, faction);
+      this.spawnSlimeChild(world, x, y, childStats.hp, childStats.atk, childStats.size, childStats.speed, nextSplitCount, faction);
     }
     Sound.play('boss_split');
     triggerScreenShake(world, 3, 0.3, 10);
@@ -278,6 +281,7 @@ export class BossSystem implements System {
     hp: number,
     atk: number,
     size: number,
+    speed: number,
     splitCount: number,
     faction: number,
   ): number {
@@ -346,8 +350,8 @@ export class BossSystem implements System {
       drainPercent: 0,
     });
     world.addComponent(eid, Movement, {
-      speed: splitCount === 1 ? 13 : 15,
-      currentSpeed: splitCount === 1 ? 13 : 15,
+      speed,
+      currentSpeed: speed,
       moveMode: MoveModeVal.FollowPath,
       targetX: 0,
       targetY: 0,

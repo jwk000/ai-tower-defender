@@ -3,7 +3,7 @@ import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
-import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal, EnemyFlockMember, Layer, LayerVal } from '../../core/components.js';
+import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal, EnemyFlockMember, Layer, LayerVal, Movement } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
@@ -364,7 +364,7 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(bosses.length).toBe(1);
     const boss = bosses[0]!;
     expect(Visual.size[boss]).toBeGreaterThanOrEqual(70);
-    expect(Visual.size[boss]).toBeLessThanOrEqual(90);
+    expect(Visual.size[boss]).toBeLessThanOrEqual(180);
     expect(spawnedBosses).toEqual([
       expect.objectContaining({ name: '巨型史莱姆' }),
     ]);
@@ -425,6 +425,9 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     const slime = bosses[0]!;
     expect(Boss.bossType[slime]).toBe(BossType.GiantSlime);
     expect(Boss.splitCount[slime]).toBe(0);
+    expect(Health.max[slime]).toBe(640);
+    expect(Movement.speed[slime]).toBe(15);
+    expect(Visual.size[slime]).toBe(126);
 
     Health.current[slime] = 0;
     new BossSystem().update(world, 0.016);
@@ -436,6 +439,9 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
       expect(Boss.bossType[child]).toBe(BossType.GiantSlime);
       expect(Boss.splitCount[child]).toBe(1);
       expect(Health.current[child]).toBe(200);
+      expect(Health.max[child]).toBeLessThan(Health.max[slime]!);
+      expect(Movement.speed[child]).toBeGreaterThan(Movement.speed[slime]!);
+      expect(Visual.size[child]).toBeLessThan(Visual.size[slime]!);
     }
   });
 

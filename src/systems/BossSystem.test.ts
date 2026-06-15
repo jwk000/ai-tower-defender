@@ -196,7 +196,8 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
       expect(Boss.splitCount[eid]).toBe(1);
       expect(Health.max[eid]).toBe(200);
       expect(Attack.damage[eid]).toBe(15);
-      expect(Visual.size[eid]).toBeGreaterThanOrEqual(70);
+      expect(Visual.size[eid]).toBe(86);
+      expect(Movement.speed[eid]).toBe(20);
     }
   });
 
@@ -215,8 +216,37 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
       expect(Boss.splitCount[eid]).toBe(2);
       expect(Health.max[eid]).toBe(80);
       expect(Attack.damage[eid]).toBe(12);
-      expect(Visual.size[eid]).toBeGreaterThanOrEqual(70);
+      expect(Visual.size[eid]).toBe(58);
+      expect(Movement.speed[eid]).toBe(28);
     }
+  });
+
+  it('史莱姆分裂层级满足体型递减、血量递减、速度递增', () => {
+    const giant = makeBoss(world, BossType.GiantSlime, {
+      hp: 800,
+      maxHp: 800,
+      splitCount: 0,
+    });
+    Visual.size[giant] = 126;
+    Movement.speed[giant] = 15;
+
+    Health.current[giant] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities();
+
+    const medium = bossQuery(world.world)[0]!;
+    expect(Visual.size[medium]).toBeLessThan(Visual.size[giant]!);
+    expect(Health.max[medium]).toBeLessThan(Health.max[giant]!);
+    expect(Movement.speed[medium]).toBeGreaterThan(Movement.speed[giant]!);
+
+    Health.current[medium] = 0;
+    system.update(world, 0);
+    world.cleanupDeadEntities();
+
+    const small = bossQuery(world.world).find((eid) => Boss.splitCount[eid] === 2)!;
+    expect(Visual.size[small]).toBeLessThan(Visual.size[medium]!);
+    expect(Health.max[small]).toBeLessThan(Health.max[medium]!);
+    expect(Movement.speed[small]).toBeGreaterThan(Movement.speed[medium]!);
   });
 
   it('小型史莱姆死亡才是真正死亡，不再分裂', () => {

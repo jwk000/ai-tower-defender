@@ -712,7 +712,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   [EnemyType.GiantSlime]: {
     type: EnemyType.GiantSlime, name: '巨型史莱姆', hp: 800, speed: 15, atk: 20,
     defense: 10, magicResist: 5, attackRange: 50, attackSpeed: 0.5,
-    canAttackBuildings: true, rewardGold: 100, color: '#66bb6a', radius: 35,
+    canAttackBuildings: true, rewardGold: 100, color: '#66bb6a', radius: 63,
     isBoss: true, bossType: 'GiantSlime', splitCount: 0, bossPhase2HpRatio: 0.5, attackAnimDuration: 0.85,
   },
   [EnemyType.QueenBeetle]: {

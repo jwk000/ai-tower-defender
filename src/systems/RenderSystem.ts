@@ -1324,7 +1324,10 @@ export class RenderSystem implements System {
       const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
       let drawSize = Visual.size[eid]!;
       if (isBossEntity) {
-        drawSize = Math.max(70, Math.min(90, Visual.size[eid]!));
+        const isSplitSlime = Boss.bossType[eid] === 0 && (Boss.splitCount[eid] ?? 0) > 0;
+        drawSize = isSplitSlime
+          ? Math.min(180, Visual.size[eid]!)
+          : Math.max(70, Math.min(180, Visual.size[eid]!));
         if (Boss.phase[eid]! === 2 && !flashActive) {
           if (Boss.transitionTimer[eid]! > 0) {
             const cycle = Math.floor(Boss.transitionTimer[eid]! / 0.1) % 2;
