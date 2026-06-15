@@ -35,6 +35,7 @@ class AtlasPlan:
     image_path: str
     files: list[Path]
     resize_to: tuple[int, int] | None = None
+    max_width: int = MAX_SIZE
 
 
 @dataclass(frozen=True)
@@ -60,11 +61,40 @@ def chunked(items: list[Path], size: int) -> Iterable[list[Path]]:
         yield items[i:i + size]
 
 
+def tower_id_from_path(path: Path) -> str | None:
+    name = path.stem
+    prefix = "unit_tower_"
+    if not name.startswith(prefix):
+        return None
+    rest = name[len(prefix):]
+    for suffix in ["_idle_0", "_idle_1", "_move_0", "_move_1", "_attack_0", "_attack_1", "_death_0", "_death_1"]:
+        if rest.endswith(suffix):
+            return rest[:-len(suffix)]
+    return None
+
+
 def build_plans() -> list[AtlasPlan]:
     plans: list[AtlasPlan] = []
 
     unit_files = image_files("units")
-    for index, files in enumerate(chunked(unit_files, 49), start=1):
+    tower_groups: dict[str, list[Path]] = {}
+    non_tower_unit_files: list[Path] = []
+    for file in unit_files:
+        tower_id = tower_id_from_path(file)
+        if tower_id is None:
+            non_tower_unit_files.append(file)
+        else:
+            tower_groups.setdefault(tower_id, []).append(file)
+
+    for tower_id, files in sorted(tower_groups.items()):
+        plans.append(AtlasPlan(
+            atlas_id=f"tower_{tower_id}",
+            image_path=f"/art/atlases/towers/tower_{tower_id}.png",
+            files=sorted(files),
+            max_width=1024,
+        ))
+
+    for index, files in enumerate(chunked(non_tower_unit_files, 49), start=1):
         plans.append(AtlasPlan(
             atlas_id=f"units_{index:02d}",
             image_path=f"/art/atlases/units/units_{index:02d}.png",
@@ -128,7 +158,7 @@ def pack_rows(plan: AtlasPlan) -> tuple[int, int, list[PackedFrame]]:
         if w + PADDING * 2 > MAX_SIZE or h + PADDING * 2 > MAX_SIZE:
             raise ValueError(f"{file} is too large for {MAX_SIZE}px atlas after resize: {w}x{h}")
 
-        if x + w + PADDING > MAX_SIZE:
+        if x + w + PADDING > plan.max_width:
             x = PADDING
             y += row_h + PADDING
             row_h = 0

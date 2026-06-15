@@ -1,0 +1,54 @@
+{
+  "id": "tower_missile",
+  "image": "/art/atlases/towers/tower_missile.png",
+  "frames": {
+    "/art/units/unit_tower_missile_attack_0.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_attack_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_death_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_death_1.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_idle_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_idle_1.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_move_0.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_missile_move_1.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    }
+  }
+}

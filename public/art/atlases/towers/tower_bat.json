@@ -1,0 +1,54 @@
+{
+  "id": "tower_bat",
+  "image": "/art/atlases/towers/tower_bat.png",
+  "frames": {
+    "/art/units/unit_tower_bat_attack_0.png": {
+      "x": 2,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_attack_1.png": {
+      "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_death_0.png": {
+      "x": 518,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_death_1.png": {
+      "x": 2,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_idle_0.png": {
+      "x": 260,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_idle_1.png": {
+      "x": 518,
+      "y": 260,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_move_0.png": {
+      "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/units/unit_tower_bat_move_1.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    }
+  }
+}
