@@ -340,6 +340,8 @@ export interface EnemyConfig {
   radius: number;
   description?: string;
   isBoss?: boolean;
+  bossType?: string;
+  splitCount?: number;
   bossPhase2HpRatio?: number;
   /** 死亡时触发的特殊效果类型 */
   specialOnDeath?: 'explode';

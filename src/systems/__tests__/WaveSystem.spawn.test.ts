@@ -3,7 +3,7 @@ import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
 import { TowerWorld } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
-import { Position, UnitTag, Health, Elite, Visual, Boss } from '../../core/components.js';
+import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
 import { ENEMY_CONFIGS } from '../../data/gameData.js';
@@ -11,6 +11,7 @@ import { ENEMY_CONFIGS } from '../../data/gameData.js';
 const enemyQuery = defineQuery([Position, UnitTag]);
 const eliteQuery = defineQuery([Position, UnitTag, Elite]);
 const bossQuery = defineQuery([Position, UnitTag, Boss]);
+const explosionQuery = defineQuery([Position, ExplosionEffect, Visual]);
 
 function makeBaseMap(): Omit<MapConfig, 'spawns' | 'pathGraph'> {
   return { name: 'test', cols: 10, rows: 10, tileSize: 64, tiles: [[]] };
@@ -243,6 +244,46 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(world.getDisplayName(bosses[0]!)).toBe('巨型史莱姆');
     expect(elites.length).toBe(1);
     expect(world.getDisplayName(elites[0]!)).toBe('精英 哥布林');
+  });
+
+  it('Boss 出场尺寸为70-90px并触发红色飘字回调和出场冲击环', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const spawnedBosses: Array<{ name: string; x: number; y: number }> = [];
+
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [{ enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 }],
+    }];
+
+    const ws = new WaveSystem(
+      world,
+      map,
+      waves,
+      getPhase,
+      setPhase,
+      undefined,
+      undefined,
+      undefined,
+      (boss) => spawnedBosses.push({ name: boss.name, x: boss.x, y: boss.y }),
+    );
+    ws.startWave();
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+
+    const bosses = bossQuery(world.world);
+    expect(bosses.length).toBe(1);
+    const boss = bosses[0]!;
+    expect(Visual.size[boss]).toBeGreaterThanOrEqual(70);
+    expect(Visual.size[boss]).toBeLessThanOrEqual(90);
+    expect(spawnedBosses).toEqual([
+      expect.objectContaining({ name: '巨型史莱姆' }),
+    ]);
+    expect(explosionQuery(world.world).length).toBeGreaterThan(0);
   });
 });
 

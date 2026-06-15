@@ -172,6 +172,62 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
     setArtResourcesEnabled(true);
   });
 
+  it('调试面板提供单位动作预览入口', async () => {
+    const { TowerWorld } = await import('../core/World.js');
+    const { DebugManager } = await import('./DebugManager.js');
+
+    const world = new TowerWorld();
+    const debug = new DebugManager(world);
+    const action = debug.getActions().find((a) => a.id === 'show_unit_animation_preview');
+
+    expect(action).toBeDefined();
+    expect(action?.isEnabled()).toBe(true);
+  });
+
+  it('单位动作预览按塔、士兵、每关敌人分页并对关卡敌人去重', async () => {
+    const { buildPreviewTabs } = await import('./UnitAnimationPreviewWindow.js');
+    const { TowerType, UnitType, LevelTheme, TileType } = await import('../types/index.js');
+
+    const tabs = buildPreviewTabs([
+      {
+        id: 'debug-level',
+        name: '调试关卡',
+        theme: LevelTheme.Plains,
+        description: '',
+        map: {
+          name: 'debug-map',
+          rows: 1,
+          cols: 1,
+          tileSize: 64,
+          tiles: [[TileType.Empty]],
+        },
+        waves: [
+          {
+            waveNumber: 1,
+            spawnDelay: 0,
+            enemies: [
+              { enemyType: 'goblin', count: 2, spawnInterval: 1 },
+              { enemyType: 'goblin', count: 1, spawnInterval: 1 },
+              { enemyType: 'boar', count: 1, spawnInterval: 1 },
+            ],
+          },
+        ],
+        startingGold: 0,
+        availableTowers: [],
+        availableUnits: [],
+        unlockStarsRequired: 0,
+        unlockPrevLevelId: null,
+      },
+    ]);
+
+    expect(tabs[0]?.id).toBe('tower');
+    expect(tabs[0]?.units.map((unit) => unit.id)).toContain(`tower_${TowerType.Arrow}`);
+    expect(tabs[1]?.id).toBe('soldier');
+    expect(tabs[1]?.units.map((unit) => unit.id)).toContain(UnitType.Archer);
+    expect(tabs[2]?.id).toBe('level-debug-level');
+    expect(tabs[2]?.units.map((unit) => unit.id)).toEqual(['enemy_goblin', 'enemy_boar']);
+  });
+
   it('addDebugGold 在 economy provider 返回 null 时按未注入处理', async () => {
     const { TowerWorld } = await import('../core/World.js');
     const { DebugManager } = await import('./DebugManager.js');

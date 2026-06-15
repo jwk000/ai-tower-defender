@@ -26,6 +26,11 @@ import {
   Category,
   CategoryVal,
   Boss,
+  Tower,
+  Faction,
+  FactionVal,
+  Layer,
+  LayerVal,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -65,6 +70,9 @@ function makeTower(world: TowerWorld, hp: number = 80): number {
   world.addComponent(eid, Position, { x: 100, y: 100 });
   world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   world.addComponent(eid, Category, { value: CategoryVal.Tower });
+  world.addComponent(eid, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
   return eid;
 }
 
@@ -251,6 +259,47 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
 
     expect(Health.current[base], '基地正常扣血').toBe(70);
     expect(Health.current[tower], '塔不应因敌人到达基地而掉血').toBe(towerHp0);
+  });
+
+  it('Boss 普攻塔时停步并保证约3次可摧毁一座塔', () => {
+    const tower = makeTower(world, 300);
+    const boss = world.createEntity();
+    world.addComponent(boss, Position, { x: 90, y: 100 });
+    world.addComponent(boss, Health, { current: 1000, max: 1000, armor: 0, magicResist: 0 });
+    world.addComponent(boss, Movement, {
+      speed: 30,
+      currentSpeed: 30,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+    });
+    world.addComponent(boss, UnitTag, { isEnemy: 1, isBoss: 1, atk: 20 });
+    world.addComponent(boss, Visual, {
+      shape: 1,
+      colorR: 200,
+      colorG: 0,
+      colorB: 0,
+      size: 80,
+      alpha: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0.9,
+    });
+    world.addComponent(boss, Attack, {
+      damage: 20,
+      attackSpeed: 1,
+      range: 40,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+    });
+    world.addComponent(boss, Boss, { bossType: 0xff, phase: 1, phase2HpRatio: 0.5, selfDestructTimer: -1 });
+
+    system.update(world, 0.016);
+
+    expect(Health.current[tower]).toBe(200);
+    expect(Visual.attackAnimTimer[boss]).toBeCloseTo(0.9);
+    expect(Movement.currentSpeed[boss]).toBe(0);
   });
 
   it('Boss 到达水晶后立即判定失败', () => {

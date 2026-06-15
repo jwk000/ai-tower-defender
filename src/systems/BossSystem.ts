@@ -2,7 +2,7 @@
 // Tower Defender — BossSystem (v4.0)
 //
 // Handles 5 BOSS-specific mechanics per design/03-units.md §6:
-//   0 GiantSlime — death split: giant → 2 medium → 4 small (2 levels)
+//   0 GiantSlime — split skill: giant → 2 medium → 4 small; only small death is real Boss death
 //   1 QueenWorm  — immune to towers, spawns 3 beetles/15s
 //   2 Lucifer    — Chaos faction, spawns 3 skeletons/10s (cap 12), enrage <30% HP
 //   3 SuperRobot — missile bombardment at tower-dense area every 10s (2s warning)
@@ -45,12 +45,6 @@ const allPositionedQuery = defineQuery([Position]);
 // Constants
 // ============================================================
 
-/** GiantSlime split child HP/ATK by level */
-const SLIME_SPLIT_STATS: Record<number, { hp: number; atk: number }> = {
-  1: { hp: 200, atk: 15 },  // medium (splitCount=1)
-  2: { hp: 80, atk: 12 },   // small (splitCount=2)
-};
-
 const QUEENWORM_SPAWN_INTERVAL = 15;   // seconds
 const LUCIFER_SPAWN_INTERVAL_NORMAL = 10;
 const LUCIFER_SPAWN_INTERVAL_ENRAGE = 5;
@@ -76,6 +70,82 @@ function triggerScreenShake(world: TowerWorld, intensity: number, duration: numb
   });
 }
 
+function spawnBossSkillBurst(
+  world: TowerWorld,
+  x: number,
+  y: number,
+  radius: number,
+  color: { r: number; g: number; b: number },
+  duration = 0.65,
+): void {
+  const effectId = world.createEntity();
+  world.addComponent(effectId, Position, { x, y });
+  world.addComponent(effectId, Category, { value: CategoryVal.Effect });
+  world.addComponent(effectId, ExplosionEffect, {
+    duration,
+    elapsed: 0,
+    radius: Math.max(10, radius * 0.18),
+    maxRadius: radius,
+    colorR: color.r,
+    colorG: color.g,
+    colorB: color.b,
+  });
+  world.addComponent(effectId, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: color.r,
+    colorG: color.g,
+    colorB: color.b,
+    size: radius * 2,
+    alpha: 0.55,
+    outline: 1,
+    facing: 1,
+    hitFlashTimer: 0,
+    idlePhase: 0,
+    bobPhase: 0,
+    breathPhase: 0,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0,
+    partsId: 0,
+  });
+
+  for (let i = 0; i < 10; i++) {
+    const angle = (i / 10) * Math.PI * 2;
+    const dist = radius * 0.35;
+    const pid = world.createEntity();
+    world.addComponent(pid, Position, {
+      x: x + Math.cos(angle) * dist,
+      y: y + Math.sin(angle) * dist * 0.7,
+    });
+    world.addComponent(pid, Category, { value: CategoryVal.Effect });
+    world.addComponent(pid, Visual, {
+      shape: i % 2 === 0 ? ShapeVal.Diamond : ShapeVal.Triangle,
+      colorR: color.r,
+      colorG: color.g,
+      colorB: color.b,
+      size: 10,
+      alpha: 0.75,
+      outline: 0,
+      facing: 1,
+      hitFlashTimer: 0,
+      idlePhase: 0,
+      bobPhase: 0,
+      breathPhase: 0,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+      partsId: 0,
+    });
+    world.addComponent(pid, ExplosionEffect, {
+      duration,
+      elapsed: 0,
+      radius: 4,
+      maxRadius: 24,
+      colorR: color.r,
+      colorG: color.g,
+      colorB: color.b,
+    });
+  }
+}
+
 // ============================================================
 // BossSystem
 // ============================================================
@@ -99,11 +169,11 @@ export class BossSystem implements System {
       const hp = Health.current[eid];
       const bossType = Boss.bossType[eid] ?? 0;
 
-      // GiantSlime (0): handle death split
+      // GiantSlime (0): non-final split layers are handled here as a skill, not real death
       if (bossType === BossType.GiantSlime) {
-        if (hp !== undefined && hp <= 0) {
+        if (hp !== undefined && hp <= 0 && (Boss.splitCount[eid] ?? 0) < 2) {
           this.handleGiantSlimeDeath(world, eid);
-          continue; // entity destroyed, skip further processing
+          continue;
         }
       }
 
@@ -117,7 +187,7 @@ export class BossSystem implements System {
       // Dispatch to specific boss handler
       switch (bossType) {
         case BossType.GiantSlime:
-          // GiantSlime has no periodic ability — only death split
+          // GiantSlime has no periodic ability; split is triggered by non-final lethal damage
           break;
 
         case BossType.QueenWorm:
@@ -144,61 +214,55 @@ export class BossSystem implements System {
   }
 
   // ============================================================
-  // GiantSlime (0) — death split
+  // GiantSlime (0) — split skill
   // ============================================================
 
   /**
-   * On death: split into 2 smaller slimes.
-   * Giant (splitCount=0) → 2 medium (splitCount=1)
-   * Medium (splitCount=1) → 2 small (splitCount=2)
-   * Small (splitCount=2) → no further split
+   * Non-final lethal damage triggers split, not real Boss death.
+   * Giant (splitCount=0) -> 2 medium (splitCount=1)
+   * Medium (splitCount=1) -> 2 small (splitCount=2)
+   * Small (splitCount=2) uses LifecycleSystem real death and clears the field.
    */
   private handleGiantSlimeDeath(world: TowerWorld, eid: number): void {
-    const sc = Boss.splitCount[eid] ?? 0;
-    if (sc >= 2) {
-      // Small slime — no further split, just destroy
-      world.destroyEntity(eid);
-      return;
-    }
-
-    const stats = SLIME_SPLIT_STATS[sc + 1];
-    if (!stats) {
-      world.destroyEntity(eid);
-      return;
-    }
-
+    const splitCount = Boss.splitCount[eid] ?? 0;
     const x = Position.x[eid] ?? 0;
     const y = Position.y[eid] ?? 0;
     const faction = Faction.value[eid] ?? FactionVal.Evil;
+    const childStats = splitCount === 0
+      ? { hp: 200, atk: 15, size: 74 }
+      : { hp: 80, atk: 12, size: 70 };
 
-    // Spawn 2 child slimes
+    spawnBossSkillBurst(world, x, y, 130, { r: 90, g: 220, b: 90 }, 0.7);
     for (let i = 0; i < 2; i++) {
-      this.spawnSlimeChild(world, x, y, stats.hp, stats.atk, sc + 1, faction);
+      this.spawnSlimeChild(world, x, y, childStats.hp, childStats.atk, childStats.size, splitCount + 1, faction);
     }
-
     Sound.play('boss_split');
     triggerScreenShake(world, 3, 0.3, 10);
-
-    // Destroy original
     world.destroyEntity(eid);
   }
 
   private spawnSlimeChild(
     world: TowerWorld,
-    centerX: number, centerY: number,
-    hp: number, atk: number, splitCount: number,
+    centerX: number,
+    centerY: number,
+    hp: number,
+    atk: number,
+    size: number,
+    splitCount: number,
     faction: number,
   ): number {
-    // Random position within 60px of death location
     const angle = Math.random() * Math.PI * 2;
-    const dist = 20 + Math.random() * 40; // 20-60px
+    const dist = 36 + Math.random() * 28;
     const x = centerX + Math.cos(angle) * dist;
     const y = centerY + Math.sin(angle) * dist;
 
     const eid = world.createEntity();
     world.addComponent(eid, Position, { x, y });
     world.addComponent(eid, Health, {
-      current: hp, max: hp, armor: 0, magicResist: 0,
+      current: hp,
+      max: hp,
+      armor: 0,
+      magicResist: 0,
     });
     world.addComponent(eid, Boss, {
       bossType: BossType.GiantSlime,
@@ -225,8 +289,10 @@ export class BossSystem implements System {
     });
     world.addComponent(eid, Visual, {
       shape: ShapeVal.Circle,
-      colorR: 100, colorG: 200, colorB: 100,
-      size: splitCount === 1 ? 24 : 16, // smaller for deeper splits
+      colorR: 100,
+      colorG: 200,
+      colorB: 100,
+      size,
       alpha: 1,
       outline: 0,
       facing: 1,
@@ -241,8 +307,8 @@ export class BossSystem implements System {
       alertRange: 200,
       cooldownTimer: 0,
       targetId: 0,
-      targetSelection: 0, // Nearest
-      attackMode: 0,       // SingleTarget
+      targetSelection: 0,
+      attackMode: 0,
       splashRadius: 0,
       chainCount: 0,
       chainRange: 0,
@@ -250,8 +316,8 @@ export class BossSystem implements System {
       drainPercent: 0,
     });
     world.addComponent(eid, Movement, {
-      speed: splitCount === 1 ? 13 : 15, // smaller = slightly faster
-      currentSpeed: 15,
+      speed: splitCount === 1 ? 13 : 15,
+      currentSpeed: splitCount === 1 ? 13 : 15,
       moveMode: MoveModeVal.FollowPath,
       targetX: 0,
       targetY: 0,
@@ -279,6 +345,7 @@ export class BossSystem implements System {
     const spawnTimer = Boss.spawnTimer[eid] ?? 0;
     if (spawnTimer >= QUEENWORM_SPAWN_INTERVAL) {
       Boss.spawnTimer[eid] = 0;
+      spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 110, { r: 230, g: 180, b: 40 }, 0.7);
       this.spawnQueenWormMinions(world, eid);
       Sound.play('boss_summon');
       triggerScreenShake(world, 2, 0.2, 12);
@@ -365,22 +432,7 @@ export class BossSystem implements System {
         // Visual: red explosion + screen shake
         const ex = Position.x[eid] ?? 0;
         const ey = Position.y[eid] ?? 0;
-        const effectId = world.createEntity();
-        world.addComponent(effectId, Position, { x: ex, y: ey });
-        world.addComponent(effectId, Category, { value: CategoryVal.Effect });
-        world.addComponent(effectId, ExplosionEffect, {
-          duration: 1.0, elapsed: 0,
-          radius: 20, maxRadius: 120,
-          colorR: 200, colorG: 30, colorB: 30,
-        });
-        world.addComponent(effectId, Visual, {
-          shape: ShapeVal.Circle,
-          colorR: 200, colorG: 30, colorB: 30,
-          size: 240, alpha: 0.8, outline: 0, facing: 1,
-          hitFlashTimer: 0, idlePhase: 0,
-          bobPhase: 0, breathPhase: 0,
-          attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
-        });
+        spawnBossSkillBurst(world, ex, ey, 140, { r: 200, g: 30, b: 30 }, 1.0);
         Sound.play('boss_phase2');
         triggerScreenShake(world, 6, 0.5, 15);
       }
@@ -389,6 +441,7 @@ export class BossSystem implements System {
     const spawnTimer = Boss.spawnTimer[eid] ?? 0;
     if (spawnTimer >= interval) {
       Boss.spawnTimer[eid] = 0;
+      spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 120, { r: 156, g: 39, b: 176 }, 0.7);
       this.spawnLuciferSkeletons(world, eid);
       Sound.play('boss_summon');
     }
@@ -490,6 +543,7 @@ export class BossSystem implements System {
       if (target) {
         // Create TargetingMark at target location (2s warning)
         this.createMissileWarning(world, eid, target.x, target.y);
+        spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 100, { r: 255, g: 23, b: 68 }, 0.55);
         // Reset abilityTimer and enter warning phase
         Boss.abilityTimer[eid] = 0;
         Boss.phase[eid] = 1; // 1 = warning phase
@@ -625,6 +679,7 @@ export class BossSystem implements System {
     }
 
     // Clean up any TargetingMark entities
+    spawnBossSkillBurst(world, centerX, centerY, blastRadius, { r: 255, g: 80, b: 30 }, 0.45);
     this.cleanupTargetingMarks(world);
   }
 
@@ -653,22 +708,7 @@ export class BossSystem implements System {
       // Dark implosion visual effect
       const bx = Position.x[eid] ?? 0;
       const by = Position.y[eid] ?? 0;
-      const effectId = world.createEntity();
-      world.addComponent(effectId, Position, { x: bx, y: by });
-      world.addComponent(effectId, Category, { value: CategoryVal.Effect });
-      world.addComponent(effectId, ExplosionEffect, {
-        duration: 0.8, elapsed: 0,
-        radius: 10, maxRadius: ABYSSLORD_ANNIHILATE_RADIUS,
-        colorR: 26, colorG: 0, colorB: 51,
-      });
-      world.addComponent(effectId, Visual, {
-        shape: ShapeVal.Circle,
-        colorR: 26, colorG: 0, colorB: 51,
-        size: ABYSSLORD_ANNIHILATE_RADIUS * 2, alpha: 0.7, outline: 0, facing: 1,
-        hitFlashTimer: 0, idlePhase: 0,
-        bobPhase: 0, breathPhase: 0,
-        attackAnimTimer: 0, attackAnimDuration: 0, partsId: 0,
-      });
+      spawnBossSkillBurst(world, bx, by, ABYSSLORD_ANNIHILATE_RADIUS, { r: 26, g: 0, b: 51 }, 0.8);
 
       this.performAbyssAnnihilation(world, eid);
     }

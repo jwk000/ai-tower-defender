@@ -104,6 +104,12 @@ export class MovementSystem implements System {
         continue;
       }
 
+      // 敌人若本帧能攻击玩家单位，则先攻击并停止移动，避免 Boss/近战单位边走边拆塔。
+      if (hasComponent(world.world, Attack, eid) && this.processEnemyAttack(world, eid, dt)) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
+
       // Select path for this enemy's spawn point
       const spawnIdx = Movement.spawnIdx[eid]!;
       const path = (spawnIdx >= 0 && spawnIdx < paths.length) ? paths[spawnIdx]! : paths[0]!;
@@ -222,10 +228,7 @@ export class MovementSystem implements System {
         Visual.breathPhase[eid] = ((Visual.breathPhase[eid] ?? 0) + dt * ENEMY_MOVE_BREATH_RATE) % (Math.PI * 2);
       }
 
-      // 敌人攻击逻辑：如果有Attack组件，检查附近玩家单位并攻击
-      if (hasComponent(world.world, Attack, eid)) {
-        this.processEnemyAttack(world, eid, dt);
-      }
+      // 攻击逻辑已在移动前处理，确保攻击帧不移动。
     }
   }
 
@@ -345,18 +348,18 @@ export class MovementSystem implements System {
   /** 近战 vs 远程判定阈值（像素） */
   private static readonly MELEE_RANGE_THRESHOLD = 60;
 
-  private processEnemyAttack(world: TowerWorld, eid: number, dt: number): void {
+  private processEnemyAttack(world: TowerWorld, eid: number, dt: number): boolean {
     const attackRange = Attack.range[eid] ?? 30;
     const damage = Attack.damage[eid] ?? 0;
     const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
 
-    if (damage <= 0 || attackSpeed <= 0) return;
+    if (damage <= 0 || attackSpeed <= 0) return false;
 
     // Tick cooldown
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
-      return;
+      return false;
     }
 
     const posX = Position.x[eid]!;
@@ -420,7 +423,8 @@ export class MovementSystem implements System {
         this.spawnEnemyProjectile(world, eid, nearestTarget, posX, posY, damage);
       } else {
         // 近战：立即伤害 + 刀光特效
-        applyDamageToTarget(world, nearestTarget, damage, DamageTypeVal.Physical);
+        const effectiveDamage = this.getEnemyAttackDamage(world, eid, nearestTarget, damage);
+        applyDamageToTarget(world, nearestTarget, effectiveDamage, DamageTypeVal.Physical);
 
         // Hit flash on target
         if (Visual.hitFlashTimer[nearestTarget] !== undefined) {
@@ -433,8 +437,21 @@ export class MovementSystem implements System {
 
       // Reset cooldown and set attack animation pause
       Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
-      Visual.attackAnimTimer[eid] = 0.4;
+      const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
+      Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
+      return true;
     }
+    return false;
+  }
+
+  private getEnemyAttackDamage(world: TowerWorld, enemyId: number, targetId: number, baseDamage: number): number {
+    if (!hasComponent(world.world, Boss, enemyId)) return baseDamage;
+    if (!hasComponent(world.world, Tower, targetId)) return baseDamage;
+
+    const towerMaxHp = Health.max[targetId] ?? 0;
+    if (towerMaxHp <= 0) return baseDamage;
+
+    return Math.max(baseDamage, Math.ceil(towerMaxHp / 3));
   }
 
   /**

@@ -158,10 +158,10 @@ function countAliveEnemies(world: TowerWorld): number {
 }
 
 // ============================================================
-// GiantSlime (0) — Death Split
+// GiantSlime (0) — Split Skill
 // ============================================================
 
-describe('BossSystem — GiantSlime (分裂)', () => {
+describe('BossSystem — GiantSlime (分裂技能)', () => {
   let world: TowerWorld;
   let system: BossSystem;
 
@@ -170,7 +170,7 @@ describe('BossSystem — GiantSlime (分裂)', () => {
     system = new BossSystem();
   });
 
-  it('巨型史莱姆死亡后分裂为2个中型史莱姆', () => {
+  it('巨型史莱姆被打空血后先分裂为2个中型子Boss', () => {
     const boss = makeBoss(world, BossType.GiantSlime, {
       hp: 800, maxHp: 800, splitCount: 0,
     });
@@ -181,43 +181,39 @@ describe('BossSystem — GiantSlime (分裂)', () => {
     // Kill the boss
     Health.current[boss] = 0;
     system.update(world, 0);
-    world.cleanupDeadEntities(); // remove deferred-delete entities
+    world.cleanupDeadEntities();
 
-    // Original boss should be destroyed (marked)
-    // 2 medium slimes should be spawned with splitCount=1
     const bossesAfter = bossQuery(world.world);
-    expect(bossesAfter.length).toBe(2); // 2 medium slimes (original removed)
-
-    // Verify child properties
+    expect(bossesAfter.length).toBe(2);
     for (const eid of bossesAfter) {
       expect(Boss.bossType[eid]).toBe(BossType.GiantSlime);
       expect(Boss.splitCount[eid]).toBe(1);
       expect(Health.max[eid]).toBe(200);
       expect(Attack.damage[eid]).toBe(15);
+      expect(Visual.size[eid]).toBeGreaterThanOrEqual(70);
     }
   });
 
-  it('中型史莱姆死亡后分裂为2个小型史莱姆', () => {
+  it('中型史莱姆被打空血后继续分裂为2个小型子Boss', () => {
     const boss = makeBoss(world, BossType.GiantSlime, {
-      hp: 200, maxHp: 200, splitCount: 1, // medium slime
+      hp: 200, maxHp: 200, splitCount: 1,
     });
 
-    // Kill the medium slime
     Health.current[boss] = 0;
     system.update(world, 0);
     world.cleanupDeadEntities();
 
     const bossesAfter = bossQuery(world.world);
-    expect(bossesAfter.length).toBe(2); // 2 small slimes
-
+    expect(bossesAfter.length).toBe(2);
     for (const eid of bossesAfter) {
       expect(Boss.splitCount[eid]).toBe(2);
       expect(Health.max[eid]).toBe(80);
       expect(Attack.damage[eid]).toBe(12);
+      expect(Visual.size[eid]).toBeGreaterThanOrEqual(70);
     }
   });
 
-  it('小型史莱姆死亡后不再分裂', () => {
+  it('小型史莱姆死亡才是真正死亡，不再分裂', () => {
     const boss = makeBoss(world, BossType.GiantSlime, {
       hp: 80, maxHp: 80, splitCount: 2, // small slime
     });
@@ -228,8 +224,8 @@ describe('BossSystem — GiantSlime (分裂)', () => {
     world.cleanupDeadEntities();
 
     const bossesAfter = bossQuery(world.world);
-    // Small slime should be destroyed with no children
-    expect(bossesAfter.length).toBe(0);
+    // BossSystem不再分裂小型史莱姆；真正死亡由LifecycleSystem处理。
+    expect(bossesAfter.length).toBe(1);
   });
 });
 

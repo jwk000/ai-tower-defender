@@ -407,6 +407,9 @@ class TowerDefenderGame extends Game {
         Music.play(Music.getLevelBgm(this.currentLevelId));
       },
       (gold: number) => { this.economy.addGold(gold); },
+      (boss) => {
+        this.floatingTextSystem.show(this.world, boss.x, boss.y, `${boss.name}出现！`, { r: 255, g: 23, b: 68 });
+      },
     );
 
     // ---- Weather system — init with level config ----

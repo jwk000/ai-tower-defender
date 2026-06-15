@@ -1,5 +1,6 @@
 import { DebugPanel, type DebugAction } from './DebugPanel.js';
 import { CardListWindow } from './CardListWindow.js';
+import { UnitAnimationPreviewWindow } from './UnitAnimationPreviewWindow.js';
 import type { TowerWorld } from '../core/World.js';
 import type { EntityId } from '../types/index.js';
 import { CType } from '../types/index.js';
@@ -32,6 +33,7 @@ export class DebugManager {
   private world: TowerWorld;
   private debugPanel: DebugPanel;
   private cardListWindow: CardListWindow;
+  private unitAnimationPreviewWindow: UnitAnimationPreviewWindow;
 
   private selectedEntityId: EntityId | null = null;
 
@@ -57,6 +59,7 @@ export class DebugManager {
     this.onSkipToDefeatFn = hooks.onSkipToDefeat ?? null;
 
     this.cardListWindow = new CardListWindow();
+    this.unitAnimationPreviewWindow = new UnitAnimationPreviewWindow();
     this.setupCardListWindow();
     this.debugPanel = new DebugPanel(this.buildActions());
     this.setupKeyboardShortcuts();
@@ -147,6 +150,13 @@ export class DebugManager {
         onClick: () => this.showCardList(),
       },
       {
+        id: 'show_unit_animation_preview',
+        label: '单位动作预览',
+        icon: '🎞️',
+        isEnabled: () => true,
+        onClick: () => this.showUnitAnimationPreview(),
+      },
+      {
         id: 'skip_to_victory',
         label: '🏁 直接通关（测试用）',
         icon: '🏁',
@@ -211,6 +221,10 @@ export class DebugManager {
     this.cardListWindow.show(ALL_CARDS);
   }
 
+  private showUnitAnimationPreview(): void {
+    this.unitAnimationPreviewWindow.show();
+  }
+
   private skipToVictory(): void {
     this.onSkipToVictoryFn?.();
   }
@@ -243,7 +257,9 @@ export class DebugManager {
         e.preventDefault();
         this.debugPanel.toggle();
       } else if (e.key === 'Escape') {
-        if (this.cardListWindow.getIsOpen()) {
+        if (this.unitAnimationPreviewWindow.getIsOpen()) {
+          this.unitAnimationPreviewWindow.hide();
+        } else if (this.cardListWindow.getIsOpen()) {
           this.cardListWindow.hide();
         } else if (this.debugPanel.getIsExpanded()) {
           this.debugPanel.collapse();
@@ -275,5 +291,6 @@ export class DebugManager {
   destroy(): void {
     this.debugPanel.destroy();
     this.cardListWindow.destroy();
+    this.unitAnimationPreviewWindow.destroy();
   }
 }

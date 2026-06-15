@@ -3226,7 +3226,7 @@ giant_slime:
   isBoss: true
   stats: { hp: 800, atk: 20, attackSpeed: 0.5, range: 50, speed: 15, armor: 10, mr: 5, damageType: physical }
   reward: { gold: 100 }
-  visual: { shape: circle, color: "#66bb6a", size: 64, outline: true }
+  visual: { shape: circle, color: "#66bb6a", size: 70, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: GiantSlime, splitCount: 0 }
   skills: [{ id: slime_split_pulse, name: "黏液分裂波", cooldown: 12, range: 120, value: 35, duration: 4, description: "对周围120px内玩家单位造成35魔法伤害，并留下4s黏液减速区，敌人移速降低35%" }]
@@ -3310,7 +3310,7 @@ queen_beetle:
   isBoss: true
   stats: { hp: 1000, atk: 30, attackSpeed: 0.6, range: 80, speed: 20, armor: 15, mr: 20, damageType: physical }
   reward: { gold: 150 }
-  visual: { shape: circle, color: "#e65100", size: 68, outline: true }
+  visual: { shape: circle, color: "#e65100", size: 76, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: QueenWorm, immuneToTowers: true, spawnInterval: 15.0, spawnUnit: desert_beetle, spawnCount: 3 }
   skills: [{ id: summon_desert_beetles, name: "虫群孵化", cooldown: 15, range: 150, value: 3, duration: 0, unitId: desert_beetle, description: "在女王周围召唤3只desert_beetle；女王仍保持免疫塔攻击机制" }]
@@ -3410,7 +3410,7 @@ lucifer:
   isBoss: true
   stats: { hp: 1200, atk: 40, attackSpeed: 0.5, range: 60, speed: 18, armor: 20, mr: 25, damageType: physical }
   reward: { gold: 200 }
-  visual: { shape: circle, color: "#9c27b0", size: 72, outline: true }
+  visual: { shape: circle, color: "#9c27b0", size: 80, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   boss: { bossType: Lucifer, spawnInterval: 10.0, spawnIntervalEnraged: 5.0, spawnUnit: skeleton, spawnCount: 3, skeletonCap: 12, enrageHpRatio: 0.3, enrageAtkBonus: 0.5 }
   skills: [{ id: summon_skeletons, name: "召唤骷髅大军", cooldown: 10, range: 160, value: 3, duration: 0, unitId: skeleton, description: "在路西法周围召唤3个skeleton，低血量强化后冷却缩短至5s，场上骷髅上限12" }]
@@ -3539,7 +3539,7 @@ super_robot:
   isBoss: true
   stats: { hp: 2000, atk: 60, attackSpeed: 0.3, range: 100, speed: 10, armor: 40, mr: 15, damageType: physical }
   reward: { gold: 250 }
-  visual: { shape: rect, color: "#d32f2f", size: 80, outline: true }
+  visual: { shape: rect, color: "#d32f2f", size: 88, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   boss: { bossType: SuperRobot, missileInterval: 10.0, warningDuration: 2.0, missileDamage: 80, missileRadius: 80 }
   skills: [{ id: targeted_missile, name: "远程导弹轰炸", cooldown: 10, range: 9999, value: 80, duration: 2, description: "按塔密度/士兵密度评分选择目标点，2s预警后造成中心80、半径80px递减伤害" }]
@@ -3563,7 +3563,7 @@ abyss_lord:
   isBoss: true
   stats: { hp: 3000, atk: 50, attackSpeed: 0.5, range: 150, speed: 8, armor: 30, mr: 30, damageType: physical }
   reward: { gold: 400 }
-  visual: { shape: circle, color: "#1a0033", size: 96, outline: true }
+  visual: { shape: circle, color: "#1a0033", size: 90, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   boss: { bossType: AbyssLord, annihilateInterval: 5.0, annihilateRadius: 150, healRatio: 0.02 }
   skills: [{ id: dark_devour, name: "黑暗吞噬", cooldown: 5, range: 150, value: 2, duration: 0, description: "吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%" }]

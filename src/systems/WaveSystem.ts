@@ -16,6 +16,8 @@ import {
   FactionVal,
   MoveModeVal,
   DamageTypeVal,
+  ExplosionEffect,
+  ShapeVal,
 } from '../core/components.js';
 import { ENEMY_CONFIGS } from '../data/gameData.js';
 import { EnemyType, GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
@@ -25,6 +27,7 @@ import { Sound } from '../utils/Sound.js';
 import { shapeTypeToVal } from '../utils/visualHelpers.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import type { SpawnPoint } from '../level/graph/types.js';
+import { BossType } from './BossSystem.js';
 
 // ---- bitecs query for alive enemy check ----
 
@@ -70,6 +73,21 @@ function hexToRGB(hex: string): { r: number; g: number; b: number } {
 
 // ---- gold color constant for elite outline ----
 const GOLD_RGB = hexToRGB('#FFD700');
+const BOSS_MIN_SIZE = 70;
+const BOSS_MAX_SIZE = 90;
+
+const BOSS_TYPE_BY_CONFIG: Record<string, number> = {
+  GiantSlime: BossType.GiantSlime,
+  QueenWorm: BossType.QueenWorm,
+  Lucifer: BossType.Lucifer,
+  SuperRobot: BossType.SuperRobot,
+  AbyssLord: BossType.AbyssLord,
+};
+
+function resolveBossType(configType?: string): number {
+  if (!configType) return 0xFF;
+  return BOSS_TYPE_BY_CONFIG[configType] ?? 0xFF;
+}
 
 // ---- spawn options ----
 
@@ -139,6 +157,8 @@ export class WaveSystem implements System {
     private onWaveStart?: () => void,
     /** v4.0: 波次通关奖励金币回调 */
     private onWaveReward?: (gold: number) => void,
+    /** Boss 首次生成时触发，用于 UI 出场提示和外层表现 */
+    private onBossSpawn?: (boss: { eid: number; name: string; x: number; y: number }) => void,
   ) {
     this.world = world;
     this.waves = waves;
@@ -458,6 +478,9 @@ export class WaveSystem implements System {
     const hpMult = (options?.hpMultiplier ?? 1.0) * this.currentDifficulty.hpMult;
     const atkMult = (options?.atkMultiplier ?? 1.0) * this.currentDifficulty.atkMult;
     const visualScale = options?.visualScale ?? 1.0;
+    const baseDrawSize = config.isBoss
+      ? Math.max(BOSS_MIN_SIZE, Math.min(BOSS_MAX_SIZE, config.radius * 2))
+      : config.radius * 2 * visualScale;
 
     this.world.addComponent(eid, Position, { x, y });
     this.world.addComponent(eid, Health, {
@@ -498,7 +521,7 @@ export class WaveSystem implements System {
       colorR: isElite ? goldR : rgb.r,
       colorG: isElite ? goldG : rgb.g,
       colorB: isElite ? goldB : rgb.b,
-      size: config.radius * 2 * visualScale,
+      size: baseDrawSize,
       alpha: 1,
       facing: 1,
       bobPhase: 0,
@@ -534,11 +557,13 @@ export class WaveSystem implements System {
     // Boss component
     if (config.isBoss) {
       this.world.addComponent(eid, Boss, {
-        bossType: 0xFF, // data-driven boss
+        bossType: resolveBossType(config.bossType),
         phase: 1,
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
+        splitCount: config.splitCount ?? 0,
         selfDestructTimer: -1, // inactive
       });
+      this.spawnBossIntroEffect(eid, config.name, x, y);
     }
 
     registerEnemySkillEntity(eid, config.type);
@@ -563,6 +588,39 @@ export class WaveSystem implements System {
     }
 
     return eid;
+  }
+
+  private spawnBossIntroEffect(bossEid: number, bossName: string, x: number, y: number): void {
+    const effectId = this.world.createEntity();
+    this.world.addComponent(effectId, Position, { x, y });
+    this.world.addComponent(effectId, Category, { value: CategoryVal.Effect });
+    this.world.addComponent(effectId, ExplosionEffect, {
+      duration: 0.8,
+      elapsed: 0,
+      radius: 20,
+      maxRadius: 120,
+      colorR: 255,
+      colorG: 23,
+      colorB: 68,
+    });
+    this.world.addComponent(effectId, Visual, {
+      shape: ShapeVal.Circle,
+      colorR: 255,
+      colorG: 23,
+      colorB: 68,
+      size: 120,
+      alpha: 0.65,
+      outline: 1,
+      facing: 1,
+      hitFlashTimer: 0,
+      idlePhase: 0,
+      bobPhase: 0,
+      breathPhase: 0,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+      partsId: 0,
+    });
+    this.onBossSpawn?.({ eid: bossEid, name: bossName, x, y: y - 56 });
   }
 
   /** v4.0: resolve which spawn point to use for an enemy.

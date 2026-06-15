@@ -43,6 +43,7 @@ import {
   SlashEffect,
   Barrel,
   DeathEffect,
+  DisintegrateEffect,
 } from '../core/components.js';
 import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
@@ -747,6 +748,84 @@ export class RenderSystem implements System {
     return 'idle';
   }
 
+  private drawBossAura(eid: number, x: number, y: number, size: number, z: number): void {
+    const t = (Visual.breathPhase[eid] ?? 0) + Date.now() * 0.003;
+    const r = Visual.colorR[eid] ?? 255;
+    const g = Visual.colorG[eid] ?? 23;
+    const b = Visual.colorB[eid] ?? 68;
+    const color = `rgb(${r}, ${g}, ${b})`;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.3);
+
+    this.renderer.push({
+      shape: 'circle',
+      x,
+      y,
+      size: size * (1.35 + pulse * 0.18),
+      color,
+      alpha: 0.14,
+      stroke: '#ff1744',
+      strokeWidth: 2,
+      z: z - 0.2,
+    });
+
+    for (let i = 0; i < 8; i++) {
+      const angle = t * 0.8 + (i / 8) * Math.PI * 2;
+      const radius = size * (0.62 + (i % 2) * 0.12);
+      const px = x + Math.cos(angle) * radius;
+      const py = y + Math.sin(angle) * radius * 0.55;
+      this.renderer.push({
+        shape: i % 2 === 0 ? 'diamond' : 'circle',
+        x: px,
+        y: py,
+        size: 5 + (i % 3) * 2,
+        color: i % 2 === 0 ? '#ff1744' : color,
+        alpha: 0.45 + pulse * 0.25,
+        z: z + 0.1,
+      });
+    }
+  }
+
+  private drawDisintegrateEffect(eid: number, x: number, y: number, size: number, z: number): void {
+    const duration = DeathEffect.duration[eid] ?? 0.45;
+    const elapsed = DeathEffect.elapsed[eid] ?? 0;
+    const progress = duration > 0 ? Math.max(0, Math.min(1, elapsed / duration)) : 1;
+    const shardCount = DisintegrateEffect.shardCount[eid] ?? 10;
+    const radius = DisintegrateEffect.radius[eid] ?? size;
+    const r = DisintegrateEffect.colorR[eid] ?? 170;
+    const g = DisintegrateEffect.colorG[eid] ?? 170;
+    const b = DisintegrateEffect.colorB[eid] ?? 170;
+    const alpha = Math.max(0, 1 - progress);
+
+    this.renderer.push({
+      shape: 'circle',
+      x,
+      y,
+      size: size * (1 + progress * 0.7),
+      color: `rgb(${r}, ${g}, ${b})`,
+      alpha: 0.18 * alpha,
+      stroke: '#d0d0d0',
+      strokeWidth: 1,
+      z,
+    });
+
+    for (let i = 0; i < shardCount; i++) {
+      const angle = (i / shardCount) * Math.PI * 2 + i * 0.73;
+      const dist = radius * (0.15 + progress * (0.45 + (i % 4) * 0.08));
+      const px = x + Math.cos(angle) * dist;
+      const py = y + Math.sin(angle) * dist * 0.72 - progress * 14;
+      this.renderer.push({
+        shape: i % 3 === 0 ? 'triangle' : 'diamond',
+        x: px,
+        y: py,
+        size: Math.max(3, size * 0.08 + (i % 3) * 2),
+        color: `rgb(${r}, ${g}, ${b})`,
+        alpha: 0.75 * alpha,
+        rotation: angle + progress * Math.PI,
+        z: z + 0.1,
+      });
+    }
+  }
+
   private getTrapSpriteState(trapType: number, animTimer: number): 'idle' | 'attack' {
     if (trapType === 3) {
       return 'idle';
@@ -1240,7 +1319,7 @@ export class RenderSystem implements System {
       const isEliteEnemy = isEnemy && (UnitTag.isElite[eid] ?? 0) === 1;
       let drawSize = Visual.size[eid]!;
       if (isBossEntity) {
-        drawSize = Visual.size[eid]! * 1.3;
+        drawSize = Math.max(70, Math.min(90, Visual.size[eid]!));
         if (Boss.phase[eid]! === 2 && !flashActive) {
           if (Boss.transitionTimer[eid]! > 0) {
             const cycle = Math.floor(Boss.transitionTimer[eid]! / 0.1) % 2;
@@ -1425,6 +1504,10 @@ export class RenderSystem implements System {
         this.renderer.drawPoisonGlow(posX, posY, drawSize, poisonTimer);
       }
 
+      if (isBossEntity) {
+        this.drawBossAura(eid, posX, posY, drawSize, renderZ);
+      }
+
       // ========================================
       // Enemy attack animation: squash-stretch deformation
       // ========================================
@@ -1470,6 +1553,10 @@ export class RenderSystem implements System {
             displayAlpha = Math.min(1, displayAlpha * 1.2);
           }
         }
+      }
+
+      if (hasComponent(world.world, DisintegrateEffect, eid)) {
+        this.drawDisintegrateEffect(eid, posX, posY, drawSize, renderZ + 2);
       }
 
       // ========================================

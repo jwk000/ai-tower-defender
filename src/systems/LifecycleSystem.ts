@@ -13,11 +13,14 @@ import {
   Tower,
   Trap,
   enemyQuery,
+  Boss,
+  DisintegrateEffect,
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import { EnemyType, TowerType, UnitType } from '../types/index.js';
 import { UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
+import { BossType } from './BossSystem.js';
 
 const healthUnitQuery = defineQuery([Health, UnitTag]);
 
@@ -71,6 +74,8 @@ const ENEMY_TYPE_BY_ID: EnemyType[] = [
  */
 export class LifecycleSystem implements System {
   readonly name = 'LifecycleSystem';
+
+  private clearingEnemiesAfterBossDeath = false;
 
   private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {
     if (hasComponent(world.world, Tower, eid)) {
@@ -153,6 +158,38 @@ export class LifecycleSystem implements System {
 
   private creationTimes = new Map<number, number>();
 
+  private isPendingSlimeSplit(world: TowerWorld, eid: number): boolean {
+    if (!hasComponent(world.world, Boss, eid)) return false;
+    return Boss.bossType[eid] === BossType.GiantSlime && (Boss.splitCount[eid] ?? 0) < 2;
+  }
+
+  private shouldClearEnemiesForBossDeath(world: TowerWorld, bossEid: number): boolean {
+    if (!hasComponent(world.world, Boss, bossEid)) return false;
+    if (Boss.bossType[bossEid] !== BossType.GiantSlime) return true;
+
+    const bosses = defineQuery([Boss, Health])(world.world);
+    for (const eid of bosses) {
+      if (eid === bossEid) continue;
+      if (Boss.bossType[eid] !== BossType.GiantSlime) continue;
+      if (Health.current[eid] !== undefined && Health.current[eid]! > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private killRemainingEnemiesAfterBossDeath(world: TowerWorld, bossEid: number): void {
+    if (this.clearingEnemiesAfterBossDeath) return;
+    this.clearingEnemiesAfterBossDeath = true;
+    const enemies = enemyQuery(world.world);
+    for (const enemyId of enemies) {
+      if (enemyId === bossEid) continue;
+      if (UnitTag.isEnemy[enemyId] !== 1) continue;
+      if (Health.current[enemyId] === undefined || Health.current[enemyId]! <= 0) continue;
+      Health.current[enemyId] = 0;
+    }
+  }
+
   update(world: TowerWorld, _dt: number): void {
     const entities = healthUnitQuery(world.world);
     const now = performance.now() / 1000;
@@ -161,7 +198,13 @@ export class LifecycleSystem implements System {
       const currentHp = Health.current[eid];
 
       if (currentHp !== undefined && currentHp <= 0) {
+        if (this.isPendingSlimeSplit(world, eid)) {
+          continue;
+        }
         ruleEngine.dispatch(world.world, eid, 'onDeath', { time: now });
+        if (this.shouldClearEnemiesForBossDeath(world, eid)) {
+          this.killRemainingEnemiesAfterBossDeath(world, eid);
+        }
 
         // 清除指向该实体的所有 enemy Attack.targetId 引用，避免实体回收后下一帧
         // 错误地对新占用该 entity slot 的实体执行 releaseTaunt（attackerCount-- 错乱）
@@ -179,6 +222,7 @@ export class LifecycleSystem implements System {
         const colorB = Visual.colorB[eid] ?? 0;
         const size = Visual.size[eid] ?? 24;
         const deathArtId = this.getSceneUnitArtId(world, eid);
+        const isEnemy = UnitTag.isEnemy[eid] === 1;
 
         // Tower-specific death effects: burst of particles matching tower theme
         const isTower = hasComponent(world.world, Tower, eid);
@@ -197,6 +241,15 @@ export class LifecycleSystem implements System {
             size,
           });
           world.addComponent(effectEid, DeathEffect, { duration: 0.3 });
+          if (isEnemy) {
+            world.addComponent(effectEid, DisintegrateEffect, {
+              shardCount: hasComponent(world.world, Boss, eid) ? 18 : 10,
+              radius: hasComponent(world.world, Boss, eid) ? Math.max(size * 1.4, 120) : Math.max(size, 28),
+              colorR: 170,
+              colorG: 170,
+              colorB: 170,
+            });
+          }
           registerDeathSpriteArtId(effectEid, deathArtId);
         }
 
@@ -209,6 +262,7 @@ export class LifecycleSystem implements System {
         }
       }
     }
+    this.clearingEnemiesAfterBossDeath = false;
 
     // 清理已被销毁实体的追踪记录
     const currentEids = new Set(entities);

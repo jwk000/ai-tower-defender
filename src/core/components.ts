@@ -360,6 +360,15 @@ export const DeathEffect = defineComponent({
   elapsed: Types.f32,
 });
 
+/** 敌方灰飞烟灭破碎消散效果 */
+export const DisintegrateEffect = defineComponent({
+  shardCount: Types.ui8,
+  radius: Types.f32,
+  colorR: Types.ui8,
+  colorG: Types.ui8,
+  colorB: Types.ui8,
+});
+
 /** 爆炸特效 */
 export const ExplosionEffect = defineComponent({
   duration: Types.f32,
