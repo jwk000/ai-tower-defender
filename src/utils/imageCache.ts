@@ -41,7 +41,10 @@ const failedImages = new Set<string>();
 const atlasImageCache = new Map<string, HTMLImageElement>();
 const failedAtlasImages = new Set<string>();
 const atlasFrames = new Map<string, { atlasId: string; imagePath: string; frame: ArtAtlasFrameSpec }>();
+const atlasImagePaths = new Map<string, string>();
 let atlasIndexRequested = false;
+let atlasIndexLoaded = false;
+let atlasIndexPromise: Promise<ArtAtlasIndex | null> | null = null;
 
 function normalizePath(path: string): string {
   if (/^(?:https?:)?\/\//.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
@@ -68,23 +71,36 @@ function loadImage(cache: Map<string, HTMLImageElement>, failures: Set<string>, 
   return null;
 }
 
-function requestAtlasIndex(): void {
-  if (atlasIndexRequested) return;
+function loadAtlasIndex(): Promise<ArtAtlasIndex | null> {
+  if (atlasIndexPromise) return atlasIndexPromise;
   atlasIndexRequested = true;
-  if (typeof fetch === 'undefined') return;
+  if (typeof fetch === 'undefined') {
+    atlasIndexPromise = Promise.resolve(null);
+    return atlasIndexPromise;
+  }
 
-  void fetch(assetUrl('/art/atlases/index.json'))
+  atlasIndexPromise = fetch(assetUrl('/art/atlases/index.json'))
     .then((res) => res.ok ? res.json() as Promise<ArtAtlasIndex> : null)
     .then((index) => {
-      if (!index) return;
+      if (!index) return null;
       registerArtAtlasIndex(index);
+      atlasIndexLoaded = true;
+      return index;
     })
     .catch(() => {
       // 图集索引是可选资源；缺失时继续走单图加载。
+      return null;
     });
+  return atlasIndexPromise;
+}
+
+function requestAtlasIndex(): void {
+  if (atlasIndexRequested) return;
+  void loadAtlasIndex();
 }
 
 export function registerArtAtlasManifest(manifest: ArtAtlasManifest): void {
+  atlasImagePaths.set(manifest.id, manifest.image);
   for (const [framePath, frame] of Object.entries(manifest.frames)) {
     atlasFrames.set(normalizePath(framePath), {
       atlasId: manifest.id,
@@ -98,6 +114,7 @@ export function registerArtAtlasIndex(index: ArtAtlasIndex): void {
   for (const manifest of index.atlases) {
     registerArtAtlasManifest(manifest);
   }
+  atlasIndexLoaded = true;
 }
 
 export function clearArtAtlasRegistryForTests(): void {
@@ -107,6 +124,27 @@ export function clearArtAtlasRegistryForTests(): void {
   imageCache.clear();
   failedImages.clear();
   atlasIndexRequested = false;
+  atlasIndexLoaded = false;
+  atlasIndexPromise = null;
+  atlasImagePaths.clear();
+}
+
+export async function preloadArtAtlases(): Promise<void> {
+  if (!areArtResourcesEnabled()) return;
+  await loadAtlasIndex();
+  if (typeof Image === 'undefined') return;
+  for (const imagePath of atlasImagePaths.values()) {
+    loadImage(atlasImageCache, failedAtlasImages, imagePath);
+  }
+}
+
+export async function preloadArtAtlasIndex(): Promise<void> {
+  if (!areArtResourcesEnabled()) return;
+  await loadAtlasIndex();
+}
+
+export function isArtAtlasIndexLoaded(): boolean {
+  return atlasIndexLoaded;
 }
 
 export function getLoadedImage(path: string): HTMLImageElement | null {

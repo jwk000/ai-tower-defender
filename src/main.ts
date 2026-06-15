@@ -64,6 +64,7 @@ import {
 import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
 import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
+import { preloadArtAtlasIndex, preloadArtAtlases } from './utils/imageCache.js';
 import { hexToRgb } from './utils/visualHelpers.js';
 import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
 
@@ -174,6 +175,7 @@ class TowerDefenderGame extends Game {
 
     Sound.preload();
     Sound.initUnlock(canvas);
+    void preloadArtAtlasIndex();
 
     // Card encyclopedia — shared across all screens
     this.encyclopedia = new CardEncyclopediaUI(this.renderer);
@@ -277,6 +279,7 @@ class TowerDefenderGame extends Game {
     this.currentLevelId = levelId;
     this.currentScreen = GameScreen.Battle;
     this.phase = GamePhase.Deployment;
+    void preloadArtAtlases();
 
     this.world.reset();
     this.initBattle(config);
@@ -289,6 +292,7 @@ class TowerDefenderGame extends Game {
     this.currentLevelId = 1;
     this.currentScreen = GameScreen.Battle;
     this.phase = GamePhase.Deployment;
+    void preloadArtAtlases();
 
     this.world.reset();
     this.initBattle(config);
@@ -299,6 +303,7 @@ class TowerDefenderGame extends Game {
     this.currentLevelId = 0;
     this.currentScreen = GameScreen.Battle;
     this.phase = GamePhase.Deployment;
+    void preloadArtAtlases();
     this.world.reset();
     this.initBattle(config);
   }

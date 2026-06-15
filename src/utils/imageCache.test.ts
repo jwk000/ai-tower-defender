@@ -3,6 +3,8 @@ import {
   clearArtAtlasRegistryForTests,
   drawLoadedImage,
   getLoadedImageFrame,
+  isArtAtlasIndexLoaded,
+  preloadArtAtlasIndex,
   registerArtAtlasManifest,
 } from './imageCache.js';
 import { setArtResourcesEnabled } from './artResourceSwitch.js';
@@ -104,5 +106,36 @@ describe('imageCache atlas loading', () => {
     setArtResourcesEnabled(false);
 
     expect(getLoadedImageFrame('/art/units/unit_enemy_goblin_idle_0.png')).toBeNull();
+  });
+
+  it('preloads the atlas index and resolves later frame requests through it', async () => {
+    vi.stubGlobal('Image', LoadedImage);
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        atlases: [
+          {
+            id: 'generated_units',
+            image: '/art/atlases/units/generated_units.png',
+            frames: {
+              '/art/units/unit_enemy_boar_idle_0.png': { x: 256, y: 512, w: 256, h: 256 },
+            },
+          },
+        ],
+      }),
+    }));
+    vi.stubGlobal('fetch', fetch);
+
+    await preloadArtAtlasIndex();
+
+    expect(fetch).toHaveBeenCalledWith('/art/atlases/index.json');
+    expect(isArtAtlasIndexLoaded()).toBe(true);
+    expect(getLoadedImageFrame('/art/units/unit_enemy_boar_idle_0.png')).toBeNull();
+    const frame = getLoadedImageFrame('/art/units/unit_enemy_boar_idle_0.png');
+
+    expect(frame).toEqual(expect.objectContaining({
+      atlasId: 'generated_units',
+      source: { x: 256, y: 512, w: 256, h: 256 },
+    }));
   });
 });
