@@ -171,11 +171,11 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
     expect(getUnitSpriteScaleX(-1, false)).toBe(-1);
   });
 
-  it('boss sprite art uses opposite source-facing mapping from normal enemies', () => {
+  it('boss sprite art uses the same left-facing source mapping as normal enemies', () => {
     expect(getUnitSpriteArtFacesLeft(true, false)).toBe(true);
-    expect(getUnitSpriteArtFacesLeft(true, true)).toBe(false);
-    expect(getUnitSpriteScaleX(1, getUnitSpriteArtFacesLeft(true, true))).toBe(1);
-    expect(getUnitSpriteScaleX(-1, getUnitSpriteArtFacesLeft(true, true))).toBe(-1);
+    expect(getUnitSpriteArtFacesLeft(true, true)).toBe(true);
+    expect(getUnitSpriteScaleX(1, getUnitSpriteArtFacesLeft(true, true))).toBe(-1);
+    expect(getUnitSpriteScaleX(-1, getUnitSpriteArtFacesLeft(true, true))).toBe(1);
   });
 
   it('turning from vertical path into right segment flips enemy facing on the turn frame', () => {

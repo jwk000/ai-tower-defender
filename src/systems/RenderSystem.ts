@@ -178,8 +178,8 @@ export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): numbe
   return artFacesLeft ? -normalizedFacing : normalizedFacing;
 }
 
-export function getUnitSpriteArtFacesLeft(isEnemy: boolean, isBoss: boolean): boolean {
-  return isEnemy && !isBoss;
+export function getUnitSpriteArtFacesLeft(isEnemy: boolean, _isBoss = false): boolean {
+  return isEnemy;
 }
 
 export class RenderSystem implements System {
