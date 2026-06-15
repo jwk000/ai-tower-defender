@@ -34,9 +34,14 @@ import {
   Projectile,
   Layer,
   LayerVal,
+  Category,
+  CategoryVal,
 } from '../core/components.js';
 import { areHostile } from '../utils/factionUtils.js';
-import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { applyDamageToTarget, applyHealToTarget } from '../utils/damageUtils.js';
+import { UNIT_CONFIGS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
+import type { UnitConfig } from '../types/index.js';
+import { addBuff } from './BuffSystem.js';
 
 // ============================================================
 // 状态常量
@@ -50,6 +55,18 @@ const STATE_RETURNING = 3;
 /** 士兵到家判定距离（px） */
 const HOME_REACHED_THRESHOLD = 10;
 
+export const SoldierProjectileDebuffSlot = {
+  None: 0,
+  ArcaneVulnerability: 1,
+} as const;
+
+export const SoldierProjectileDebuffBySlot: Readonly<Record<number, { id: string; attribute: string } | undefined>> = {
+  [SoldierProjectileDebuffSlot.ArcaneVulnerability]: {
+    id: 'arcane_vulnerability',
+    attribute: 'magicResist',
+  },
+};
+
 // ============================================================
 // SoldierAISystem
 // ============================================================
@@ -62,6 +79,12 @@ export class SoldierAISystem implements System {
 
   /** Query: potential enemies (faction check applied per-frame) */
   private enemyQuery = defineQuery([Position, Health, Faction, UnitTag]);
+
+  /** Query: wounded friendly units/towers for support soldiers */
+  private friendlyQuery = defineQuery([Position, Health, Faction]);
+
+  /** Per-soldier periodic spell cooldown side-channel. */
+  private periodicSpellTimers = new Map<number, number>();
 
   // ============================================================
   // Frame Update
@@ -87,6 +110,7 @@ export class SoldierAISystem implements System {
 
     // Tick state timer
     Soldier.stateTimer[eid] = (Soldier.stateTimer[eid] ?? 0) + dt;
+    this.tickSupportActions(world, eid, dt);
 
     const state = Soldier.state[eid]!;
 
@@ -233,17 +257,25 @@ export class SoldierAISystem implements System {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
     } else {
       // Attack is ready — deal damage
-      const damage = Attack.damage[eid] ?? 0;
+      const config = this.getSoldierConfig(eid);
+      const damage = this.rollAttackDamage(eid, config);
       const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
       if (damage > 0 && attackSpeed > 0) {
         const attackRange = Attack.range[eid] ?? 50;
 
+        if (this.tryExecuteTarget(world, eid, attackTarget, config)) {
+          Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
+          return;
+        }
+
         // 远程单位（射程>80）发射投射物，近战单位显示扇形刀光
         if (attackRange > 80) {
-          this.spawnSoldierProjectile(world, eid, attackTarget, damage);
+          this.spawnSoldierProjectile(world, eid, attackTarget, damage, config);
         } else {
           this.spawnSlashEffect(world, eid, attackTarget);
-          applyDamageToTarget(world, attackTarget, damage, DamageTypeVal.Physical);
+          applyDamageToTarget(world, attackTarget, damage, Attack.damageType[eid] ?? DamageTypeVal.Physical, eid);
+          this.applyOnHitDebuff(world, eid, attackTarget, config);
+          this.applySplashDamage(world, eid, attackTarget, config);
         }
 
         Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
@@ -359,16 +391,23 @@ export class SoldierAISystem implements System {
   }
 
   /** 生成远程投射物 */
-  private spawnSoldierProjectile(world: TowerWorld, attackerId: number, targetId: number, damage: number): void {
+  private spawnSoldierProjectile(
+    world: TowerWorld,
+    attackerId: number,
+    targetId: number,
+    damage: number,
+    config?: UnitConfig,
+  ): void {
     const fromX = Position.x[attackerId]!;
     const fromY = Position.y[attackerId]!;
+    const debuffSlot = this.getProjectileDebuffSlot(config);
 
     const pid = world.createEntity();
     world.addComponent(pid, Position, { x: fromX, y: fromY });
     world.addComponent(pid, Projectile, {
       speed: 300,
       damage,
-      damageType: DamageTypeVal.Physical,
+      damageType: Attack.damageType[attackerId] ?? DamageTypeVal.Physical,
       targetId,
       sourceId: attackerId,
       fromX,
@@ -387,6 +426,10 @@ export class SoldierAISystem implements System {
       chainRange: 0,
       chainDecay: 0,
       sourceTowerType: -1, // soldier projectile
+      debuffSlot,
+      debuffValue: config?.debuffValue ?? 0,
+      debuffDuration: config?.debuffDuration ?? 0,
+      debuffIsPercent: config?.debuffIsPercent === false ? 0 : 1,
     });
     world.addComponent(pid, Visual, {
       shape: 1, // triangle
@@ -400,6 +443,220 @@ export class SoldierAISystem implements System {
       idlePhase: 0,
     });
     world.addComponent(pid, Layer, { value: LayerVal.Ground });
+  }
+
+  private getSoldierConfig(eid: number): UnitConfig | undefined {
+    const typeIndex = UnitTag.unitTypeNum[eid];
+    if (typeIndex === undefined) return undefined;
+    const unitType = UNIT_TYPE_BY_ID[typeIndex];
+    return unitType ? UNIT_CONFIGS[unitType] : undefined;
+  }
+
+  private tickSupportActions(world: TowerWorld, eid: number, dt: number): void {
+    const config = this.getSoldierConfig(eid);
+    if (!config) return;
+
+    this.tickPeriodicSpell(world, eid, dt, config);
+
+    if ((config.healAmount ?? 0) > 0) {
+      this.healMostWoundedFriendly(world, eid, config);
+    }
+
+    if ((config.repairAmount ?? 0) > 0) {
+      this.repairMostDamagedTower(world, eid, config);
+    }
+  }
+
+  private tickPeriodicSpell(world: TowerWorld, eid: number, dt: number, config: UnitConfig): void {
+    const cooldown = config.periodicSpellCooldown ?? 0;
+    const damage = config.periodicSpellDamage ?? 0;
+    const radius = config.periodicSpellRadius ?? 0;
+    if (cooldown <= 0 || damage <= 0 || radius <= 0) return;
+
+    const remaining = (this.periodicSpellTimers.get(eid) ?? cooldown) - dt;
+    if (remaining > 0) {
+      this.periodicSpellTimers.set(eid, remaining);
+      return;
+    }
+
+    const target = this.findNearestEnemyInRange(world, eid, Attack.range[eid] ?? radius);
+    if (target === 0) {
+      this.periodicSpellTimers.set(eid, 0.25);
+      return;
+    }
+
+    const tx = Position.x[target]!;
+    const ty = Position.y[target]!;
+    for (const enemyId of this.enemyQuery(world.world)) {
+      if ((Health.current[enemyId] ?? 0) <= 0) continue;
+      if (!areHostile(Faction.value[eid]!, Faction.value[enemyId]!)) continue;
+      const dx = Position.x[enemyId]! - tx;
+      const dy = Position.y[enemyId]! - ty;
+      if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+        applyDamageToTarget(world, enemyId, damage, DamageTypeVal.Magic, eid);
+        this.applyOnHitDebuff(world, eid, enemyId, config);
+      }
+    }
+
+    this.periodicSpellTimers.set(eid, cooldown);
+  }
+
+  private healMostWoundedFriendly(world: TowerWorld, eid: number, config: UnitConfig): void {
+    const range = config.healRange ?? Attack.range[eid] ?? 0;
+    const amount = config.healAmount ?? 0;
+    const target = this.findMostWoundedFriendly(world, eid, range, (candidate) => (
+      Category.value[candidate] === CategoryVal.Soldier
+    ));
+    if (target !== 0) {
+      applyHealToTarget(world, target, amount);
+    }
+  }
+
+  private repairMostDamagedTower(world: TowerWorld, eid: number, config: UnitConfig): void {
+    const range = config.repairRange ?? Attack.range[eid] ?? 0;
+    const amount = config.repairAmount ?? 0;
+    const target = this.findMostWoundedFriendly(world, eid, range, (candidate) => (
+      Category.value[candidate] === CategoryVal.Tower
+    ));
+    if (target !== 0) {
+      applyHealToTarget(world, target, amount);
+    }
+  }
+
+  private findMostWoundedFriendly(
+    world: TowerWorld,
+    eid: number,
+    range: number,
+    predicate: (candidate: number) => boolean,
+  ): number {
+    const selfFaction = Faction.value[eid];
+    if (selfFaction === undefined || range <= 0) return 0;
+
+    const selfX = Position.x[eid]!;
+    const selfY = Position.y[eid]!;
+    let best = 0;
+    let bestMissing = 0;
+
+    for (const candidate of this.friendlyQuery(world.world)) {
+      if (candidate === eid) continue;
+      if (Faction.value[candidate] !== selfFaction) continue;
+      if (!predicate(candidate)) continue;
+      const current = Health.current[candidate] ?? 0;
+      const max = Health.max[candidate] ?? 0;
+      const missing = max - current;
+      if (missing <= bestMissing) continue;
+      const dx = Position.x[candidate]! - selfX;
+      const dy = Position.y[candidate]! - selfY;
+      if (Math.sqrt(dx * dx + dy * dy) > range) continue;
+      best = candidate;
+      bestMissing = missing;
+    }
+
+    return best;
+  }
+
+  private rollAttackDamage(eid: number, config: UnitConfig | undefined): number {
+    const baseDamage = Attack.damage[eid] ?? 0;
+    if (!config || baseDamage <= 0) return baseDamage;
+
+    const superChance = config.critSuperChance ?? 0;
+    if (superChance > 0 && Math.random() < superChance) {
+      return baseDamage * (config.critSuperMultiplier ?? 3);
+    }
+
+    const critChance = config.critChance ?? 0;
+    if (critChance > 0 && Math.random() < critChance) {
+      return baseDamage * (config.critMultiplier ?? 2);
+    }
+
+    return baseDamage;
+  }
+
+  private tryExecuteTarget(
+    world: TowerWorld,
+    attackerId: number,
+    targetId: number,
+    config: UnitConfig | undefined,
+  ): boolean {
+    const threshold = config?.executeThreshold ?? 0;
+    if (threshold <= 0) return false;
+
+    if (config?.executeNormalOnly) {
+      if ((UnitTag.isBoss[targetId] ?? 0) === 1 || (UnitTag.isElite[targetId] ?? 0) === 1) return false;
+    }
+
+    const current = Health.current[targetId] ?? 0;
+    const max = Health.max[targetId] ?? 0;
+    if (max <= 0 || current / max > threshold) return false;
+
+    if (config?.teleportOnExecute) {
+      const targetX = Position.x[targetId]!;
+      const targetY = Position.y[targetId]!;
+      const attackerX = Position.x[attackerId]!;
+      Position.x[attackerId] = targetX + (attackerX <= targetX ? -24 : 24);
+      Position.y[attackerId] = targetY;
+      Movement.targetX[attackerId] = Position.x[attackerId]!;
+      Movement.targetY[attackerId] = Position.y[attackerId]!;
+    }
+
+    applyDamageToTarget(world, targetId, current + 9999, DamageTypeVal.Physical, attackerId);
+    this.spawnSlashEffect(world, attackerId, targetId);
+    return true;
+  }
+
+  private applyOnHitDebuff(
+    world: TowerWorld,
+    attackerId: number,
+    targetId: number,
+    config: UnitConfig | undefined,
+  ): void {
+    if (!config?.debuffId || !config.debuffAttribute || config.debuffValue === undefined) return;
+    addBuff(world, targetId, {
+      id: config.debuffId,
+      duration: config.debuffDuration ?? 3,
+      stacks: 1,
+      maxStacks: 1,
+      attribute: config.debuffAttribute,
+      value: config.debuffValue,
+      isPercent: config.debuffIsPercent ?? true,
+      sourceId: attackerId,
+      removeOnSourceDeath: false,
+    });
+  }
+
+  private getProjectileDebuffSlot(config: UnitConfig | undefined): number {
+    if (!config?.debuffId || !config.debuffAttribute || config.debuffValue === undefined) {
+      return SoldierProjectileDebuffSlot.None;
+    }
+    if (config.debuffId === 'arcane_vulnerability' && config.debuffAttribute === 'magicResist') {
+      return SoldierProjectileDebuffSlot.ArcaneVulnerability;
+    }
+    return SoldierProjectileDebuffSlot.None;
+  }
+
+  private applySplashDamage(
+    world: TowerWorld,
+    attackerId: number,
+    targetId: number,
+    config: UnitConfig | undefined,
+  ): void {
+    const radius = config?.splashRadius ?? 0;
+    if (radius <= 0) return;
+    const damage = config?.splashDamage ?? ((Attack.damage[attackerId] ?? 0) * 0.6);
+    if (damage <= 0) return;
+
+    const tx = Position.x[targetId]!;
+    const ty = Position.y[targetId]!;
+    for (const enemyId of this.enemyQuery(world.world)) {
+      if (enemyId === targetId) continue;
+      if ((Health.current[enemyId] ?? 0) <= 0) continue;
+      if (!areHostile(Faction.value[attackerId]!, Faction.value[enemyId]!)) continue;
+      const dx = Position.x[enemyId]! - tx;
+      const dy = Position.y[enemyId]! - ty;
+      if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+        applyDamageToTarget(world, enemyId, damage, Attack.damageType[attackerId] ?? DamageTypeVal.Physical, attackerId);
+      }
+    }
   }
 
   // ============================================================

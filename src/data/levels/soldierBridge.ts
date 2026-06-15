@@ -43,6 +43,7 @@ export function injectSoldierConfigsFromRegistry(): number {
     const type = u.id as UnitType;
 
     const stats = u.stats;
+    const statsExtra = stats as unknown as Record<string, unknown> | undefined;
     const cost = u.cost;
     const visual = u.visual;
     const behavior = u.behavior;
@@ -55,6 +56,7 @@ export function injectSoldierConfigsFromRegistry(): number {
 
     // 解析特殊属性
     const splashRadius = (special['splashRadius'] as number) ?? 0;
+    const splashDamage = (special['splashDamage'] as number) ?? 0;
     const tauntCapacity = (special['tauntCapacity'] as number) ?? 0;
     const tauntCapacityPerLevel = (special['tauntCapacityPerLevel'] as number) ?? 0;
 
@@ -74,7 +76,7 @@ export function injectSoldierConfigsFromRegistry(): number {
       atk: stats?.atk ?? 10,
       attackSpeed: stats?.attackSpeed ?? 1.0,
       attackRange: stats?.range ?? 50,
-      alertRange: 200, // 默认值
+      alertRange: (special['alertRange'] as number) ?? Math.max(200, (stats?.range ?? 50) * 1.5),
       speed: stats?.speed ?? 50,
       defense: stats?.armor ?? 0,
       popCost: cost?.pop ?? 2,
@@ -82,20 +84,55 @@ export function injectSoldierConfigsFromRegistry(): number {
       size: visual?.size ?? 24,
       skillId,
       cost: cost?.build ?? 50,
-      moveRange: 100, // 默认值
+      moveRange: (statsExtra?.moveRange as number | undefined) ?? ((special['moveRange'] as number) ?? 100),
       maxLevel,
       upgradeCosts,
       upgradeHpBonus,
       upgradeAtkBonus,
       shape: mapShape(visual?.shape),
       attackAnimDuration: 0.35,
+      targetSelection: behavior?.targetSelection,
     };
 
     // 添加可选属性
     if (splashRadius > 0) cfg.splashRadius = splashRadius;
+    if (splashDamage > 0) cfg.splashDamage = splashDamage;
     if (tauntCapacity > 0) {
       cfg.tauntCapacity = tauntCapacity;
       cfg.tauntCapacityPerLevel = tauntCapacityPerLevel;
+    }
+    for (const key of [
+      'critChance',
+      'critMultiplier',
+      'critSuperChance',
+      'critSuperMultiplier',
+      'executeThreshold',
+      'debuffValue',
+      'debuffDuration',
+      'periodicSpellCooldown',
+      'periodicSpellDamage',
+      'periodicSpellRadius',
+      'healAmount',
+      'healRange',
+      'repairAmount',
+      'repairRange',
+    ] as const) {
+      const value = special[key];
+      if (typeof value === 'number') {
+        (cfg as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
+    for (const key of ['executeNormalOnly', 'teleportOnExecute', 'debuffIsPercent'] as const) {
+      const value = special[key];
+      if (typeof value === 'boolean') {
+        (cfg as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
+    for (const key of ['debuffId', 'debuffAttribute'] as const) {
+      const value = special[key];
+      if (typeof value === 'string') {
+        (cfg as unknown as Record<string, unknown>)[key] = value;
+      }
     }
     if (visualParts) cfg.visualParts = visualParts;
 

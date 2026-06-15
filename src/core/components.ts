@@ -234,6 +234,10 @@ export const Projectile = defineComponent({
   chainIndex: Types.ui8,
   drainAmount: Types.f32,
   sourceTowerType: Types.ui8,
+  debuffSlot: Types.ui8,
+  debuffValue: Types.f32,
+  debuffDuration: Types.f32,
+  debuffIsPercent: Types.ui8,
   // 导弹塔抛物线锁定参数（发射时一次计算，飞行期不再读 mark 实体）。
   // 强制 T_x = T_y 保证落点精准，参见 design/19-missile-tower。
   targetX: Types.f32,

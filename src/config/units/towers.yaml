@@ -14,7 +14,7 @@ arrow_tower:
   layer: Ground
 
   stats:
-    hp: 100
+    hp: 180
     atk: 10
     attackSpeed: 1.0
     range: 200
@@ -23,7 +23,7 @@ arrow_tower:
     damageType: physical
 
   cost:
-    build: 50
+    build: 70
     upgrade: [40, 70, 110, 160]
     atkGrowth: [5, 8, 12, 16]
     rangeGrowth: [20, 20, 30, 30]
@@ -73,7 +73,7 @@ cannon_tower:
   layer: Ground
 
   stats:
-    hp: 120
+    hp: 220
     atk: 25
     attackSpeed: 0.35
     range: 180
@@ -82,7 +82,7 @@ cannon_tower:
     damageType: physical
 
   cost:
-    build: 80
+    build: 115
     upgrade: [50, 90, 140, 200]
     atkGrowth: [8, 12, 16, 22]
     rangeGrowth: [20, 20, 30, 30]
@@ -136,7 +136,7 @@ ice_tower:
   layer: Ground
 
   stats:
-    hp: 100
+    hp: 170
     atk: 5
     attackSpeed: 1.2
     range: 200
@@ -145,7 +145,7 @@ ice_tower:
     damageType: magic
 
   cost:
-    build: 65
+    build: 70
     upgrade: [40, 70, 110, 160]
     atkGrowth: [3, 5, 7, 10]
     rangeGrowth: [20, 20, 30, 30]
@@ -199,7 +199,7 @@ lightning_tower:
   layer: Ground
 
   stats:
-    hp: 100
+    hp: 180
     atk: 15
     attackSpeed: 0.9
     range: 170
@@ -208,7 +208,7 @@ lightning_tower:
     damageType: magic
 
   cost:
-    build: 70
+    build: 110
     upgrade: [45, 75, 120, 170]
     atkGrowth: [6, 9, 13, 18]
     chainGrowth: [1, 1, 1, 1]
@@ -261,7 +261,7 @@ laser_tower:
   layer: Ground
 
   stats:
-    hp: 80
+    hp: 150
     atk: 7
     attackSpeed: 0.5       # CD = 2s；激光束持续 5s，伤害 S 形递增（拐点 2.5s），上限 = 箭塔 atk × 3
     range: 250
@@ -270,7 +270,7 @@ laser_tower:
     damageType: magic
 
   cost:
-    build: 90
+    build: 125
     upgrade: [55, 85, 130, 190]
     atkGrowth: [2, 3, 4, 5]
     rangeGrowth: [15, 15, 20, 20]
@@ -311,7 +311,7 @@ bat_tower:
   layer: LowAir
 
   stats:
-    hp: 90
+    hp: 160
     atk: 25
     attackSpeed: 0.75
     range: 200
@@ -320,7 +320,7 @@ bat_tower:
     damageType: magic
 
   cost:
-    build: 85
+    build: 115
     upgrade: [50, 80, 120, 175]
     atkGrowth: [7, 10, 15, 21]
     rangeGrowth: [15, 15, 20, 20]
@@ -372,7 +372,7 @@ ballista_tower:
   layer: Ground
 
   stats:
-    hp: 120
+    hp: 190
     atk: 45
     attackSpeed: 0.8
     range: 220
@@ -381,7 +381,7 @@ ballista_tower:
     damageType: physical
 
   cost:
-    build: 90
+    build: 135
     upgrade: [60, 100, 160, 220]
     atkGrowth: [15, 20, 25, 30]
     rangeGrowth: [20, 20, 30, 30]
@@ -433,7 +433,7 @@ missile_tower:
   layer: Ground
 
   stats:
-    hp: 100
+    hp: 240
     atk: 80
     attackSpeed: 0.3
     range: 9999
@@ -442,7 +442,7 @@ missile_tower:
     damageType: true
 
   cost:
-    build: 200
+    build: 220
     upgrade: [120, 200, 300]
     atkGrowth: [20, 30, 40]
     rangeGrowth: [0, 0, 0]
@@ -502,7 +502,7 @@ fire_tower:
   layer: Ground
 
   stats:
-    hp: 90
+    hp: 165
     atk: 12
     attackSpeed: 1.2
     range: 150
@@ -511,7 +511,7 @@ fire_tower:
     damageType: magic
 
   cost:
-    build: 70
+    build: 80
     upgrade: [50, 90, 140, 200]
     atkGrowth: [5, 8, 12, 16]
     rangeGrowth: [15, 15, 20, 20]
@@ -568,7 +568,7 @@ poison_tower:
   layer: Ground
 
   stats:
-    hp: 85
+    hp: 165
     atk: 10
     attackSpeed: 1.0
     range: 150
@@ -577,7 +577,7 @@ poison_tower:
     damageType: magic
 
   cost:
-    build: 75
+    build: 80
     upgrade: [55, 100, 150, 210]
     atkGrowth: [4, 7, 10, 14]
     rangeGrowth: [15, 15, 20, 20]

@@ -83,6 +83,16 @@ function damageTypeStrToVal(dt: string | undefined): number {
   }
 }
 
+function attackModeStrToVal(mode: string | undefined, splashRadius: number): number {
+  switch (mode) {
+    case 'aoe_splash': return AttackModeVal.AoeSplash;
+    case 'heal': return AttackModeVal.Heal;
+    case 'chain': return AttackModeVal.Chain;
+    case 'piercing': return AttackModeVal.Piercing;
+    default: return splashRadius > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget;
+  }
+}
+
 // ============================================================
 // UnitFactory
 // ============================================================
@@ -393,7 +403,7 @@ export class UnitFactory {
 
     // Attack
     const splashRadius = (cfg.splashRadius as number) ?? 0;
-    const attackMode = splashRadius > 0 ? AttackModeVal.AoeSplash : AttackModeVal.SingleTarget;
+    const attackMode = attackModeStrToVal(cfg.attackMode as string, splashRadius);
     const attackRange = (cfg.attackRange as number) ?? 50;
     this.world.addComponent(eid, Attack, {
       damageType: damageTypeStrToVal(cfg.damageType as string),
@@ -404,7 +414,7 @@ export class UnitFactory {
       targetId: 0,
       targetSelection: targetSelectionStrToVal(cfg.targetSelection as string),
       attackMode,
-      isRanged: 0,
+      isRanged: attackRange > 80 ? 1 : 0,
       splashRadius,
       chainCount: 0,
       chainRange: 0,

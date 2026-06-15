@@ -13,7 +13,7 @@ const arrowTower: CardInstance = {
   name: '箭塔',
   type: 'unit',
   description: '基础单体物理输出，攻速快',
-  goldCost: 40,
+  goldCost: 70,
 };
 
 const ballistaTower: CardInstance = {
@@ -21,7 +21,7 @@ const ballistaTower: CardInstance = {
   name: '弩塔',
   type: 'unit',
   description: '穿透型物理输出，箭矢直线贯穿敌人',
-  goldCost: 100,
+  goldCost: 135,
 };
 
 const cannonTower: CardInstance = {
@@ -29,7 +29,7 @@ const cannonTower: CardInstance = {
   name: '炮塔',
   type: 'unit',
   description: 'AOE物理范围伤害，溅射攻击',
-  goldCost: 80,
+  goldCost: 115,
 };
 
 const laserTower: CardInstance = {
@@ -37,7 +37,7 @@ const laserTower: CardInstance = {
   name: '激光塔',
   type: 'unit',
   description: '单体魔法持续伤害，锁敌后伤害递增',
-  goldCost: 85,
+  goldCost: 125,
 };
 
 const batTower: CardInstance = {
@@ -45,7 +45,7 @@ const batTower: CardInstance = {
   name: '蝙蝠塔',
   type: 'unit',
   description: '召唤型，释放蝙蝠自动攻击周围敌人',
-  goldCost: 80,
+  goldCost: 115,
 };
 
 const missileTower: CardInstance = {
@@ -53,7 +53,7 @@ const missileTower: CardInstance = {
   name: '导弹塔',
   type: 'unit',
   description: '全图射程大范围伤害，战略武器',
-  goldCost: 150,
+  goldCost: 220,
 };
 
 const iceTower: CardInstance = {
@@ -61,7 +61,7 @@ const iceTower: CardInstance = {
   name: '冰塔',
   type: 'unit',
   description: '魔法控制型塔，减速并概率冰冻敌人',
-  goldCost: 40,
+  goldCost: 70,
 };
 
 const fireTower: CardInstance = {
@@ -69,7 +69,7 @@ const fireTower: CardInstance = {
   name: '火塔',
   type: 'unit',
   description: '魔法DOT型塔，灼烧造成持续伤害',
-  goldCost: 55,
+  goldCost: 80,
 };
 
 const poisonTower: CardInstance = {
@@ -77,7 +77,7 @@ const poisonTower: CardInstance = {
   name: '毒塔',
   type: 'unit',
   description: '魔法DOT传染型塔，中毒可在敌人间传播',
-  goldCost: 55,
+  goldCost: 80,
 };
 
 const lightningTower: CardInstance = {
@@ -85,49 +85,57 @@ const lightningTower: CardInstance = {
   name: '电塔',
   type: 'unit',
   description: '魔法连锁攻击，闪电在敌人间弹跳',
-  goldCost: 75,
+  goldCost: 110,
 };
 
-// ---- 士兵（4种）----
+// ---- 士兵（6种）----
 
 const shieldGuard: CardInstance = {
   id: 'card_shield_guard',
   name: '盾卫',
   type: 'unit',
-  description: '近战坦克，嘲讽范围内敌人优先攻击',
-  goldCost: 50,
+  description: '高血量高防御前排，低攻击嘲讽坦克',
+  goldCost: 35,
 };
 
 const archer: CardInstance = {
   id: 'card_archer',
   name: '弓手',
   type: 'unit',
-  description: '远程物理输出，优先攻击低血量敌人',
-  goldCost: 55,
+  description: '超远射程低攻击，概率造成2倍/3倍暴击',
+  goldCost: 35,
 };
 
 const mage: CardInstance = {
   id: 'card_mage',
   name: '法师',
   type: 'unit',
-  description: '远程魔法AOE，火球术溅射伤害',
-  goldCost: 65,
+  description: '魔法AOE，附加易伤并周期释放奥术爆破',
+  goldCost: 40,
 };
 
 const priest: CardInstance = {
   id: 'card_priest',
   name: '牧师',
   type: 'unit',
-  description: '治疗单位，持续恢复友方HP',
-  goldCost: 55,
+  description: '治疗支援，恢复我方士兵并提供少量攻击',
+  goldCost: 35,
+};
+
+const engineer: CardInstance = {
+  id: 'card_engineer',
+  name: '工程师',
+  type: 'unit',
+  description: '无攻击修复位，持续维修我方塔的生命',
+  goldCost: 30,
 };
 
 const assassin: CardInstance = {
   id: 'card_assassin',
   name: '刺客',
   type: 'unit',
-  description: '高爆发刺杀位，瞬移到最弱敌人旁造成高伤害',
-  goldCost: 70,
+  description: '低血高攻刺杀位，瞬移处决低血普通敌人',
+  goldCost: 45,
 };
 
 // ---- 机关（4种）----
@@ -262,6 +270,7 @@ export const UNIT_CARDS: CardInstance[] = [
   archer,
   mage,
   priest,
+  engineer,
   assassin,
   spikeTrap,
   bearTrap,
@@ -281,7 +290,7 @@ export const ARCANE_CARDS: CardInstance[] = [
   speedBoost,
 ];
 
-/** 全部 27 张卡牌 */
+/** 全部 28 张卡牌 */
 export const ALL_CARDS: CardInstance[] = [
   ...UNIT_CARDS,
   ...SPELL_CARDS,
@@ -310,6 +319,7 @@ export const LEVEL_2_CARD_POOL: CardInstance[] = [
   poisonTower,
   archer,
   mage,
+  engineer,
   tarPit,
   fireball,
 ];
@@ -322,6 +332,7 @@ export const LEVEL_3_CARD_POOL: CardInstance[] = [
   shieldGuard,
   mage,
   priest,
+  engineer,
   assassin,
   bearTrap,
 ];
@@ -334,6 +345,7 @@ export const LEVEL_4_CARD_POOL: CardInstance[] = [
   iceTower,
   archer,
   mage,
+  engineer,
   assassin,
 ];
 

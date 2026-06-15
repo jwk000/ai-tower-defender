@@ -27,6 +27,7 @@ import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 import { TileDamageSystem } from './TileDamageSystem.js';
 import type { DamageNumberSystem } from './DamageNumberSystem.js';
 import { DamageNumberStyle } from '../core/components.js';
+import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
 
 // ============================================================
 // Queries
@@ -337,6 +338,7 @@ export class ProjectileSystem implements System {
     const chainRange = Projectile.chainRange[eid]!;
     const chainDecay = Projectile.chainDecay[eid]!;
     const isChain = Projectile.isChain[eid] as number;
+    const debuffSlot = Projectile.debuffSlot[eid] as number;
 
     // -- Cannon / Missile: AOE splash + stun --
     if (splashRadius > 0) {
@@ -362,6 +364,10 @@ export class ProjectileSystem implements System {
         addBuff(world, targetId, buff);
       }
       Sound.play('ice_hit');
+    }
+
+    if (debuffSlot > 0 && isAlive(targetId)) {
+      this.applyProjectileDebuff(world, eid, targetId, sourceId, debuffSlot);
     }
 
     // -- Lightning: chain to nearby enemies (initial projectile only) --
@@ -445,6 +451,31 @@ export class ProjectileSystem implements System {
         }
       }
     }
+  }
+
+  private applyProjectileDebuff(
+    world: TowerWorld,
+    projectileId: number,
+    targetId: number,
+    sourceId: number,
+    debuffSlot: number,
+  ): void {
+    const def = SoldierProjectileDebuffBySlot[debuffSlot];
+    const value = Projectile.debuffValue[projectileId] ?? 0;
+    if (!def || value === 0) return;
+
+    addBuff(world, targetId, {
+      id: def.id,
+      attribute: def.attribute,
+      value,
+      isPercent: (Projectile.debuffIsPercent[projectileId] ?? 1) === 1,
+      duration: Projectile.debuffDuration[projectileId] ?? 3,
+      stacks: 1,
+      maxStacks: 1,
+      sourceId,
+      priority: BuffPriority.Buff,
+      removeOnSourceDeath: false,
+    });
   }
 
   // ---- Cannon: AOE splash damage + stun ----

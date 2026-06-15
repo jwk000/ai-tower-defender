@@ -14,7 +14,7 @@ arrow_tower_card:
   type: unit
   rarity: common
   energyCost: 3
-  goldCost: 40
+  goldCost: 70
   unitConfigId: arrow_tower
   placement:
     targetType: tile
@@ -25,7 +25,7 @@ cannon_tower_card:
   type: unit
   rarity: common
   energyCost: 4
-  goldCost: 80
+  goldCost: 115
   unitConfigId: cannon_tower
   placement:
     targetType: tile
@@ -36,7 +36,7 @@ ice_tower_card:
   type: unit
   rarity: rare
   energyCost: 5
-  goldCost: 40
+  goldCost: 70
   unitConfigId: ice_tower
   placement:
     targetType: tile
@@ -47,7 +47,7 @@ lightning_tower_card:
   type: unit
   rarity: rare
   energyCost: 5
-  goldCost: 75
+  goldCost: 110
   unitConfigId: lightning_tower
   placement:
     targetType: tile
@@ -58,7 +58,7 @@ laser_tower_card:
   type: unit
   rarity: epic
   energyCost: 6
-  goldCost: 85
+  goldCost: 125
   unitConfigId: laser_tower
   placement:
     targetType: tile
@@ -69,7 +69,7 @@ bat_tower_card:
   type: unit
   rarity: epic
   energyCost: 5
-  goldCost: 80
+  goldCost: 115
   unitConfigId: bat_tower
   placement:
     targetType: tile
@@ -80,7 +80,7 @@ ballista_tower_card:
   type: unit
   rarity: rare
   energyCost: 4
-  goldCost: 100
+  goldCost: 135
   unitConfigId: ballista_tower
   placement:
     targetType: tile
@@ -91,7 +91,7 @@ missile_tower_card:
   type: unit
   rarity: epic
   energyCost: 6
-  goldCost: 150
+  goldCost: 220
   unitConfigId: missile_tower
   placement:
     targetType: tile
@@ -102,7 +102,7 @@ fire_tower_card:
   type: unit
   rarity: common
   energyCost: 3
-  goldCost: 55
+  goldCost: 80
   unitConfigId: fire_tower
   placement:
     targetType: tile
@@ -113,7 +113,7 @@ poison_tower_card:
   type: unit
   rarity: rare
   energyCost: 4
-  goldCost: 55
+  goldCost: 80
   unitConfigId: poison_tower
   placement:
     targetType: tile

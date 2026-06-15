@@ -413,6 +413,26 @@ export interface UnitConfig {
   tauntCapacity?: number; // 嘲讽容量基础值：能同时吸引多少敌人攻击自己（默认 0 = 无嘲讽）
   tauntCapacityPerLevel?: number; // 每升一级嘲讽容量增量（默认 0）
   splashRadius?: number; // 近战 AOE 半径（px），>0 时每次攻击对周围目标造成 60% 溅射伤害
+  splashDamage?: number; // 近战 AOE 固定溅射伤害，未配置时使用攻击力 60%
+  critChance?: number; // 暴击概率（0-1）
+  critMultiplier?: number; // 普通暴击倍率
+  critSuperChance?: number; // 强暴击概率（0-1），在未触发普通暴击时判定
+  critSuperMultiplier?: number; // 强暴击倍率
+  executeThreshold?: number; // 处决阈值：目标当前 HP / max HP 低于该比例时触发
+  executeNormalOnly?: boolean; // true = 只处决普通敌人，不处决 Boss/精英
+  teleportOnExecute?: boolean; // 处决时瞬移到目标旁
+  debuffId?: string; // 攻击命中时施加的负面 buff id
+  debuffAttribute?: string; // 负面 buff 影响的属性
+  debuffValue?: number; // 负面 buff 数值
+  debuffDuration?: number; // 负面 buff 持续时间
+  debuffIsPercent?: boolean; // 负面 buff 是否百分比
+  periodicSpellCooldown?: number; // 周期施法间隔（秒）
+  periodicSpellDamage?: number; // 周期法术伤害
+  periodicSpellRadius?: number; // 周期法术半径
+  healAmount?: number; // 治疗量
+  healRange?: number; // 治疗范围
+  repairAmount?: number; // 修塔量
+  repairRange?: number; // 修塔范围
   maxLevel?: number; // 等级上限（默认 3）
   upgradeCosts?: readonly number[]; // 各级升级费用：[1→2, 2→3, ...]（长度 = maxLevel - 1）
   upgradeHpBonus?: readonly number[]; // 每级升级增加的最大 HP

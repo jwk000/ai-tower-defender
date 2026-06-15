@@ -12,18 +12,18 @@ shield_guard:
   layer: Ground
 
   stats:
-    hp: 300
-    atk: 8
-    attackSpeed: 0.8
+    hp: 520
+    atk: 4
+    attackSpeed: 0.55
     range: 50
     speed: 30
-    armor: 40
-    mr: 5
+    armor: 70
+    mr: 25
     damageType: physical
     moveRange: 100
 
   cost:
-    build: 50
+    build: 35
     pop: 2
 
   visual:
@@ -143,10 +143,10 @@ archer:
   layer: Ground
 
   stats:
-    hp: 100
-    atk: 20
-    attackSpeed: 0.7
-    range: 250
+    hp: 85
+    atk: 12
+    attackSpeed: 0.8
+    range: 360
     speed: 35
     armor: 5
     mr: 0
@@ -154,7 +154,7 @@ archer:
     moveRange: 100
 
   cost:
-    build: 55
+    build: 35
     pop: 2
 
   visual:
@@ -176,6 +176,12 @@ archer:
     targetSelection: nearest
     attackMode: single_target
     movementMode: player_directed
+    special:
+      critChance: 0.2
+      critMultiplier: 2
+      critSuperChance: 0.05
+      critSuperMultiplier: 3
+      alertRange: 420
 
   skills:
     - id: snipe
@@ -199,18 +205,20 @@ archer:
         projectile: arrow_long
 
 ---
-# 祭司 — 治疗/治疗链
+# 牧师 — 治疗/治疗链
 priest:
   id: priest
-  name: 祭司
+  name: 牧师
   category: Soldier
   faction: Player
   layer: Ground
 
   stats:
-    hp: 80
-    atk: 0
-    speed: 25
+    hp: 120
+    atk: 6
+    attackSpeed: 0.7
+    range: 150
+    speed: 28
     armor: 5
     mr: 20
     healAmount: 8
@@ -218,7 +226,7 @@ priest:
     moveRange: 100
 
   cost:
-    build: 55
+    build: 35
     pop: 2
 
   visual:
@@ -240,6 +248,10 @@ priest:
     targetSelection: nearest
     attackMode: heal
     movementMode: player_directed
+    special:
+      healAmount: 12
+      healRange: 180
+      alertRange: 240
 
   skills:
     - id: heal_chain
@@ -248,7 +260,7 @@ priest:
       energyCost: 10
       range: 150
       value: 5.0
-      description: 给周围单位/建筑持续回血
+      description: 给周围我方士兵持续回血，并用少量神圣伤害协助攻击
 
   lifecycle:
     onDeath:
@@ -270,16 +282,16 @@ engineer:
 
   stats:
     hp: 90
-    atk: 5
-    attackSpeed: 0.6
-    range: 40
+    atk: 0
+    attackSpeed: 0
+    range: 120
     speed: 25
     armor: 10
     mr: 5
     moveRange: 100
 
   cost:
-    build: 60
+    build: 30
     pop: 3
 
   visual:
@@ -299,8 +311,12 @@ engineer:
 
   behavior:
     targetSelection: nearest
-    attackMode: single_target
+    attackMode: heal
     movementMode: player_directed
+    special:
+      repairAmount: 16
+      repairRange: 180
+      alertRange: 180
 
   skills:
     - id: emergency_repair
@@ -309,7 +325,7 @@ engineer:
       energyCost: 20
       range: 100
       value: 0.5
-      description: 修复周围建筑50%最大HP
+      description: 持续修复周围塔的生命值，无攻击能力
 
   lifecycle:
     onDeath:
@@ -330,18 +346,18 @@ assassin:
   layer: Ground
 
   stats:
-    hp: 70
-    atk: 35
-    attackSpeed: 1.5
+    hp: 60
+    atk: 55
+    attackSpeed: 1.8
     range: 40
-    speed: 55
+    speed: 75
     armor: 0
     mr: 0
     damageType: physical
     moveRange: 100
 
   cost:
-    build: 60
+    build: 45
     pop: 3
 
   visual:
@@ -363,6 +379,11 @@ assassin:
     targetSelection: weakest
     attackMode: single_target
     movementMode: player_directed
+    special:
+      executeThreshold: 0.1
+      executeNormalOnly: true
+      teleportOnExecute: true
+      alertRange: 320
 
   skills:
     - id: assassinate
@@ -371,7 +392,7 @@ assassin:
       energyCost: 30
       range: 300
       value: 3.0
-      description: 瞬移300px到最弱敌人旁，造成高伤害
+      description: 瞬移到血量低于10%的普通敌人旁并处决，否则进行高伤害刺杀
 
   lifecycle:
     onDeath:
@@ -397,10 +418,10 @@ mage:
   layer: Ground
 
   stats:
-    hp: 100
-    atk: 25
-    attackSpeed: 1.0
-    range: 150
+    hp: 90
+    atk: 16
+    attackSpeed: 0.8
+    range: 220
     speed: 15
     armor: 5
     mr: 20
@@ -408,7 +429,7 @@ mage:
     moveRange: 100
 
   cost:
-    build: 55
+    build: 40
     pop: 2
 
   visual:
@@ -434,6 +455,15 @@ mage:
     special:
       splashRadius: 40
       splashPercent: 1.0
+      debuffId: arcane_vulnerability
+      debuffAttribute: magicResist
+      debuffValue: -0.2
+      debuffDuration: 4
+      debuffIsPercent: true
+      periodicSpellCooldown: 6
+      periodicSpellDamage: 36
+      periodicSpellRadius: 90
+      alertRange: 320
 
   skills:
     - id: arcane_blast
@@ -442,7 +472,7 @@ mage:
       energyCost: 20
       range: 200
       value: 40
-      description: 对目标区域造成40点魔法AOE伤害
+      description: 攻击附加易伤负面Buff，并每6秒释放奥术爆破
 
   lifecycle:
     onDeath:

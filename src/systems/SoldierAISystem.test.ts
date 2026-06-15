@@ -5,8 +5,8 @@
  * - design/02-gameplay.md §7.1.2 — soldier 4-state AI
  * - design/03-units.md §3 — soldier stats (alert_range, attack_range, moveRange)
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { TowerWorld } from '../core/World.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TowerWorld, defineQuery } from '../core/World.js';
 import {
   Position,
   Health,
@@ -20,8 +20,14 @@ import {
   MoveModeVal,
   Stunned,
   Frozen,
+  Category,
+  CategoryVal,
+  Projectile,
 } from '../core/components.js';
 import { SoldierAISystem } from './SoldierAISystem.js';
+import { UNIT_ID_BY_TYPE } from '../data/gameData.js';
+import { UnitType } from '../types/index.js';
+import { clearAllBuffs, getBuffs } from './BuffSystem.js';
 
 // ============================================================
 // Helpers
@@ -31,6 +37,8 @@ const STATE_IDLE = 0;
 const STATE_ALERT = 1;
 const STATE_COMBAT = 2;
 const STATE_RETURNING = 3;
+
+const projectileQuery = defineQuery([Projectile]);
 
 function makeSoldier(
   world: TowerWorld,
@@ -47,6 +55,8 @@ function makeSoldier(
     initialAttackTarget?: number;
     visualSize?: number;
     facing?: number;
+    unitTypeNum?: number;
+    damage?: number;
   },
 ): number {
   const eid = world.createEntity();
@@ -75,7 +85,7 @@ function makeSoldier(
     stateTimer: 0,
   });
   world.addComponent(eid, Attack, {
-    damage: 25,
+    damage: opts.damage ?? 25,
     attackSpeed: 1.0,
     range: opts.attackRange,
     alertRange: opts.alertRange ?? 0,
@@ -103,12 +113,13 @@ function makeSoldier(
     rewardEnergy: 0,
     popCost: 1,
     cost: 50,
-    atk: 25,
+    atk: opts.damage ?? 25,
     level: 1,
     maxLevel: 3,
     totalInvested: 50,
-    unitTypeNum: 0,
+    unitTypeNum: opts.unitTypeNum ?? 0,
   });
+  world.addComponent(eid, Category, { value: CategoryVal.Soldier });
   world.addComponent(eid, Visual, {
     shape: 1,
     colorR: 0,
@@ -137,6 +148,8 @@ function makeEnemy(
     hp?: number;
     faction?: number;
     visualSize?: number;
+    isBoss?: number;
+    isElite?: number;
   },
 ): number {
   const eid = world.createEntity();
@@ -150,7 +163,7 @@ function makeEnemy(
   world.addComponent(eid, Faction, { value: opts.faction ?? FactionVal.Evil });
   world.addComponent(eid, UnitTag, {
     isEnemy: 1,
-    isBoss: 0,
+    isBoss: opts.isBoss ?? 0,
     isRanged: 0,
     canAttackBuildings: 0,
     rewardGold: 10,
@@ -162,7 +175,9 @@ function makeEnemy(
     maxLevel: 1,
     totalInvested: 0,
     unitTypeNum: 0,
+    isElite: opts.isElite ?? 0,
   });
+  world.addComponent(eid, Category, { value: CategoryVal.Enemy });
   world.addComponent(eid, Visual, {
     shape: 1,
     colorR: 255,
@@ -180,6 +195,28 @@ function makeEnemy(
     attackAnimDuration: 0,
     partsId: 0,
   });
+  return eid;
+}
+
+function makeTower(
+  world: TowerWorld,
+  opts: {
+    x: number;
+    y: number;
+    hp?: number;
+    faction?: number;
+  },
+): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: opts.x, y: opts.y });
+  world.addComponent(eid, Health, {
+    current: opts.hp ?? 100,
+    max: 200,
+    armor: 0,
+    magicResist: 0,
+  });
+  world.addComponent(eid, Faction, { value: opts.faction ?? FactionVal.Justice });
+  world.addComponent(eid, Category, { value: CategoryVal.Tower });
   return eid;
 }
 
@@ -642,6 +679,143 @@ describe('SoldierAISystem — COMBAT state', () => {
     system.update(world, 0.016);
 
     expect(SoldierComp.state[soldier]).toBe(STATE_RETURNING);
+  });
+});
+
+// ============================================================
+// Tests: Differentiated soldier mechanics
+// ============================================================
+
+describe('SoldierAISystem — differentiated soldier mechanics', () => {
+  let world: TowerWorld;
+  let system: SoldierAISystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new SoldierAISystem();
+    clearAllBuffs();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearAllBuffs();
+  });
+
+  it('刺客瞬移并处决血量低于10%的普通敌人，但不处决精英', () => {
+    const assassin = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 50,
+      alertRange: 320,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Assassin],
+      damage: 55,
+    });
+    const normalEnemy = makeEnemy(world, { x: 230, y: 200, hp: 100 });
+    Health.current[normalEnemy] = 9;
+
+    SoldierComp.state[assassin] = STATE_COMBAT;
+    SoldierComp.attackTarget[assassin] = normalEnemy;
+
+    system.update(world, 0.016);
+
+    expect(Health.current[normalEnemy]).toBeLessThanOrEqual(0);
+    expect(Position.x[assassin]).toBeCloseTo(206, 0);
+    expect(Position.y[assassin]).toBe(200);
+
+    const eliteEnemy = makeEnemy(world, { x: 240, y: 200, hp: 100, isElite: 1 });
+    Health.current[eliteEnemy] = 9;
+    Health.armor[eliteEnemy] = 1000;
+    Attack.cooldownTimer[assassin] = 0;
+    SoldierComp.attackTarget[assassin] = eliteEnemy;
+
+    system.update(world, 0.016);
+
+    expect(Health.current[eliteEnemy]).toBeGreaterThan(0);
+  });
+
+  it('弓手远程攻击会把x3暴击伤害写入投射物', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.01);
+    const archer = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 360,
+      alertRange: 420,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Archer],
+      damage: 12,
+    });
+    const enemy = makeEnemy(world, { x: 260, y: 200, hp: 100 });
+
+    SoldierComp.state[archer] = STATE_COMBAT;
+    SoldierComp.attackTarget[archer] = enemy;
+
+    system.update(world, 0.016);
+
+    const projectiles = projectileQuery(world.world);
+    expect(projectiles).toHaveLength(1);
+    expect(Projectile.damage[projectiles[0]!]).toBe(36);
+  });
+
+  it('牧师治疗我方士兵，并保留少量攻击能力', () => {
+    const priest = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 150,
+      alertRange: 240,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Priest],
+      damage: 6,
+    });
+    const wounded = makeSoldier(world, {
+      x: 230, y: 200,
+      homeX: 230, homeY: 200,
+      moveRange: 100,
+      attackRange: 40,
+    });
+    Health.current[wounded] = 50;
+
+    system.update(world, 0.016);
+
+    expect(Health.current[wounded]).toBe(62);
+    expect(Attack.damage[priest]).toBe(6);
+  });
+
+  it('工程师修复我方塔且没有攻击力', () => {
+    const engineer = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 120,
+      alertRange: 180,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Engineer],
+      damage: 0,
+    });
+    const damagedTower = makeTower(world, { x: 240, y: 200, hp: 120 });
+
+    system.update(world, 0.016);
+
+    expect(Attack.damage[engineer]).toBe(0);
+    expect(Health.current[damagedTower]).toBe(136);
+  });
+
+  it('法师周期法术造成魔法伤害并施加负面buff', () => {
+    const mage = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 220,
+      alertRange: 320,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Mage],
+      damage: 16,
+    });
+    const enemy = makeEnemy(world, { x: 260, y: 200, hp: 100 });
+
+    system.update(world, 6.1);
+
+    expect(Health.current[enemy]).toBeLessThan(100);
+    expect(getBuffs(enemy).some((buff) => buff.id === 'arcane_vulnerability')).toBe(true);
+    expect(Attack.damage[mage]).toBe(16);
   });
 });
 
