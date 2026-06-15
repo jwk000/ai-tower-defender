@@ -77,7 +77,6 @@ import {
   Category, CategoryVal,
   DeathEffect,
   Faction, FactionVal,
-  GridOccupant,
   Health,
   Movement,
   PlayerControllable, PlayerOwned,
@@ -1506,15 +1505,6 @@ class TowerDefenderGame extends Game {
     if (tile !== TileType.Path) {
       this.floatingTextSystem.show(this.world, centerX, centerY, '只能放在路径上');
       return false;
-    }
-
-    // Check grid occupancy via GridOccupant SoA
-    for (let eid = 1; eid < GridOccupant.row.length; eid++) {
-      if (GridOccupant.row[eid] === undefined) continue;
-      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) {
-        this.floatingTextSystem.show(this.world, centerX, centerY, '地格已被占用');
-        return false;
-      }
     }
 
     // v4.0: population system removed — no canDeployUnit/deployUnit

@@ -6,6 +6,7 @@ import { RenderSystem } from '../RenderSystem.js';
 import { loadAllUnitConfigs } from '../../config/loader.js';
 import { unitConfigRegistry } from '../../config/registry.js';
 import { UnitFactory } from '../UnitFactory.js';
+import { Health } from '../../core/components.js';
 
 // v4.1 — BuildSystem 实体创建委托 UnitFactory
 //
@@ -94,5 +95,38 @@ describe('BuildSystem v4.1 — UnitFactory 委托 + Faction 标记', () => {
     expect(onBuilt).toHaveBeenCalledTimes(1);
     // spike_trap YAML cost.build = 40
     expect(onBuilt.mock.calls[0]![1]).toBe(40);
+  });
+
+  it('机关不能放在同一个地格，机关死亡后释放占用', () => {
+    buildSystem.startDrag('trap', { trapTypeId: 'spike_trap' });
+    const first = buildSystem.tryDrop(1 * 64 + 32, 0 * 64 + 32);
+    expect(first).not.toBe(false);
+
+    buildSystem.startDrag('trap', { trapTypeId: 'bear_trap' });
+    expect(buildSystem.tryDrop(1 * 64 + 32, 0 * 64 + 32)).toBe(false);
+
+    Health.current[first as number] = 0;
+    buildSystem.startDrag('trap', { trapTypeId: 'bear_trap' });
+    expect(buildSystem.tryDrop(1 * 64 + 32, 0 * 64 + 32)).not.toBe(false);
+  });
+
+  it('塔不能放在装饰物占用的地格上', () => {
+    map.obstaclePlacements = [{ row: 1, col: 0, type: 'tree' as never }];
+
+    buildSystem.startDrag('tower', { towerType: TowerType.Arrow });
+    expect(buildSystem.tryDrop(0 * 64 + 32, 1 * 64 + 32)).toBe(false);
+  });
+
+  it('塔死亡后释放地格占用，可以在同格重新放塔', () => {
+    buildSystem.startDrag('tower', { towerType: TowerType.Arrow });
+    const first = buildSystem.tryDrop(0 * 64 + 32, 1 * 64 + 32);
+    expect(first).not.toBe(false);
+
+    buildSystem.startDrag('tower', { towerType: TowerType.Cannon });
+    expect(buildSystem.tryDrop(0 * 64 + 32, 1 * 64 + 32)).toBe(false);
+
+    Health.current[first as number] = 0;
+    buildSystem.startDrag('tower', { towerType: TowerType.Cannon });
+    expect(buildSystem.tryDrop(0 * 64 + 32, 1 * 64 + 32)).not.toBe(false);
   });
 });

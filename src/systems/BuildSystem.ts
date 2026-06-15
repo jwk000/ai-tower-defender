@@ -13,6 +13,8 @@ import {
   BuildingTower,
   Layer,
   LayerVal,
+  Trap,
+  Health,
 } from '../core/components.js';
 import {
   TowerType,
@@ -201,7 +203,7 @@ export class BuildSystem implements System {
         return false;
       }
     } else {
-      // 塔/建筑/单位必须放在空地 + 毗邻路径
+      // 塔/建筑必须放在空地 + 毗邻路径；士兵由 main.ts spawnUnitAt 处理路径放置
       if (tile !== TileType.Empty) {
         this.onPlacementDenied?.('只能放在空地上', cx, cy);
         this.cancelDrag();
@@ -214,21 +216,10 @@ export class BuildSystem implements System {
       }
     }
 
-    // 网格占用检查 (多层级: 同格可同时有 AboveGrid + Ground + LowAir)
-    // design/02-gameplay.md §1.4
-    const myLayer = ds.entityType === 'trap' ? LayerVal.AboveGrid : LayerVal.Ground;
-    const occupantEntities = this.gridQuery(world.world);
-    for (let i = 0; i < occupantEntities.length; i++) {
-      const eid = occupantEntities[i]!;
-      if (GridOccupant.row[eid] === row && GridOccupant.col[eid] === col) {
-        // 同层级冲突才拒绝
-        const existingLayer = Layer.value[eid] ?? LayerVal.Ground;
-        if (existingLayer === myLayer) {
-          this.onPlacementDenied?.('地格已被占用', cx, cy);
-          this.cancelDrag();
-          return false;
-        }
-      }
+    if (!this.canPlaceAt(world, ds.entityType, row, col)) {
+      this.onPlacementDenied?.('地格已被占用', cx, cy);
+      this.cancelDrag();
+      return false;
     }
 
     // 像素坐标 → 网格中心
@@ -283,6 +274,35 @@ export class BuildSystem implements System {
   private placeUnit(): number | false {
     this.cancelDrag();
     return false;
+  }
+
+  private canPlaceAt(world: TowerWorld, entityType: DragState['entityType'], row: number, col: number): boolean {
+    if (entityType === 'unit' || entityType === 'spell') return true;
+
+    if (entityType === 'tower' && this.isDecorationOccupied(row, col)) {
+      return false;
+    }
+
+    const occupantEntities = this.gridQuery(world.world);
+    for (let i = 0; i < occupantEntities.length; i++) {
+      const eid = occupantEntities[i]!;
+      if (GridOccupant.row[eid] !== row || GridOccupant.col[eid] !== col) continue;
+      if ((Health.current[eid] ?? 1) <= 0) continue;
+
+      if (entityType === 'trap') {
+        if (world.hasComponent(eid, Trap)) return false;
+        continue;
+      }
+
+      const existingLayer = Layer.value[eid] ?? LayerVal.Ground;
+      if (existingLayer === LayerVal.Ground) return false;
+    }
+
+    return true;
+  }
+
+  private isDecorationOccupied(row: number, col: number): boolean {
+    return this.map.obstaclePlacements?.some(obs => obs.row === row && obs.col === col) ?? false;
   }
 
 }
