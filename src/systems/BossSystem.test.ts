@@ -254,8 +254,8 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
   });
 
   it('分裂子史莱姆沿用史莱姆单位类型，并从父体附近路径继续移动', () => {
-    new MovementSystem(MAP_01);
-    const parentX = 5 * MAP_01.tileSize + MAP_01.tileSize / 2;
+    const movementSystem = new MovementSystem(MAP_01);
+    const parentX = 6 * MAP_01.tileSize + MAP_01.tileSize / 2;
     const parentY = 4 * MAP_01.tileSize + MAP_01.tileSize / 2;
     const boss = makeBoss(world, BossType.GiantSlime, {
       hp: 800,
@@ -275,7 +275,16 @@ describe('BossSystem — GiantSlime (分裂技能)', () => {
       expect(UnitTag.unitTypeNum[eid]).toBe(GIANT_SLIME_UNIT_TYPE_NUM);
       expect(Movement.spawnIdx[eid]).toBe(0);
       expect(Movement.pathIndex[eid]).not.toBe(0);
+      expect(Movement.progress[eid]).toBeGreaterThan(0);
       expect(Position.x[eid]).toBe(parentX);
+      expect(Position.y[eid]).toBe(parentY);
+    }
+
+    movementSystem.update(world, 0.016);
+
+    for (const eid of bossesAfter) {
+      expect(Position.x[eid]).toBeGreaterThan(parentX);
+      expect(Position.x[eid]).toBeLessThan(parentX + 2);
       expect(Position.y[eid]).toBe(parentY);
     }
   });

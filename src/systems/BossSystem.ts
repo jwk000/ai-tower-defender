@@ -352,7 +352,7 @@ export class BossSystem implements System {
       targetX: 0,
       targetY: 0,
       pathIndex: pathLocation.pathIndex,
-      progress: 0,
+      progress: pathLocation.progress,
       spawnIdx: pathLocation.spawnIdx,
       homeX: x,
       homeY: y,

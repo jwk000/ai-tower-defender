@@ -965,34 +965,48 @@ export class MovementSystem implements System {
     x: number,
     y: number,
     tileSize: number,
-  ): { spawnIdx: number; pathIndex: number } {
+  ): { spawnIdx: number; pathIndex: number; progress: number } {
     const allPaths = MovementSystem._paths;
     const ts = tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
 
-    if (allPaths.length === 0) return { spawnIdx: 0, pathIndex: 0 };
+    if (allPaths.length === 0) return { spawnIdx: 0, pathIndex: 0, progress: 0 };
 
-    // Search across all paths, return the index within the nearest path
+    // Search across all path segments, so resumed entities keep their current
+    // world position instead of jumping back to the nearest waypoint.
     let bestPathIdx = 0;
     let bestPointIdx = 0;
+    let bestProgress = 0;
     let nearestDistSq = Infinity;
     for (let p = 0; p < allPaths.length; p++) {
       const path = allPaths[p]!;
-      for (let i = 0; i < path.length; i++) {
-        const wp = path[i]!;
-        const wx = wp.col * ts + ts / 2 + ox;
-        const wy = wp.row * ts + ts / 2 + oy;
-        const dx = x - wx;
-        const dy = y - wy;
+      if (path.length < 2) continue;
+      for (let i = 0; i < path.length - 1; i++) {
+        const current = path[i]!;
+        const next = path[i + 1]!;
+        const cx = current.col * ts + ts / 2 + ox;
+        const cy = current.row * ts + ts / 2 + oy;
+        const nx = next.col * ts + ts / 2 + ox;
+        const ny = next.row * ts + ts / 2 + oy;
+        const sx = nx - cx;
+        const sy = ny - cy;
+        const lenSq = sx * sx + sy * sy;
+        if (lenSq <= 0.0001) continue;
+        const progress = Math.max(0, Math.min(1, ((x - cx) * sx + (y - cy) * sy) / lenSq));
+        const px = cx + sx * progress;
+        const py = cy + sy * progress;
+        const dx = x - px;
+        const dy = y - py;
         const dsq = dx * dx + dy * dy;
         if (dsq < nearestDistSq) {
           nearestDistSq = dsq;
           bestPathIdx = p;
           bestPointIdx = i;
+          bestProgress = progress;
         }
       }
     }
-    return { spawnIdx: bestPathIdx, pathIndex: bestPointIdx };
+    return { spawnIdx: bestPathIdx, pathIndex: bestPointIdx, progress: bestProgress };
   }
 }
