@@ -134,6 +134,9 @@ export class EnemySkillParticleSystem implements System {
       case EnemySkillParticleEffectVal.HealAura:
         this.renderHealAura(x, y, radius, progress, seed);
         break;
+      case EnemySkillParticleEffectVal.BurrowTrail:
+        this.renderBurrowTrail(x, y, radius, progress, seed, base);
+        break;
     }
   }
 
@@ -263,6 +266,24 @@ export class EnemySkillParticleSystem implements System {
       const px = x + Math.cos(a) * r;
       const py = y + Math.sin(a) * r * 0.62;
       pushParticle(this.renderer, px, py, 7 + rand01(seed, i + 40) * 10, i % 4 === 0 ? dust : color, (1 - progress) * 0.7, 8);
+    }
+  }
+
+  private renderBurrowTrail(x: number, y: number, radius: number, progress: number, seed: number, color: string): void {
+    const alpha = 1 - progress;
+    for (let i = 0; i < 24; i++) {
+      const lane = rand01(seed, i) - 0.5;
+      const back = rand01(seed, i + 20) * radius * (0.45 + progress * 0.9);
+      const jitter = (rand01(seed, i + 40) - 0.5) * radius * 0.55;
+      const px = x - back + jitter * 0.35;
+      const py = y + lane * radius * 0.42 - progress * 3;
+      const size = 3 + rand01(seed, i + 60) * 7;
+      pushParticle(this.renderer, px, py, size, i % 3 === 0 ? '#d7b077' : color, alpha * (0.35 + rand01(seed, i + 80) * 0.45), 6);
+    }
+    for (let i = 0; i < 8; i++) {
+      const ox = (rand01(seed, i + 100) - 0.5) * radius * 0.9;
+      const oy = (rand01(seed, i + 120) - 0.5) * radius * 0.35;
+      pushStreak(this.renderer, x + ox, y + oy, 10 + rand01(seed, i + 140) * 14, 3, '#8d6e63', alpha * 0.45, Math.PI / 2 + (rand01(seed, i + 160) - 0.5) * 0.9, 6);
     }
   }
 

@@ -32,6 +32,7 @@ import {
   Layer,
   LayerVal,
   EnemyFlockMember,
+  Burrowed,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -54,6 +55,30 @@ function makeMap(): MapConfig {
         { id: 'e', row: 0, col: 1, role: 'crystal_anchor' },
       ],
       edges: [{ from: 's', to: 'e' }],
+    },
+  };
+}
+
+function makeFourTileMap(): MapConfig {
+  return {
+    name: 'burrow-test',
+    cols: 4,
+    rows: 1,
+    tileSize: TILE,
+    tiles: [[TileType.Spawn, TileType.Path, TileType.Path, TileType.Base]],
+    spawns: [{ id: 'sp', row: 0, col: 0 }],
+    pathGraph: {
+      nodes: [
+        { id: 's', row: 0, col: 0, role: 'spawn', spawnId: 'sp' },
+        { id: 'p1', row: 0, col: 1, role: 'waypoint' },
+        { id: 'p2', row: 0, col: 2, role: 'waypoint' },
+        { id: 'e', row: 0, col: 3, role: 'crystal_anchor' },
+      ],
+      edges: [
+        { from: 's', to: 'p1' },
+        { from: 'p1', to: 'p2' },
+        { from: 'p2', to: 'e' },
+      ],
     },
   };
 }
@@ -357,5 +382,51 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     bossReachSystem.update(world, 0.016);
 
     expect(phase).toBe(GamePhase.Defeat);
+  });
+});
+
+describe('MovementSystem — 钻地潜行', () => {
+  it('潜地敌人前进3格后钻出并恢复本体显示', () => {
+    const world = new TowerWorld();
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+    const system = new MovementSystem(makeFourTileMap());
+    const enemy = world.createEntity();
+    world.addComponent(enemy, Position, { x: TILE / 2, y: TILE / 2 });
+    world.addComponent(enemy, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+    world.addComponent(enemy, Movement, {
+      speed: TILE * 3,
+      currentSpeed: TILE * 3,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+      currentNodeIdx: 0,
+      targetNodeIdx: 0xffff,
+    });
+    world.addComponent(enemy, UnitTag, { isEnemy: 1, rewardGold: 0, canAttackBuildings: 0, atk: 0 });
+    world.addComponent(enemy, Visual, {
+      shape: 1,
+      colorR: 120,
+      colorG: 80,
+      colorB: 50,
+      size: 24,
+      alpha: 0,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+    });
+    world.addComponent(enemy, Burrowed, {
+      distanceRemaining: 3,
+      trailEmitTimer: 0,
+      originalAlpha: 1,
+    });
+
+    system.update(world, 1);
+    system.update(world, 1);
+    system.update(world, 1);
+
+    expect(world.hasComponent(enemy, Burrowed)).toBe(false);
+    expect(Visual.alpha[enemy]).toBe(1);
+    expect(Movement.pathIndex[enemy]).toBe(3);
   });
 });

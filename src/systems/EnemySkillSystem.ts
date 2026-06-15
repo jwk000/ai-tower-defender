@@ -14,7 +14,7 @@ import {
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
   Tower, ScreenShake, Elite,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
-  EnemySkillParticleEffect, EnemySkillParticleEffectVal,
+  EnemySkillParticleEffect, EnemySkillParticleEffectVal, Burrowed,
 } from '../core/components.js';
 import { unitConfigRegistry } from '../config/registry.js';
 import { Sound } from '../utils/Sound.js';
@@ -230,7 +230,7 @@ function dealAoeDamage(
 // Enemy skill particle helpers
 // ============================================================
 
-function createSkillParticles(
+export function createSkillParticles(
   world: TowerWorld,
   x: number, y: number,
   effectType: number,
@@ -814,6 +814,32 @@ const handleGenericSkillParticles: SkillHandler = (world, casterEid, skill, _pha
   );
 };
 
+const handleBurrowPhase: SkillHandler = (world, casterEid, skill, _phase) => {
+  if (hasComponent(world.world, Burrowed, casterEid)) return;
+  if (!hasComponent(world.world, Movement, casterEid)) return;
+
+  const currentAlpha = Visual.alpha[casterEid] ?? 1;
+  world.addComponent(casterEid, Burrowed, {
+    distanceRemaining: Math.max(1, skill.value || 3),
+    trailEmitTimer: 0,
+    originalAlpha: currentAlpha,
+  });
+  if (hasComponent(world.world, Visual, casterEid)) {
+    Visual.alpha[casterEid] = 0;
+    Visual.hitFlashTimer[casterEid] = 0;
+  }
+
+  createSkillParticles(
+    world,
+    Position.x[casterEid] ?? 0,
+    Position.y[casterEid] ?? 0,
+    EnemySkillParticleEffectVal.BurrowTrail,
+    { r: 150, g: 105, b: 55 },
+    32,
+    0.45,
+  );
+};
+
 // ============================================================
 // Skill handler registry
 // ============================================================
@@ -864,7 +890,7 @@ const SKILL_HANDLERS: Record<string, SkillHandler> = {
   shield_aura: handleAuraParticles,
   revive_aura: handleAuraParticles,
   revive: handleAuraParticles,
-  burrow_phase: handleGenericSkillParticles,
+  burrow_phase: handleBurrowPhase,
   void_blink: handleGenericSkillParticles,
   curse_volatile: handleGenericSkillParticles,
   mark_for_destruction: handleGenericSkillParticles,

@@ -80,6 +80,7 @@ export const EnemySkillParticleEffectVal = {
   Warning: 12,
   FrostAura: 13,
   HealAura: 14,
+  BurrowTrail: 15,
 } as const;
 export type EnemySkillParticleEffectVal =
   (typeof EnemySkillParticleEffectVal)[keyof typeof EnemySkillParticleEffectVal];
@@ -292,6 +293,13 @@ export const Movement = defineComponent({
   spawnIdx: Types.ui16,
   currentNodeIdx: Types.ui16,
   targetNodeIdx: Types.ui16,
+});
+
+/** 潜地状态：单位仍沿路径移动，但不可被选中/攻击，地面只显示翻土轨迹。 */
+export const Burrowed = defineComponent({
+  distanceRemaining: Types.f32,
+  trailEmitTimer: Types.f32,
+  originalAlpha: Types.f32,
 });
 
 // ============================================================

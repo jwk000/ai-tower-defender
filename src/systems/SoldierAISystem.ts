@@ -42,6 +42,7 @@ import { applyDamageToTarget, applyHealToTarget } from '../utils/damageUtils.js'
 import { UNIT_CONFIGS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import type { UnitConfig } from '../types/index.js';
 import { addBuff } from './BuffSystem.js';
+import { canBeTargeted, canReceiveCombatDamage } from '../utils/targetingUtils.js';
 
 // ============================================================
 // 状态常量
@@ -489,6 +490,7 @@ export class SoldierAISystem implements System {
     const ty = Position.y[target]!;
     for (const enemyId of this.enemyQuery(world.world)) {
       if ((Health.current[enemyId] ?? 0) <= 0) continue;
+      if (!canReceiveCombatDamage(world, enemyId)) continue;
       if (!areHostile(Faction.value[eid]!, Faction.value[enemyId]!)) continue;
       const dx = Position.x[enemyId]! - tx;
       const dy = Position.y[enemyId]! - ty;
@@ -650,6 +652,7 @@ export class SoldierAISystem implements System {
     for (const enemyId of this.enemyQuery(world.world)) {
       if (enemyId === targetId) continue;
       if ((Health.current[enemyId] ?? 0) <= 0) continue;
+      if (!canReceiveCombatDamage(world, enemyId)) continue;
       if (!areHostile(Faction.value[attackerId]!, Faction.value[enemyId]!)) continue;
       const dx = Position.x[enemyId]! - tx;
       const dy = Position.y[enemyId]! - ty;
@@ -740,6 +743,7 @@ export class SoldierAISystem implements System {
 
       // Must be alive
       if ((Health.current[enemyId] ?? 0) <= 0) continue;
+      if (!canBeTargeted(world, enemyId)) continue;
 
       // Must be hostile
       const enemyFaction = Faction.value[enemyId];
@@ -774,6 +778,7 @@ export class SoldierAISystem implements System {
     if (!areHostile(soldierFaction, targetFaction)) return false;
 
     if ((Health.current[targetId] ?? 0) <= 0) return false;
+    if (!canBeTargeted(world, targetId)) return false;
 
     const dist = this.getDistance(soldierId, targetId);
     // 添加10%滞后缓冲，防止在范围边界上来回切换状态

@@ -59,7 +59,7 @@ describe('敌人技能完整性配置', () => {
     expect(invalid).toEqual([]);
   });
 
-  it('本次补充的精英/Boss 技能不能误挂到普通敌人', () => {
+  it('本次补充的精英/Boss 技能不能误挂到非授权普通敌人', () => {
     const forcedSkillIds = new Set([
       'shield_wall',
       'arcane_bolt',
@@ -84,6 +84,9 @@ describe('敌人技能完整性配置', () => {
       'targeted_missile',
       'dark_devour',
     ]);
+    const allowedNormalEnemySkills = new Set([
+      'burrow_beetle.burrow_phase',
+    ]);
     const misplaced: string[] = [];
 
     for (const config of unitConfigRegistry.getAll()) {
@@ -91,7 +94,10 @@ describe('敌人技能完整性配置', () => {
       for (const skill of getSkills(config)) {
         const id = (skill as Record<string, unknown>).id;
         if (typeof id === 'string' && forcedSkillIds.has(id)) {
-          misplaced.push(`${config.id}.${id}`);
+          const key = `${config.id}.${id}`;
+          if (!allowedNormalEnemySkills.has(key)) {
+            misplaced.push(key);
+          }
         }
       }
     }

@@ -27,6 +27,7 @@ import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
+import { canBeTargeted, canReceiveCombatDamage } from '../utils/targetingUtils.js';
 
 // ============================================================
 // TowerType numeric ID → enum mapping (ui8 values)
@@ -457,7 +458,7 @@ export class AttackSystem implements System {
       hit.add(targetId);
 
       // Deal damage
-      if (Health.current[targetId]! > 0) {
+      if (Health.current[targetId]! > 0 && canReceiveCombatDamage(world, targetId)) {
         const dmgType = Attack.damageType[towerId] ?? DamageTypeVal.Physical;
         applyDamageToTarget(world, targetId, dmg, dmgType);
       }
@@ -492,6 +493,7 @@ export class AttackSystem implements System {
           const tf = Faction.value[eid];
           if (tf === undefined || !areHostile(towerFaction, tf)) continue;
           if ((Health.current[eid] ?? 0) <= 0) continue;
+          if (!canBeTargeted(world, eid)) continue;
           if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
           const ex = Position.x[eid]!;
@@ -806,7 +808,7 @@ export function doLightningAttack(
     if (hit.has(targetId)) break;
     hit.add(targetId);
 
-    if ((Health.current[targetId] ?? 0) > 0) {
+    if ((Health.current[targetId] ?? 0) > 0 && canReceiveCombatDamage(world, targetId)) {
       const dmgType = Attack.damageType[towerId] ?? DamageTypeVal.Physical;
       applyDamageToTarget(world, targetId, dmg, dmgType);
     }
@@ -844,6 +846,7 @@ export function doLightningAttack(
         const tf = Faction.value[eid];
         if (tf === undefined || !areHostile(towerFaction, tf)) continue;
         if ((Health.current[eid] ?? 0) <= 0) continue;
+        if (!canBeTargeted(world, eid)) continue;
         if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
         const ex = Position.x[eid]!;
@@ -881,6 +884,7 @@ export function findEnemiesInRange(
     const tf = Faction.value[eid];
     if (tf === undefined || !areHostile(towerFaction, tf)) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (!canBeTargeted(world, eid)) continue;
     if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
     const ex = Position.x[eid]!;
     const ey = Position.y[eid]!;

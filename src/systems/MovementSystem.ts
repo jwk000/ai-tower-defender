@@ -3,8 +3,9 @@ import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
-  Boss, EnemyFlockMember,
+  Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal,
 } from '../core/components.js';
+import { createSkillParticles } from './EnemySkillSystem.js';
 import type { MapConfig, GridPos } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
@@ -197,6 +198,7 @@ export class MovementSystem implements System {
       const stepDx = Position.x[eid]! - posX;
       const stepDy = Position.y[eid]! - posY;
       const stepDist = Math.sqrt(stepDx * stepDx + stepDy * stepDy);
+      this.updateBurrowTravel(world, eid, stepDist, ts, dt);
       Movement.currentSpeed[eid] = dt > 0 ? stepDist / dt : 0;
       if (stepDist > 0.05) {
         Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
@@ -204,6 +206,42 @@ export class MovementSystem implements System {
       }
 
       // 攻击逻辑已在移动前处理，确保攻击帧不移动。
+    }
+  }
+
+  private updateBurrowTravel(world: TowerWorld, eid: number, stepDist: number, tileSize: number, dt: number): void {
+    if (!hasComponent(world.world, Burrowed, eid)) return;
+
+    Burrowed.distanceRemaining[eid] = Math.max(0, (Burrowed.distanceRemaining[eid] ?? 0) - stepDist / tileSize);
+    Burrowed.trailEmitTimer[eid] = (Burrowed.trailEmitTimer[eid] ?? 0) - dt;
+
+    if ((Burrowed.trailEmitTimer[eid] ?? 0) <= 0 && stepDist > 0.05) {
+      Burrowed.trailEmitTimer[eid] = 0.12;
+      createSkillParticles(
+        world,
+        Position.x[eid] ?? 0,
+        Position.y[eid] ?? 0,
+        EnemySkillParticleEffectVal.BurrowTrail,
+        { r: 150, g: 105, b: 55 },
+        28,
+        0.35,
+      );
+    }
+
+    if ((Burrowed.distanceRemaining[eid] ?? 0) <= 0) {
+      if (hasComponent(world.world, Visual, eid)) {
+        Visual.alpha[eid] = Math.max(0.2, Burrowed.originalAlpha[eid] ?? 1);
+      }
+      world.removeComponent(eid, Burrowed);
+      createSkillParticles(
+        world,
+        Position.x[eid] ?? 0,
+        Position.y[eid] ?? 0,
+        EnemySkillParticleEffectVal.AoeSlam,
+        { r: 170, g: 120, b: 70 },
+        34,
+        0.35,
+      );
     }
   }
 

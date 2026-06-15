@@ -17,10 +17,12 @@ import {
   Tower,
   UnitTag,
   Visual,
+  Burrowed,
 } from '../core/components.js';
 import { unitConfigRegistry, type UnitConfig } from '../config/registry.js';
 import { EnemySkillSystem, registerEnemySkillEntity } from './EnemySkillSystem.js';
 import { EnemySkillParticleSystem } from './EnemySkillParticleSystem.js';
+import { findEnemiesInRange } from './AttackSystem.js';
 import type { Renderer } from '../render/Renderer.js';
 import type { RenderCommand } from '../types/index.js';
 
@@ -243,5 +245,50 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
     expect(commands.length).toBeGreaterThan(10);
     expect(commands.every((cmd) => cmd.shape === 'circle' || cmd.shape === 'rect')).toBe(true);
+  });
+
+  it('钻地潜行会隐藏本体、挂载潜地状态并生成翻土粒子', () => {
+    registerSkillConfig({
+      id: 'test_burrow_beetle',
+      name: '测试钻地甲虫',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      tier: 'L2',
+      stats: { hp: 120, atk: 15 },
+      visual: { shape: 'circle', color: '#795548', size: 30 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'burrow_phase',
+          name: '钻地潜行',
+          cooldown: 3,
+          range: 0,
+          value: 3,
+          description: '钻入地下并沿路径前进3格',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    const beetle = makeElite(world, 'test_burrow_beetle');
+
+    system.update(world, 0.1);
+
+    expect(hasComponent(world.world, Burrowed, beetle)).toBe(true);
+    expect(Burrowed.distanceRemaining[beetle]).toBe(3);
+    expect(Visual.alpha[beetle]).toBe(0);
+    expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
+  });
+
+  it('炮塔寻敌会跳过潜地敌人', () => {
+    const tower = makeTower(world, 100, 100);
+    const beetle = makeElite(world, 'test_burrow_target');
+    world.addComponent(beetle, Burrowed, {
+      distanceRemaining: 3,
+      trailEmitTimer: 0,
+      originalAlpha: 1,
+    });
+
+    expect(findEnemiesInRange(world, tower, 200).map((target) => target.id)).not.toContain(beetle);
   });
 });
