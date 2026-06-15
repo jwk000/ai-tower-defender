@@ -282,7 +282,7 @@ dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}
 4. 装饰物粒子只影响视觉，不参与碰撞、寻路、建造或攻击逻辑。
 5. 粒子必须由运行时按装饰物类型确定性生成，不能要求额外逐帧美术图。
 6. 已生成的 `idle_1/2/3` 图片保留为静态变体；禁止把它们按时间连续播放成动画。
-7. AI 生成图片如果带白色或近白背景，必须先经过本地抠白底处理，确认边缘背景透明后再进入主题图集。
+7. AI 生成图片如果带白色、棋盘、地格或其他生成背景，必须先经过本地边缘连通背景抠图处理，确认装饰物外背景透明后再进入主题图集。
 8. 装饰物资源生产统一使用 `npm run art:pipeline -- --type=decor` 工具链；已有图片只需处理和打包时使用 `npm run art:pipeline -- --skip-generate --target=public/art/decor`。
 
 ---

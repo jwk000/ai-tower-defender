@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const generatedScriptPath = join(root, 'node_modules', '.cache', 'tower-defender-remove-white-bg.py');
+const generatedScriptPath = join(root, 'node_modules', '.cache', 'tower-defender-remove-generated-bg.py');
 
 mkdirSync(dirname(generatedScriptPath), { recursive: true });
 
@@ -20,10 +20,11 @@ from PIL import Image
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Remove edge-connected white backgrounds from generated art.")
+    parser = argparse.ArgumentParser(description="Remove edge-connected generated backgrounds from art sprites.")
     parser.add_argument("paths", nargs="+", help="Files or folders to process")
-    parser.add_argument("--threshold", type=int, default=238, help="RGB channel threshold for near-white pixels")
-    parser.add_argument("--soft", type=int, default=18, help="Soft edge range below threshold")
+    parser.add_argument("--threshold", type=int, default=46, help="Maximum RGB distance from sampled edge background")
+    parser.add_argument("--soft", type=int, default=28, help="Soft edge distance range above threshold")
+    parser.add_argument("--white-threshold", type=int, default=238, help="Always remove edge-connected near-white pixels")
     return parser.parse_args()
 
 
@@ -38,15 +39,76 @@ def iter_pngs(paths: list[str]) -> list[Path]:
     return files
 
 
+def color_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
+
+
 def is_white_edge_pixel(pixel: tuple[int, int, int, int], threshold: int) -> bool:
     r, g, b, a = pixel
     return a > 0 and r >= threshold and g >= threshold and b >= threshold
 
 
-def remove_white_background(path: Path, threshold: int, soft: int) -> bool:
+def sample_edge_backgrounds(image: Image.Image) -> list[tuple[int, int, int]]:
+    width, height = image.size
+    pixels = image.load()
+    samples: list[tuple[int, int, int]] = []
+    step = max(1, min(width, height) // 32)
+    for x in range(0, width, step):
+        for y in (0, height - 1):
+            r, g, b, a = pixels[x, y]
+            if a > 0:
+                samples.append((r, g, b))
+    for y in range(0, height, step):
+        for x in (0, width - 1):
+            r, g, b, a = pixels[x, y]
+            if a > 0:
+                samples.append((r, g, b))
+    if not samples:
+        return []
+
+    clusters: list[tuple[list[float], int]] = []
+    for sample in samples:
+        for index, (center, count) in enumerate(clusters):
+            if color_distance(sample, (round(center[0]), round(center[1]), round(center[2]))) <= 30:
+                next_count = count + 1
+                center[0] = (center[0] * count + sample[0]) / next_count
+                center[1] = (center[1] * count + sample[1]) / next_count
+                center[2] = (center[2] * count + sample[2]) / next_count
+                clusters[index] = (center, next_count)
+                break
+        else:
+            clusters.append(([float(sample[0]), float(sample[1]), float(sample[2])], 1))
+
+    clusters.sort(key=lambda item: item[1], reverse=True)
+    return [
+        (round(center[0]), round(center[1]), round(center[2]))
+        for center, count in clusters[:4]
+        if count >= max(2, len(samples) // 64)
+    ]
+
+
+def is_background_pixel(
+    pixel: tuple[int, int, int, int],
+    backgrounds: list[tuple[int, int, int]],
+    threshold: int,
+    white_threshold: int,
+) -> bool:
+    r, g, b, a = pixel
+    if a == 0:
+        return True
+    if is_white_edge_pixel(pixel, white_threshold):
+        return True
+    rgb = (r, g, b)
+    return any(color_distance(rgb, bg) <= threshold for bg in backgrounds)
+
+
+def remove_generated_background(path: Path, threshold: int, soft: int, white_threshold: int) -> bool:
     image = Image.open(path).convert("RGBA")
     width, height = image.size
     pixels = image.load()
+    backgrounds = sample_edge_backgrounds(image)
+    if not backgrounds:
+        return False
     visited: set[tuple[int, int]] = set()
     queue: deque[tuple[int, int]] = deque()
 
@@ -64,7 +126,7 @@ def remove_white_background(path: Path, threshold: int, soft: int) -> bool:
             continue
         visited.add((x, y))
         pixel = pixels[x, y]
-        if not is_white_edge_pixel(pixel, threshold):
+        if not is_background_pixel(pixel, backgrounds, threshold, white_threshold):
             continue
 
         pixels[x, y] = (pixel[0], pixel[1], pixel[2], 0)
@@ -79,20 +141,19 @@ def remove_white_background(path: Path, threshold: int, soft: int) -> bool:
             queue.append((x, y + 1))
 
     if soft > 0:
-        lower = max(0, threshold - soft)
         for y in range(height):
             for x in range(width):
                 r, g, b, a = pixels[x, y]
                 if a == 0:
                     continue
-                whiteness = min(r, g, b)
-                if whiteness <= lower:
-                    continue
-                if any(
+                if not any(
                     0 <= nx < width and 0 <= ny < height and pixels[nx, ny][3] == 0
                     for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
                 ):
-                    factor = (threshold - whiteness) / max(1, threshold - lower)
+                    continue
+                distance = min(color_distance((r, g, b), bg) for bg in backgrounds)
+                if distance <= threshold + soft:
+                    factor = (distance - threshold) / max(1, soft)
                     new_alpha = max(0, min(a, int(a * max(0.0, min(1.0, factor)))))
                     if new_alpha != a:
                         pixels[x, y] = (r, g, b, new_alpha)
@@ -108,9 +169,9 @@ def main() -> None:
     files = iter_pngs(args.paths)
     changed = 0
     for file in files:
-        if remove_white_background(file, args.threshold, args.soft):
+        if remove_generated_background(file, args.threshold, args.soft, args.white_threshold):
             changed += 1
-    print(f"Processed {len(files)} png file(s); removed white background from {changed}.")
+    print(f"Processed {len(files)} png file(s); removed generated background from {changed}.")
 
 
 if __name__ == "__main__":
@@ -155,9 +216,11 @@ run('python3', [
   generatedScriptPath,
   target,
   '--threshold',
-  argValue('--threshold', '238'),
+  argValue('--threshold', '46'),
   '--soft',
-  argValue('--soft', '18'),
+  argValue('--soft', '28'),
+  '--white-threshold',
+  argValue('--white-threshold', '238'),
 ]);
 
 if (!hasArg('--skip-atlas')) {
