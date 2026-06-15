@@ -8,8 +8,8 @@
 // P0-1: 伤害飘字
 // ============================================================
 
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
-import { Position, DamageNumber, DamageNumberStyle } from '../core/components.js';
+import { TowerWorld, type System, defineQuery, entityExists, hasComponent } from '../core/World.js';
+import { Position, Health, DamageNumber, DamageNumberStyle } from '../core/components.js';
 import { getGlobalRandom } from '../utils/Random.js';
 
 // ============================================================
@@ -105,6 +105,11 @@ export class DamageNumberSystem implements System {
     value: number,
     style: number = DamageNumberStyle.Physical,
   ): void {
+    if (!entityExists(world.world, targetId)) return;
+    if (!hasComponent(world.world, Position, targetId)) return;
+    if (!hasComponent(world.world, Health, targetId)) return;
+    if ((Health.current[targetId] ?? 0) <= 0) return;
+
     const px = Position.x[targetId];
     const py = Position.y[targetId];
     if (px === undefined || py === undefined) return;
