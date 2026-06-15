@@ -169,7 +169,7 @@ crystal:
   hp: 1500
 
 starting:
-  gold: 350
+  gold: 430
   energy: 50
   maxPopulation: 15
 
@@ -204,7 +204,7 @@ waves:
       - { enemyType: goblin, count: 2, spawnInterval: 1.5, spawnId: spawn_2 }
       - { enemyType: boar, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
       - { enemyType: desert_beetle, count: 2, spawnInterval: 1.5, spawnId: spawn_3 }
-    reward: 40
+    reward: 70
   # 波次2: 四口精英加强
   - waveNumber: 2
     spawnDelay: 30
@@ -217,7 +217,7 @@ waves:
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
       - { enemyType: werewolf, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
-    reward: 50
+    reward: 90
   # 波次3: 精英种类增加
   - waveNumber: 3
     spawnDelay: 30
@@ -227,13 +227,13 @@ waves:
       - { enemyType: wizard, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
       - { enemyType: boar, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: burrow_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: priest, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
       - { enemyType: desert_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: drone, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
       - { enemyType: werewolf, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
-    reward: 60
+    reward: 110
   # 波次4: 精英混合
   - waveNumber: 4
     spawnDelay: 30
@@ -245,8 +245,8 @@ waves:
       - { enemyType: giant, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
       - { enemyType: locust, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_3 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
-    reward: 70
+      - { enemyType: dark_priest, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
+    reward: 135
   # 波次5: BOSS巨史莱姆 + 精英
   - waveNumber: 5
     spawnDelay: 30
@@ -259,9 +259,9 @@ waves:
       - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
-      - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
-    reward: 100
-  # 波次6: 混合精英加强
+      - { enemyType: wizard, count: 1, spawnInterval: 2.5, spawnId: spawn_3 }
+    reward: 170
+  # 波次6: 混合精英加强，降低牧师与坦克叠压
   - waveNumber: 6
     spawnDelay: 30
     enemies:
@@ -269,14 +269,13 @@ waves:
       - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: frankenstein, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
       - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_1 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: oil_truck, count: 1, spawnInterval: 4.0, spawnId: spawn_1 }
       - { enemyType: desert_beetle, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
-      - { enemyType: tank, count: 1, spawnInterval: 4.0, spawnId: spawn_2 }
       - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
-    reward: 80
+    reward: 155
   # 波次7: BOSS蜂后 + 精英
   - waveNumber: 7
     spawnDelay: 30
@@ -290,7 +289,7 @@ waves:
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
-    reward: 120
+    reward: 210
   # 波次8: 坦克飞机油罐
   - waveNumber: 8
     spawnDelay: 30
@@ -303,8 +302,8 @@ waves:
       - { enemyType: oil_truck, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
       - { enemyType: giant, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
       - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_3 }
-    reward: 90
-  # 波次9: BOSS路西法 + 精英
+    reward: 175
+  # 波次9: BOSS路西法 + 精英，减少复活压力
   - waveNumber: 9
     spawnDelay: 30
     isBossWave: true
@@ -315,10 +314,10 @@ waves:
       - { enemyType: goblin, count: 4, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_2 }
       - { enemyType: desert_beetle, count: 4, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: frankenstein, count: 1, spawnInterval: 4.0, spawnId: spawn_3 }
-    reward: 140
+    reward: 240
   # 波次10: 混合军团
   - waveNumber: 10
     spawnDelay: 30
@@ -335,23 +334,23 @@ waves:
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: giant, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0, spawnId: spawn_3 }
-    reward: 100
-  # 波次11: BOSS超级机器人 + 精英
+    reward: 205
+  # 波次11: BOSS超级机器人 + 精英，降低坦克/无人机并发
   - waveNumber: 11
     spawnDelay: 30
     isBossWave: true
     enemies:
       - { enemyType: super_robot, count: 1, spawnInterval: 0, spawnId: spawn_1 }
-      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-      - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: tank, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_0 }
       - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: oil_truck, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: plane, count: 2, spawnInterval: 3.0, spawnId: spawn_3 }
-    reward: 160
-  # 波次12: 最终BOSS深渊领主 + 四路精英
+    reward: 280
+  # 波次12: 最终BOSS深渊领主 + 四路精英，保留终局但降低远程锁点
   - waveNumber: 12
     spawnDelay: 30
     isBossWave: true
@@ -362,10 +361,10 @@ waves:
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: giant_robot, count: 1, spawnInterval: 5.0, spawnId: spawn_1 }
       - { enemyType: desert_beetle, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
-      - { enemyType: tank, count: 2, spawnInterval: 3.0, spawnId: spawn_2 }
+      - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_3 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_3 }
-    reward: 250
+    reward: 380
 
 cardPool:
   - card_arrow_tower

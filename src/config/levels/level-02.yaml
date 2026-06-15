@@ -92,7 +92,7 @@ crystal:
   hp: 700
 
 starting:
-  gold: 200
+  gold: 230
   energy: 50
   maxPopulation: 8
 
@@ -113,14 +113,14 @@ waves:
     enemies:
       - { enemyType: desert_beetle, count: 6, spawnInterval: 1.5 }
       - { enemyType: burrow_beetle, count: 3, spawnInterval: 2.0 }
-    reward: 25
+    reward: 35
   # 波次2: 黑虫×8 + 钻地甲虫(精英)×3
   - waveNumber: 2
     spawnDelay: 30
     enemies:
       - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
       - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
-    reward: 35
+    reward: 50
   # 波次3: 黑虫×8 + 钻地甲虫(精英)×3 + 蝗虫(精英)×5
   - waveNumber: 3
     spawnDelay: 30
@@ -128,32 +128,32 @@ waves:
       - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
       - { enemyType: burrow_beetle, count: 3, spawnInterval: 1.5 }
       - { enemyType: locust, count: 5, spawnInterval: 1.5 }
-    reward: 45
-  # 波次4: 黑虫×10 + 蝗虫(精英)×4 + 自爆甲虫(精英)×3
+    reward: 65
+  # 波次4: 黑虫×8 + 蝗虫(精英)×3 + 自爆甲虫(精英)×2
   - waveNumber: 4
+    spawnDelay: 30
+    enemies:
+      - { enemyType: desert_beetle, count: 8, spawnInterval: 1.5 }
+      - { enemyType: locust, count: 3, spawnInterval: 1.5 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 1.5 }
+    reward: 85
+  # 波次5: 黑虫×10 + 蝗虫(精英)×4 + 自爆甲虫(精英)×3
+  - waveNumber: 5
     spawnDelay: 30
     enemies:
       - { enemyType: desert_beetle, count: 10, spawnInterval: 1.5 }
       - { enemyType: locust, count: 4, spawnInterval: 1.5 }
       - { enemyType: bomb_beetle, count: 3, spawnInterval: 1.5 }
-    reward: 55
-  # 波次5: 黑虫×12 + 蝗虫(精英)×6 + 自爆甲虫(精英)×4
-  - waveNumber: 5
-    spawnDelay: 30
-    enemies:
-      - { enemyType: desert_beetle, count: 12, spawnInterval: 1.5 }
-      - { enemyType: locust, count: 6, spawnInterval: 1.5 }
-      - { enemyType: bomb_beetle, count: 4, spawnInterval: 1.5 }
-    reward: 65
-  # 波次6: BOSS蜂后(精英)×1 + 黑虫×8 + 自爆甲虫(精英)×3
+    reward: 105
+  # 波次6: BOSS蜂后(精英)×1 + 黑虫×7 + 自爆甲虫(精英)×2
   - waveNumber: 6
     spawnDelay: 30
     enemies:
       - { enemyType: queen_beetle, count: 1, spawnInterval: 0 }
-      - { enemyType: desert_beetle, count: 8, spawnInterval: 2.0 }
-      - { enemyType: bomb_beetle, count: 3, spawnInterval: 2.0 }
+      - { enemyType: desert_beetle, count: 7, spawnInterval: 2.0 }
+      - { enemyType: bomb_beetle, count: 2, spawnInterval: 2.0 }
     isBossWave: true
-    reward: 100
+    reward: 150
 
 cardPool:
   - card_cannon_tower

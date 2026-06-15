@@ -77,7 +77,7 @@ crystal:
   hp: 500
 
 starting:
-  gold: 150
+  gold: 170
   energy: 50
   maxPopulation: 6
 
@@ -95,39 +95,39 @@ waves:
     spawnDelay: 2
     enemies:
       - { enemyType: goblin, count: 8, spawnInterval: 1.5 }
-    reward: 20
+    reward: 25
   # 波次2: 哥布林×6 + 野猪×3
   - waveNumber: 2
     spawnDelay: 30
     enemies:
       - { enemyType: goblin, count: 6, spawnInterval: 1.5 }
       - { enemyType: boar, count: 3, spawnInterval: 1.5 }
-    reward: 30
+    reward: 40
   # 波次3: 哥布林×5 + 野猪×3 + 大象×2
   - waveNumber: 3
     spawnDelay: 30
     enemies:
       - { enemyType: goblin, count: 5, spawnInterval: 2.0 }
       - { enemyType: boar, count: 3, spawnInterval: 2.0 }
-      - { enemyType: elephant, count: 2, spawnInterval: 2.0 }
-    reward: 40
+      - { enemyType: elephant, count: 1, spawnInterval: 2.0 }
+    reward: 60
   # 波次4: 野猪×4 + 大象×2 + 巨人×2
   - waveNumber: 4
     spawnDelay: 30
     enemies:
       - { enemyType: boar, count: 4, spawnInterval: 2.0 }
       - { enemyType: elephant, count: 2, spawnInterval: 2.0 }
-      - { enemyType: giant, count: 2, spawnInterval: 2.0 }
-    reward: 50
+      - { enemyType: giant, count: 1, spawnInterval: 2.0 }
+    reward: 75
   # 波次5: BOSS + 哥布林×4 + 野猪×2
   - waveNumber: 5
     spawnDelay: 30
     enemies:
       - { enemyType: giant_slime, count: 1, spawnInterval: 0 }
-      - { enemyType: goblin, count: 4, spawnInterval: 2.0 }
-      - { enemyType: boar, count: 2, spawnInterval: 2.0 }
+      - { enemyType: goblin, count: 3, spawnInterval: 2.0 }
+      - { enemyType: boar, count: 1, spawnInterval: 2.0 }
     isBossWave: true
-    reward: 80
+    reward: 110
 
 cardPool:
   - card_arrow_tower

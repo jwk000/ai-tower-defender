@@ -85,7 +85,7 @@ crystal:
   hp: 900
 
 starting:
-  gold: 250
+  gold: 290
   energy: 50
   maxPopulation: 10
 
@@ -108,7 +108,7 @@ waves:
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-    reward: 30
+    reward: 45
   # 波次2: 上口(狼人×3+巫师精英×2) | 下口(狼人×3+蝙蝠精英×3)
   - waveNumber: 2
     spawnDelay: 30
@@ -116,8 +116,8 @@ waves:
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
-    reward: 40
+      - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+    reward: 60
   # 波次3: 上口(狼人×3+蝙蝠精英×2+巫师精英×1) | 下口(狼人×3+蝙蝠精英×2+牧师精英×1)
   - waveNumber: 3
     spawnDelay: 30
@@ -127,19 +127,19 @@ waves:
       - { enemyType: wizard, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
-    reward: 50
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 75
   # 波次4: 上口(狼人×3+巫师精英×2+牧师精英×1) | 下口(狼人×3+蝙蝠精英×2+巫师精英×2)
   - waveNumber: 4
     spawnDelay: 30
     enemies:
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
-      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: vampire_bat, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-    reward: 60
+    reward: 90
   # 波次5: 上口(狼人×3+蝙蝠精英×2+弗兰肯精英×1) | 下口(狼人×3+巫师精英×2+牧师精英×2)
   - waveNumber: 5
     spawnDelay: 30
@@ -149,30 +149,30 @@ waves:
       - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: wizard, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-    reward: 70
-  # 波次6: 上口(狼人×3+巫师精英×3+牧师精英×1) | 下口(狼人×3+蝙蝠精英×3+弗兰肯精英×1)
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
+    reward: 110
+  # 波次6: 上口(狼人×3+巫师精英×2+牧师精英×1) | 下口(狼人×3+蝙蝠精英×2+弗兰肯精英×1)
   - waveNumber: 6
     spawnDelay: 30
     enemies:
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
-      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
-      - { enemyType: priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: frankenstein, count: 1, spawnInterval: 3.0, spawnId: spawn_1 }
-    reward: 80
-  # 波次7: 上口(BOSS路西法+蝙蝠精英×3) | 下口(狼人×4+巫师精英×3+牧师精英×2)
+    reward: 125
+  # 波次7: 上口(BOSS路西法+蝙蝠精英×3) | 下口(狼人×4+巫师精英×2+牧师精英×1)
   - waveNumber: 7
     spawnDelay: 30
     enemies:
       - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_0 }
       - { enemyType: vampire_bat, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: werewolf, count: 4, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: wizard, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: priest, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: wizard, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
+      - { enemyType: dark_priest, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
     isBossWave: true
-    reward: 120
+    reward: 180
 
 cardPool:
   - card_arrow_tower

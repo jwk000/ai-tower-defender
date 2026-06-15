@@ -128,7 +128,7 @@ crystal:
   hp: 1200
 
 starting:
-  gold: 300
+  gold: 350
   energy: 50
   maxPopulation: 12
 
@@ -153,7 +153,7 @@ waves:
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 2, spawnInterval: 1.5, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
-    reward: 35
+    reward: 55
   # 波次2: 上(机器狗×3+飞机精英×2) | 中(机器狗×3+无人机精英×2) | 下(机器狗×3+无人机精英×2)
   - waveNumber: 2
     spawnDelay: 30
@@ -164,7 +164,7 @@ waves:
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 3, spawnInterval: 1.5, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
-    reward: 45
+    reward: 75
   # 波次3: 上(机器狗×2+无人机精英×2+油罐精英×1) | 中(机器狗×2+飞机精英×2) | 下(机器狗×2+坦克精英×1)
   - waveNumber: 3
     spawnDelay: 30
@@ -176,7 +176,7 @@ waves:
       - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: tank, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
-    reward: 55
+    reward: 95
   # 波次4: 上(机器狗×2+飞机精英×2+油罐精英×1) | 中(机器狗×2+无人机精英×2+坦克精英×1) | 下(机器狗×2+无人机精英×2+油罐精英×1)
   - waveNumber: 4
     spawnDelay: 30
@@ -190,7 +190,7 @@ waves:
       - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
-    reward: 65
+    reward: 115
   # 波次5: 上(机器狗×2+无人机精英×2+油罐精英×1+坦克精英×1) | 中(机器狗×2+飞机精英×2+坦克精英×1) | 下(机器狗×2+无人机精英×2+油罐精英×1)
   - waveNumber: 5
     spawnDelay: 30
@@ -205,8 +205,8 @@ waves:
       - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: oil_truck, count: 1, spawnInterval: 3.0, spawnId: spawn_2 }
-    reward: 75
-  # 波次6: 上(机器狗×2+无人机精英×2+坦克精英×1+巨型精英×1) | 中(机器狗×2+飞机精英×2+油罐精英×2) | 下(机器狗×2+无人机精英×2+坦克精英×2)
+    reward: 135
+  # 波次6: 上(机器狗×2+无人机精英×2+坦克精英×1+巨型精英×1) | 中(机器狗×2+飞机精英×2+油罐精英×1) | 下(机器狗×2+无人机精英×2+坦克精英×1)
   - waveNumber: 6
     spawnDelay: 30
     enemies:
@@ -216,37 +216,37 @@ waves:
       - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_0 }
       - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
-      - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
+      - { enemyType: oil_truck, count: 1, spawnInterval: 2.5, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
-      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
-    reward: 85
-  # 波次7: 上(机器狗×3+无人机精英×3+油罐精英×2) | 中(机器狗×3+飞机精英×2+巨型精英×1) | 下(机器狗×3+坦克精英×2+巨型精英×1)
+      - { enemyType: tank, count: 1, spawnInterval: 2.5, spawnId: spawn_2 }
+    reward: 160
+  # 波次7: 上(机器狗×3+无人机精英×2+油罐精英×2) | 中(机器狗×3+飞机精英×2+巨型精英×1) | 下(机器狗×3+坦克精英×1+巨型精英×1)
   - waveNumber: 7
     spawnDelay: 30
     enemies:
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
-      - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
+      - { enemyType: drone, count: 2, spawnInterval: 2.0, spawnId: spawn_0 }
       - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
       - { enemyType: plane, count: 2, spawnInterval: 2.5, spawnId: spawn_1 }
       - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_1 }
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
-      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
+      - { enemyType: tank, count: 1, spawnInterval: 2.5, spawnId: spawn_2 }
       - { enemyType: giant_robot, count: 1, spawnInterval: 4.0, spawnId: spawn_2 }
-    reward: 95
-  # 波次8: BOSS波 中口出超级机器人×1+无人机精英×3 | 上口出机器狗×3+坦克精英×2 | 下口出飞机精英×3+油罐精英×2
+    reward: 190
+  # 波次8: BOSS波 中口出超级机器人×1+无人机精英×3 | 上口出机器狗×3+坦克精英×1 | 下口出飞机精英×2+油罐精英×2
   - waveNumber: 8
     spawnDelay: 30
     enemies:
       - { enemyType: robot_dog, count: 3, spawnInterval: 2.0, spawnId: spawn_0 }
-      - { enemyType: tank, count: 2, spawnInterval: 2.5, spawnId: spawn_0 }
+      - { enemyType: tank, count: 1, spawnInterval: 2.5, spawnId: spawn_0 }
       - { enemyType: super_robot, count: 1, spawnInterval: 0, spawnId: spawn_1 }
       - { enemyType: drone, count: 3, spawnInterval: 2.0, spawnId: spawn_1 }
-      - { enemyType: plane, count: 3, spawnInterval: 2.0, spawnId: spawn_2 }
+      - { enemyType: plane, count: 2, spawnInterval: 2.0, spawnId: spawn_2 }
       - { enemyType: oil_truck, count: 2, spawnInterval: 2.5, spawnId: spawn_2 }
     isBossWave: true
-    reward: 150
+    reward: 260
 
 cardPool:
   - card_missile_tower
@@ -255,6 +255,7 @@ cardPool:
   - card_ice_tower
   - card_archer
   - card_mage
+  - card_assassin
 
 draftPool:
   - card_missile_tower

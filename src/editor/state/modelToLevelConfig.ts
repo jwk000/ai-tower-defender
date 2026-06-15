@@ -68,6 +68,8 @@ function adaptWave(w: LevelFormModel['waves'][number]): WaveConfig {
   }));
   const wave: WaveConfig = { waveNumber: w.waveNumber, spawnDelay: w.spawnDelay, enemies };
   if (w.isBossWave) wave.isBossWave = true;
+  if (typeof w.__extras?.reward === 'number') wave.reward = w.__extras.reward;
+  if (typeof w.__extras?.spawnPointIndex === 'number') wave.spawnPointIndex = w.__extras.spawnPointIndex;
   return wave;
 }
 
