@@ -5,24 +5,19 @@
 // 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪旋风效果，炸弹抛物线。
 // ============================================================
 
-import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
+import { TowerWorld, type System, defineQuery } from '../core/World.js';
 import {
   Position,
-  Visual,
   SpellProjectile,
   SpellEffect,
   UnitTag,
   Health,
   Movement,
   DamageTypeVal,
-  ShapeVal,
-  ExplosionEffect,
   ScreenShake,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
-import { spellEffectArtPath, spellProjectileArtPath } from '../utils/artAssets.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
-import { getLoadedImageFrame } from '../utils/imageCache.js';
 import { Sound } from '../utils/Sound.js';
 
 // Spell type constants
@@ -154,33 +149,8 @@ export class SpellProjectileSystem implements System {
   // Rendering
   // ============================================================
 
-  private pushImage(path: string | null, x: number, y: number, size: number, alpha: number, z: number, rotation = 0): boolean {
-    if (!path) return false;
-    const frame = getLoadedImageFrame(path);
-    if (!frame) return false;
-    this.renderer.push({
-      shape: 'rect',
-      x, y,
-      size,
-      h: size,
-      color: '#ffffff',
-      image: frame.image,
-      imageSource: frame.source ?? undefined,
-      alpha,
-      rotation,
-      z,
-    });
-    return true;
-  }
-
   private renderProjectile(eid: number, spellType: number, x: number, y: number, progress: number): void {
     const alpha = 1;
-    const projectilePath = spellProjectileArtPath(spellType);
-    const projectileRotation = spellType === SPELL_BOMB
-      ? progress * Math.PI * 2
-      : spellType === SPELL_ARROW_RAIN
-        ? Math.PI
-        : 0;
 
     switch (spellType) {
       case SPELL_FIREBALL: {
@@ -245,8 +215,6 @@ export class SpellProjectileSystem implements System {
           alpha: 1,
           z: z + 3,
         });
-        this.pushImage(projectilePath, x, y, 54 * pulse, 0.9, z + 4, projectileRotation);
-
         // ── Particle trail: 6 flame particles trailing behind ──
         for (let i = 0; i < 6; i++) {
           const t = Math.max(0, progress - (i + 1) * 0.03);
@@ -282,32 +250,86 @@ export class SpellProjectileSystem implements System {
         break;
       }
 
-      case SPELL_ARROW_RAIN:
-        this.pushImage(projectilePath, x, y, 30, 0.9, 7, projectileRotation);
-        // Arrow: small triangle pointing down
-        this.renderer.push({
-          shape: 'triangle',
-          x, y,
-          size: 8,
-          color: '#8d6e63',
-          alpha,
-        });
+      case SPELL_ARROW_RAIN: {
+        const elapsed = SpellProjectile.elapsed[eid]!;
+        const startX = SpellProjectile.startX[eid]!;
+        const startY = SpellProjectile.startY[eid]!;
+        const targetX = SpellProjectile.targetX[eid]!;
+        const targetY = SpellProjectile.targetY[eid]!;
+        const z = 8;
+        for (let i = 0; i < 14; i++) {
+          const lane = i - 6.5;
+          const localProgress = Math.max(0, Math.min(1, progress * 1.35 - i * 0.025));
+          const drift = Math.sin(elapsed * 9 + i * 1.7) * 8;
+          const ax = startX + lane * 13 + drift;
+          const ay = startY + (targetY - startY) * localProgress;
+          const tx = targetX + lane * 9 - 22;
+          const ty = ay + 56;
+          const a = localProgress < 0.05 ? localProgress / 0.05 : 1;
+          this.renderer.push({
+            shape: 'arrow',
+            x: ax,
+            y: ay,
+            targetX: tx,
+            targetY: ty,
+            size: 28,
+            color: '#d7ccc8',
+            arrowGradientTail: 'rgba(215, 204, 200, 0)',
+            alpha: a * 0.88,
+            z,
+          });
+          this.renderer.push({
+            shape: 'rect',
+            x: ax + 6,
+            y: ay - 18,
+            size: 3,
+            h: 34,
+            color: '#f5f5f5',
+            alpha: a * 0.22,
+            rotation: -0.45,
+            z: z - 1,
+          });
+        }
         break;
+      }
 
-      case SPELL_BLIZZARD:
-        this.pushImage(projectilePath, x, y, 34, 0.85, 7, progress * Math.PI * 2);
-        // Snowflake: white diamond
-        this.renderer.push({
-          shape: 'diamond',
-          x, y,
-          size: 10 + Math.sin(progress * Math.PI * 6) * 3,
-          color: '#e3f2fd',
-          alpha: 0.9,
-        });
+      case SPELL_BLIZZARD: {
+        const elapsed = SpellProjectile.elapsed[eid]!;
+        const z = 8;
+        for (let i = 0; i < 18; i++) {
+          const swirl = progress * Math.PI * 7 + i * 0.75;
+          const r = 14 + (i % 6) * 7 + (1 - progress) * 20;
+          const windX = progress * 60;
+          const sx = x + Math.cos(swirl) * r + windX - 30;
+          const sy = y + Math.sin(swirl) * r * 0.45 + Math.sin(elapsed * 14 + i) * 5;
+          this.renderer.push({
+            shape: i % 3 === 0 ? 'diamond' : 'circle',
+            x: sx,
+            y: sy,
+            size: 3 + (i % 4) * 1.6,
+            color: i % 3 === 0 ? '#e3f2fd' : '#bbdefb',
+            alpha: 0.35 + (i % 5) * 0.08,
+            z,
+          });
+        }
+        for (let i = 0; i < 4; i++) {
+          this.renderer.push({
+            shape: 'rect',
+            x: x - 42 + i * 26 + Math.sin(elapsed * 6 + i) * 6,
+            y: y - 12 + i * 5,
+            size: 38 + i * 8,
+            h: 3,
+            color: '#e1f5fe',
+            alpha: 0.18,
+            rotation: -0.28,
+            z: z - 1,
+          });
+        }
         break;
+      }
 
-      case SPELL_BOMB:
-        this.pushImage(projectilePath, x, y, 42, 0.9, 7, projectileRotation);
+      case SPELL_BOMB: {
+        const spin = progress * Math.PI * 2;
         // Bomb: dark circle with fuse
         this.renderer.push({
           shape: 'circle',
@@ -315,6 +337,18 @@ export class SpellProjectileSystem implements System {
           size: 16,
           color: '#424242',
           alpha,
+          z: 8,
+        });
+        this.renderer.push({
+          shape: 'rect',
+          x: x + Math.cos(spin) * 10,
+          y: y - 9 + Math.sin(spin) * 3,
+          size: 10,
+          h: 3,
+          color: '#795548',
+          alpha: 0.9,
+          rotation: spin,
+          z: 9,
         });
         // Fuse spark
         this.renderer.push({
@@ -323,16 +357,15 @@ export class SpellProjectileSystem implements System {
           size: 4,
           color: '#ffeb3b',
           alpha: 0.5 + Math.sin(progress * Math.PI * 10) * 0.5,
+          z: 10,
         });
         break;
+      }
     }
   }
 
   private renderEffect(spellType: number, x: number, y: number, radius: number, progress: number): void {
     const alpha = 1 - progress;
-    const effectPath = spellEffectArtPath(spellType);
-    const effectSize = Math.max(radius * (1.35 + progress * 0.75), 72);
-    this.pushImage(effectPath, x, y, effectSize, Math.max(0, alpha) * 0.88, 10, progress * Math.PI * 0.35);
 
     switch (spellType) {
       case SPELL_FIREBALL: {
@@ -452,47 +485,135 @@ export class SpellProjectileSystem implements System {
         break;
       }
 
-      case SPELL_ARROW_RAIN:
-        // Multiple arrows falling
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2;
-          const dist = radius * progress * 0.8;
-          const ax = x + Math.cos(angle) * dist;
-          const ay = y + Math.sin(angle) * dist - 20 * (1 - progress);
-          this.renderer.push({
-            shape: 'triangle',
-            x: ax, y: ay,
-            size: 6,
-            color: '#8d6e63',
-            alpha: alpha * 0.8,
-          });
+      case SPELL_ARROW_RAIN: {
+        const z = 7;
+        const volleyProgress = Math.min(progress / 0.62, 1);
+        for (let i = 0; i < 32; i++) {
+          const col = (i % 8) - 3.5;
+          const row = Math.floor(i / 8) - 1.5;
+          const delay = (i % 5) * 0.035;
+          const fall = Math.max(0, Math.min(1, volleyProgress * 1.2 - delay));
+          const impactX = x + col * 24 + Math.sin(i * 12.9898) * 11;
+          const impactY = y + row * 25 + Math.cos(i * 7.233) * 9;
+          const ax = impactX - 54 * (1 - fall);
+          const ay = impactY - 170 * (1 - fall);
+          if (fall < 1) {
+            this.renderer.push({
+              shape: 'arrow',
+              x: ax,
+              y: ay,
+              targetX: impactX + 8,
+              targetY: impactY + 42,
+              size: 30,
+              color: '#eceff1',
+              arrowGradientTail: 'rgba(236, 239, 241, 0)',
+              alpha: 0.92,
+              z: z + 2,
+            });
+          } else {
+            const dust = Math.max(0, 1 - (progress - 0.48 - delay) / 0.45);
+            this.renderer.push({
+              shape: 'circle',
+              x: impactX,
+              y: impactY,
+              size: 8 + (1 - dust) * 12,
+              color: '#b0bec5',
+              alpha: dust * 0.3,
+              z,
+            });
+            this.renderer.push({
+              shape: 'rect',
+              x: impactX,
+              y: impactY + 4,
+              size: 3,
+              h: 20,
+              color: '#795548',
+              alpha: dust * 0.9,
+              rotation: -0.18,
+              z: z + 1,
+            });
+          }
         }
-        break;
-
-      case SPELL_BLIZZARD:
-        // Snowstorm: multiple snowflakes swirling
-        for (let i = 0; i < 12; i++) {
-          const angle = (i / 12) * Math.PI * 2 + progress * Math.PI * 4;
-          const dist = radius * (0.5 + Math.sin(progress * Math.PI + i) * 0.3);
-          const sx = x + Math.cos(angle) * dist;
-          const sy = y + Math.sin(angle) * dist;
-          this.renderer.push({
-            shape: 'diamond',
-            x: sx, y: sy,
-            size: 8,
-            color: '#e3f2fd',
-            alpha: alpha * 0.7,
-          });
-        }
-        // Central frost effect
+        const ringAlpha = Math.max(0, 1 - progress * 1.8);
         this.renderer.push({
           shape: 'circle',
           x, y,
-          size: radius * 0.5,
-          color: '#90caf9',
-          alpha: alpha * 0.3,
+          size: radius * (1.25 + progress * 0.35),
+          color: '#cfd8dc',
+          alpha: ringAlpha * 0.12,
+          stroke: '#eceff1',
+          strokeWidth: 2,
+          z,
         });
         break;
+      }
+
+      case SPELL_BLIZZARD: {
+        const z = 7;
+        const windAlpha = Math.max(0, alpha);
+        this.renderer.push({
+          shape: 'circle',
+          x, y,
+          size: radius * (1.6 + progress * 0.25),
+          color: '#90caf9',
+          alpha: windAlpha * 0.16,
+          z,
+        });
+        this.renderer.push({
+          shape: 'circle',
+          x, y,
+          size: radius * (1.95 + progress * 0.15),
+          color: '#e3f2fd',
+          alpha: windAlpha * 0.08,
+          stroke: '#bbdefb',
+          strokeWidth: 3,
+          z: z + 1,
+        });
+        for (let i = 0; i < 42; i++) {
+          const phase = (progress * 2.2 + i * 0.061) % 1;
+          const band = i % 6;
+          const lane = band - 2.5;
+          const gustX = x - radius * 0.95 + phase * radius * 1.9;
+          const gustY = y + lane * 24 + Math.sin(phase * Math.PI * 2 + i) * 18;
+          const size = i % 4 === 0 ? 7 : 3 + (i % 3);
+          this.renderer.push({
+            shape: i % 4 === 0 ? 'diamond' : 'circle',
+            x: gustX,
+            y: gustY,
+            size,
+            color: i % 4 === 0 ? '#e1f5fe' : '#ffffff',
+            alpha: windAlpha * (0.3 + (i % 5) * 0.06),
+            z: z + 2,
+          });
+          if (i % 5 === 0) {
+            this.renderer.push({
+              shape: 'rect',
+              x: gustX - 10,
+              y: gustY + 2,
+              size: 34,
+              h: 3,
+              color: '#e1f5fe',
+              alpha: windAlpha * 0.16,
+              rotation: -0.32,
+              z: z + 1,
+            });
+          }
+        }
+        for (let i = 0; i < 10; i++) {
+          const angle = progress * Math.PI * 3.5 + i * Math.PI * 0.2;
+          const dist = radius * (0.25 + (i % 5) * 0.12);
+          this.renderer.push({
+            shape: 'diamond',
+            x: x + Math.cos(angle) * dist,
+            y: y + Math.sin(angle) * dist * 0.55,
+            size: 8 + (i % 3) * 3,
+            color: '#b3e5fc',
+            alpha: windAlpha * 0.48,
+            z: z + 3,
+          });
+        }
+        break;
+      }
 
       case SPELL_BOMB:
         // Explosion: expanding red-orange circle with debris

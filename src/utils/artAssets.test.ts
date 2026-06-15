@@ -32,12 +32,12 @@ describe('artAssets', () => {
     expect(objectiveFxArtPath('spawn_portal')).toBe('/art/fx/fx_spawn_portal_loop_0.png');
   });
 
-  it('builds spell projectile and impact art paths', () => {
-    expect(spellProjectileArtPath(0)).toBe('/art/fx/fx_fire_explosion_charge_0.png');
-    expect(spellProjectileArtPath(1)).toBe('/art/fx/fx_arrow_rain_impact_1.png');
-    expect(spellProjectileArtPath(2)).toBe('/art/fx/fx_ice_burst_impact_1.png');
-    expect(spellProjectileArtPath(3)).toBe('/art/fx/fx_bomb_explosion_impact_1.png');
-    expect(spellEffectArtPath(0)).toBe('/art/fx/fx_fire_explosion_impact_1.png');
+  it('keeps spell runtime effects particle-only', () => {
+    expect(spellProjectileArtPath(0)).toBeNull();
+    expect(spellProjectileArtPath(1)).toBeNull();
+    expect(spellProjectileArtPath(2)).toBeNull();
+    expect(spellProjectileArtPath(3)).toBeNull();
+    expect(spellEffectArtPath(0)).toBeNull();
     expect(spellEffectArtPath(99)).toBeNull();
   });
 });
