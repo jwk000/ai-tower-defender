@@ -1,4 +1,4 @@
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, entityExists } from '../core/World.js';
 import { LaserBeam, Position, Health, Visual, DamageTypeVal } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import type { Renderer } from '../render/Renderer.js';
@@ -39,9 +39,8 @@ export class LaserBeamSystem implements System {
       const elapsed = LaserBeam.elapsed[eid]!;
       const duration = LaserBeam.duration[eid]!;
 
-      if (elapsed >= duration) {
-        world.destroyEntity(eid);
-        this.damageTimers.delete(eid);
+      if (elapsed >= duration || !this.isBeamLinked(world, eid)) {
+        this.destroyBeam(world, eid);
         continue;
       }
 
@@ -66,6 +65,7 @@ export class LaserBeamSystem implements System {
 
       const sourceId = LaserBeam.sourceId[eid]!;
       const targetId = LaserBeam.targetId[eid]!;
+      if (!this.isBeamLinked(world, eid)) continue;
 
       const fromX = Position.x[sourceId];
       const fromY = Position.y[sourceId];
@@ -82,7 +82,10 @@ export class LaserBeamSystem implements System {
 
   private applyDamage(world: TowerWorld, eid: number): void {
     const targetId = LaserBeam.targetId[eid]!;
-    if (!targetId || Health.current[targetId]! <= 0) return;
+    if (!this.isBeamLinked(world, eid)) {
+      this.destroyBeam(world, eid);
+      return;
+    }
 
     const elapsed = LaserBeam.elapsed[eid]!;
     const duration = LaserBeam.duration[eid]!;
@@ -94,6 +97,23 @@ export class LaserBeamSystem implements System {
 
     applyDamageToTarget(world, targetId, currentDamage, DamageTypeVal.Magic);
     Visual.hitFlashTimer[targetId] = 0.08;
+  }
+
+  private isBeamLinked(world: TowerWorld, eid: number): boolean {
+    const sourceId = LaserBeam.sourceId[eid]!;
+    const targetId = LaserBeam.targetId[eid]!;
+    return entityExists(world.world, sourceId)
+      && entityExists(world.world, targetId)
+      && Position.x[sourceId] !== undefined
+      && Position.y[sourceId] !== undefined
+      && Position.x[targetId] !== undefined
+      && Position.y[targetId] !== undefined
+      && (Health.current[targetId] ?? 0) > 0;
+  }
+
+  private destroyBeam(world: TowerWorld, eid: number): void {
+    world.destroyEntity(eid);
+    this.damageTimers.delete(eid);
   }
 
   private drawBeam(
