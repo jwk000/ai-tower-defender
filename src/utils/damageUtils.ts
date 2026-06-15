@@ -11,7 +11,6 @@
 import type { TowerWorld } from '../core/World.js';
 import { Health, DamageTypeVal } from '../core/components.js';
 import { calcPhysicalDamage, calcMagicDamage } from './combatFormulas.js';
-import { canReceiveCombatDamage } from './targetingUtils.js';
 
 /**
  * P1-#11: Observers for damage events. Used by EconomySystem to track
@@ -46,7 +45,6 @@ export function applyDamageToTarget(
   sourceId?: number,
 ): number {
   if (rawDamage <= 0) return 0;
-  if (!canReceiveCombatDamage(world, targetId)) return 0;
 
   const armor = Health.armor[targetId] ?? 0;
   const magicResist = Health.magicResist[targetId] ?? 0;

@@ -28,7 +28,7 @@ import { TileDamageSystem } from './TileDamageSystem.js';
 import type { DamageNumberSystem } from './DamageNumberSystem.js';
 import { DamageNumberStyle } from '../core/components.js';
 import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
-import { canBeTargeted, canReceiveCombatDamage } from '../utils/targetingUtils.js';
+import { AttackSystem } from './AttackSystem.js';
 
 // ============================================================
 // Queries
@@ -79,6 +79,14 @@ function isAlive(eid: number): boolean {
 function canProjectileSourceAffectLowAir(sourceId: number, isMissile: boolean): boolean {
   if (isMissile) return false;
   return sourceId > 0 && (Attack.canTargetLowAir[sourceId] ?? 0) === 1;
+}
+
+function canProjectileHitTarget(world: TowerWorld, sourceId: number, targetId: number, isMissile: boolean): boolean {
+  const sourceLayer = sourceId > 0 ? (Layer.value[sourceId] ?? LayerVal.Ground) : LayerVal.Ground;
+  const targetLayer = Layer.value[targetId] ?? LayerVal.Ground;
+  const isRanged = true;
+  const canTargetLowAir = canProjectileSourceAffectLowAir(sourceId, isMissile);
+  return AttackSystem.canAttackLayer(sourceLayer, targetLayer, isRanged, canTargetLowAir);
 }
 
 // ============================================================
@@ -203,7 +211,7 @@ export class ProjectileSystem implements System {
         for (const enemyId of enemies) {
           if (hitSet.has(enemyId)) continue;
           if (!isAlive(enemyId)) continue;
-          if (!canReceiveCombatDamage(world, enemyId)) continue;
+          if (!canProjectileHitTarget(world, Projectile.sourceId[eid] as number, enemyId, false)) continue;
           const ex = Position.x[enemyId];
           const ey = Position.y[enemyId];
           if (ex === undefined || ey === undefined) continue;
@@ -241,7 +249,7 @@ export class ProjectileSystem implements System {
       } else {
         // ── 直线弹道（敌人投射物 / 链式弹道 / 其他塔） ──
         // Target dead / gone — destroy projectile
-        if (!isAlive(targetId) || !canReceiveCombatDamage(world, targetId)) {
+        if (!isAlive(targetId) || !canProjectileHitTarget(world, Projectile.sourceId[eid] as number, targetId, false)) {
           world.destroyEntity(eid);
           continue;
         }
@@ -276,7 +284,7 @@ export class ProjectileSystem implements System {
 
     // ---- Vine tower DOT ticking ----
     for (const [targetId, dot] of this.dotEntries) {
-      if (!isAlive(targetId) || !canReceiveCombatDamage(world, targetId)) {
+      if (!isAlive(targetId)) {
         this.dotEntries.delete(targetId);
         // 移除中毒视觉组件
         if (hasComponent(world.world, Poisoned, targetId)) {
@@ -326,7 +334,7 @@ export class ProjectileSystem implements System {
 
     // -- Deal damage to primary target --
     const damageType = Projectile.damageType[eid]!;
-    if (isAlive(targetId) && canReceiveCombatDamage(world, targetId)) {
+    if (isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile)) {
       applyDamageToTarget(world, targetId, damage, damageType);
       Sound.play('enemy_hit');
 
@@ -355,7 +363,7 @@ export class ProjectileSystem implements System {
 
     // -- Ice: slow debuff (BuffSystem handles stacking → freeze) --
     if (slowPercent > 0) {
-      if (isAlive(targetId) && canReceiveCombatDamage(world, targetId) && !hasComponent(world.world, Stunned, targetId)) {
+      if (isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile) && !hasComponent(world.world, Stunned, targetId)) {
         const buff: BuffData = {
           id: 'ice_slow',
           attribute: 'speed',
@@ -373,7 +381,7 @@ export class ProjectileSystem implements System {
       Sound.play('ice_hit');
     }
 
-    if (debuffSlot > 0 && isAlive(targetId) && canReceiveCombatDamage(world, targetId)) {
+    if (debuffSlot > 0 && isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile)) {
       this.applyProjectileDebuff(world, eid, targetId, sourceId, debuffSlot);
     }
 
@@ -434,7 +442,7 @@ export class ProjectileSystem implements System {
     }
 
     // -- DOT: stacking poison/fire damage (sourceTowerType 7=Fire, 8=Poison) --
-    if ((sourceTowerType === 7 || sourceTowerType === 8) && isAlive(targetId) && canReceiveCombatDamage(world, targetId)) {
+    if ((sourceTowerType === 7 || sourceTowerType === 8) && isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile)) {
       const dotCfg = TOWER_CONFIGS[TowerType.Poison];
       if (dotCfg?.dotDamage !== undefined && dotCfg?.dotDuration !== undefined) {
         const existing = this.dotEntries.get(targetId);
@@ -511,11 +519,11 @@ export class ProjectileSystem implements System {
 
     for (const enemyId of enemyQuery(world.world)) {
       if (!isAlive(enemyId)) continue;
-      if (!canReceiveCombatDamage(world, enemyId)) continue;
 
       // 友军伤害守卫：splash 仅伤敌方单位，不伤友军塔/建筑/陷阱（含发射源塔自身）
       if (UnitTag.isEnemy[enemyId] !== 1) continue;
       if (enemyId === sourceTowerId) continue;
+      if (!canProjectileHitTarget(world, sourceTowerId, enemyId, isMissile)) continue;
 
       // Ground splash without anti-air reach does not affect LowAir enemies.
       const enemyLayer = Layer.value[enemyId] ?? LayerVal.Ground;
@@ -585,7 +593,7 @@ export class ProjectileSystem implements System {
 
       for (const enemyId of enemyQuery(world.world)) {
         if (hitIds.has(enemyId) || !isAlive(enemyId)) continue;
-        if (!canBeTargeted(world, enemyId)) continue;
+        if (!canProjectileHitTarget(world, sourceId, enemyId, false)) continue;
         if ((Layer.value[enemyId] ?? LayerVal.Ground) === LayerVal.LowAir && !canProjectileSourceAffectLowAir(sourceId, false)) continue;
 
         const ex = Position.x[enemyId];

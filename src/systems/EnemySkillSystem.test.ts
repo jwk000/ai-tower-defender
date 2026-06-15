@@ -276,18 +276,22 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
 
     expect(hasComponent(world.world, Burrowed, beetle)).toBe(true);
     expect(Burrowed.distanceRemaining[beetle]).toBe(3);
+    expect(Burrowed.originalLayer[beetle]).toBe(LayerVal.Ground);
+    expect(Layer.value[beetle]).toBe(LayerVal.BelowGrid);
     expect(Visual.alpha[beetle]).toBe(0);
     expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
   });
 
-  it('炮塔寻敌会跳过潜地敌人', () => {
+  it('炮塔寻敌通过层级限制跳过 BelowGrid 潜地敌人', () => {
     const tower = makeTower(world, 100, 100);
     const beetle = makeElite(world, 'test_burrow_target');
     world.addComponent(beetle, Burrowed, {
       distanceRemaining: 3,
       trailEmitTimer: 0,
       originalAlpha: 1,
+      originalLayer: LayerVal.Ground,
     });
+    Layer.value[beetle] = LayerVal.BelowGrid;
 
     expect(findEnemiesInRange(world, tower, 200).map((target) => target.id)).not.toContain(beetle);
   });

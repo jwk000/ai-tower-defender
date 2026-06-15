@@ -300,6 +300,7 @@ export const Burrowed = defineComponent({
   distanceRemaining: Types.f32,
   trailEmitTimer: Types.f32,
   originalAlpha: Types.f32,
+  originalLayer: Types.ui8,
 });
 
 // ============================================================

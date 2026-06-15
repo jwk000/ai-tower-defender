@@ -232,6 +232,9 @@ export class MovementSystem implements System {
       if (hasComponent(world.world, Visual, eid)) {
         Visual.alpha[eid] = Math.max(0.2, Burrowed.originalAlpha[eid] ?? 1);
       }
+      if (hasComponent(world.world, Layer, eid)) {
+        Layer.value[eid] = Burrowed.originalLayer[eid] ?? LayerVal.Ground;
+      }
       world.removeComponent(eid, Burrowed);
       createSkillParticles(
         world,

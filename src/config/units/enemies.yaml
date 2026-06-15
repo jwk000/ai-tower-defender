@@ -533,7 +533,7 @@ e_burrow_worm:
       cooldown: 6
       range: 0
       value: 3
-      description: "钻入地下并沿路径前进3格，期间不可被攻击，地面只显示移动翻土特效，前进完成后钻出"
+      description: "钻入地下并切换到BelowGrid层，沿路径前进3格，攻击命中遵循棋盘层级限制，地面只显示移动翻土特效，前进完成后钻出"
 
   lifecycle:
     onDeath:
@@ -3266,7 +3266,7 @@ burrow_beetle:
   visual: { shape: circle, color: "#795548", size: 30, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canTunnel: true, tunnelInterval: 3.0, tunnelDistanceTiles: 3.0 } }
   skills:
-    - { id: burrow_phase, name: "钻地潜行", cooldown: 3, range: 0, value: 3, description: "钻入地下并沿路径前进3格，期间不可被攻击，地面只显示移动翻土特效，前进完成后钻出" }
+    - { id: burrow_phase, name: "钻地潜行", cooldown: 3, range: 0, value: 3, description: "钻入地下并切换到BelowGrid层，沿路径前进3格，攻击命中遵循棋盘层级限制，地面只显示移动翻土特效，前进完成后钻出" }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

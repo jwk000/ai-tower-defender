@@ -7,7 +7,6 @@ import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
-import { canReceiveCombatDamage } from '../utils/targetingUtils.js';
 
 const trapQuery = defineQuery([Trap, Position, GridOccupant]);
 const damageableQuery = defineQuery([Position, Health]);
@@ -111,7 +110,6 @@ export class TrapSystem implements System {
     for (const enemyId of enemies) {
       // Skip traps (including self) — damageableQuery includes all Position+Health entities
       if (hasComponent(world.world, Trap, enemyId)) continue;
-      if (!canReceiveCombatDamage(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
@@ -164,7 +162,6 @@ export class TrapSystem implements System {
     for (const enemyId of enemies) {
       // Skip traps (including self) — damageableQuery includes all Position+Health entities
       if (hasComponent(world.world, Trap, enemyId)) continue;
-      if (!canReceiveCombatDamage(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
@@ -209,7 +206,6 @@ export class TrapSystem implements System {
     for (const enemyId of enemies) {
       // Skip traps (including self) — damageableQuery includes all Position+Health entities
       if (hasComponent(world.world, Trap, enemyId)) continue;
-      if (!canReceiveCombatDamage(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;

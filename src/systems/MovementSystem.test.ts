@@ -419,7 +419,9 @@ describe('MovementSystem — 钻地潜行', () => {
       distanceRemaining: 3,
       trailEmitTimer: 0,
       originalAlpha: 1,
+      originalLayer: LayerVal.Ground,
     });
+    world.addComponent(enemy, Layer, { value: LayerVal.BelowGrid });
 
     system.update(world, 1);
     system.update(world, 1);
@@ -427,6 +429,7 @@ describe('MovementSystem — 钻地潜行', () => {
 
     expect(world.hasComponent(enemy, Burrowed)).toBe(false);
     expect(Visual.alpha[enemy]).toBe(1);
+    expect(Layer.value[enemy]).toBe(LayerVal.Ground);
     expect(Movement.pathIndex[enemy]).toBe(3);
   });
 });

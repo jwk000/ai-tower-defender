@@ -27,7 +27,6 @@ import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
-import { canBeTargeted, canReceiveCombatDamage } from '../utils/targetingUtils.js';
 
 // ============================================================
 // TowerType numeric ID → enum mapping (ui8 values)
@@ -386,7 +385,7 @@ export class AttackSystem implements System {
    * - 远程 (isRanged=true): AboveGrid + Ground
    * - canTargetLowAir=true: 可额外攻击 LowAir
    * - LowAir attackers (蝙蝠、飞行敌): can attack all ≤ LowAir
-   * - Abyss/BelowGrid/Space: 默认放行 (未来扩展点)
+   * - BelowGrid 目标默认不可被 Ground/AboveGrid/LowAir 命中，后续地下攻击可通过特殊攻击者层扩展
    *
    * P1-#12: 提为 static 便于纯函数单测覆盖。
    */
@@ -458,7 +457,7 @@ export class AttackSystem implements System {
       hit.add(targetId);
 
       // Deal damage
-      if (Health.current[targetId]! > 0 && canReceiveCombatDamage(world, targetId)) {
+      if (Health.current[targetId]! > 0 && AttackSystem.isValidTarget(world, towerId, targetId)) {
         const dmgType = Attack.damageType[towerId] ?? DamageTypeVal.Physical;
         applyDamageToTarget(world, targetId, dmg, dmgType);
       }
@@ -493,7 +492,6 @@ export class AttackSystem implements System {
           const tf = Faction.value[eid];
           if (tf === undefined || !areHostile(towerFaction, tf)) continue;
           if ((Health.current[eid] ?? 0) <= 0) continue;
-          if (!canBeTargeted(world, eid)) continue;
           if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
           const ex = Position.x[eid]!;
@@ -808,7 +806,7 @@ export function doLightningAttack(
     if (hit.has(targetId)) break;
     hit.add(targetId);
 
-    if ((Health.current[targetId] ?? 0) > 0 && canReceiveCombatDamage(world, targetId)) {
+    if ((Health.current[targetId] ?? 0) > 0 && AttackSystem.isValidTarget(world, towerId, targetId)) {
       const dmgType = Attack.damageType[towerId] ?? DamageTypeVal.Physical;
       applyDamageToTarget(world, targetId, dmg, dmgType);
     }
@@ -846,7 +844,6 @@ export function doLightningAttack(
         const tf = Faction.value[eid];
         if (tf === undefined || !areHostile(towerFaction, tf)) continue;
         if ((Health.current[eid] ?? 0) <= 0) continue;
-        if (!canBeTargeted(world, eid)) continue;
         if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
 
         const ex = Position.x[eid]!;
@@ -884,7 +881,6 @@ export function findEnemiesInRange(
     const tf = Faction.value[eid];
     if (tf === undefined || !areHostile(towerFaction, tf)) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
-    if (!canBeTargeted(world, eid)) continue;
     if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
     const ex = Position.x[eid]!;
     const ey = Position.y[eid]!;

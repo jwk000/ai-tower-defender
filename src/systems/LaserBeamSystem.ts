@@ -2,7 +2,7 @@ import { TowerWorld, type System, defineQuery, entityExists } from '../core/Worl
 import { LaserBeam, Position, Health, Visual, DamageTypeVal } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import type { Renderer } from '../render/Renderer.js';
-import { canReceiveCombatDamage } from '../utils/targetingUtils.js';
+import { AttackSystem } from './AttackSystem.js';
 
 const GLOW_COLOR = '#e040fb';
 const CORE_COLOR = '#ffffff';
@@ -109,7 +109,7 @@ export class LaserBeamSystem implements System {
       && Position.y[sourceId] !== undefined
       && Position.x[targetId] !== undefined
       && Position.y[targetId] !== undefined
-      && canReceiveCombatDamage(world, targetId)
+      && AttackSystem.isValidTarget(world, sourceId, targetId)
       && (Health.current[targetId] ?? 0) > 0;
   }
 

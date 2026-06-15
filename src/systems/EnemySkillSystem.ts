@@ -819,11 +819,16 @@ const handleBurrowPhase: SkillHandler = (world, casterEid, skill, _phase) => {
   if (!hasComponent(world.world, Movement, casterEid)) return;
 
   const currentAlpha = Visual.alpha[casterEid] ?? 1;
+  const currentLayer = Layer.value[casterEid] ?? LayerVal.Ground;
   world.addComponent(casterEid, Burrowed, {
     distanceRemaining: Math.max(1, skill.value || 3),
     trailEmitTimer: 0,
     originalAlpha: currentAlpha,
+    originalLayer: currentLayer,
   });
+  if (hasComponent(world.world, Layer, casterEid)) {
+    Layer.value[casterEid] = LayerVal.BelowGrid;
+  }
   if (hasComponent(world.world, Visual, casterEid)) {
     Visual.alpha[casterEid] = 0;
     Visual.hitFlashTimer[casterEid] = 0;
