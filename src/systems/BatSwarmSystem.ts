@@ -21,6 +21,8 @@ import {
 import type { WeatherSystem } from './WeatherSystem.js';
 import { Renderer } from '../render/Renderer.js';
 import { ruleEngine } from '../core/RuleEngine.js';
+import { TOWER_CONFIGS } from '../data/gameData.js';
+import { TowerType } from '../types/index.js';
 
 // ============================================================
 // Boid tuning constants
@@ -1009,16 +1011,33 @@ export class BatSwarmSystem implements System {
   upgradeBatTowerStats(towerId: number, towerLevel: number): void {
     if (!this.world) return;
 
-    const baseBats = 4;
-    let extraBats = 0;
-    if (towerLevel >= 2) extraBats++;
-    if (towerLevel >= 4) extraBats++;
-    BatTower.maxBats[towerId] = baseBats + extraBats;
+    const cfg = TOWER_CONFIGS[TowerType.Bat];
+    const levelIndex = Math.max(0, towerLevel - 1);
+    const readLevelValue = (
+      values: readonly number[] | undefined,
+      fallback: number,
+    ): number => values?.[levelIndex] ?? values?.[values.length - 1] ?? fallback;
 
-    const levelBonus = (towerLevel - 1) * 0.15;
-    BatTower.batDamage[towerId] = Math.floor(10 * (1 + levelBonus));
-
-    BatTower.batHp[towerId] = 30 + (towerLevel - 1) * 10;
+    BatTower.maxBats[towerId] = readLevelValue(
+      cfg.batCountByLevel,
+      BatTower.maxBats[towerId] ?? cfg.batCount ?? 3,
+    );
+    BatTower.batDamage[towerId] = readLevelValue(
+      cfg.batDamageByLevel,
+      BatTower.batDamage[towerId] ?? cfg.batDamage ?? 10,
+    );
+    BatTower.batHp[towerId] = readLevelValue(
+      cfg.batHPByLevel,
+      BatTower.batHp[towerId] ?? cfg.batHP ?? 30,
+    );
+    BatTower.batAttackRange[towerId] = readLevelValue(
+      cfg.batAttackRangeByLevel,
+      BatTower.batAttackRange[towerId] ?? cfg.batAttackRange ?? 80,
+    );
+    BatTower.batAttackSpeed[towerId] = readLevelValue(
+      cfg.batAttackSpeedByLevel,
+      BatTower.batAttackSpeed[towerId] ?? cfg.batAttackSpeed ?? 1,
+    );
 
     // Update existing bats
     const bats = batQuery(this.world.world);
@@ -1027,6 +1046,8 @@ export class BatSwarmSystem implements System {
       if (BatSwarmMember.parentId[batId] !== towerId) continue;
 
       Attack.damage[batId] = BatTower.batDamage[towerId];
+      Attack.range[batId] = BatTower.batAttackRange[towerId];
+      Attack.attackSpeed[batId] = BatTower.batAttackSpeed[towerId];
 
       const maxHp = BatTower.batHp[towerId];
       const ratio = Health.max[batId]! > 0 ? Health.current[batId]! / Health.max[batId]! : 1;

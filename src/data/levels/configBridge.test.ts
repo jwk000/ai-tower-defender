@@ -17,6 +17,7 @@ function registerConfig(config: RegistryUnitConfig): void {
 }
 
 describe('unit config bridge', () => {
+  const originalArrow = { ...TOWER_CONFIGS[TowerType.Arrow] };
   const originalMissile = { ...TOWER_CONFIGS[TowerType.Missile] };
   const originalMage = { ...UNIT_CONFIGS[UnitType.Mage] };
   const originalWizard = { ...ENEMY_CONFIGS.wizard! };
@@ -28,6 +29,7 @@ describe('unit config bridge', () => {
   });
 
   afterEach(() => {
+    TOWER_CONFIGS[TowerType.Arrow] = { ...originalArrow };
     TOWER_CONFIGS[TowerType.Missile] = { ...originalMissile };
     UNIT_CONFIGS[UnitType.Mage] = { ...originalMage };
     ENEMY_CONFIGS.wizard = { ...originalWizard };
@@ -57,6 +59,52 @@ describe('unit config bridge', () => {
     const factory = new UnitFactory(world);
     const eid = factory.createTower(TowerType.Missile, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 6 })!;
     expect(Attack.damageType[eid]).toBe(DamageTypeVal.True);
+  });
+
+  it('塔桥接支持 *_tower 配置 ID，并按升级费用长度决定等级上限', () => {
+    registerConfig({
+      id: 'arrow_tower',
+      name: '测试箭塔',
+      category: 'Tower',
+      faction: 'Player',
+      layer: 'Ground',
+      stats: { hp: 100, atk: 10, attackSpeed: 1, range: 200, armor: 0, mr: 0, damageType: 'physical' },
+      cost: { build: 70, upgrade: [40, 360], atkGrowth: [5, 18], rangeGrowth: [20, 40] },
+      visual: { shape: 'rect', color: '#ffffff', size: 32 },
+      behavior: {
+        targetSelection: 'nearest',
+        attackMode: 'single_target',
+        movementMode: 'hold_position',
+        special: { projectileCount: [1, 1, 2] },
+      },
+    });
+    registerConfig({
+      id: 'missile_tower',
+      name: '测试导弹塔',
+      category: 'Tower',
+      faction: 'Player',
+      layer: 'Ground',
+      stats: { hp: 240, atk: 80, attackSpeed: 0.3, range: 9999, armor: 0, mr: 0, damageType: 'true' },
+      cost: { build: 220, upgrade: [130, 980, 1400, 1850], atkGrowth: [30, 110, 60, 80], rangeGrowth: [0, 0, 0, 0] },
+      visual: { shape: 'rect', color: '#ffffff', size: 42 },
+      behavior: {
+        targetSelection: 'highest_threat',
+        attackMode: 'aoe_splash',
+        movementMode: 'hold_position',
+        special: { splashRadius: 80, projectileCount: [1, 1, 2, 2, 3] },
+      },
+    });
+
+    injectTowerConfigsFromRegistry();
+
+    expect(TOWER_CONFIGS[TowerType.Arrow].upgradeCosts).toEqual([40, 360]);
+    expect(TOWER_CONFIGS[TowerType.Arrow].upgradeAtkBonus).toEqual([5, 18]);
+    expect(TOWER_CONFIGS[TowerType.Arrow].projectileCount).toEqual([1, 1, 2]);
+    expect(TOWER_CONFIGS[TowerType.Arrow].upgradeCosts).toHaveLength(2);
+
+    expect(TOWER_CONFIGS[TowerType.Missile].damageType).toBe('true');
+    expect(TOWER_CONFIGS[TowerType.Missile].upgradeCosts).toHaveLength(4);
+    expect(TOWER_CONFIGS[TowerType.Missile].projectileCount).toEqual([1, 1, 2, 2, 3]);
   });
 
   it('塔默认不显示白色描边，选中态由渲染选中状态负责', () => {

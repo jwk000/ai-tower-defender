@@ -430,7 +430,9 @@ export class AttackSystem implements System {
     if (!config) return;
 
     const baseDamage = this.getDamage(towerId);
-    const chainCount = (config.chainCount ?? 3) + (level - 1);
+    const chainCount = config.chainCountByLevel?.[level - 1]
+      ?? config.chainCountByLevel?.[config.chainCountByLevel.length - 1]
+      ?? ((config.chainCount ?? 3) + (level - 1));
     const chainDecay = config.chainDecay ?? 0.2;
     const chainRange = config.chainRange ?? 120;
 
@@ -780,7 +782,9 @@ export function doLightningAttack(
   if (!config) return;
 
   const baseDamage = getEffectiveDamage(towerId);
-  const chainCount = (config.chainCount ?? 3) + (level - 1);
+  const chainCount = config.chainCountByLevel?.[level - 1]
+    ?? config.chainCountByLevel?.[config.chainCountByLevel.length - 1]
+    ?? ((config.chainCount ?? 3) + (level - 1));
   const chainDecay = config.chainDecay ?? 0.2;
   const chainRange = config.chainRange ?? 120;
 

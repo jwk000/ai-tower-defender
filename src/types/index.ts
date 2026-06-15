@@ -258,16 +258,22 @@ export interface TowerConfig {
   slowMaxStacks?: number;
   freezeDuration?: number;
   chainCount?: number;
+  chainCountByLevel?: number[];
   chainDecay?: number;
   canTargetLowAir?: boolean;
   chainRange?: number;
   // Bat tower specific
   batCount?: number;
+  batCountByLevel?: number[];
   batReplenishCD?: number;
   batHP?: number;
+  batHPByLevel?: number[];
   batDamage?: number;
+  batDamageByLevel?: number[];
   batAttackRange?: number;
+  batAttackRangeByLevel?: number[];
   batAttackSpeed?: number;
+  batAttackSpeedByLevel?: number[];
   batSpeed?: number;
   // Vine tower specific (DOT)
   dotDamage?: number;

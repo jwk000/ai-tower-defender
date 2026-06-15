@@ -11,7 +11,7 @@
  * 根因: bb6b2bb 迁移到 bitecs 时只实现了 boid + 即时 melee 攻击，
  *      文档 §9 设计的四阶段动画从未实装。
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TowerWorld } from '../core/World.js';
 import {
   Position,
@@ -31,6 +31,8 @@ import {
   AttackModeVal,
 } from '../core/components.js';
 import { BatSwarmSystem } from './BatSwarmSystem.js';
+import { TOWER_CONFIGS } from '../data/gameData.js';
+import { TowerType } from '../types/index.js';
 
 function makeBatTower(world: TowerWorld, x: number, y: number): number {
   const eid = world.createEntity();
@@ -69,10 +71,15 @@ function makeEnemy(world: TowerWorld, x: number, y: number): number {
 describe('BatSwarmSystem — 蝙蝠塔攻击动画状态机', () => {
   let world: TowerWorld;
   let system: BatSwarmSystem;
+  const originalBatConfig = { ...TOWER_CONFIGS[TowerType.Bat] };
 
   beforeEach(() => {
     world = new TowerWorld();
     system = new BatSwarmSystem();
+  });
+
+  afterEach(() => {
+    TOWER_CONFIGS[TowerType.Bat] = { ...originalBatConfig };
   });
 
   describe('§9 攻击启动 — 不立即造伤害', () => {
@@ -238,6 +245,37 @@ describe('BatSwarmSystem — 蝙蝠塔攻击动画状态机', () => {
       }
 
       expect(Health.current[enemy]).toBe(hpBefore);
+    });
+  });
+
+  describe('升级配置', () => {
+    it('升级蝙蝠塔时按 TOWER_CONFIGS 的等级数组刷新塔和现有蝙蝠属性', () => {
+      TOWER_CONFIGS[TowerType.Bat] = {
+        ...TOWER_CONFIGS[TowerType.Bat],
+        batCountByLevel: [3, 4, 7],
+        batDamageByLevel: [12, 15, 25],
+        batHPByLevel: [40, 50, 70],
+        batAttackRangeByLevel: [80, 95, 115],
+        batAttackSpeedByLevel: [1.0, 1.0, 1.1],
+      };
+      const tower = makeBatTower(world, 100, 100);
+      const bat = system.spawnBat(world, tower);
+      Health.current[bat] = 15;
+      Health.max[bat] = 30;
+      system.update(world, 0);
+
+      system.upgradeBatTowerStats(tower, 3);
+
+      expect(BatTower.maxBats[tower]).toBe(7);
+      expect(BatTower.batDamage[tower]).toBe(25);
+      expect(BatTower.batHp[tower]).toBe(70);
+      expect(BatTower.batAttackRange[tower]).toBe(115);
+      expect(BatTower.batAttackSpeed[tower]).toBeCloseTo(1.1);
+      expect(Attack.damage[bat]).toBe(25);
+      expect(Attack.range[bat]).toBe(115);
+      expect(Attack.attackSpeed[bat]).toBeCloseTo(1.1);
+      expect(Health.max[bat]).toBe(70);
+      expect(Health.current[bat]).toBe(35);
     });
   });
 });

@@ -459,12 +459,13 @@ class TowerDefenderGame extends Game {
       const towerTypeNum = Tower.towerType[entityId];
       if (towerTypeNum === undefined) return;
       const towerLevel = Tower.level[entityId]!;
-      if (towerLevel >= 5) return;
 
       const tt = TOWER_TYPE_BY_ID[towerTypeNum];
       if (tt === undefined) return;
       const towerCfg = TOWER_CONFIGS[tt];
       if (!towerCfg) return;
+      const maxLevel = towerCfg.upgradeCosts.length + 1;
+      if (towerLevel >= maxLevel) return;
 
       const costIdx = towerLevel - 1;
       const cost = towerCfg.upgradeCosts[costIdx];

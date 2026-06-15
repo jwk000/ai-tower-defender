@@ -6,6 +6,24 @@ import { towerCanTargetLowAir } from '../../utils/lowAirTargeting.js';
 
 const VALID_TOWER_TYPES = new Set<string>(Object.values(TowerType));
 
+const TOWER_CONFIG_ID_TO_TYPE: Record<string, TowerType> = {
+  arrow_tower: TowerType.Arrow,
+  ballista_tower: TowerType.Ballista,
+  cannon_tower: TowerType.Cannon,
+  laser_tower: TowerType.Laser,
+  bat_tower: TowerType.Bat,
+  missile_tower: TowerType.Missile,
+  ice_tower: TowerType.Ice,
+  fire_tower: TowerType.Fire,
+  poison_tower: TowerType.Poison,
+  lightning_tower: TowerType.Lightning,
+};
+
+function mapTowerType(configId: string): TowerType | undefined {
+  if (VALID_TOWER_TYPES.has(configId)) return configId as TowerType;
+  return TOWER_CONFIG_ID_TO_TYPE[configId];
+}
+
 function mapShape(yamlShape: string | undefined): ShapeType {
   switch (yamlShape) {
     case 'rectangle':
@@ -40,10 +58,10 @@ export function injectTowerConfigsFromRegistry(): number {
   let injected = 0;
 
   for (const u of towers) {
-    if (!VALID_TOWER_TYPES.has(u.id)) {
+    const type = mapTowerType(u.id);
+    if (type === undefined) {
       continue;
     }
-    const type = u.id as TowerType;
 
     const stats = u.stats;
     const cost = u.cost;
@@ -61,6 +79,7 @@ export function injectTowerConfigsFromRegistry(): number {
     const splashRadius = (special['splashRadius'] as number) ?? 0;
     const pierceCount = (special['pierceCount'] as number) ?? 0;
     const chainCount = (special['chainCount'] as number) ?? 0;
+    const chainCountByLevel = special['chainCountByLevel'] as number[] | undefined;
     const chainDecay = (special['chainDecay'] as number) ?? 0;
     const slowPercent = (special['slowPercent'] as number) ?? 0;
     const slowMaxStacks = (special['slowMaxStacks'] as number) ?? 1;
@@ -70,11 +89,16 @@ export function injectTowerConfigsFromRegistry(): number {
 
     // 蝙蝠塔特殊属性
     const batCount = (special['batCount'] as number) ?? 0;
+    const batCountByLevel = special['batCountByLevel'] as number[] | undefined;
     const batReplenishCD = (special['batReplenishCD'] as number) ?? 0;
     const batHP = (special['batHP'] as number) ?? 0;
+    const batHPByLevel = special['batHPByLevel'] as number[] | undefined;
     const batDamage = (special['batDamage'] as number) ?? 0;
+    const batDamageByLevel = special['batDamageByLevel'] as number[] | undefined;
     const batAttackRange = (special['batAttackRange'] as number) ?? 0;
+    const batAttackRangeByLevel = special['batAttackRangeByLevel'] as number[] | undefined;
     const batAttackSpeed = (special['batAttackSpeed'] as number) ?? 0;
+    const batAttackSpeedByLevel = special['batAttackSpeedByLevel'] as number[] | undefined;
     const batSpeed = (special['batSpeed'] as number) ?? 0;
 
     // 导弹塔特殊属性
@@ -107,6 +131,7 @@ export function injectTowerConfigsFromRegistry(): number {
     if (splashRadius > 0) cfg.splashRadius = splashRadius;
     if (pierceCount > 0) cfg.pierceCount = pierceCount;
     if (chainCount > 0) cfg.chainCount = chainCount;
+    if (chainCountByLevel && chainCountByLevel.length > 0) cfg.chainCountByLevel = chainCountByLevel;
     if (chainDecay > 0) cfg.chainDecay = chainDecay;
     if (slowPercent > 0) cfg.slowPercent = slowPercent;
     if (slowMaxStacks > 1) cfg.slowMaxStacks = slowMaxStacks;
@@ -122,6 +147,11 @@ export function injectTowerConfigsFromRegistry(): number {
       cfg.batAttackSpeed = batAttackSpeed;
       cfg.batSpeed = batSpeed;
     }
+    if (batCountByLevel && batCountByLevel.length > 0) cfg.batCountByLevel = batCountByLevel;
+    if (batHPByLevel && batHPByLevel.length > 0) cfg.batHPByLevel = batHPByLevel;
+    if (batDamageByLevel && batDamageByLevel.length > 0) cfg.batDamageByLevel = batDamageByLevel;
+    if (batAttackRangeByLevel && batAttackRangeByLevel.length > 0) cfg.batAttackRangeByLevel = batAttackRangeByLevel;
+    if (batAttackSpeedByLevel && batAttackSpeedByLevel.length > 0) cfg.batAttackSpeedByLevel = batAttackSpeedByLevel;
     if (projectileCount.length > 1) cfg.projectileCount = projectileCount;
 
     TOWER_CONFIGS[type] = cfg;

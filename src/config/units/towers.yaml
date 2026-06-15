@@ -24,9 +24,9 @@ arrow_tower:
 
   cost:
     build: 70
-    upgrade: [40, 70, 110, 160]
-    atkGrowth: [5, 8, 12, 16]
-    rangeGrowth: [20, 20, 30, 30]
+    upgrade: [40, 360]
+    atkGrowth: [5, 18]
+    rangeGrowth: [20, 40]
 
   visual:
     shape: rect
@@ -38,6 +38,8 @@ arrow_tower:
     targetSelection: nearest
     attackMode: single_target
     movementMode: hold_position
+    special:
+      projectileCount: [1, 1, 2]
 
   lifecycle:
     onDeath:
@@ -83,9 +85,9 @@ cannon_tower:
 
   cost:
     build: 115
-    upgrade: [50, 90, 140, 200]
-    atkGrowth: [8, 12, 16, 22]
-    rangeGrowth: [20, 20, 30, 30]
+    upgrade: [55, 620]
+    atkGrowth: [10, 45]
+    rangeGrowth: [0, 40]
 
   visual:
     shape: rect
@@ -146,9 +148,9 @@ ice_tower:
 
   cost:
     build: 70
-    upgrade: [40, 70, 110, 160]
-    atkGrowth: [3, 5, 7, 10]
-    rangeGrowth: [20, 20, 30, 30]
+    upgrade: [40, 380]
+    atkGrowth: [3, 11]
+    rangeGrowth: [20, 40]
 
   visual:
     shape: rect
@@ -209,10 +211,10 @@ lightning_tower:
 
   cost:
     build: 110
-    upgrade: [45, 75, 120, 170]
-    atkGrowth: [6, 9, 13, 18]
-    chainGrowth: [1, 1, 1, 1]
-    rangeGrowth: [15, 15, 20, 20]
+    upgrade: [65, 580, 780, 1100]
+    atkGrowth: [6, 28, 20, 30]
+    chainGrowth: [1, 2, 1, 1]
+    rangeGrowth: [15, 25, 20, 20]
 
   visual:
     shape: rect
@@ -226,6 +228,7 @@ lightning_tower:
     movementMode: hold_position
     special:
       chainCount: 2
+      chainCountByLevel: [2, 3, 7, 9, 12]
       chainRange: 120
       chainDecay: 0.2
 
@@ -271,9 +274,9 @@ laser_tower:
 
   cost:
     build: 125
-    upgrade: [55, 85, 130, 190]
-    atkGrowth: [3, 4, 5, 6]
-    rangeGrowth: [15, 15, 20, 20]
+    upgrade: [75, 520, 760, 1050]
+    atkGrowth: [3, 10, 8, 10]
+    rangeGrowth: [15, 20, 20, 20]
 
   visual:
     shape: rect
@@ -321,9 +324,9 @@ bat_tower:
 
   cost:
     build: 115
-    upgrade: [50, 80, 120, 175]
-    atkGrowth: [7, 10, 15, 21]
-    rangeGrowth: [15, 15, 20, 20]
+    upgrade: [65, 620]
+    atkGrowth: [8, 38]
+    rangeGrowth: [15, 35]
 
   visual:
     shape: rect
@@ -337,11 +340,16 @@ bat_tower:
     movementMode: hold_position
     special:
       batCount: 3
+      batCountByLevel: [3, 4, 7]
       batReplenishCD: 5.0
       batHP: 40
+      batHPByLevel: [40, 50, 70]
       batDamage: 12
+      batDamageByLevel: [12, 15, 25]
       batAttackRange: 80
+      batAttackRangeByLevel: [80, 95, 115]
       batAttackSpeed: 1.0
+      batAttackSpeedByLevel: [1.0, 1.0, 1.1]
       batSpeed: 150
       batSize: 10
       drainPercent: 0.3
@@ -382,9 +390,9 @@ ballista_tower:
 
   cost:
     build: 135
-    upgrade: [60, 100, 160, 220]
-    atkGrowth: [15, 20, 25, 30]
-    rangeGrowth: [20, 20, 30, 30]
+    upgrade: [80, 735]
+    atkGrowth: [18, 88]
+    rangeGrowth: [20, 40]
 
   visual:
     shape: rect
@@ -443,9 +451,9 @@ missile_tower:
 
   cost:
     build: 220
-    upgrade: [120, 200, 300]
-    atkGrowth: [20, 30, 40]
-    rangeGrowth: [0, 0, 0]
+    upgrade: [130, 980, 1400, 1850]
+    atkGrowth: [30, 110, 60, 80]
+    rangeGrowth: [0, 0, 0, 0]
 
   visual:
     shape: rect
@@ -462,6 +470,7 @@ missile_tower:
       splashPercent: 1.0
       ignoreAir: true
       projectileSpeed: 400
+      projectileCount: [1, 1, 2, 2, 3]
 
   lifecycle:
     onDeath:
@@ -512,9 +521,9 @@ fire_tower:
 
   cost:
     build: 80
-    upgrade: [50, 90, 140, 200]
-    atkGrowth: [5, 8, 12, 16]
-    rangeGrowth: [15, 15, 20, 20]
+    upgrade: [50, 450]
+    atkGrowth: [6, 24]
+    rangeGrowth: [15, 35]
 
   visual:
     shape: rect
@@ -578,9 +587,9 @@ poison_tower:
 
   cost:
     build: 80
-    upgrade: [55, 100, 150, 210]
-    atkGrowth: [4, 7, 10, 14]
-    rangeGrowth: [15, 15, 20, 20]
+    upgrade: [50, 430]
+    atkGrowth: [5, 20]
+    rangeGrowth: [15, 35]
 
   visual:
     shape: rect
