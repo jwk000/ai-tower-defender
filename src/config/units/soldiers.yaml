@@ -29,7 +29,7 @@ shield_guard:
   visual:
     shape: circle
     color: "#4dd0e1"
-    size: 30
+    size: 45
     outline: true
 
   visualParts:
@@ -92,7 +92,7 @@ swordsman:
   visual:
     shape: circle
     color: "#e57373"
-    size: 26
+    size: 39
     outline: true
 
   visualParts:
@@ -160,7 +160,7 @@ archer:
   visual:
     shape: circle
     color: "#66bb6a"
-    size: 24
+    size: 36
     outline: true
 
   visualParts:
@@ -232,7 +232,7 @@ priest:
   visual:
     shape: circle
     color: "#eeeeee"
-    size: 24
+    size: 36
     outline: true
 
   visualParts:
@@ -297,7 +297,7 @@ engineer:
   visual:
     shape: circle
     color: "#ffa726"
-    size: 26
+    size: 39
     outline: true
 
   visualParts:
@@ -363,7 +363,7 @@ assassin:
   visual:
     shape: circle
     color: "#ab47bc"
-    size: 22
+    size: 33
     outline: true
 
   visualParts:
@@ -435,7 +435,7 @@ mage:
   visual:
     shape: rect
     color: "#9c27b0"
-    size: 24
+    size: 36
     outline: true
     symbol: cross
 

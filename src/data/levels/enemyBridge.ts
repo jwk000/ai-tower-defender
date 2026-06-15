@@ -61,7 +61,7 @@ export function injectEnemyConfigsFromRegistry(): number {
       canAttackBuildings,
       rewardGold: reward?.gold ?? 10,
       color: visual?.color ?? '#ef5350',
-      radius: visual?.size != null ? Math.max(8, Math.floor(visual.size / 2)) : 14,
+      radius: visual?.size != null ? Math.max(8, visual.size / 2) : 14,
       shape: mapShape(visual?.shape),
       visualParts: getProceduralVisualParts(u),
       isBoss: u['isBoss'] === true,
