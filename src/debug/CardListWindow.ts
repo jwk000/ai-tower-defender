@@ -1,7 +1,7 @@
 // ============================================================
 // CardListWindow — 调试用卡牌列表窗口
 //
-// 显示所有可用卡牌，点击可将卡牌添加到手牌中。
+// 显示所有可用卡牌，点击可按从左到右的顺序替换手牌。
 // ============================================================
 
 import type { CardInstance } from '../systems/HandSystem.js';
@@ -113,7 +113,7 @@ export class CardListWindow {
       font-size: 12px;
       border-bottom: 1px solid #2a2a3a;
     `;
-    hint.textContent = '点击卡牌即可添加到手牌（手牌上限 4 张）';
+    hint.textContent = '点击卡牌即可从左到右替换手牌槽位';
     modal.appendChild(hint);
 
     // 卡牌网格容器
@@ -213,14 +213,13 @@ export class CardListWindow {
       el.style.borderLeftColor = typeColor;
     });
 
-    // 点击添加卡牌
+    // 点击替换手牌
     el.addEventListener('click', () => {
-      console.log('[CardListWindow] card clicked:', card.id, card.name, 'hasCallback:', !!this.onCardSelected);
       this.onCardSelected?.(card);
-      // 添加成功反馈
+      // 替换反馈
       el.style.background = '#2e7d32';
       const origName = nameEl.textContent;
-      nameEl.textContent = '✅ 已添加';
+      nameEl.textContent = '✅ 已替换';
       setTimeout(() => {
         el.style.background = '#2a2a3a';
         nameEl.textContent = origName;

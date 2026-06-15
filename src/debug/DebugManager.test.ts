@@ -204,6 +204,81 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
     expect(skipToFinalWave).toHaveBeenCalledTimes(1);
   });
 
+  it('调试卡牌试用按从左到右顺序替换手牌并循环', async () => {
+    const { TowerWorld } = await import('../core/World.js');
+    const { DebugManager } = await import('./DebugManager.js');
+    const { HandSystem } = await import('../systems/HandSystem.js');
+
+    const world = new TowerWorld();
+    const handSystem = new HandSystem();
+    handSystem.initialize([
+      { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+      { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
+      { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+      { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
+      { id: 'card_mage', name: '法师', type: 'unit', description: '地面AOE', goldCost: 0 },
+    ]);
+    handSystem.reset();
+    for (const cardId of ['card_arrow_tower', 'card_ice_tower', 'card_shield_guard', 'card_archer', 'card_mage']) {
+      expect(handSystem.drawCard(cardId)).toBe(true);
+    }
+    const debug = new DebugManager(world, { getHandSystem: () => handSystem });
+
+    expect(debug.replaceNextHandCardForDebug({
+      id: 'card_fireball',
+      name: '火球术',
+      type: 'spell',
+      description: '2x2格范围火球伤害',
+      goldCost: 0,
+    })).toBe(true);
+    expect(handSystem.getHand().map((card) => card?.id)).toEqual([
+      'card_fireball',
+      'card_ice_tower',
+      'card_shield_guard',
+      'card_archer',
+      'card_mage',
+    ]);
+
+    expect(debug.replaceNextHandCardForDebug({
+      id: 'card_arrow_rain',
+      name: '剑雨',
+      type: 'spell',
+      description: '3x3格范围剑雨',
+      goldCost: 0,
+    })).toBe(true);
+    expect(handSystem.getHand().map((card) => card?.id)).toEqual([
+      'card_fireball',
+      'card_arrow_rain',
+      'card_shield_guard',
+      'card_archer',
+      'card_mage',
+    ]);
+
+    for (const cardId of ['card_bomb', 'card_blizzard', 'card_gold_rush']) {
+      debug.replaceNextHandCardForDebug({
+        id: cardId,
+        name: cardId,
+        type: 'spell',
+        description: cardId,
+        goldCost: 0,
+      });
+    }
+    expect(debug.replaceNextHandCardForDebug({
+      id: 'card_fire_tower',
+      name: '火塔',
+      type: 'unit',
+      description: '地面灼烧',
+      goldCost: 0,
+    })).toBe(true);
+    expect(handSystem.getHand().map((card) => card?.id)).toEqual([
+      'card_fire_tower',
+      'card_arrow_rain',
+      'card_bomb',
+      'card_blizzard',
+      'card_gold_rush',
+    ]);
+  });
+
   it('单位动作预览按塔、士兵、每关敌人分页并对关卡敌人去重', async () => {
     const { buildPreviewTabs } = await import('./UnitAnimationPreviewWindow.js');
     const { TowerType, UnitType, LevelTheme, TileType } = await import('../types/index.js');

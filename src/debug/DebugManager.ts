@@ -9,7 +9,7 @@ import type { Unit } from '../components/Unit.js';
 import type { Tower } from '../components/Tower.js';
 import type { Enemy } from '../components/Enemy.js';
 import type { EconomySystem } from '../systems/EconomySystem.js';
-import type { HandSystem } from '../systems/HandSystem.js';
+import type { CardInstance, HandSystem } from '../systems/HandSystem.js';
 import { ALL_CARDS } from '../data/cards.js';
 import { SaveManager } from '../utils/SaveManager.js';
 import { LEVELS } from '../data/levels/index.js';
@@ -43,6 +43,9 @@ export class DebugManager {
   showBackgroundImage: boolean = true;
   /** 调试开关：是否启用图片美术资源。默认开启，关闭时回退程序化视觉。 */
   useArtResources: boolean = true;
+
+  /** 调试卡牌试用替换的下一个手牌槽位，从左到右循环。 */
+  private nextDebugCardReplaceIndex = 0;
 
   private getEconomyFn: (() => EconomySystem | null) | null = null;
   private getHandSystemFn: (() => HandSystem | null) | null = null;
@@ -208,29 +211,40 @@ export class DebugManager {
 
   private setupCardListWindow(): void {
     this.cardListWindow.setOnCardSelected((card) => {
-      const handSystem = this.getHandSystem();
-      if (!handSystem) {
-        console.warn('[DebugManager] getHandSystem() returned null — not in battle?');
-        return;
-      }
-
-      // 确保卡牌在卡牌库中
-      handSystem.addCardsToLibrary([card]);
-
-      // 尝试添加到手牌
-      const handBefore = handSystem.getHand().map(c => c?.id ?? null);
-      console.log('[DebugManager] drawCard attempt:', card.id, 'handBefore:', handBefore, 'isFull:', handSystem.isFull());
-      const success = handSystem.drawCard(card.id);
-      const handAfter = handSystem.getHand().map(c => c?.id ?? null);
-      console.log('[DebugManager] drawCard result:', success, 'handAfter:', handAfter);
-      if (!success) {
-        console.warn(`[DebugManager] 手牌已满或卡牌无效，无法添加卡牌: ${card.name} (${card.id})`);
-      }
+      this.replaceNextHandCardForDebug(card);
     });
   }
 
   private showCardList(): void {
+    this.nextDebugCardReplaceIndex = 0;
     this.cardListWindow.show(ALL_CARDS);
+  }
+
+  replaceNextHandCardForDebug(card: CardInstance): boolean {
+    const handSystem = this.getHandSystem();
+    if (!handSystem) {
+      console.warn('[DebugManager] getHandSystem() returned null — not in battle?');
+      return false;
+    }
+
+    handSystem.addCardsToLibrary([card]);
+
+    const hand = handSystem.getHand();
+    if (hand.length === 0) {
+      console.warn(`[DebugManager] 手牌槽位为空，无法替换卡牌: ${card.name} (${card.id})`);
+      return false;
+    }
+
+    const slotIndex = this.nextDebugCardReplaceIndex % hand.length;
+    try {
+      handSystem.replaceCard(slotIndex, card.id);
+    } catch (error) {
+      console.warn(`[DebugManager] 无法替换调试卡牌: ${card.name} (${card.id})`, error);
+      return false;
+    }
+
+    this.nextDebugCardReplaceIndex = (slotIndex + 1) % hand.length;
+    return true;
   }
 
   private showUnitAnimationPreview(): void {
