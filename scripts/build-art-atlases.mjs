@@ -67,7 +67,7 @@ def tower_id_from_path(path: Path) -> str | None:
     if not name.startswith(prefix):
         return None
     rest = name[len(prefix):]
-    for suffix in ["_idle_0", "_idle_1", "_move_0", "_move_1", "_attack_0", "_attack_1", "_death_0", "_death_1"]:
+    for suffix in ["_idle_0", "_idle_1", "_attack_0", "_attack_1", "_death_0", "_death_1"]:
         if rest.endswith(suffix):
             return rest[:-len(suffix)]
     return None

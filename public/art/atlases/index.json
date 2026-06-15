@@ -39,18 +39,6 @@
           "y": 260,
           "w": 256,
           "h": 256
-        },
-        "/art/units/unit_tower_arrow_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_arrow_move_1.png": {
-          "x": 260,
-          "y": 518,
-          "w": 256,
-          "h": 256
         }
       }
     },
@@ -91,18 +79,6 @@
         "/art/units/unit_tower_ballista_idle_1.png": {
           "x": 518,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_ballista_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_ballista_move_1.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -147,18 +123,6 @@
           "y": 260,
           "w": 256,
           "h": 256
-        },
-        "/art/units/unit_tower_bat_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_bat_move_1.png": {
-          "x": 260,
-          "y": 518,
-          "w": 256,
-          "h": 256
         }
       }
     },
@@ -199,18 +163,6 @@
         "/art/units/unit_tower_cannon_idle_1.png": {
           "x": 518,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_cannon_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_cannon_move_1.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -255,18 +207,6 @@
           "y": 260,
           "w": 256,
           "h": 256
-        },
-        "/art/units/unit_tower_fire_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_fire_move_1.png": {
-          "x": 260,
-          "y": 518,
-          "w": 256,
-          "h": 256
         }
       }
     },
@@ -307,18 +247,6 @@
         "/art/units/unit_tower_ice_idle_1.png": {
           "x": 518,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_ice_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_ice_move_1.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -363,18 +291,6 @@
           "y": 260,
           "w": 256,
           "h": 256
-        },
-        "/art/units/unit_tower_laser_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_laser_move_1.png": {
-          "x": 260,
-          "y": 518,
-          "w": 256,
-          "h": 256
         }
       }
     },
@@ -415,18 +331,6 @@
         "/art/units/unit_tower_lightning_idle_1.png": {
           "x": 518,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_lightning_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_lightning_move_1.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -471,18 +375,6 @@
           "y": 260,
           "w": 256,
           "h": 256
-        },
-        "/art/units/unit_tower_missile_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_missile_move_1.png": {
-          "x": 260,
-          "y": 518,
-          "w": 256,
-          "h": 256
         }
       }
     },
@@ -523,18 +415,6 @@
         "/art/units/unit_tower_poison_idle_1.png": {
           "x": 518,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_poison_move_0.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/units/unit_tower_poison_move_1.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
