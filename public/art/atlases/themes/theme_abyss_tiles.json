@@ -20,80 +20,104 @@
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_corner_es.png": {
+    "/art/tiles/tile_abyss_path_endpoint_crystal.png": {
       "x": 776,
       "y": 2,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_corner_ne.png": {
+    "/art/tiles/tile_abyss_path_endpoint_spawn.png": {
       "x": 1034,
       "y": 2,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_corner_sw.png": {
+    "/art/decor/decor_abyss_crystal_obstacle_idle_0.png": {
       "x": 1292,
       "y": 2,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_corner_wn.png": {
+    "/art/decor/decor_abyss_crystal_obstacle_idle_1.png": {
       "x": 1550,
       "y": 2,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_cross.png": {
+    "/art/decor/decor_abyss_floating_rock_idle_0.png": {
       "x": 2,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_endpoint_crystal.png": {
+    "/art/decor/decor_abyss_floating_rock_idle_1.png": {
       "x": 260,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_endpoint_spawn.png": {
+    "/art/decor/decor_abyss_purple_flame_idle_0.png": {
       "x": 518,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_straight_h.png": {
+    "/art/decor/decor_abyss_purple_flame_idle_1.png": {
       "x": 776,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_straight_v.png": {
+    "/art/decor/decor_abyss_purple_flame_idle_2.png": {
       "x": 1034,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_tee_e.png": {
+    "/art/decor/decor_abyss_reality_warp_idle_0.png": {
       "x": 1292,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_tee_n.png": {
+    "/art/decor/decor_abyss_reality_warp_idle_1.png": {
       "x": 1550,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_tee_s.png": {
+    "/art/decor/decor_abyss_reality_warp_idle_2.png": {
       "x": 2,
       "y": 518,
       "w": 256,
       "h": 256
     },
-    "/art/tiles/tile_abyss_path_tee_w.png": {
+    "/art/decor/decor_abyss_reality_warp_idle_3.png": {
       "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/decor/decor_abyss_void_rift_idle_0.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/decor/decor_abyss_void_rift_idle_1.png": {
+      "x": 776,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/decor/decor_abyss_void_rift_idle_2.png": {
+      "x": 1034,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/decor/decor_abyss_void_rift_idle_3.png": {
+      "x": 1292,
       "y": 518,
       "w": 256,
       "h": 256

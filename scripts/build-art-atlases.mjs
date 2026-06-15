@@ -56,6 +56,21 @@ def image_files(folder: str, pattern: str = "*.png") -> list[Path]:
     return sorted((ART_ROOT / folder).glob(pattern))
 
 
+def theme_scene_files(theme: str) -> list[Path]:
+    tile_files = sorted((ART_ROOT / "tiles").glob(f"tile_{theme}_*.png"))
+    tile_files = [
+        file for file in tile_files
+        if not any(token in file.stem for token in [
+            "_path_straight_",
+            "_path_corner_",
+            "_path_tee_",
+            "_path_cross",
+        ])
+    ]
+    decor_files = sorted((ART_ROOT / "decor").glob(f"decor_{theme}_*.png"))
+    return tile_files + decor_files
+
+
 def chunked(items: list[Path], size: int) -> Iterable[list[Path]]:
     for i in range(0, len(items), size):
         yield items[i:i + size]
@@ -102,7 +117,7 @@ def build_plans() -> list[AtlasPlan]:
         ))
 
     for theme in ["meadow", "desert", "castle", "wasteland", "abyss"]:
-        files = sorted((ART_ROOT / "tiles").glob(f"tile_{theme}_*.png"))
+        files = theme_scene_files(theme)
         if files:
             plans.append(AtlasPlan(
                 atlas_id=f"theme_{theme}_tiles",

@@ -13,6 +13,8 @@ import { ObstacleType, LevelTheme, WeatherType, type MapConfig } from '../types/
 import { computeSceneLayout } from './RenderSystem.js';
 import { assetUrl, backgroundArtPath } from '../utils/artAssets.js';
 import { areArtResourcesEnabled } from '../utils/artResourceSwitch.js';
+import { getLoadedImageFrame } from '../utils/imageCache.js';
+import { decorArtPath, getDecorFrameCount, normalizeDecorType } from '../utils/decorArt.js';
 
 /**
  * 复合几何体部件 —— 由多个简单形状组合成一个装饰物
@@ -762,15 +764,22 @@ export class DecorationSystem implements System {
     const isStrongWind = DecorationSystem.STRONG_WIND_WEATHERS.has(weather);
 
     for (const obs of placements) {
-      const parts = DecorationSystem.COMPOSITE_VISUALS[obs.type];
-      if (!parts || parts.length === 0) continue;
+      const decorType = normalizeDecorType(obs.type);
+      if (!decorType) continue;
 
       // 基础位置（格子中心）
       const baseX = obs.col * this.ts + this.ts / 2 + this.ox;
       const baseY = obs.row * this.ts + this.ts / 2 + this.oy;
 
+      if (this.drawDecorArt(decorType, obs.row, obs.col, baseX, baseY)) {
+        continue;
+      }
+
+      const parts = DecorationSystem.COMPOSITE_VISUALS[decorType];
+      if (!parts || parts.length === 0) continue;
+
       // 植物微动偏移
-      const swayParams = DecorationSystem.SWAY_PARAMS[obs.type];
+      const swayParams = DecorationSystem.SWAY_PARAMS[decorType];
       let swayX = 0;
       let swayY = 0;
 
@@ -788,13 +797,13 @@ export class DecorationSystem implements System {
       }
 
       // 火炬火焰脉动（Brazier 特殊处理）
-      if (obs.type === ObstacleType.Brazier) {
+      if (decorType === ObstacleType.Brazier) {
         const flicker = Math.sin(this.currentTime * 4.5 + obs.col * 1.2) * 0.5 +
           Math.sin(this.currentTime * 7.3 + obs.row * 0.8) * 0.3 +
           Math.sin(this.currentTime * 11.1 + obs.col + obs.row) * 0.2;
         // 火焰和焰心部分的缩放
         const flameScale = 1 + flicker * 0.25;
-        const brazierParts = DecorationSystem.COMPOSITE_VISUALS[obs.type]!;
+        const brazierParts = DecorationSystem.COMPOSITE_VISUALS[decorType]!;
         for (let i = 0; i < brazierParts.length; i++) {
           const part = brazierParts[i]!;
           const scaledSize = (i === 1 || i === 2) ? part.size * flameScale : part.size;
@@ -813,9 +822,9 @@ export class DecorationSystem implements System {
       }
 
       // 岩浆脉动（LavaVent 特殊处理）
-      if (obs.type === ObstacleType.LavaVent) {
+      if (decorType === ObstacleType.LavaVent) {
         const pulse = Math.sin(this.currentTime * 1.5 + obs.col * 0.7) * 0.5;
-        const lavaParts = DecorationSystem.COMPOSITE_VISUALS[obs.type]!;
+        const lavaParts = DecorationSystem.COMPOSITE_VISUALS[decorType]!;
         for (let i = 0; i < lavaParts.length; i++) {
           const part = lavaParts[i]!;
           const size = (i === 2) ? part.size * (1 + pulse * 0.5) : part.size;  // 火星大小变化
@@ -848,6 +857,40 @@ export class DecorationSystem implements System {
         });
       }
     }
+  }
+
+  private drawDecorArt(type: ObstacleType, row: number, col: number, x: number, y: number): boolean {
+    if (!areArtResourcesEnabled()) return false;
+
+    const frameCount = getDecorFrameCount(type);
+    const phase = (row * 13 + col * 7) * 0.173;
+    const fps = frameCount <= 1 ? 0 : 4;
+    const frame = frameCount <= 1
+      ? 0
+      : Math.floor((this.currentTime + phase) * fps) % frameCount;
+    const path = decorArtPath(type, frame, this.map.artTheme);
+    if (!path) return false;
+    let sprite = getLoadedImageFrame(path);
+
+    if (!sprite && frame !== 0) {
+      const fallbackPath = decorArtPath(type, 0, this.map.artTheme);
+      sprite = fallbackPath ? getLoadedImageFrame(fallbackPath) : null;
+    }
+    if (!sprite) return false;
+
+    this.renderer.push({
+      shape: 'rect',
+      x,
+      y,
+      size: this.ts,
+      h: this.ts,
+      color: '#ffffff',
+      image: sprite.image,
+      imageSource: sprite.source ?? undefined,
+      alpha: 1,
+      z: 1,
+    });
+    return true;
   }
 
   // ============================================================

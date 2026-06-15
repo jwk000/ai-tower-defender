@@ -2194,81 +2194,51 @@
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_corner_es.png": {
+        "/art/tiles/tile_meadow_path_endpoint_crystal.png": {
           "x": 776,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_corner_ne.png": {
+        "/art/tiles/tile_meadow_path_endpoint_spawn.png": {
           "x": 1034,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_corner_sw.png": {
+        "/art/decor/decor_meadow_bush_idle_0.png": {
           "x": 1292,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_corner_wn.png": {
+        "/art/decor/decor_meadow_bush_idle_1.png": {
           "x": 1550,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_cross.png": {
+        "/art/decor/decor_meadow_flower_idle_0.png": {
           "x": 2,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_endpoint_crystal.png": {
+        "/art/decor/decor_meadow_flower_idle_1.png": {
           "x": 260,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_endpoint_spawn.png": {
+        "/art/decor/decor_meadow_tree_idle_0.png": {
           "x": 518,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_meadow_path_straight_h.png": {
+        "/art/decor/decor_meadow_tree_idle_1.png": {
           "x": 776,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_meadow_path_straight_v.png": {
-          "x": 1034,
-          "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_meadow_path_tee_e.png": {
-          "x": 1292,
-          "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_meadow_path_tee_n.png": {
-          "x": 1550,
-          "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_meadow_path_tee_s.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_meadow_path_tee_w.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -2296,79 +2266,79 @@
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_corner_es.png": {
+        "/art/tiles/tile_desert_path_endpoint_crystal.png": {
           "x": 776,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_corner_ne.png": {
+        "/art/tiles/tile_desert_path_endpoint_spawn.png": {
           "x": 1034,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_corner_sw.png": {
+        "/art/decor/decor_desert_bones_idle_0.png": {
           "x": 1292,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_corner_wn.png": {
+        "/art/decor/decor_desert_cactus_idle_0.png": {
           "x": 1550,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_cross.png": {
+        "/art/decor/decor_desert_cactus_idle_1.png": {
           "x": 2,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_endpoint_crystal.png": {
+        "/art/decor/decor_desert_rock_idle_0.png": {
           "x": 260,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_endpoint_spawn.png": {
+        "/art/decor/decor_desert_sand_dune_idle_0.png": {
           "x": 518,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_straight_h.png": {
+        "/art/decor/decor_desert_tunnel_entrance_idle_0.png": {
           "x": 776,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_straight_v.png": {
+        "/art/decor/decor_desert_tunnel_entrance_idle_1.png": {
           "x": 1034,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_tee_e.png": {
+        "/art/decor/decor_desert_tunnel_entrance_idle_2.png": {
           "x": 1292,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_tee_n.png": {
+        "/art/decor/decor_desert_tunnel_exit_idle_0.png": {
           "x": 1550,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_tee_s.png": {
+        "/art/decor/decor_desert_tunnel_exit_idle_1.png": {
           "x": 2,
           "y": 518,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_desert_path_tee_w.png": {
+        "/art/decor/decor_desert_tunnel_exit_idle_2.png": {
           "x": 260,
           "y": 518,
           "w": 256,
@@ -2398,81 +2368,63 @@
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_corner_es.png": {
+        "/art/tiles/tile_castle_path_endpoint_crystal.png": {
           "x": 776,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_corner_ne.png": {
+        "/art/tiles/tile_castle_path_endpoint_spawn.png": {
           "x": 1034,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_corner_sw.png": {
+        "/art/decor/decor_castle_brazier_idle_0.png": {
           "x": 1292,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_corner_wn.png": {
+        "/art/decor/decor_castle_brazier_idle_1.png": {
           "x": 1550,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_cross.png": {
+        "/art/decor/decor_castle_brazier_idle_2.png": {
           "x": 2,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_endpoint_crystal.png": {
+        "/art/decor/decor_castle_dead_tree_idle_0.png": {
           "x": 260,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_endpoint_spawn.png": {
+        "/art/decor/decor_castle_dead_tree_idle_1.png": {
           "x": 518,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_straight_h.png": {
+        "/art/decor/decor_castle_pillar_idle_0.png": {
           "x": 776,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_straight_v.png": {
+        "/art/decor/decor_castle_rubble_idle_0.png": {
           "x": 1034,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_castle_path_tee_e.png": {
+        "/art/decor/decor_castle_wall_idle_0.png": {
           "x": 1292,
           "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_castle_path_tee_n.png": {
-          "x": 1550,
-          "y": 260,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_castle_path_tee_s.png": {
-          "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_castle_path_tee_w.png": {
-          "x": 260,
-          "y": 518,
           "w": 256,
           "h": 256
         }
@@ -2500,80 +2452,74 @@
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_corner_es.png": {
+        "/art/tiles/tile_wasteland_path_endpoint_crystal.png": {
           "x": 776,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_corner_ne.png": {
+        "/art/tiles/tile_wasteland_path_endpoint_spawn.png": {
           "x": 1034,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_corner_sw.png": {
+        "/art/decor/decor_wasteland_car_idle_0.png": {
           "x": 1292,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_corner_wn.png": {
+        "/art/decor/decor_wasteland_lava_vent_idle_0.png": {
           "x": 1550,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_cross.png": {
+        "/art/decor/decor_wasteland_lava_vent_idle_1.png": {
           "x": 2,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_endpoint_crystal.png": {
+        "/art/decor/decor_wasteland_lava_vent_idle_2.png": {
           "x": 260,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_endpoint_spawn.png": {
+        "/art/decor/decor_wasteland_lava_vent_idle_3.png": {
           "x": 518,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_straight_h.png": {
+        "/art/decor/decor_wasteland_pillar_idle_0.png": {
           "x": 776,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_straight_v.png": {
+        "/art/decor/decor_wasteland_rubble_idle_0.png": {
           "x": 1034,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_tee_e.png": {
+        "/art/decor/decor_wasteland_scorched_tree_idle_0.png": {
           "x": 1292,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_tee_n.png": {
+        "/art/decor/decor_wasteland_scorched_tree_idle_1.png": {
           "x": 1550,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_wasteland_path_tee_s.png": {
+        "/art/decor/decor_wasteland_volcanic_rock_idle_0.png": {
           "x": 2,
-          "y": 518,
-          "w": 256,
-          "h": 256
-        },
-        "/art/tiles/tile_wasteland_path_tee_w.png": {
-          "x": 260,
           "y": 518,
           "w": 256,
           "h": 256
@@ -2602,80 +2548,104 @@
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_corner_es.png": {
+        "/art/tiles/tile_abyss_path_endpoint_crystal.png": {
           "x": 776,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_corner_ne.png": {
+        "/art/tiles/tile_abyss_path_endpoint_spawn.png": {
           "x": 1034,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_corner_sw.png": {
+        "/art/decor/decor_abyss_crystal_obstacle_idle_0.png": {
           "x": 1292,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_corner_wn.png": {
+        "/art/decor/decor_abyss_crystal_obstacle_idle_1.png": {
           "x": 1550,
           "y": 2,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_cross.png": {
+        "/art/decor/decor_abyss_floating_rock_idle_0.png": {
           "x": 2,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_endpoint_crystal.png": {
+        "/art/decor/decor_abyss_floating_rock_idle_1.png": {
           "x": 260,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_endpoint_spawn.png": {
+        "/art/decor/decor_abyss_purple_flame_idle_0.png": {
           "x": 518,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_straight_h.png": {
+        "/art/decor/decor_abyss_purple_flame_idle_1.png": {
           "x": 776,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_straight_v.png": {
+        "/art/decor/decor_abyss_purple_flame_idle_2.png": {
           "x": 1034,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_tee_e.png": {
+        "/art/decor/decor_abyss_reality_warp_idle_0.png": {
           "x": 1292,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_tee_n.png": {
+        "/art/decor/decor_abyss_reality_warp_idle_1.png": {
           "x": 1550,
           "y": 260,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_tee_s.png": {
+        "/art/decor/decor_abyss_reality_warp_idle_2.png": {
           "x": 2,
           "y": 518,
           "w": 256,
           "h": 256
         },
-        "/art/tiles/tile_abyss_path_tee_w.png": {
+        "/art/decor/decor_abyss_reality_warp_idle_3.png": {
           "x": 260,
+          "y": 518,
+          "w": 256,
+          "h": 256
+        },
+        "/art/decor/decor_abyss_void_rift_idle_0.png": {
+          "x": 518,
+          "y": 518,
+          "w": 256,
+          "h": 256
+        },
+        "/art/decor/decor_abyss_void_rift_idle_1.png": {
+          "x": 776,
+          "y": 518,
+          "w": 256,
+          "h": 256
+        },
+        "/art/decor/decor_abyss_void_rift_idle_2.png": {
+          "x": 1034,
+          "y": 518,
+          "w": 256,
+          "h": 256
+        },
+        "/art/decor/decor_abyss_void_rift_idle_3.png": {
+          "x": 1292,
           "y": 518,
           "w": 256,
           "h": 256
