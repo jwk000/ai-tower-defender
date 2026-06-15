@@ -6,9 +6,11 @@ import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS } from '../gameData.js';
 import { injectTowerConfigsFromRegistry } from './towerBridge.js';
 import { injectSoldierConfigsFromRegistry } from './soldierBridge.js';
 import { injectEnemyConfigsFromRegistry } from './enemyBridge.js';
+import { injectTrapConfigsFromRegistry } from './trapBridge.js';
 import { UnitFactory } from '../../systems/UnitFactory.js';
 import { TowerWorld } from '../../core/World.js';
-import { Attack } from '../../core/components.js';
+import { Attack, Trap } from '../../core/components.js';
+import { TRAP_CONFIGS } from '../gameData.js';
 
 function registerConfig(config: RegistryUnitConfig): void {
   unitConfigRegistry.register(config);
@@ -19,6 +21,7 @@ describe('unit config bridge', () => {
   const originalMage = { ...UNIT_CONFIGS[UnitType.Mage] };
   const originalWizard = { ...ENEMY_CONFIGS.wizard! };
   const originalGiantSlime = { ...ENEMY_CONFIGS.giant_slime! };
+  const originalSpikeTrap = { ...TRAP_CONFIGS.spike_trap! };
 
   beforeEach(() => {
     unitConfigRegistry.clear();
@@ -29,6 +32,7 @@ describe('unit config bridge', () => {
     UNIT_CONFIGS[UnitType.Mage] = { ...originalMage };
     ENEMY_CONFIGS.wizard = { ...originalWizard };
     ENEMY_CONFIGS.giant_slime = { ...originalGiantSlime };
+    TRAP_CONFIGS.spike_trap = { ...originalSpikeTrap };
     unitConfigRegistry.clear();
   });
 
@@ -62,6 +66,31 @@ describe('unit config bridge', () => {
     const eid = factory.createTower(TowerType.Arrow, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 0 })!;
 
     expect(Visual.outline[eid]).toBe(0);
+  });
+
+  it('机关默认不显示白色描边，并从配置读取低伤害高频率节奏', () => {
+    registerConfig({
+      id: 'spike_trap',
+      name: '测试地刺',
+      category: 'Trap',
+      faction: 'Player',
+      layer: 'AboveGrid',
+      stats: { hp: 99999, atk: 0 },
+      cost: { build: 40 },
+      trap: { type: 'SpikeTrap', damagePerSecond: 3, radius: 32, cooldown: 0.2 },
+      visual: { shape: 'triangle', color: '#757575', size: 28, outline: false },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'hold_position' },
+    } as RegistryUnitConfig);
+
+    injectTrapConfigsFromRegistry();
+
+    const world = new TowerWorld();
+    const factory = new UnitFactory(world);
+    const eid = factory.createTrap('spike_trap', 0, 0, { row: 0, col: 0 })!;
+
+    expect(Visual.outline[eid]).toBe(0);
+    expect(Trap.damagePerSecond[eid]).toBe(3);
+    expect(Trap.cooldown[eid]).toBeCloseTo(0.2);
   });
 
   it('士兵升级成长和伤害类型来自 cost/stats 配置', () => {

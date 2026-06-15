@@ -27,6 +27,7 @@ export function injectTrapConfigsFromRegistry(): number {
       size: (visual?.size as number) ?? 28,
       cost: (cost?.build as number) ?? 40,
       shape: (visual?.shape as string) as TrapConfig['shape'],
+      outline: (visual?.outline as boolean | undefined) ?? false,
       visualParts: getProceduralVisualParts(u),
       layer: u.layer as string | undefined,
     };

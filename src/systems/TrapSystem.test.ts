@@ -226,13 +226,22 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
     expect(canTriggerOnEnemy(LayerVal.LowAir, LayerVal.AboveGrid)).toBe(false);
   });
 
-  it('dt 缩放伤害：0.5秒仅造成一半伤害', () => {
-    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.SpikeTrap, damagePerSecond: 20 });
+  it('设置冷却后，地刺按攻击节奏结算伤害并同步播放动作', () => {
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.SpikeTrap, damagePerSecond: 3, cooldown: 0.2 });
     const enemy = makeEnemy(world, 5, 5, { hp: 200, layer: LayerVal.Ground });
-    system.update(world, 0.5);
-    const damage = 200 - Health.current[enemy]!;
-    // 20 * 0.5 = 10, armor=0 → ~10
-    expect(damage).toBeCloseTo(10, -1);
+    system.update(world, 0.016);
+    expect(Health.current[enemy]).toBeCloseTo(197);
+    expect(Trap.cooldownTimer[trap]).toBeCloseTo(0.2);
+    expect(Trap.animTimer[trap]).toBeGreaterThan(0);
+
+    const animAfterHit = Trap.animTimer[trap]!;
+    system.update(world, 0.1);
+    expect(Health.current[enemy]).toBeCloseTo(197);
+    expect(Trap.animTimer[trap]).toBeLessThan(animAfterHit);
+
+    system.update(world, 0.1);
+    expect(Health.current[enemy]).toBeCloseTo(194);
+    expect(Trap.animTimer[trap]).toBeGreaterThan(0);
   });
 });
 

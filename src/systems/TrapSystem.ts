@@ -10,6 +10,7 @@ import { TileType } from '../types/index.js';
 
 const trapQuery = defineQuery([Trap, Position, GridOccupant]);
 const damageableQuery = defineQuery([Position, Health]);
+const TRAP_COOLDOWN_EPSILON = 1e-6;
 
 // Direction delta lookup by Trap.direction: 0=right, 1=down, 2=left, 3=up
 const DIR_DC = [1, 0, -1, 0] as const;
@@ -64,10 +65,6 @@ export class TrapSystem implements System {
       const trapRow = GridOccupant.row[trapId] ?? 0;
       const trapCol = GridOccupant.col[trapId] ?? 0;
       const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
-      const dir = Trap.direction[trapId] ?? 0;
-      const cdTimer = Trap.cooldownTimer[trapId] ?? 0;
-      const cooldown = Trap.cooldown[trapId] ?? 0;
-
       switch (trapType) {
         case TrapTypeVal.SpikeTrap:
           this.tickSpikeTrap(world, trapId, enemies, ox, oy, dt);
@@ -105,6 +102,9 @@ export class TrapSystem implements System {
     const trapRow = GridOccupant.row[trapId]!;
     const trapCol = GridOccupant.col[trapId]!;
     const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
+    const cooldown = Trap.cooldown[trapId] ?? 0;
+    if (cooldown > 0 && (Trap.cooldownTimer[trapId] ?? 0) > TRAP_COOLDOWN_EPSILON) return;
+
     let damaging = false;
 
     for (const enemyId of enemies) {
@@ -120,10 +120,13 @@ export class TrapSystem implements System {
       applyDamageToTarget(
         world,
         enemyId,
-        Trap.damagePerSecond[trapId]! * dt,
+        Trap.damagePerSecond[trapId]!,
         DamageTypeVal.Physical,
       );
       damaging = true;
+      if (cooldown > 0) {
+        Trap.cooldownTimer[trapId] = cooldown;
+      }
       break;
     }
 

@@ -315,6 +315,7 @@ export class UnitFactory {
     const base = this.createBase(cfg, x, y, gridPos);
     if (!base) return null;
     const { eid } = base;
+    Visual.outline[eid] = (cfg.outline as boolean | undefined) === true ? 1 : 0;
 
     // Trap component
     const trapTypeStr = (cfg.type as string) ?? 'SpikeTrap';

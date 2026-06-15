@@ -21,13 +21,15 @@ spike_trap:
 
   trap:
     type: SpikeTrap
-    damagePerSecond: 8
+    damagePerSecond: 3
     radius: 32
+    cooldown: 0.2
 
   visual:
     shape: triangle
     color: "#757575"
     size: 28
+    outline: false
 
   behavior:
     movementMode: hold_position
@@ -64,6 +66,7 @@ bear_trap:
     shape: rect
     color: "#8d6e63"
     size: 24
+    outline: false
 
   behavior:
     movementMode: hold_position
@@ -98,6 +101,7 @@ tar_pit:
     shape: circle
     color: "#424242"
     size: 30
+    outline: false
 
   behavior:
     movementMode: hold_position
@@ -132,6 +136,7 @@ boulder:
     shape: circle
     color: "#78909c"
     size: 40
+    outline: false
 
   behavior:
     movementMode: hold_position
@@ -142,4 +147,3 @@ boulder:
         effect: rock_shatter
 
 ---
-

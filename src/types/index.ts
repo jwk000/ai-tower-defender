@@ -469,6 +469,7 @@ export interface TrapConfig {
   size: number;
   cost: number;
   shape?: ShapeType;
+  outline?: boolean;
   visualParts?: UnitVisualParts;
   layer?: string;
   // 机关特有可选属性
