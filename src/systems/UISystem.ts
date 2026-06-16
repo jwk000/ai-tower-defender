@@ -233,6 +233,15 @@ export class UISystem implements System {
   static readonly PANEL_LEFT = (LayoutManager.DESIGN_W - 1344) / 2; // 288 — centered horizontally
   static readonly PANEL_BTN_START_X = UISystem.PANEL_LEFT + 20; // 308 — inner margin
 
+  static goldCheatButtonRect(): { x: number; y: number; w: number; h: number } {
+    return {
+      x: UISystem.TOP_HUD_SIDE_MARGIN + 150 + 74,
+      y: (UISystem.TOP_H - GOLD_CHEAT_BUTTON_H) / 2,
+      w: GOLD_CHEAT_BUTTON_W,
+      h: GOLD_CHEAT_BUTTON_H,
+    };
+  }
+
   private buttons: UIButton[] = [];
   private infos: UIInfo[] = [];
   private overlay: UIOverlay | null = null;
@@ -1130,14 +1139,13 @@ export class UISystem implements System {
       color: '#ffd54f', size: 20,
     });
     if (phase === GamePhase.Battle && this.onGoldCheat) {
-      const cheatBtnX = UISystem.TOP_HUD_SIDE_MARGIN + 150 + 74;
-      const cheatBtnY = (UISystem.TOP_H - GOLD_CHEAT_BUTTON_H) / 2;
+      const cheatButton = UISystem.goldCheatButtonRect();
       this.renderer.push({
         shape: 'rect',
-        x: cheatBtnX + GOLD_CHEAT_BUTTON_W / 2,
-        y: cheatBtnY + GOLD_CHEAT_BUTTON_H / 2,
-        size: GOLD_CHEAT_BUTTON_W,
-        h: GOLD_CHEAT_BUTTON_H,
+        x: cheatButton.x + cheatButton.w / 2,
+        y: cheatButton.y + cheatButton.h / 2,
+        size: cheatButton.w,
+        h: cheatButton.h,
         color: '#5d4037',
         alpha: 0.92,
         stroke: '#ffd54f',
@@ -1145,10 +1153,10 @@ export class UISystem implements System {
         z: UI_Z.NORMAL_UI,
       });
       this.buttons.push({
-        x: cheatBtnX,
-        y: cheatBtnY,
-        w: GOLD_CHEAT_BUTTON_W,
-        h: GOLD_CHEAT_BUTTON_H,
+        x: cheatButton.x,
+        y: cheatButton.y,
+        w: cheatButton.w,
+        h: cheatButton.h,
         label: '☝',
         color: '#5d4037',
         textColor: '#ffd54f',

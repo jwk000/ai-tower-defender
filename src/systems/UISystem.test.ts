@@ -182,9 +182,10 @@ describe('UISystem 顶部 HUD 布局', () => {
     ui.update(new TowerWorld(), 1 / 60);
 
     const cheatButton = buttonsOf(ui).find((button) => button.label === '☝');
+    const expectedRect = UISystem.goldCheatButtonRect();
     expect(cheatButton).toBeDefined();
-    expect(cheatButton!.x).toBe(UISystem.TOP_HUD_SIDE_MARGIN + 224);
-    expect(cheatButton!.y).toBe(4);
+    expect(cheatButton!.x).toBe(expectedRect.x);
+    expect(cheatButton!.y).toBe(expectedRect.y);
 
     expect(ui.handleClick(cheatButton!.x + 1, cheatButton!.y + 1)).toBe(true);
     expect(onGoldCheat).toHaveBeenCalledTimes(1);

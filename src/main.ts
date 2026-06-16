@@ -1388,12 +1388,15 @@ class TowerDefenderGame extends Game {
     if (!this.economy || !this.floatingTextSystem) return;
 
     const amount = Math.random() < 0.5 ? 1 : 2;
+    const buttonRect = UISystem.goldCheatButtonRect();
+    const buttonCenterX = buttonRect.x + buttonRect.w / 2;
+    const buttonFeedbackY = buttonRect.y + buttonRect.h + 8;
     this.economy.addGold(amount);
     Sound.play('gold_earn');
     this.floatingTextSystem.show(
       this.world,
-      350,
-      UISystem.TOP_H + 26,
+      buttonCenterX,
+      buttonFeedbackY,
       `+${amount}💰`,
       { r: 255, g: 213, b: 79 },
     );
