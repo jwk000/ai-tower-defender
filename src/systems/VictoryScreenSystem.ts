@@ -21,6 +21,19 @@ const STORY_TYPEWRITER_START = 0.9;
 const STORY_TYPEWRITER_CPS = 19;
 const STAT_REVEAL_DELAY = 2.15;
 const STAT_REVEAL_INTERVAL = 0.08;
+const PANEL_W = 1180;
+const PANEL_H = 610;
+const PANEL_Y = 118;
+const PANEL_BORDER_RADIUS = 8;
+const PANEL_SIDE_PADDING = 64;
+const PANEL_DIVIDER_Y = PANEL_Y + 168;
+const STORY_TITLE_Y = 174;
+const STORY_BODY_Y = 358;
+const STAT_CARD_W = 276;
+const STAT_CARD_H = 34;
+const STAT_GRID_COLS = 3;
+const STAT_GRID_TOP = 570;
+const STAT_GRID_ROW_H = 44;
 
 type SettlementMode = 'victory' | 'defeat';
 type ConfettiShape = 'ribbon' | 'petal' | 'sparkle' | 'fragment';
@@ -282,10 +295,10 @@ export class VictoryScreenSystem implements System {
 
   private drawSettlementPanel(ctx: CanvasRenderingContext2D): void {
     const w = LayoutManager.DESIGN_W;
-    const panelW = 1180;
-    const panelH = 610;
-    const x = (w - panelW) / 2;
-    const y = 118;
+    const panelW = PANEL_W;
+    const panelH = PANEL_H;
+    const x = this.getPanelX();
+    const y = PANEL_Y;
     const config = this.config!;
     const accent = this.mode === 'victory' ? config.typography.accentColor : '#ff6b5f';
 
@@ -297,7 +310,7 @@ export class VictoryScreenSystem implements System {
     ctx.shadowColor = withAlpha(accent, this.mode === 'victory' ? 0.42 : 0.3);
     ctx.shadowBlur = 26;
     ctx.beginPath();
-    ctx.roundRect(x, y, panelW, panelH, 8);
+    ctx.roundRect(x, y, panelW, panelH, PANEL_BORDER_RADIUS);
     ctx.fill();
     ctx.stroke();
 
@@ -305,8 +318,8 @@ export class VictoryScreenSystem implements System {
     ctx.strokeStyle = 'rgba(255,255,255,0.16)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x + 64, y + 168);
-    ctx.lineTo(x + panelW - 64, y + 168);
+    ctx.moveTo(x + PANEL_SIDE_PADDING, PANEL_DIVIDER_Y);
+    ctx.lineTo(x + panelW - PANEL_SIDE_PADDING, PANEL_DIVIDER_Y);
     ctx.stroke();
     ctx.restore();
   }
@@ -337,8 +350,7 @@ export class VictoryScreenSystem implements System {
     const copy = this.copy!;
     const config = this.config!;
     const cx = LayoutManager.DESIGN_W / 2;
-    const titleY = 174;
-    const storyTitle = this.shouldSkipStory() ? '通关记录' : copy.story.title;
+    const titleY = STORY_TITLE_Y;
     const visibleText = this.getVisibleStoryText();
     const lines = wrapParagraphLines(ctx, visibleText, 1040);
 
@@ -362,14 +374,10 @@ export class VictoryScreenSystem implements System {
     ctx.globalAlpha = storyAlpha;
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur = 12;
-    ctx.font = getFont(31, true);
-    ctx.fillStyle = this.mode === 'victory' ? config.typography.accentColor : '#ff9a8f';
-    ctx.fillText(storyTitle, cx, 370);
-
     ctx.textBaseline = 'top';
     ctx.font = getFont(25);
     ctx.fillStyle = config.typography.storyColor;
-    let y = 420;
+    let y = STORY_BODY_Y;
     for (const line of lines.slice(0, 4)) {
       ctx.fillText(line, cx, y);
       y += 36;
@@ -380,10 +388,13 @@ export class VictoryScreenSystem implements System {
   private drawStats(ctx: CanvasRenderingContext2D): void {
     if (!this.stats) return;
     const rows = this.getStatRows();
-    const startX = 434;
-    const startY = 584;
-    const colW = 354;
-    const rowH = 44;
+    const panelX = this.getPanelX();
+    const statAreaX = panelX + PANEL_SIDE_PADDING;
+    const statAreaW = PANEL_W - PANEL_SIDE_PADDING * 2;
+    const colW = statAreaW / STAT_GRID_COLS;
+    const startX = statAreaX + colW / 2;
+    const startY = STAT_GRID_TOP;
+    const rowH = STAT_GRID_ROW_H;
 
     ctx.save();
     ctx.textBaseline = 'middle';
@@ -399,7 +410,7 @@ export class VictoryScreenSystem implements System {
       ctx.globalAlpha = reveal;
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
       ctx.beginPath();
-      ctx.roundRect(x - 138, y - 19, 276, 34, 6);
+      ctx.roundRect(x - STAT_CARD_W / 2, y - 19, STAT_CARD_W, STAT_CARD_H, 6);
       ctx.fill();
 
       ctx.font = getFont(17);
@@ -454,6 +465,10 @@ export class VictoryScreenSystem implements System {
       { label: '总得分', value: formatInteger(s.score) },
       { label: '总伤害', value: formatInteger(s.totalDamage) },
     ];
+  }
+
+  private getPanelX(): number {
+    return (LayoutManager.DESIGN_W - PANEL_W) / 2;
   }
 
   private ensureConfettiSpawned(): void {
