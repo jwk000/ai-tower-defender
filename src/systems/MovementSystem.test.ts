@@ -33,6 +33,8 @@ import {
   LayerVal,
   EnemyFlockMember,
   Burrowed,
+  Trap,
+  TrapTypeVal,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -81,6 +83,76 @@ function makeFourTileMap(): MapConfig {
       ],
     },
   };
+}
+
+function makeBoulder(world: TowerWorld, col: number, hp: number = 200): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: col * TILE + TILE / 2, y: TILE / 2 });
+  world.addComponent(eid, Health, { current: hp, max: 200, armor: 20, magicResist: 0 });
+  world.addComponent(eid, Visual, {
+    shape: 1,
+    colorR: 120,
+    colorG: 144,
+    colorB: 156,
+    size: 40,
+    alpha: 1,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0,
+  });
+  world.addComponent(eid, Trap, {
+    damagePerSecond: 0,
+    radius: 0,
+    cooldown: 0,
+    cooldownTimer: 0,
+    animTimer: 0,
+    animDuration: 0.4,
+    triggerCount: 0,
+    maxTriggers: 0,
+    trapType: TrapTypeVal.Boulder,
+    direction: 0,
+    stunDuration: 0,
+    damage: 0,
+  });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  return eid;
+}
+
+function makePathEnemy(
+  world: TowerWorld,
+  opts: { speed?: number; atk?: number; attackRange?: number; layer?: number } = {},
+): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: TILE / 2, y: TILE / 2 });
+  world.addComponent(eid, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Movement, {
+    speed: opts.speed ?? TILE,
+    currentSpeed: opts.speed ?? TILE,
+    moveMode: MoveModeVal.FollowPath,
+    pathIndex: 0,
+    progress: 0,
+    spawnIdx: 0,
+  });
+  world.addComponent(eid, UnitTag, { isEnemy: 1, rewardGold: 0, canAttackBuildings: 1, atk: opts.atk ?? 12 });
+  world.addComponent(eid, Visual, {
+    shape: 1,
+    colorR: 200,
+    colorG: 0,
+    colorB: 0,
+    size: 24,
+    alpha: 1,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0.45,
+  });
+  world.addComponent(eid, Attack, {
+    damage: opts.atk ?? 12,
+    attackSpeed: 1,
+    range: opts.attackRange ?? 48,
+    damageType: DamageTypeVal.Physical,
+    cooldownTimer: 0,
+    targetId: 0,
+  });
+  world.addComponent(eid, Layer, { value: opts.layer ?? LayerVal.Ground });
+  return eid;
 }
 
 function makeBase(world: TowerWorld, hp: number = 100): number {
@@ -471,6 +543,53 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     bossReachSystem.update(world, 0.016);
 
     expect(phase).toBe(GamePhase.Defeat);
+  });
+});
+
+describe('MovementSystem — 巨石阻挡', () => {
+  let world: TowerWorld;
+  let system: MovementSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+    system = new MovementSystem(makeFourTileMap());
+  });
+
+  it('存活巨石会阻挡地面敌人沿路径前进，并成为攻击目标', () => {
+    const boulder = makeBoulder(world, 1, 200);
+    const enemy = makePathEnemy(world, { speed: TILE, atk: 12, attackRange: 48 });
+
+    system.update(world, 1);
+
+    expect(Position.x[enemy]).toBe(TILE / 2);
+    expect(Movement.progress[enemy]).toBe(0);
+    expect(Movement.currentSpeed[enemy]).toBe(0);
+    expect(Attack.targetId[enemy]).toBe(boulder);
+    expect(Health.current[boulder]).toBe(190);
+  });
+
+  it('巨石被破坏后，地面敌人可以继续前进', () => {
+    makeBoulder(world, 1, 0);
+    const enemy = makePathEnemy(world, { speed: TILE, atk: 12 });
+
+    system.update(world, 1);
+
+    expect(Position.x[enemy]).toBe((1 * TILE) + TILE / 2);
+    expect(Movement.pathIndex[enemy]).toBe(1);
+    expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
+  });
+
+  it('低空敌人不受地面巨石阻挡', () => {
+    makeBoulder(world, 1, 200);
+    const enemy = makePathEnemy(world, { speed: TILE, atk: 12, layer: LayerVal.LowAir });
+
+    system.update(world, 1);
+
+    expect(Position.x[enemy]).toBe((1 * TILE) + TILE / 2);
+    expect(Movement.pathIndex[enemy]).toBe(1);
+    expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
   });
 });
 

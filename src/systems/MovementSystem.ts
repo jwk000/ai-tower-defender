@@ -3,7 +3,7 @@ import {
   Position, Movement, Health, UnitTag, Stunned, Frozen, Slowed, MoveModeVal,
   Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
-  Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal, Taunted,
+  Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal, Taunted, Trap, TrapTypeVal,
 } from '../core/components.js';
 import { createSkillParticles } from './EnemySkillSystem.js';
 import type { MapConfig, GridPos } from '../types/index.js';
@@ -47,6 +47,8 @@ export class MovementSystem implements System {
   private baseQuery = defineQuery([Position, Health, Category]);
   /** Query: player tower entities */
   private towerQuery = defineQuery([Position, Tower, Health]);
+  /** Query: living traps, used by Boulder path blocking and enemy targeting */
+  private trapQuery = defineQuery([Position, Trap, Health]);
   /** Per-spawn paths: paths[spawnIdx] = ordered GridPos[] from spawn to crystal_anchor */
   private readonly paths: readonly (readonly GridPos[])[];
 
@@ -194,6 +196,8 @@ export class MovementSystem implements System {
       const dist = speed * dt;
 
       let progress = Movement.progress[eid]!;
+      const prevPathIndex = pathIndex;
+      const prevProgress = progress;
       progress += dist / segmentLen;
 
       let newX: number;
@@ -210,6 +214,13 @@ export class MovementSystem implements System {
         Movement.progress[eid] = progress;
         newX = cx + dx * progress;
         newY = cy + dy * progress;
+      }
+
+      if (this.findBlockingBoulder(world, eid, posX, posY, newX, newY) !== null) {
+        Movement.pathIndex[eid] = prevPathIndex;
+        Movement.progress[eid] = prevProgress;
+        Movement.currentSpeed[eid] = 0;
+        continue;
       }
 
       Position.x[eid] = newX;
@@ -650,6 +661,15 @@ export class MovementSystem implements System {
       }
     }
 
+    // Check blocking boulders after active defenders. Boulders are passive roadblocks,
+    // but enemies must be able to break them before continuing along the path.
+    if (nearestTarget === null) {
+      const boulder = this.findNearestAttackableBoulder(world, posX, posY, attackRange);
+      if (boulder !== null) {
+        nearestTarget = boulder;
+      }
+    }
+
     // Attack the target
     if (nearestTarget !== null) {
       const isRanged = attackRange > MovementSystem.MELEE_RANGE_THRESHOLD;
@@ -684,6 +704,70 @@ export class MovementSystem implements System {
       return true;
     }
     return false;
+  }
+
+  private findBlockingBoulder(
+    world: TowerWorld,
+    enemyId: number,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+  ): number | null {
+    if ((Layer.value[enemyId] ?? LayerVal.Ground) !== LayerVal.Ground) return null;
+
+    const enemyRadius = (Visual.size[enemyId] ?? 24) / 2;
+    const boulders = this.trapQuery(world.world);
+    for (const bid of boulders) {
+      if (!this.isLivingGroundBoulder(bid)) continue;
+
+      const bx = Position.x[bid];
+      const by = Position.y[bid];
+      if (bx === undefined || by === undefined) continue;
+
+      const boulderRadius = (Visual.size[bid] ?? 40) / 2;
+      const blockRadius = Math.max(1, enemyRadius + boulderRadius);
+      if (this.pointToSegmentDist(bx, by, fromX, fromY, toX, toY) <= blockRadius) {
+        return bid;
+      }
+    }
+
+    return null;
+  }
+
+  private findNearestAttackableBoulder(
+    world: TowerWorld,
+    posX: number,
+    posY: number,
+    attackRange: number,
+  ): number | null {
+    const boulders = this.trapQuery(world.world);
+    let nearestTarget: number | null = null;
+    let nearestDist = attackRange;
+
+    for (const bid of boulders) {
+      if (!this.isLivingGroundBoulder(bid)) continue;
+
+      const bx = Position.x[bid];
+      const by = Position.y[bid];
+      if (bx === undefined || by === undefined) continue;
+
+      const dx = bx - posX;
+      const dy = by - posY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestTarget = bid;
+      }
+    }
+
+    return nearestTarget;
+  }
+
+  private isLivingGroundBoulder(eid: number): boolean {
+    return Trap.trapType[eid] === TrapTypeVal.Boulder
+      && (Health.current[eid] ?? 0) > 0
+      && (Layer.value[eid] ?? LayerVal.Ground) === LayerVal.Ground;
   }
 
   private processTauntTimer(world: TowerWorld, eid: number, dt: number): boolean {
