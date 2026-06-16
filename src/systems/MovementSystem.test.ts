@@ -117,9 +117,15 @@ function makeBoulder(world: TowerWorld, col: number, hp: number = 200): number {
   return eid;
 }
 
+function makeBoulderAt(world: TowerWorld, x: number, hp: number = 200): number {
+  const eid = makeBoulder(world, 1, hp);
+  Position.x[eid] = x;
+  return eid;
+}
+
 function makePathEnemy(
   world: TowerWorld,
-  opts: { speed?: number; atk?: number; attackRange?: number; layer?: number } = {},
+  opts: { speed?: number; atk?: number; attackRange?: number; layer?: number; size?: number; attackSpeed?: number } = {},
 ): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x: TILE / 2, y: TILE / 2 });
@@ -138,14 +144,14 @@ function makePathEnemy(
     colorR: 200,
     colorG: 0,
     colorB: 0,
-    size: 24,
+    size: opts.size ?? 24,
     alpha: 1,
     attackAnimTimer: 0,
     attackAnimDuration: 0.45,
   });
   world.addComponent(eid, Attack, {
     damage: opts.atk ?? 12,
-    attackSpeed: 1,
+    attackSpeed: opts.attackSpeed ?? 1,
     range: opts.attackRange ?? 48,
     damageType: DamageTypeVal.Physical,
     cooldownTimer: 0,
@@ -569,6 +575,26 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Attack.targetId[enemy]).toBe(boulder);
     expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
     expect(Health.current[boulder]).toBe(190);
+  });
+
+  it('机器狗被巨石接触阻挡时，即使中心距超过攻击范围也会攻击巨石', () => {
+    const boulder = makeBoulderAt(world, 50, 200);
+    const robotDog = makePathEnemy(world, {
+      speed: 80,
+      atk: 10,
+      attackRange: 25,
+      attackSpeed: 2,
+      size: 28,
+    });
+
+    system.update(world, 0.25);
+
+    expect(Position.x[robotDog]).toBe(TILE / 2);
+    expect(Movement.progress[robotDog]).toBe(0);
+    expect(Movement.currentSpeed[robotDog]).toBe(0);
+    expect(Attack.targetId[robotDog]).toBe(boulder);
+    expect(Visual.attackAnimTimer[robotDog]).toBeCloseTo(0.45);
+    expect(Health.current[boulder]).toBeCloseTo(191.666, 2);
   });
 
   it('巨石被破坏后，地面敌人可以继续前进', () => {

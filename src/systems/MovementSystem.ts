@@ -216,10 +216,14 @@ export class MovementSystem implements System {
         newY = cy + dy * progress;
       }
 
-      if (this.findBlockingBoulder(world, eid, posX, posY, newX, newY) !== null) {
+      const blockingBoulder = this.findBlockingBoulder(world, eid, posX, posY, newX, newY);
+      if (blockingBoulder !== null) {
         Movement.pathIndex[eid] = prevPathIndex;
         Movement.progress[eid] = prevProgress;
         Movement.currentSpeed[eid] = 0;
+        if (hasComponent(world.world, Attack, eid)) {
+          this.processEnemyAttack(world, eid, dt, true, blockingBoulder);
+        }
         continue;
       }
 
@@ -596,7 +600,13 @@ export class MovementSystem implements System {
   /** 近战 vs 远程判定阈值（像素） */
   private static readonly MELEE_RANGE_THRESHOLD = 60;
 
-  private processEnemyAttack(world: TowerWorld, eid: number, dt: number, pauseOnAttack = true): boolean {
+  private processEnemyAttack(
+    world: TowerWorld,
+    eid: number,
+    dt: number,
+    pauseOnAttack = true,
+    contactTarget: number | null = null,
+  ): boolean {
     const attackRange = Attack.range[eid] ?? 30;
     const damage = Attack.damage[eid] ?? 0;
     const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
@@ -611,16 +621,17 @@ export class MovementSystem implements System {
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
-      if (forcedTarget !== null) {
-        Attack.targetId[eid] = forcedTarget;
-        this.faceTarget(eid, forcedTarget, posX);
+      const heldTarget = forcedTarget ?? contactTarget;
+      if (heldTarget !== null) {
+        Attack.targetId[eid] = heldTarget;
+        this.faceTarget(eid, heldTarget, posX);
         return true;
       }
       return false;
     }
 
     // Find nearest player unit (soldier or tower) within range
-    let nearestTarget: number | null = forcedTarget;
+    let nearestTarget: number | null = forcedTarget ?? contactTarget;
     let nearestDist = attackRange;
 
     // Check soldiers
