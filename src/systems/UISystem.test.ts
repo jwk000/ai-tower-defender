@@ -19,6 +19,7 @@ import { CardDraftSystem } from './CardDraftSystem.js';
 import { HandSystem } from './HandSystem.js';
 import { LEVEL_1_CARD_POOL } from '../data/cards.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
+import { cardConfigRegistry } from '../config/cardRegistry.js';
 
 class LoadedImage {
   complete = true;
@@ -489,5 +490,40 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.color === '#4fc3f7' &&
       cmd.alpha === 0.5
     ))).toBe(true);
+  });
+
+  it('法术卡拖动 ghost 只显示释放半径，不显示法术文字', () => {
+    cardConfigRegistry.register({
+      id: 'fireball_card',
+      name: '火球术',
+      type: 'spell',
+      energyCost: 3,
+      goldCost: 40,
+      rarity: 'common',
+      spellSubtype: 'damage',
+      placement: { targetType: 'area', range: 'cursor' },
+      spellEffect: { handler: 'aoe_damage', damage: 80, radius: 80 },
+    });
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: 960, y: 540 },
+      dragState: {
+        active: true,
+        entityType: 'spell',
+        spellCardId: 'fireball_card',
+        cardIndex: 0,
+      },
+    });
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 160 &&
+      cmd.color === '#ff5722'
+    ))).toBe(true);
+    expect(renderer.commands.some((cmd) => cmd.label === '法术' || cmd.label === '火球术')).toBe(false);
   });
 });

@@ -1368,6 +1368,7 @@ export class UISystem implements System {
 
     const ghostAlpha = 0.5;
     const z = UI_Z.BOARD_TIPS;
+    const rangeOnly = ds.entityType === 'spell';
 
     // 1. 攻击范围圆圈（先渲染，显示在底层）
     if (range !== undefined && range > 0) {
@@ -1390,6 +1391,8 @@ export class UISystem implements System {
         z,
       });
     }
+
+    if (rangeOnly) return;
 
     if (sceneArtId && this.drawDragGhostSprite(sceneArtId, ptr.x, ptr.y, size, ghostAlpha, z)) {
       return;
