@@ -152,7 +152,7 @@ const bearTrap: CardInstance = {
   id: 'card_bear_trap',
   name: '捕兽夹',
   type: 'trap',
-  description: '一次性陷阱，触发后困住敌人1秒',
+  description: '困住敌人2秒，触发后5秒冷却',
   goldCost: 50,
 };
 

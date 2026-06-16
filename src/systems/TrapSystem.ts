@@ -33,7 +33,7 @@ function getEnemyGridPos(
  *
  * Each trap type has unique mechanics:
  *   0 SpikeTrap   — persistent damage/sec on same tile (layer gated)
- *   1 BearTrap    — single-use stun + damage, boss immune, then self-destruct
+ *   1 BearTrap    — reusable stun + damage, boss immune, cooldown-gated
  *   2 TarPit      — persistent 20% slow on same tile
  *   3 Boulder     — has HP, blocks path, destroyed when HP≤0
  */
@@ -136,7 +136,7 @@ export class TrapSystem implements System {
   }
 
   // ============================================================
-  // BearTrap (1) — single-use stun + damage, boss immune, self-destruct
+  // BearTrap (1) — reusable stun + damage, boss immune, cooldown-gated
   // ============================================================
   private tickBearTrap(
     world: TowerWorld,
@@ -152,10 +152,13 @@ export class TrapSystem implements System {
     const maxTriggers = Trap.maxTriggers[trapId] ?? 0;
     const stunDuration = Trap.stunDuration[trapId] ?? 2.0;
     const damage = Trap.damage[trapId] ?? 20;
+    const configuredCooldown = Trap.cooldown[trapId] ?? 0;
+    const cooldown = configuredCooldown > 0 ? configuredCooldown : 5.0;
 
-    // Already used up (maxTriggers > 0 && triggerCount >= maxTriggers)?
+    if (cooldown > 0 && (Trap.cooldownTimer[trapId] ?? 0) > TRAP_COOLDOWN_EPSILON) return;
+
+    // Limited-use legacy configs should become inert instead of disappearing.
     if (maxTriggers > 0 && triggerCount >= maxTriggers) {
-      world.destroyEntity(trapId);
       return;
     }
 
@@ -180,10 +183,12 @@ export class TrapSystem implements System {
         applyDamageToTarget(world, enemyId, damage, DamageTypeVal.Physical);
       }
 
-      // Mark trap as triggered and schedule destruction
+      // Mark trap as triggered and start cooldown. The trap remains on the board.
       Trap.triggerCount[trapId] = triggerCount + 1;
+      if (cooldown > 0) {
+        Trap.cooldownTimer[trapId] = cooldown;
+      }
       Trap.animTimer[trapId] = Trap.animDuration[trapId]!;
-      world.destroyEntity(trapId);
       return;
     }
   }

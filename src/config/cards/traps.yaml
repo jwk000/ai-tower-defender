@@ -23,7 +23,7 @@ spike_trap_card:
 
 bear_trap_card:
   name: 捕兽夹
-  description: 一次性陷阱，眩晕敌人2秒并造成20点伤害，BOSS免疫
+  description: 困住敌人2秒并造成20点伤害，触发后5秒冷却，BOSS免疫
   type: trap
   rarity: common
   energyCost: 3
@@ -56,5 +56,4 @@ boulder_card:
   placement:
     targetType: tile
     range: path
-
 

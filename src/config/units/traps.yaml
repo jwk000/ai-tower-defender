@@ -41,7 +41,7 @@ spike_trap:
         duration: 0.1
 
 ---
-# 捕兽夹 — 一次性陷阱，触发后眩晕敌人2秒并造成20点伤害，BOSS免疫
+# 捕兽夹 — 持久控制机关，触发后困住敌人2秒并进入5秒冷却，BOSS免疫
 bear_trap:
   id: bear_trap
   name: 捕兽夹
@@ -59,7 +59,8 @@ bear_trap:
     type: BearTrap
     stunDuration: 2.0
     damage: 20
-    maxTriggers: 1
+    cooldown: 5.0
+    maxTriggers: 0
     bossImmune: true
 
   visual:

@@ -246,7 +246,7 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
 });
 
 // ============================================================
-// BearTrap (1) — 捕兽夹: 一次性眩晕2秒+20伤害，BOSS免疫，触发后消失
+// BearTrap (1) — 捕兽夹: 眩晕2秒+20伤害，BOSS免疫，触发后5秒冷却但不消失
 // ============================================================
 
 describe('TrapSystem — BearTrap (捕兽夹)', () => {
@@ -258,49 +258,70 @@ describe('TrapSystem — BearTrap (捕兽夹)', () => {
     system = new TrapSystem(TILE);
   });
 
-  it('敌人触发后添加 Stunned (2.0s) 并造成20点伤害', () => {
-    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1, stunDuration: 2.0, damage: 20 });
+  it('敌人触发后添加 Stunned (2.0s)、造成20点伤害，并进入5秒冷却', () => {
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, cooldown: 5.0, stunDuration: 2.0, damage: 20 });
     const enemy = makeEnemy(world, 5, 5);
     const hpBefore = Health.current[enemy] ?? 0;
     system.update(world, 0.016);
     expect(hasComponent(world.world, Stunned, enemy)).toBe(true);
     expect(Stunned.timer[enemy]).toBeCloseTo(2.0);
     expect(Health.current[enemy]).toBeCloseTo(hpBefore - 20);
+    expect(Trap.triggerCount[trap]).toBe(1);
+    expect(Trap.cooldownTimer[trap]).toBeCloseTo(5.0);
+    expect(Trap.animTimer[trap]).toBeGreaterThan(0);
   });
 
   it('BOSS 免疫：不添加 Stunned，不造成伤害', () => {
-    makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1, stunDuration: 2.0, damage: 20 });
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, cooldown: 5.0, stunDuration: 2.0, damage: 20 });
     const boss = makeEnemy(world, 5, 5, { isBoss: true });
     const hp0 = Health.current[boss];
     system.update(world, 0.016);
     expect(hasComponent(world.world, Stunned, boss)).toBe(false);
     expect(Health.current[boss]).toBe(hp0);
+    expect(Trap.cooldownTimer[trap]).toBe(0);
   });
 
-  it('陷阱未用完（maxTriggers=0, 默认不限）不自动销毁', () => {
-    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 0 });
+  it('触发后不销毁，冷却期间不会重复困住同格敌人', () => {
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, cooldown: 5.0, stunDuration: 2.0, damage: 20 });
     makeEnemy(world, 5, 5);
     system.update(world, 0.016);
-    // Trap with maxTriggers=0 means no limit, should not destroy
-    // But our implementation triggers once and destroys
-    // With maxTriggers=0, triggerCount (0) >= maxTriggers (0) is true → destroys
-    // This is a design choice: BearTrap should have maxTriggers=1
+    const secondEnemy = makeEnemy(world, 5, 5);
+    const hpBefore = Health.current[secondEnemy] ?? 0;
+    system.update(world, 1.0);
     expect(Trap.triggerCount[trap]).toBe(1);
+    expect(Trap.cooldownTimer[trap]).toBeCloseTo(4.0);
+    expect(hasComponent(world.world, Trap, trap)).toBe(true);
+    expect(hasComponent(world.world, Stunned, secondEnemy)).toBe(false);
+    expect(Health.current[secondEnemy]).toBeCloseTo(hpBefore);
   });
 
   it('不同格敌人不触发', () => {
-    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1 });
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, cooldown: 5.0 });
     const enemy = makeEnemy(world, 6, 6);
     system.update(world, 0.016);
     expect(hasComponent(world.world, Stunned, enemy)).toBe(false);
     expect(Trap.triggerCount[trap]).toBe(0);
   });
 
-  it('陷阱 maxTriggers=1 触发一次后 triggerCount 递增', () => {
-    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, maxTriggers: 1 });
-    makeEnemy(world, 5, 5);
+  it('冷却结束后可再次触发', () => {
+    const trap = makeTrap(world, 5, 5, { trapType: TrapTypeVal.BearTrap, cooldown: 5.0, stunDuration: 2.0, damage: 20 });
+    const firstEnemy = makeEnemy(world, 5, 5);
     system.update(world, 0.016);
     expect(Trap.triggerCount[trap]).toBe(1);
+    Position.x[firstEnemy] = RenderSystem.sceneOffsetX + 6 * TILE + TILE / 2;
+    Position.y[firstEnemy] = RenderSystem.sceneOffsetY + 6 * TILE + TILE / 2;
+
+    system.update(world, 5.0);
+    expect(Trap.cooldownTimer[trap]).toBe(0);
+
+    const secondEnemy = makeEnemy(world, 5, 5);
+    const hpBefore = Health.current[secondEnemy] ?? 0;
+    system.update(world, 0.016);
+    expect(Trap.triggerCount[trap]).toBe(2);
+    expect(hasComponent(world.world, Stunned, secondEnemy)).toBe(true);
+    expect(Stunned.timer[secondEnemy]).toBeCloseTo(2.0);
+    expect(Health.current[secondEnemy]).toBeCloseTo(hpBefore - 20);
+    expect(Trap.cooldownTimer[trap]).toBeCloseTo(5.0);
   });
 });
 
