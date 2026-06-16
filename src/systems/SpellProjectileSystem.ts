@@ -679,7 +679,7 @@ export class SpellProjectileSystem implements System {
         const elapsed = progress * 3.0;
         const quakeAlpha = Math.max(0, 1 - progress * 0.42);
         const pulse = Math.abs(Math.sin(elapsed * Math.PI * 2));
-        const jitterIntensity = (1 - progress * 0.45) * (5 + pulse * 7);
+        const jitterIntensity = (1 - progress * 0.45) * (2.5 + pulse * 3.5);
         RenderSystem.tileJitter.intensity = Math.max(RenderSystem.tileJitter.intensity, jitterIntensity);
         RenderSystem.tileJitter.seed = elapsed * 42;
 
@@ -811,12 +811,12 @@ export class SpellProjectileSystem implements System {
 
     const shakeEid = world.createEntity();
     world.addComponent(shakeEid, ScreenShake, {
-      intensity: spellType === SPELL_BLIZZARD ? 3 : 10,
+      intensity: spellType === SPELL_BLIZZARD ? 3 : 12,
       duration: spellType === SPELL_BLIZZARD ? 0.25 : duration,
       elapsed: 0,
-      frequency: spellType === SPELL_BLIZZARD ? 26 : 18,
+      frequency: spellType === SPELL_BLIZZARD ? 26 : 20,
     });
-    Sound.play(spellType === SPELL_BLIZZARD ? 'ice_hit' : 'exploder_boom');
+    Sound.play(spellType === SPELL_BLIZZARD ? 'ice_hit' : 'skill_earthquake');
   }
 
   private updateEarthquakeDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {
@@ -837,7 +837,7 @@ export class SpellProjectileSystem implements System {
                        DamageTypeVal.Physical;
 
     for (let eid = 1; eid < Position.x.length; eid++) {
-      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if (spellType !== SPELL_EARTHQUAKE && UnitTag.isEnemy[eid] !== 1) continue;
       if ((Health.current[eid] ?? 0) <= 0) continue;
       const px = Position.x[eid] ?? 0;
       const py = Position.y[eid] ?? 0;

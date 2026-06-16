@@ -60,6 +60,7 @@ export type SfxKey =
   | 'skill_arrow_rain'
   | 'skill_blizzard'
   | 'skill_bomb'
+  | 'skill_earthquake'
   // Arcane cards (3 total)
   | 'arcane_shield'
   | 'arcane_boost'
@@ -126,7 +127,7 @@ function sfxUrl(key: SfxKey): string {
  * All other keys have a corresponding .ogg file in public/sfx/.
  * Updated: 31 new OGG files downloaded from open-source packs.
  */
-const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>([]);
+const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>(['skill_earthquake']);
 
 const SFX_PATH: Record<SfxKey, string> = {
   // Legacy
@@ -229,6 +230,7 @@ const SFX_PATH: Record<SfxKey, string> = {
   skill_arrow_rain: '/sfx/skill_arrow_rain.ogg',
   skill_blizzard: '/sfx/skill_blizzard.ogg',
   skill_bomb: '/sfx/skill_bomb.ogg',
+  skill_earthquake: '/sfx/skill_earthquake.ogg',
   // Arcane cards (synth-only)
   arcane_shield: '/sfx/arcane_shield.ogg',
   arcane_boost: '/sfx/arcane_boost.ogg',
@@ -352,6 +354,7 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   skill_arrow_rain: 0,
   skill_blizzard: 0,
   skill_bomb: 0,
+  skill_earthquake: 0,
   // Arcane — no throttle (infrequent)
   arcane_shield: 0,
   arcane_boost: 0,

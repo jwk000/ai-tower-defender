@@ -729,6 +729,19 @@ const generators: Partial<Record<SfxKey, () => Float32Array>> = {
     return reverb(dry, 0.35, 0.5, 70);
   },
 
+  // Earthquake: sustained sub-bass rumble with cracking ground texture
+  skill_earthquake: () => {
+    const rumble = sweep(42, 24, 1.6, 'sine', 0.58, 0.015, 0.2, 0.65, 0.45);
+    const grit = noise(1.2, 0.34);
+    lowpass(grit, 260);
+    const cracks = sequence([
+      { freq: 90, dur: 0.09 }, { freq: 0.01, dur: 0.12 },
+      { freq: 74, dur: 0.09 }, { freq: 0.01, dur: 0.18 },
+      { freq: 58, dur: 0.12 },
+    ], 'triangle', 0.38);
+    return reverb(mix3(rumble, grit, cracks, 0.62, 0.28, 0.45), 0.32, 0.55, 95);
+  },
+
   // ── Arcane cards ────────────────────────────────────────
 
   arcane_shield: () => {

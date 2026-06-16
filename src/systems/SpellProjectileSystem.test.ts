@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineQuery, TowerWorld } from '../core/World.js';
 import {
   Health,
   Movement,
   Position,
+  ScreenShake,
   SpellEffect,
   SpellProjectile,
   UnitTag,
@@ -11,10 +12,12 @@ import {
 import type { Renderer } from '../render/Renderer.js';
 import type { RenderCommand } from '../types/index.js';
 import { clearDamageObservers, registerDamageObserver } from '../utils/damageUtils.js';
+import { Sound } from '../utils/Sound.js';
 import { RenderSystem } from './RenderSystem.js';
 import { SpellProjectileSystem } from './SpellProjectileSystem.js';
 
 const effectQuery = defineQuery([SpellEffect, Position]);
+const shakeQuery = defineQuery([ScreenShake]);
 
 function makeRenderer(): { renderer: Renderer; commands: RenderCommand[] } {
   const commands: RenderCommand[] = [];
@@ -67,6 +70,7 @@ function makeProjectile(world: TowerWorld, spellType: number, duration: number):
 describe('SpellProjectileSystem', () => {
   beforeEach(() => {
     clearDamageObservers();
+    vi.restoreAllMocks();
   });
 
   it('delays spell damage numbers until the impact effect frame', () => {
@@ -108,10 +112,11 @@ describe('SpellProjectileSystem', () => {
     expect(commands.some((cmd) => cmd.shape === 'diamond')).toBe(true);
   });
 
-  it('earthquake damages every enemy once per second and jitters board tiles', () => {
+  it('earthquake damages all units once per second, lightly jitters tiles, and triggers sustained shake audio', () => {
     const { renderer, commands } = makeRenderer();
     const world = new TowerWorld();
     const system = new SpellProjectileSystem(renderer);
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
     reserveEntityZero(world);
     RenderSystem.sceneOffsetX = 100;
     RenderSystem.sceneOffsetY = 80;
@@ -125,29 +130,38 @@ describe('SpellProjectileSystem', () => {
     Health.current[enemyB] = 350;
     Health.max[enemyB] = 350;
     const ally = makeAlly(world, 300, 220);
+    Health.current[ally] = 350;
+    Health.max[ally] = 350;
 
     system.spawnGlobalEffect(world, 4, 100, 3);
+    const shakeId = shakeQuery(world.world)[0]!;
+    expect(ScreenShake.intensity[shakeId]).toBe(12);
+    expect(ScreenShake.duration[shakeId]).toBe(3);
+    expect(ScreenShake.frequency[shakeId]).toBe(20);
+    expect(playSpy).toHaveBeenCalledWith('skill_earthquake');
 
     system.update(world, 0.5);
     expect(Health.current[enemyA]).toBe(350);
     expect(Health.current[enemyB]).toBe(350);
-    expect(Health.current[ally]).toBe(100);
+    expect(Health.current[ally]).toBe(350);
 
     system.update(world, 0.5);
     expect(Health.current[enemyA]).toBe(250);
     expect(Health.current[enemyB]).toBe(250);
-    expect(Health.current[ally]).toBe(100);
+    expect(Health.current[ally]).toBe(250);
     expect(RenderSystem.tileJitter.intensity).toBeGreaterThan(0);
+    expect(RenderSystem.tileJitter.intensity).toBeLessThanOrEqual(6.1);
     expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#1b0f0a')).toBe(true);
 
     system.update(world, 1.0);
     expect(Health.current[enemyA]).toBe(150);
     expect(Health.current[enemyB]).toBe(150);
+    expect(Health.current[ally]).toBe(150);
 
     system.update(world, 1.0);
     expect(Health.current[enemyA]).toBe(50);
     expect(Health.current[enemyB]).toBe(50);
-    expect(Health.current[ally]).toBe(100);
+    expect(Health.current[ally]).toBe(50);
   });
 
   it('blizzard is a 5-second global spell that damages all enemies once and slows them', () => {
