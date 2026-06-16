@@ -27,6 +27,7 @@ const SPELL_ARROW_RAIN = 1;
 const SPELL_BLIZZARD = 2;
 const SPELL_BOMB = 3;
 const SPELL_EARTHQUAKE = 4;
+const ARROW_RAIN_DAMAGE_TICKS = [0, 0.45] as const;
 
 const projectileQuery = defineQuery([SpellProjectile, Position]);
 const effectQuery = defineQuery([SpellEffect, Position]);
@@ -134,6 +135,8 @@ export class SpellProjectileSystem implements System {
 
       if (spellType === SPELL_EARTHQUAKE) {
         this.updateEarthquakeDamage(world, eid, x, y, radius);
+      } else if (spellType === SPELL_ARROW_RAIN) {
+        this.updateArrowRainDamage(world, eid, x, y, radius);
       } else if (SpellEffect.hasDealtDamage[eid] === 0) {
         this.dealAreaDamage(world, eid, x, y, radius, spellType);
         SpellEffect.hasDealtDamage[eid] = 1;
@@ -885,6 +888,21 @@ export class SpellProjectileSystem implements System {
     for (let tick = dealtTicks + 1; tick <= dueTicks; tick++) {
       this.dealAreaDamage(world, effectId, x, y, radius, SPELL_EARTHQUAKE);
     }
+    SpellEffect.hasDealtDamage[effectId] = dueTicks;
+  }
+
+  private updateArrowRainDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {
+    const elapsed = SpellEffect.elapsed[effectId]!;
+    const dealtTicks = SpellEffect.hasDealtDamage[effectId]!;
+    let dueTicks = dealtTicks;
+
+    for (let i = dealtTicks; i < ARROW_RAIN_DAMAGE_TICKS.length; i++) {
+      if (elapsed >= ARROW_RAIN_DAMAGE_TICKS[i]!) {
+        this.dealAreaDamage(world, effectId, x, y, radius, SPELL_ARROW_RAIN);
+        dueTicks = i + 1;
+      }
+    }
+
     SpellEffect.hasDealtDamage[effectId] = dueTicks;
   }
 

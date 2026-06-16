@@ -28,7 +28,7 @@ fireball_card:
 
 arrow_rain_card:
   name: 剑雨
-  description: 对3x3区域内的敌人造成25点伤害
+  description: 对3x3区域内的敌人造成两波25点物理伤害
   type: spell
   rarity: common
   energyCost: 3
@@ -41,6 +41,7 @@ arrow_rain_card:
     handler: aoe_damage
     damage: 25
     radius: 128
+    waves: 2
     affectAlly: false
 
 blizzard_card:

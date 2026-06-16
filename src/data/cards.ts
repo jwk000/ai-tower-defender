@@ -188,7 +188,7 @@ const arrowRain: CardInstance = {
   id: 'card_arrow_rain',
   name: '剑雨',
   type: 'spell',
-  description: '3×3格范围25点物理伤害',
+  description: '3×3格范围两波25点物理伤害',
   goldCost: 45,
 };
 

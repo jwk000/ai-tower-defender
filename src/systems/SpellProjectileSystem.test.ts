@@ -28,10 +28,10 @@ function makeRenderer(): { renderer: Renderer; commands: RenderCommand[] } {
   return { renderer, commands };
 }
 
-function makeEnemy(world: TowerWorld, x: number, y: number): number {
+function makeEnemy(world: TowerWorld, x: number, y: number, hp = 100): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x, y });
-  world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   world.addComponent(eid, UnitTag, { isEnemy: 1 });
   world.addComponent(eid, Movement, { speed: 100, currentSpeed: 100 });
   return eid;
@@ -96,6 +96,42 @@ describe('SpellProjectileSystem', () => {
     expect(Health.current[enemy]).toBeLessThan(100);
     expect(observedDamage).toBeGreaterThan(0);
     expect(effectQuery(world.world)).toHaveLength(1);
+  });
+
+  it('arrow rain deals two 25-damage waves that kill low-air small enemies', () => {
+    const world = new TowerWorld();
+    const { renderer } = makeRenderer();
+    const system = new SpellProjectileSystem(renderer);
+    reserveEntityZero(world);
+    const vampireBat = makeEnemy(world, 100, 100, 40);
+    const drone = makeEnemy(world, 130, 100, 30);
+    const sturdyEnemy = makeEnemy(world, 155, 100, 80);
+    makeProjectile(world, 1, 0.5);
+
+    const damageEvents: Array<{ targetId: number; actualDamage: number }> = [];
+    registerDamageObserver((targetId, _sourceId, actualDamage) => {
+      damageEvents.push({ targetId, actualDamage });
+    });
+
+    system.update(world, 0.49);
+    expect(Health.current[vampireBat]).toBe(40);
+    expect(Health.current[drone]).toBe(30);
+
+    system.update(world, 0.01);
+    world.cleanupDeadEntities();
+    expect(Health.current[vampireBat]).toBe(15);
+    expect(Health.current[drone]).toBe(5);
+    expect(Health.current[sturdyEnemy]).toBe(55);
+    expect(damageEvents.filter((event) => event.targetId === vampireBat)).toHaveLength(1);
+
+    system.update(world, 0.45);
+    world.cleanupDeadEntities();
+    expect(Health.current[vampireBat]).toBeLessThanOrEqual(0);
+    expect(Health.current[drone]).toBeLessThanOrEqual(0);
+    expect(Health.current[sturdyEnemy]).toBe(30);
+    expect(damageEvents.filter((event) => event.targetId === vampireBat)).toHaveLength(2);
+    expect(damageEvents.filter((event) => event.targetId === drone)).toHaveLength(2);
+    expect(damageEvents.filter((event) => event.targetId === sturdyEnemy)).toHaveLength(2);
   });
 
   it('renders arrow rain and blizzard with particle commands only', () => {
