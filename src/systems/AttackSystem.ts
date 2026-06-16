@@ -46,6 +46,10 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Ballista,  // 9
 ];
 
+const LASER_INITIAL_DAMAGE_RATIO = 0.5;
+export const LASER_BEAM_DURATION = 5.0;
+export const LASER_RAMP_DURATION = 2.0;
+
 // ============================================================
 // Projectile visual presets (replaces PROJECTILE_CFG)
 // ============================================================
@@ -527,8 +531,8 @@ export class AttackSystem implements System {
     const target = enemiesInRange[0];
     if (!target) return;
     const maxDamage = this.getDamage(towerId);
-    // 激光束初始伤害 = maxDamage × 10%（beam 开始时伤害最低，smoothstep 递增）
-    const initialDamage = maxDamage * 0.1;
+    // 激光束初始伤害 = maxDamage × 50%，2 秒内递增到满额。
+    const initialDamage = maxDamage * LASER_INITIAL_DAMAGE_RATIO;
 
     const beamId = world.createEntity();
     world.addComponent(beamId, LaserBeam, {
@@ -536,7 +540,7 @@ export class AttackSystem implements System {
       targetId: target.id,
       damage: initialDamage,
       maxDamage,
-      duration: 5.0,
+      duration: LASER_BEAM_DURATION,
       elapsed: 0,
     });
   }
@@ -916,7 +920,7 @@ export function doLaserAttack(
   const target = enemiesInRange[0];
   if (!target) return;
   const maxDamage = getEffectiveDamage(towerId);
-  const initialDamage = maxDamage * 0.1;
+  const initialDamage = maxDamage * LASER_INITIAL_DAMAGE_RATIO;
 
   const beamId = world.createEntity();
   world.addComponent(beamId, LaserBeam, {
@@ -924,7 +928,7 @@ export function doLaserAttack(
     targetId: target.id,
     damage: initialDamage,
     maxDamage,
-    duration: 5.0,
+    duration: LASER_BEAM_DURATION,
     elapsed: 0,
   });
 }

@@ -6,7 +6,7 @@
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AttackSystem, doLaserAttack, findEnemiesInRange, hasActiveLaserBeam } from './AttackSystem.js';
+import { AttackSystem, doLaserAttack, findEnemiesInRange, hasActiveLaserBeam, LASER_BEAM_DURATION } from './AttackSystem.js';
 import { TowerWorld } from '../core/World.js';
 import {
   Faction,
@@ -200,6 +200,17 @@ describe('doLaserAttack — 激光塔单束锁敌', () => {
     const activeBeams = activeLaserBeamsFor(towerId);
     expect(activeBeams).toHaveLength(1);
     expect(LaserBeam.maxDamage[activeBeams[0]!]!).toBe(12);
+  });
+
+  it('新光束初始伤害为上限的50%，持续时长保持5秒', () => {
+    const towerId = makeLaserTower(20);
+    const target = makeAttackable(world, 40, 0, FactionVal.Evil, 100);
+
+    doLaserAttack(world, towerId, [{ id: target, dist: 40 }], 1);
+
+    const beam = activeLaserBeamsFor(towerId)[0]!;
+    expect(LaserBeam.damage[beam]).toBe(10);
+    expect(LaserBeam.duration[beam]).toBe(LASER_BEAM_DURATION);
   });
 });
 

@@ -212,7 +212,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     cost: 90,
     hp: 1500,
     atk: 6,
-    attackSpeed: 0.5, // CD = 2s；同一座塔只能维持 1 束 5s 激光，伤害 S 形递增，上限 = 自身 atk
+    attackSpeed: 0.5, // CD = 2s；同一座塔只能维持 1 束 5s 激光，初始 50% atk，2s 内递增到上限
     range: 250,
     damageType: 'magic',
     // 后期战略塔：L3 强质变，L4-L5 提供昂贵长线成长。

@@ -2,13 +2,13 @@ import { TowerWorld, type System, defineQuery, entityExists } from '../core/Worl
 import { LaserBeam, Position, Health, Visual, DamageTypeVal } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import type { Renderer } from '../render/Renderer.js';
-import { AttackSystem } from './AttackSystem.js';
+import { AttackSystem, LASER_RAMP_DURATION } from './AttackSystem.js';
 
 const GLOW_COLOR = '#e040fb';
 const CORE_COLOR = '#ffffff';
 const DAMAGE_INTERVAL = 0.25;
-/** Minimum damage ratio at t=0 (10% of maxDamage) */
-const MIN_RATIO = 0.10;
+/** Minimum damage ratio at t=0 (50% of maxDamage) */
+const MIN_RATIO = 0.50;
 
 const beamQuery = defineQuery([LaserBeam]);
 
@@ -19,7 +19,7 @@ function smootherstep(t: number): number {
 
 /** Compute S-curve damage for a laser beam at given elapsed time */
 function computeSigmoidDamage(elapsed: number, duration: number, maxDamage: number): number {
-  const t = Math.min(elapsed / duration, 1.0);
+  const t = Math.min(elapsed / Math.min(duration, LASER_RAMP_DURATION), 1.0);
   const curved = smootherstep(t);
   const ratio = MIN_RATIO + (1 - MIN_RATIO) * curved;
   return ratio * maxDamage;
