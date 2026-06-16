@@ -28,6 +28,8 @@ export interface CardInstance {
   goldCost: number;
 }
 
+type LimitedHandCardCategory = 'tower' | 'soldier' | 'spell';
+
 // ---- 常量 ----
 
 /** v5.0 手牌上限（固定 5 张，出牌后自动补满） */
@@ -35,6 +37,9 @@ const MAX_HAND_SIZE = 5;
 
 /** 同一张卡在手牌中的最大重复数量 */
 const MAX_DUPLICATE_CARDS_IN_HAND = 2;
+
+/** 受控手牌大类在当前手牌中的最大数量 */
+const MAX_LIMITED_CATEGORY_CARDS_IN_HAND = 2;
 
 // ---- HandSystem ----
 
@@ -101,7 +106,7 @@ export class HandSystem implements System {
     const initialSlice: CardInstance[] = [];
     for (const card of shuffled) {
       if (initialSlice.length >= MAX_HAND_SIZE) break;
-      if (initialSlice.filter((selected) => selected.id === card.id).length >= MAX_DUPLICATE_CARDS_IN_HAND) continue;
+      if (!this.canAddCardToCards(card, initialSlice)) continue;
       initialSlice.push(card);
     }
 
@@ -109,7 +114,7 @@ export class HandSystem implements System {
     if (!initialSlice.some((c) => cardCanCounterLowAir(c.id))) {
       const counter = shuffled.find((c) => {
         if (!cardCanCounterLowAir(c.id)) return false;
-        return initialSlice.filter((selected) => selected.id === c.id).length < MAX_DUPLICATE_CARDS_IN_HAND;
+        return this.canAddCardToCards(c, initialSlice);
       });
       if (counter) {
         let replaceIdx = -1;
@@ -270,10 +275,30 @@ export class HandSystem implements System {
   }
 
   private canAddCardToHand(cardId: string): boolean {
-    return this.countCardInHand(cardId) < MAX_DUPLICATE_CARDS_IN_HAND;
+    const card = this.cardLibrary.get(cardId);
+    if (!card) return false;
+    return this.canAddCardToCards(card, this.hand);
   }
 
-  private countCardInHand(cardId: string): number {
-    return this.hand.filter((card) => card?.id === cardId).length;
+  private canAddCardToCards(card: CardInstance, cards: readonly (CardInstance | null)[]): boolean {
+    if (this.countCardInCards(card.id, cards) >= MAX_DUPLICATE_CARDS_IN_HAND) return false;
+
+    const category = this.getLimitedHandCategory(card);
+    if (!category) return true;
+    return this.countLimitedCategoryInCards(category, cards) < MAX_LIMITED_CATEGORY_CARDS_IN_HAND;
+  }
+
+  private countCardInCards(cardId: string, cards: readonly (CardInstance | null)[]): number {
+    return cards.filter((card) => card?.id === cardId).length;
+  }
+
+  private countLimitedCategoryInCards(category: LimitedHandCardCategory, cards: readonly (CardInstance | null)[]): number {
+    return cards.filter((card) => card && this.getLimitedHandCategory(card) === category).length;
+  }
+
+  private getLimitedHandCategory(card: CardInstance): LimitedHandCardCategory | null {
+    if (card.type === 'spell') return 'spell';
+    if (card.type !== 'unit') return null;
+    return card.id.endsWith('_tower') ? 'tower' : 'soldier';
   }
 }

@@ -107,7 +107,7 @@ describe('HandSystem — 手牌管理', () => {
       const ids = handSystem.getHand().map((c) => c?.id);
 
       expect(ids).toContain('card_archer');
-      expect(ids).not.toContain('card_mage');
+      expect(ids.filter((id) => id === 'card_shield_guard' || id === 'card_archer' || id === 'card_mage')).toHaveLength(2);
     });
 
     it('初始抽牌时同一张卡最多出现 2 张', () => {
@@ -115,15 +115,38 @@ describe('HandSystem — 手牌管理', () => {
         makeCard('card_arrow_tower', '箭塔A'),
         makeCard('card_arrow_tower', '箭塔B'),
         makeCard('card_arrow_tower', '箭塔C'),
-        makeCard('card_ice_tower', '冰塔'),
-        makeCard('card_fire_tower', '火塔'),
-        makeCard('card_poison_tower', '毒塔'),
+        makeCard('card_shield_guard', '盾卫'),
+        makeCard('card_archer', '弓手'),
+        { id: 'card_fireball', name: '火球术', type: 'spell', description: '测试法术', goldCost: 0 },
+        { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '测试法术', goldCost: 0 },
       ];
 
       handSystem.initialize(pool);
       const ids = handSystem.getHand().map((c) => c?.id);
 
       expect(ids.filter((id) => id === 'card_arrow_tower')).toHaveLength(2);
+      expect(handSystem.getCount()).toBe(5);
+    });
+
+    it('初始抽牌时兵、塔、法术各自最多出现 2 张', () => {
+      const pool: CardInstance[] = [
+        makeCard('card_arrow_tower', '箭塔'),
+        makeCard('card_ice_tower', '冰塔'),
+        makeCard('card_fire_tower', '火塔'),
+        makeCard('card_shield_guard', '盾卫'),
+        makeCard('card_archer', '弓手'),
+        makeCard('card_mage', '法师'),
+        { id: 'card_fireball', name: '火球术', type: 'spell', description: '测试法术', goldCost: 0 },
+        { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '测试法术', goldCost: 0 },
+        { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '测试法术', goldCost: 0 },
+      ];
+
+      handSystem.initialize(pool);
+      const ids = handSystem.getHand().map((c) => c?.id);
+
+      expect(ids.filter((id) => id?.endsWith('_tower'))).toHaveLength(2);
+      expect(ids.filter((id) => id === 'card_shield_guard' || id === 'card_archer' || id === 'card_mage')).toHaveLength(2);
+      expect(ids.filter((id) => id === 'card_fireball' || id === 'card_arrow_rain' || id === 'card_blizzard')).toHaveLength(1);
       expect(handSystem.getCount()).toBe(5);
     });
   });
@@ -179,6 +202,36 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.drawCard('card_arrow_tower')).toBe(true);
       expect(handSystem.drawCard('card_arrow_tower')).toBe(false);
       expect(handSystem.getHand().filter((card) => card?.id === 'card_arrow_tower')).toHaveLength(2);
+    });
+
+    it('手动抽牌时同类塔牌超过 2 张会失败', () => {
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+
+      expect(handSystem.drawCard('card_arrow_tower')).toBe(true);
+      expect(handSystem.drawCard('card_ice_tower')).toBe(true);
+      expect(handSystem.drawCard('card_fire_tower')).toBe(false);
+      expect(handSystem.getHand().filter((card) => card?.id.endsWith('_tower'))).toHaveLength(2);
+    });
+
+    it('手动抽牌时同类兵牌超过 2 张会失败', () => {
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+
+      expect(handSystem.drawCard('card_shield_guard')).toBe(true);
+      expect(handSystem.drawCard('card_archer')).toBe(true);
+      expect(handSystem.drawCard('card_mage')).toBe(false);
+      expect(handSystem.getHand().filter((card) => card?.id === 'card_shield_guard' || card?.id === 'card_archer' || card?.id === 'card_mage')).toHaveLength(2);
+    });
+
+    it('手动抽牌时同类法术牌超过 2 张会失败', () => {
+      handSystem.initialize(makeTestPool());
+      handSystem.reset();
+
+      expect(handSystem.drawCard('card_fireball')).toBe(true);
+      expect(handSystem.drawCard('card_arrow_rain')).toBe(true);
+      expect(handSystem.drawCard('card_gold_rush')).toBe(false);
+      expect(handSystem.getHand().filter((card) => card?.type === 'spell')).toHaveLength(2);
     });
   });
 
@@ -246,20 +299,40 @@ describe('HandSystem — 手牌管理', () => {
 
     it('出牌后自动补牌不会让同一卡超过 2 张', () => {
       handSystem.initialize([
+        { id: 'card_spike_trap', name: '地刺', type: 'trap', description: '测试机关', goldCost: 0 },
+        { id: 'card_bear_trap', name: '捕兽夹', type: 'trap', description: '测试机关', goldCost: 0 },
+      ]);
+      handSystem.reset();
+      handSystem.drawCard('card_spike_trap');
+      handSystem.drawCard('card_spike_trap');
+      handSystem.drawCard('card_bear_trap');
+
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      expect(handSystem.playCard(2)).toBe('card_bear_trap');
+
+      const ids = handSystem.getHand().map((c) => c?.id);
+      expect(ids.filter((id) => id === 'card_spike_trap')).toHaveLength(2);
+      expect(handSystem.getCount()).toBe(3);
+    });
+
+    it('出牌后自动补牌不会让同类牌超过 2 张', () => {
+      handSystem.initialize([
         makeCard('card_arrow_tower', '箭塔'),
         makeCard('card_ice_tower', '冰塔'),
         makeCard('card_fire_tower', '火塔'),
+        makeCard('card_shield_guard', '盾卫'),
       ]);
       handSystem.reset();
       handSystem.drawCard('card_arrow_tower');
-      handSystem.drawCard('card_arrow_tower');
       handSystem.drawCard('card_ice_tower');
+      handSystem.drawCard('card_shield_guard');
 
       vi.spyOn(Math, 'random').mockReturnValue(0);
-      expect(handSystem.playCard(2)).toBe('card_ice_tower');
+      expect(handSystem.playCard(2)).toBe('card_shield_guard');
 
-      const ids = handSystem.getHand().map((c) => c?.id);
-      expect(ids.filter((id) => id === 'card_arrow_tower')).toHaveLength(2);
+      const hand = handSystem.getHand();
+      expect(hand.filter((card) => card?.id.endsWith('_tower'))).toHaveLength(2);
+      expect(hand.some((card) => card?.id === 'card_fire_tower')).toBe(false);
       expect(handSystem.getCount()).toBe(3);
     });
   });

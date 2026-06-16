@@ -216,10 +216,10 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
       { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
       { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
       { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
-      { id: 'card_mage', name: '法师', type: 'unit', description: '地面AOE', goldCost: 0 },
+      { id: 'card_fireball', name: '火球术', type: 'spell', description: '2x2格范围火球伤害', goldCost: 0 },
     ]);
     handSystem.reset();
-    for (const cardId of ['card_arrow_tower', 'card_ice_tower', 'card_shield_guard', 'card_archer', 'card_mage']) {
+    for (const cardId of ['card_arrow_tower', 'card_ice_tower', 'card_shield_guard', 'card_archer', 'card_fireball']) {
       expect(handSystem.drawCard(cardId)).toBe(true);
     }
     const debug = new DebugManager(world, { getHandSystem: () => handSystem });
@@ -236,7 +236,7 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
       'card_ice_tower',
       'card_shield_guard',
       'card_archer',
-      'card_mage',
+      'card_fireball',
     ]);
 
     expect(debug.replaceNextHandCardForDebug({
@@ -251,7 +251,7 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
       'card_arrow_rain',
       'card_shield_guard',
       'card_archer',
-      'card_mage',
+      'card_fireball',
     ]);
 
     for (const cardId of ['card_bomb', 'card_blizzard', 'card_gold_rush']) {

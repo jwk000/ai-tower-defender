@@ -31,7 +31,36 @@ function makeDraftPool(): CardInstance[] {
 
 /** 5 张卡的小池（刚好填满手牌） */
 function makeSmallPool(): CardInstance[] {
-  return makeDraftPool().slice(0, 5);
+  return [
+    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
+    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
+    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
+  ];
+}
+
+function makeTwoCardOpeningPool(): CardInstance[] {
+  return [
+    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+  ];
+}
+
+function makeThreeCardOpeningPool(): CardInstance[] {
+  return [
+    { id: 'card_arrow_tower', name: '箭塔', type: 'unit', description: '基础单体物理输出', goldCost: 0 },
+    { id: 'card_shield_guard', name: '盾卫', type: 'unit', description: '近战嘲讽士兵', goldCost: 0 },
+    { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
+  ];
+}
+
+function makeAddableDraftPool(): CardInstance[] {
+  return [
+    { id: 'card_ice_tower', name: '冰塔', type: 'unit', description: '减速控制型魔法塔', goldCost: 0 },
+    { id: 'card_archer', name: '弓手', type: 'unit', description: '远程快速攻击', goldCost: 0 },
+    { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
+  ];
 }
 
 describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
@@ -96,10 +125,10 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
   describe('confirmDraft — 确定抽取（全部加入手牌）', () => {
     it('手牌有空位时全部加入并完成抽卡', () => {
       // 手牌只初始化 2 张（3 个空位）
-      handSystem.initialize(makeDraftPool().slice(0, 2));
+      handSystem.initialize(makeTwoCardOpeningPool());
       expect(handSystem.getCount()).toBe(2);
 
-      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.startDraft(makeAddableDraftPool(), handSystem);
       expect(draftSystem.isActive()).toBe(true);
 
       const options = draftSystem.getOptions();
@@ -118,10 +147,10 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
 
     it('手牌空位不足时只放入能放的数量', () => {
       // 手牌有 3 张，只剩 2 个空位
-      handSystem.initialize(makeDraftPool().slice(0, 3));
+      handSystem.initialize(makeThreeCardOpeningPool());
       expect(handSystem.getCount()).toBe(3);
 
-      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.startDraft(makeAddableDraftPool(), handSystem);
       const addedCount = draftSystem.confirmDraft();
 
       expect(addedCount).toBe(2);
@@ -150,10 +179,10 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       draftSystem.onDraftComplete = callback;
 
       // 手牌有空位（只初始化 2 张）
-      handSystem.initialize(makeDraftPool().slice(0, 2));
+      handSystem.initialize(makeTwoCardOpeningPool());
       expect(handSystem.getCount()).toBe(2);
 
-      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.startDraft(makeAddableDraftPool(), handSystem);
       const options = draftSystem.getOptions();
       draftSystem.confirmDraft();
 
@@ -290,11 +319,11 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       draftSystem.onDraftComplete = callback;
 
       // 手牌只初始化 2 张（有 3 个空位）
-      handSystem.initialize(makeDraftPool().slice(0, 2));
+      handSystem.initialize(makeTwoCardOpeningPool());
       expect(handSystem.getCount()).toBe(2);
 
       // 触发抽卡
-      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.startDraft(makeAddableDraftPool(), handSystem);
       expect(draftSystem.isActive()).toBe(true);
       expect(draftSystem.getOptions()).toHaveLength(3);
 
@@ -321,7 +350,7 @@ describe('CardDraftSystem — 3张全抽（确认+骰子模式）', () => {
       handSystem.initialize(makeSmallPool());
       expect(handSystem.isFull()).toBe(true);
 
-      draftSystem.startDraft(makeDraftPool(), handSystem);
+      draftSystem.startDraft(makeAddableDraftPool(), handSystem);
       const addedCount = draftSystem.confirmDraft();
 
       expect(addedCount).toBe(0);
