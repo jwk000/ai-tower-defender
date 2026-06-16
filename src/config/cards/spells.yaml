@@ -45,19 +45,18 @@ arrow_rain_card:
 
 blizzard_card:
   name: 暴风雪
-  description: 对3x3区域内敌人造成15点伤害并减速5秒
+  description: 全屏暴风雪持续5秒，对所有敌人造成45点伤害并减速5秒
   type: spell
   rarity: rare
   energyCost: 4
-  goldCost: 55
+  goldCost: 90
   spellSubtype: control
   placement:
-    targetType: area
-    range: cursor
+    targetType: global
   spellEffect:
     handler: aoe_damage_slow
-    damage: 15
-    radius: 128
+    damage: 45
+    radius: 9999
     slowPercent: 30
     slowDuration: 5.0
     affectAlly: false

@@ -242,3 +242,23 @@ describe('B3 扩展版 陷阱卡 YAML 配置', () => {
     expect(cardConfigRegistry.getAll().length).toBeGreaterThanOrEqual(13);
   });
 });
+
+describe('技能卡数值配置', () => {
+  beforeAll(async () => {
+    cardConfigRegistry.clear();
+    await loadAllCardConfigs();
+  });
+
+  it('暴风雪是全屏5秒控制技能，伤害和金币费用已提升', () => {
+    const cfg = cardConfigRegistry.get('blizzard_card');
+    expect(cfg).toBeDefined();
+    expect(cfg!.type).toBe('spell');
+    expect(cfg!.goldCost).toBe(90);
+    expect(cfg!.placement.targetType).toBe('global');
+
+    const spellEffect = (cfg as Record<string, unknown>).spellEffect as Record<string, unknown>;
+    expect(spellEffect.damage).toBe(45);
+    expect(spellEffect.radius).toBe(9999);
+    expect(spellEffect.slowDuration).toBe(5.0);
+  });
+});

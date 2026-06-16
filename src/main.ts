@@ -1799,30 +1799,8 @@ class TowerDefenderGame extends Game {
       }
 
       case 'blizzard': {
-        // 暴风雪：创建冰雪投射物螺旋飞向目标
-        const pid = this.world.createEntity();
-        this.world.addComponent(pid, Position, { x: x, y: y - 200 });
-        this.world.addComponent(pid, SpellProjectile, {
-          spellType: 2, // SPELL_BLIZZARD
-          targetX: x,
-          targetY: y,
-          startX: x,
-          startY: y - 200,
-          duration: 0.8,
-          elapsed: 0,
-          damage: 15,
-          radius: 128,
-          phase: 0,
-        });
-        this.world.addComponent(pid, Visual, {
-          shape: ShapeVal.Diamond,
-          colorR: 227, colorG: 242, colorB: 253,
-          size: 10,
-          alpha: 1,
-          outline: 0,
-          hitFlashTimer: 0,
-          idlePhase: 0,
-        });
+        // 暴风雪：全屏持续寒风，首帧造成伤害并施加减速
+        this.spellProjectileSystem.spawnGlobalEffect(this.world, 2, 45, 5.0);
         break;
       }
 

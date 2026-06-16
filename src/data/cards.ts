@@ -196,8 +196,8 @@ const blizzard: CardInstance = {
   id: 'card_blizzard',
   name: '暴风雪',
   type: 'spell',
-  description: '3×3格范围减速，持续5秒',
-  goldCost: 55,
+  description: '全屏暴风雪45点伤害并减速，持续5秒',
+  goldCost: 90,
 };
 
 const bomb: CardInstance = {

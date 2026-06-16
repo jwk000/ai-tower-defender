@@ -149,4 +149,39 @@ describe('SpellProjectileSystem', () => {
     expect(Health.current[enemyB]).toBe(50);
     expect(Health.current[ally]).toBe(100);
   });
+
+  it('blizzard is a 5-second global spell that damages all enemies once and slows them', () => {
+    const { renderer, commands } = makeRenderer();
+    const world = new TowerWorld();
+    const system = new SpellProjectileSystem(renderer);
+    reserveEntityZero(world);
+    RenderSystem.sceneOffsetX = 100;
+    RenderSystem.sceneOffsetY = 80;
+    RenderSystem.sceneW = 640;
+    RenderSystem.sceneH = 384;
+
+    const enemyA = makeEnemy(world, 120, 100);
+    const enemyB = makeEnemy(world, 700, 430);
+    const ally = makeAlly(world, 300, 220);
+
+    system.spawnGlobalEffect(world, 2, 45, 5);
+
+    system.update(world, 0.1);
+    expect(Health.current[enemyA]).toBe(55);
+    expect(Health.current[enemyB]).toBe(55);
+    expect(Health.current[ally]).toBe(100);
+    expect(Movement.speed[enemyA]).toBe(70);
+    expect(Movement.speed[enemyB]).toBe(70);
+    expect(effectQuery(world.world)).toHaveLength(1);
+    expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#90caf9')).toBe(true);
+
+    system.update(world, 2.4);
+    expect(Health.current[enemyA]).toBe(55);
+    expect(Health.current[enemyB]).toBe(55);
+    expect(effectQuery(world.world)).toHaveLength(1);
+
+    system.update(world, 2.5);
+    world.cleanupDeadEntities();
+    expect(effectQuery(world.world)).toHaveLength(0);
+  });
 });

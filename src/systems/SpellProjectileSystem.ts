@@ -2,7 +2,7 @@
 // SpellProjectileSystem — 技能卡投射物动画系统
 //
 // 处理火球术、剑雨、暴风雪、炸弹等技能卡的飞行动画和爆炸效果。
-// 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪旋风效果，炸弹抛物线。
+// 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪全屏覆盖，炸弹抛物线。
 // ============================================================
 
 import { TowerWorld, type System, defineQuery } from '../core/World.js';
@@ -555,6 +555,23 @@ export class SpellProjectileSystem implements System {
       case SPELL_BLIZZARD: {
         const z = 7;
         const windAlpha = Math.max(0, alpha);
+        const isGlobal = radius >= Math.max(RenderSystem.sceneW, RenderSystem.sceneH);
+        const areaX = isGlobal ? RenderSystem.sceneOffsetX : x - radius;
+        const areaY = isGlobal ? RenderSystem.sceneOffsetY : y - radius;
+        const areaW = isGlobal ? RenderSystem.sceneW : radius * 2;
+        const areaH = isGlobal ? RenderSystem.sceneH : radius * 2;
+        if (isGlobal) {
+          this.renderer.push({
+            shape: 'rect',
+            x: areaX + areaW / 2,
+            y: areaY + areaH / 2,
+            size: areaW,
+            h: areaH,
+            color: '#90caf9',
+            alpha: windAlpha * 0.12,
+            z,
+          });
+        }
         this.renderer.push({
           shape: 'circle',
           x, y,
@@ -577,8 +594,12 @@ export class SpellProjectileSystem implements System {
           const phase = (progress * 2.2 + i * 0.061) % 1;
           const band = i % 6;
           const lane = band - 2.5;
-          const gustX = x - radius * 0.95 + phase * radius * 1.9;
-          const gustY = y + lane * 24 + Math.sin(phase * Math.PI * 2 + i) * 18;
+          const gustX = isGlobal
+            ? areaX + phase * areaW
+            : x - radius * 0.95 + phase * radius * 1.9;
+          const gustY = isGlobal
+            ? areaY + ((i * 37) % Math.max(1, areaH)) + Math.sin(phase * Math.PI * 2 + i) * 18
+            : y + lane * 24 + Math.sin(phase * Math.PI * 2 + i) * 18;
           const size = i % 4 === 0 ? 7 : 3 + (i % 3);
           this.renderer.push({
             shape: i % 4 === 0 ? 'diamond' : 'circle',
@@ -605,7 +626,9 @@ export class SpellProjectileSystem implements System {
         }
         for (let i = 0; i < 10; i++) {
           const angle = progress * Math.PI * 3.5 + i * Math.PI * 0.2;
-          const dist = radius * (0.25 + (i % 5) * 0.12);
+          const dist = isGlobal
+            ? Math.min(areaW, areaH) * (0.12 + (i % 5) * 0.045)
+            : radius * (0.25 + (i % 5) * 0.12);
           this.renderer.push({
             shape: 'diamond',
             x: x + Math.cos(angle) * dist,
@@ -788,12 +811,12 @@ export class SpellProjectileSystem implements System {
 
     const shakeEid = world.createEntity();
     world.addComponent(shakeEid, ScreenShake, {
-      intensity: 10,
-      duration,
+      intensity: spellType === SPELL_BLIZZARD ? 3 : 10,
+      duration: spellType === SPELL_BLIZZARD ? 0.25 : duration,
       elapsed: 0,
-      frequency: 18,
+      frequency: spellType === SPELL_BLIZZARD ? 26 : 18,
     });
-    Sound.play('exploder_boom');
+    Sound.play(spellType === SPELL_BLIZZARD ? 'ice_hit' : 'exploder_boom');
   }
 
   private updateEarthquakeDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {
@@ -819,7 +842,7 @@ export class SpellProjectileSystem implements System {
       const px = Position.x[eid] ?? 0;
       const py = Position.y[eid] ?? 0;
       const dist = Math.hypot(px - x, py - y);
-      if (dist < radius || spellType === SPELL_EARTHQUAKE) {
+      if (dist < radius || spellType === SPELL_EARTHQUAKE || spellType === SPELL_BLIZZARD) {
         applyDamageToTarget(world, eid, damage, damageType);
 
         // Blizzard slow effect
