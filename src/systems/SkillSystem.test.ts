@@ -191,7 +191,7 @@ function makeEnemy(world: TowerWorld, x: number): number {
 }
 
 describe('SkillSystem — 盾卫自动嘲讽', () => {
-  it('自动嘲讽范围内所有敌人，使其停止移动并锁定攻击盾卫', () => {
+  it('自动嘲讽范围内且可攻击盾卫的敌人，使其停止移动并锁定攻击盾卫', () => {
     const world = new TowerWorld();
     world.createEntity();
     RenderSystem.sceneOffsetX = 0;
@@ -235,5 +235,26 @@ describe('SkillSystem — 盾卫自动嘲讽', () => {
     } finally {
       SKILL_CONFIGS.taunt = originalTaunt;
     }
+  });
+
+  it('被嘲讽但攻击距离不够的敌人继续沿路径移动', () => {
+    const world = new TowerWorld();
+    world.createEntity();
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+    const shield = makeShieldGuard(world);
+    const enemy = makeEnemy(world, 16);
+    Position.x[shield] = 200;
+    Position.y[shield] = 16;
+    Health.current[shield] = 100;
+    world.addComponent(enemy, Taunted, { sourceId: shield, timer: 3 });
+
+    new MovementSystem(makeMap()).update(world, 1);
+
+    expect(hasComponent(world.world, Taunted, enemy)).toBe(true);
+    expect(Position.x[enemy]).toBeGreaterThan(16);
+    expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
+    expect(Health.current[shield]).toBe(100);
+    expect(Attack.targetId[enemy]).toBe(shield);
   });
 });

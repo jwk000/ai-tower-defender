@@ -104,8 +104,7 @@ export class MovementSystem implements System {
         continue;
       }
 
-      if (this.processTauntTimer(world, eid, dt) && hasComponent(world.world, Attack, eid)) {
-        this.processEnemyAttack(world, eid, dt);
+      if (this.processTauntTimer(world, eid, dt) && hasComponent(world.world, Attack, eid) && this.processEnemyAttack(world, eid, dt)) {
         Movement.currentSpeed[eid] = 0;
         continue;
       }
