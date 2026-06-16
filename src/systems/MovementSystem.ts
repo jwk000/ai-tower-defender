@@ -138,7 +138,7 @@ export class MovementSystem implements System {
       const spawnIdx = Movement.spawnIdx[eid]!;
       const path = (spawnIdx >= 0 && spawnIdx < paths.length) ? paths[spawnIdx]! : paths[0]!;
 
-      const pathIndex = Movement.pathIndex[eid]!;
+      let pathIndex = Movement.pathIndex[eid]!;
 
       // Reached end of path — attack animation + damage base
       if (pathIndex >= path.length - 1) {
@@ -146,13 +146,18 @@ export class MovementSystem implements System {
         continue;
       }
 
-      const posX = Position.x[eid]!;
-      const posY = Position.y[eid]!;
+      let posX = Position.x[eid]!;
+      let posY = Position.y[eid]!;
 
       // --- Path-recovery: detect if enemy was pushed off-path ---
       if (this.tryPathRecovery(eid, pathIndex, path, ts, ox, oy, posX, posY, spawnIdx)) {
-        Movement.currentSpeed[eid] = 0;
-        continue; // position already snapped to nearest waypoint
+        pathIndex = Movement.pathIndex[eid]!;
+        if (pathIndex >= path.length - 1) {
+          this.processEnemyReachedPathEnd(world, eid);
+          continue;
+        }
+        posX = Position.x[eid]!;
+        posY = Position.y[eid]!;
       }
 
       const current = path[pathIndex]!;

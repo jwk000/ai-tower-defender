@@ -460,20 +460,20 @@ describe('MovementSystem — path recovery', () => {
 
     sys.update(world, 0.1);
 
-    // Should snap to nearest waypoint — row 0, some col
+    // Should recover to the nearest waypoint, then keep moving on the same frame.
     const newX = Position.x[eid]!;
     const newY = Position.y[eid]!;
 
-    // The nearest waypoint to (wp1cx, wp1cy + 100) is wp1 at (wp1cx, wp1cy)
-    // with tileSize=32, wp1cx=32*1+16=48, wp1cy=0*32+16=16
-    // So snapped position should be exactly the waypoint center
-    expect(newX).toBeCloseTo(wp1cx, 0);
+    // The nearest waypoint to (wp1cx, wp1cy + 100) is wp1. Recovery must put
+    // the enemy back on the path row, and movement should continue immediately
+    // instead of leaving currentSpeed=0 for this frame.
+    expect(newX).toBeGreaterThan(wp1cx);
     expect(newY).toBeCloseTo(wp1cy, 0);
 
     // pathIndex should be 1 (the nearest waypoint)
     expect(Movement.pathIndex[eid]).toBe(1);
-    // progress should be reset
-    expect(Movement.progress[eid]).toBe(0);
+    expect(Movement.progress[eid]).toBeGreaterThan(0);
+    expect(Movement.currentSpeed[eid]).toBeGreaterThan(0);
   });
 
   it('Enemy off-path near waypoint 4 gets snapped to waypoint 4', () => {
