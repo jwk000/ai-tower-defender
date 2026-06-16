@@ -154,23 +154,18 @@ const CD_BAR_HALF_H = CD_BAR_HEIGHT / 2;
 const CD_BAR_GAP = 1;
 const CD_BAR_COLOR = '#2196f3';
 
-const RANK_CHEVRON_THICKNESS = 2;
-const RANK_CHEVRON_ARM_LEN = 7;
-const RANK_CHEVRON_ROW_GAP = 1;
-const RANK_CHEVRON_ANGLE = Math.PI / 6;
-const RANK_CHEVRON_FILL = '#e0e0e0';
-const RANK_CHEVRON_STROKE = '#ffd700';
-const RANK_STAR_SIZE = 5;
-const RANK_STAR_COLOR = '#ffd700';
-const RANK_STAR_GAP = 2;
-const RANK_STAR_ROW_GAP = 2;
-const RANK_INSIGNIA_BLOCK_WIDTH = 14;
-const RANK_INSIGNIA_NAME_GAP = 4;
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
+const TOWER_LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
   if (!active) return 1;
   return Math.sin(phase) >= 0 ? MOVING_ENEMY_BREATH_SCALE : 1;
+}
+
+export function formatTowerLevelDisplayName(name: string | undefined, level: number | undefined): string | undefined {
+  if (!name) return name;
+  const normalizedLevel = Math.max(1, Math.min(TOWER_LEVEL_ROMAN.length - 1, Math.floor(level ?? 1)));
+  return `${name}[${TOWER_LEVEL_ROMAN[normalizedLevel]}]`;
 }
 
 export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): number {
@@ -1909,29 +1904,18 @@ export class RenderSystem implements System {
       }
 
       // ========================================
-      // 3. Display name + (towers) rank insignia on the same horizontal line
-      //    Layout: [insignia][gap][name], centered around posX
+      // 3. Display name
+      //    Towers append Roman level suffix, e.g. 箭塔[III].
       // ========================================
-      const displayName = world.getDisplayName(eid);
+      const baseDisplayName = world.getDisplayName(eid);
+      const displayName = isTower
+        ? formatTowerLevelDisplayName(baseDisplayName, Tower.level[eid])
+        : baseDisplayName;
       if (isFinite(healthBarY)) {
         const nameY = healthBarY - 10;
-        const showInsignia = isTower && Tower.level[eid]! >= 1;
         const nameLabelSize = 12;
-        const nameWidth = displayName
-          ? this.renderer.measureLabel(displayName, nameLabelSize)
-          : 0;
-        const insigniaWidth = showInsignia ? RANK_INSIGNIA_BLOCK_WIDTH : 0;
-        const gap = showInsignia && displayName ? RANK_INSIGNIA_NAME_GAP : 0;
-        const totalWidth = insigniaWidth + gap + nameWidth;
-        const blockLeft = posX - totalWidth / 2;
-
-        if (showInsignia) {
-          const insigniaCenterX = blockLeft + insigniaWidth / 2;
-          this.drawTowerRankInsignia(insigniaCenterX, nameY, Tower.level[eid]!, renderZ);
-        }
 
         if (displayName) {
-          const nameCenterX = blockLeft + insigniaWidth + gap + nameWidth / 2;
           const labelColor = isBossEntity
             ? NAME_COLOR_BOSS
             : isEliteEnemy
@@ -1941,7 +1925,7 @@ export class RenderSystem implements System {
                 : NAME_COLOR_DEFAULT;
           this.renderer.push({
             shape: 'rect',
-            x: nameCenterX,
+            x: posX,
             y: nameY,
             size: 0.1,
             h: 0.1,
@@ -2080,85 +2064,6 @@ export class RenderSystem implements System {
         this.renderer.drawPoisonBubbles(posX, posY, drawSize, poisonTimer, this.getDotVisual(eid).particle);
       }
     }
-  }
-
-  // ============================================
-  // Tower rank insignia — chevron stripes + star pips (military-style epaulette)
-  // L1: 1 chevron; L2: 2; L3: 3; L4: 3 chevrons + 1 star; L5: 3 chevrons + 2 stars
-  // (x, y) = bottom-center anchor (typically just above tower's top edge)
-  // ============================================
-  private drawTowerRankInsignia(
-    x: number, y: number, level: number, z: number,
-  ): void {
-    const clampedLevel = Math.max(1, Math.min(5, level));
-    const chevronCount = Math.min(clampedLevel, 3);
-    const starCount = Math.max(0, clampedLevel - 3);
-
-    const rowH = RANK_CHEVRON_THICKNESS + RANK_CHEVRON_ROW_GAP;
-    const chevronBlockH = chevronCount * RANK_CHEVRON_THICKNESS + (chevronCount - 1) * RANK_CHEVRON_ROW_GAP;
-    const starBlockH = starCount > 0 ? RANK_STAR_ROW_GAP + RANK_STAR_SIZE : 0;
-    const totalH = chevronBlockH + starBlockH;
-    const blockTop = y - totalH / 2;
-
-    const firstChevronCenterY = blockTop + RANK_CHEVRON_THICKNESS / 2;
-    for (let i = 0; i < chevronCount; i++) {
-      this.drawSingleChevron(x, firstChevronCenterY + i * rowH, z);
-    }
-
-    if (starCount > 0) {
-      const starsTotalW = starCount * RANK_STAR_SIZE + (starCount - 1) * RANK_STAR_GAP;
-      const starsStartX = x - starsTotalW / 2 + RANK_STAR_SIZE / 2;
-      const starsY = blockTop + chevronBlockH + RANK_STAR_ROW_GAP + RANK_STAR_SIZE / 2;
-      for (let i = 0; i < starCount; i++) {
-        this.renderer.push({
-          shape: 'diamond',
-          x: starsStartX + i * (RANK_STAR_SIZE + RANK_STAR_GAP),
-          y: starsY,
-          size: RANK_STAR_SIZE,
-          color: RANK_STAR_COLOR,
-          alpha: 0.95,
-          z,
-        });
-      }
-    }
-  }
-
-  // ---- Draw one chevron stripe centered on (x, y), apex pointing up ----
-  private drawSingleChevron(x: number, y: number, z: number): void {
-    const armLen = RANK_CHEVRON_ARM_LEN;
-    const thickness = RANK_CHEVRON_THICKNESS;
-    const angle = RANK_CHEVRON_ANGLE;
-    // Each arm's center sits halfway along the arm from the apex
-    const armCenterDX = Math.sin(angle) * armLen / 2;
-    const armCenterDY = Math.cos(angle) * armLen / 2;
-
-    this.renderer.push({
-      shape: 'rect',
-      x: x - armCenterDX,
-      y: y + armCenterDY,
-      size: armLen,
-      h: thickness,
-      color: RANK_CHEVRON_FILL,
-      stroke: RANK_CHEVRON_STROKE,
-      strokeWidth: 0.5,
-      rotation: -angle,
-      alpha: 0.95,
-      z,
-    });
-
-    this.renderer.push({
-      shape: 'rect',
-      x: x + armCenterDX,
-      y: y + armCenterDY,
-      size: armLen,
-      h: thickness,
-      color: RANK_CHEVRON_FILL,
-      stroke: RANK_CHEVRON_STROKE,
-      strokeWidth: 0.5,
-      rotation: angle,
-      alpha: 0.95,
-      z,
-    });
   }
 
   // ============================================

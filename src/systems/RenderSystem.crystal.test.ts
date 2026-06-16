@@ -15,7 +15,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { RenderSystem } from './RenderSystem.js';
+import { formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 
@@ -256,6 +256,28 @@ describe('RenderSystem — 水晶显示', () => {
     expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '精英怪', labelColor: '#FFD700' }));
     expect(renderer.commands).toContainEqual(expect.objectContaining({ label: 'Boss', labelColor: '#ff1744' }));
     expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '士兵', labelColor: '#4ade80' }));
+  });
+
+  it('塔名称后追加罗马数字等级后缀，不再绘制等级徽章', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    const towerId = makeCannonTower(world);
+    Tower.level[towerId] = 3;
+    world.setDisplayName(towerId, '箭塔');
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+
+    expect(formatTowerLevelDisplayName('箭塔', 3)).toBe('箭塔[III]');
+    expect(formatTowerLevelDisplayName('箭塔', 5)).toBe('箭塔[V]');
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      label: '箭塔[III]',
+      labelColor: '#ffffff',
+    }));
+    expect(renderer.commands).not.toContainEqual(expect.objectContaining({ label: '箭塔' }));
   });
 
   it('精英怪与未选中我方士兵不显示被动边框，选中士兵才显示边框', () => {
