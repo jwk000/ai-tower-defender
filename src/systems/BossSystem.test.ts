@@ -10,7 +10,7 @@ import type { System } from '../core/World.js';
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, UnitTag, Visual, Category, CategoryVal, Movement,
-  Tower, TargetingMark,
+  Tower, TargetingMark, EnemySkillParticleEffect, EnemySkillParticleEffectVal,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { BossSystem, BossType } from './BossSystem.js';
@@ -26,6 +26,7 @@ import { MAP_01 } from '../data/gameData.js';
 const allHealthQuery = defineQuery([Health]);
 const allPositionedQuery = defineQuery([Position]);
 const bossQuery = defineQuery([Boss]);
+const skillParticleQuery = defineQuery([EnemySkillParticleEffect]);
 const GIANT_SLIME_UNIT_TYPE_NUM = 19;
 
 // ============================================================
@@ -161,6 +162,22 @@ function countAliveEnemies(world: TowerWorld): number {
     }
   }
   return count;
+}
+
+function getAliveNonBossChaosEnemies(world: TowerWorld, boss: number): number[] {
+  return allHealthQuery(world.world).filter((eid) => (
+    eid !== boss &&
+    Health.current[eid] !== undefined &&
+    Health.current[eid]! > 0 &&
+    Faction.value[eid] === FactionVal.Chaos &&
+    UnitTag.isEnemy[eid] === 1
+  ));
+}
+
+function distanceBetween(a: number, b: number): number {
+  const dx = (Position.x[a] ?? 0) - (Position.x[b] ?? 0);
+  const dy = (Position.y[a] ?? 0) - (Position.y[b] ?? 0);
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 // ============================================================
@@ -460,6 +477,47 @@ describe('BossSystem — Lucifer (路西法)', () => {
     expect(skeletonCount).toBe(3);
   });
 
+  it('召唤骷髅分散落位且视觉尺寸放大2倍', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
+      faction: FactionVal.Chaos,
+    });
+
+    system.update(world, 0.1);
+
+    const skeletons = getAliveNonBossChaosEnemies(world, boss);
+    expect(skeletons).toHaveLength(3);
+    for (const skeleton of skeletons) {
+      expect(Visual.size[skeleton]).toBe(28);
+      expect(distanceBetween(skeleton, boss)).toBeGreaterThanOrEqual(96);
+    }
+    for (let i = 0; i < skeletons.length; i++) {
+      for (let j = i + 1; j < skeletons.length; j++) {
+        expect(distanceBetween(skeletons[i]!, skeletons[j]!)).toBeGreaterThan(130);
+      }
+    }
+  });
+
+  it('召唤骷髅时在每个落点播放地下钻出尘土特效', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
+      faction: FactionVal.Chaos,
+    });
+
+    system.update(world, 0.1);
+
+    const dustEffects = skillParticleQuery(world.world).filter((eid) => (
+      EnemySkillParticleEffect.effectType[eid] === EnemySkillParticleEffectVal.BurrowTrail
+    ));
+    expect(dustEffects).toHaveLength(3);
+    for (const effect of dustEffects) {
+      expect(EnemySkillParticleEffect.radius[effect]).toBeGreaterThanOrEqual(46);
+      expect(EnemySkillParticleEffect.colorR[effect]).toBe(150);
+      expect(EnemySkillParticleEffect.colorG[effect]).toBe(105);
+      expect(EnemySkillParticleEffect.colorB[effect]).toBe(56);
+    }
+  });
+
   it('场上骷髅数达到上限(12)时不继续召唤', () => {
     const boss = makeBoss(world, BossType.Lucifer, {
       hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
@@ -513,6 +571,42 @@ describe('BossSystem — Lucifer (路西法)', () => {
       }
     }
     expect(skeletonCount).toBe(3);
+  });
+
+  it('召唤施法时停步2秒，施法结束后继续移动', () => {
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, x: 0, y: 96,
+      faction: FactionVal.Chaos,
+    });
+    world.addComponent(boss, Movement, {
+      speed: 64,
+      currentSpeed: 64,
+      moveMode: MoveModeVal.FollowPath,
+      targetX: 0,
+      targetY: 96,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+      homeX: 0,
+      homeY: 96,
+      moveRange: 0,
+    });
+    const movement = new MovementSystem(MAP_01, () => GamePhase.Battle);
+
+    system.update(world, 0.1);
+    expect(Boss.abilityTimer[boss]).toBeLessThan(0);
+
+    const xAfterSummon = Position.x[boss];
+    const yAfterSummon = Position.y[boss];
+    movement.update(world, 1);
+    expect(Position.x[boss]).toBe(xAfterSummon);
+    expect(Position.y[boss]).toBe(yAfterSummon);
+    expect(Movement.currentSpeed[boss]).toBe(0);
+
+    system.update(world, 2);
+    movement.update(world, 0.5);
+    expect(Boss.abilityTimer[boss]).toBeGreaterThanOrEqual(0);
+    expect(Movement.currentSpeed[boss]).toBeGreaterThan(0);
   });
 });
 

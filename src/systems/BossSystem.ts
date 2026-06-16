@@ -17,6 +17,7 @@ import {
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
   Tower, TargetingMark, ScreenShake, ExplosionEffect,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
+  EnemySkillParticleEffect, EnemySkillParticleEffectVal,
 } from '../core/components.js';
 import { EnemyType } from '../types/index.js';
 import { ENEMY_TYPE_BY_ID } from '../data/gameData.js';
@@ -57,6 +58,10 @@ const LUCIFER_SPAWN_INTERVAL_NORMAL = 10;
 const LUCIFER_SPAWN_INTERVAL_ENRAGE = 5;
 const LUCIFER_SKELETON_CAP = 12;
 const LUCIFER_ENRAGE_HP_RATIO = 0.3;
+const LUCIFER_SUMMON_CAST_DURATION = 2;
+const LUCIFER_SKELETON_VISUAL_SIZE = 28;
+const LUCIFER_SKELETON_SPAWN_RADIUS = 96;
+const LUCIFER_SKELETON_SPREAD_ARC = (Math.PI * 2) / 3;
 const SUPERROBOT_MISSILE_INTERVAL = 10;
 const SUPERROBOT_WARNING_DURATION = 2;
 const ABYSSLORD_ANNIHILATE_INTERVAL = 5;
@@ -157,6 +162,24 @@ function spawnBossSkillBurst(
   }
 }
 
+function spawnSkeletonBurrowDust(world: TowerWorld, x: number, y: number): void {
+  const effectId = world.createEntity();
+  world.addComponent(effectId, Position, { x, y });
+  world.addComponent(effectId, Category, { value: CategoryVal.Effect });
+  world.addComponent(effectId, EnemySkillParticleEffect, {
+    effectType: EnemySkillParticleEffectVal.BurrowTrail,
+    duration: 0.9,
+    elapsed: 0,
+    radius: 46,
+    targetX: x,
+    targetY: y,
+    colorR: 150,
+    colorG: 105,
+    colorB: 56,
+    seed: Math.random(),
+  });
+}
+
 // ============================================================
 // BossSystem
 // ============================================================
@@ -192,7 +215,9 @@ export class BossSystem implements System {
       if (hp === undefined || hp <= 0) continue;
 
       // Tick ability timer for alive bosses
-      Boss.abilityTimer[eid] = (Boss.abilityTimer[eid] ?? 0) + dt;
+      Boss.abilityTimer[eid] = Math.min(0, Boss.abilityTimer[eid] ?? 0) < 0
+        ? Math.min(0, (Boss.abilityTimer[eid] ?? 0) + dt)
+        : (Boss.abilityTimer[eid] ?? 0) + dt;
       Boss.spawnTimer[eid] = (Boss.spawnTimer[eid] ?? 0) + dt;
 
       // Dispatch to specific boss handler
@@ -428,6 +453,13 @@ export class BossSystem implements System {
   // ============================================================
 
   private handleLucifer(world: TowerWorld, eid: number, dt: number): void {
+    if ((Boss.abilityTimer[eid] ?? 0) < 0) {
+      if (hasComponent(world.world, Movement, eid)) {
+        Movement.currentSpeed[eid] = 0;
+      }
+      return;
+    }
+
     const hpRatio = (Health.current[eid] ?? 0) / Math.max(1, Health.max[eid] ?? 1);
     const isEnraged = hpRatio < LUCIFER_ENRAGE_HP_RATIO;
     const interval = isEnraged ? LUCIFER_SPAWN_INTERVAL_ENRAGE : LUCIFER_SPAWN_INTERVAL_NORMAL;
@@ -452,6 +484,10 @@ export class BossSystem implements System {
     const spawnTimer = Boss.spawnTimer[eid] ?? 0;
     if (spawnTimer >= interval) {
       Boss.spawnTimer[eid] = 0;
+      Boss.abilityTimer[eid] = -LUCIFER_SUMMON_CAST_DURATION;
+      if (hasComponent(world.world, Movement, eid)) {
+        Movement.currentSpeed[eid] = 0;
+      }
       spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 120, { r: 156, g: 39, b: 176 }, 0.7);
       this.spawnLuciferSkeletons(world, eid);
       Sound.play(getSummonSfx('summon_skeletons'));
@@ -483,12 +519,15 @@ export class BossSystem implements System {
 
     const x = Position.x[bossEid] ?? 0;
     const y = Position.y[bossEid] ?? 0;
+    const baseAngle = Math.random() * Math.PI * 2;
 
     for (let i = 0; i < spawnCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 40 + Math.random() * 40;
+      const angle = baseAngle + i * LUCIFER_SKELETON_SPREAD_ARC;
+      const dist = LUCIFER_SKELETON_SPAWN_RADIUS + Math.random() * 28;
       const sx = x + Math.cos(angle) * dist;
       const sy = y + Math.sin(angle) * dist;
+
+      spawnSkeletonBurrowDust(world, sx, sy);
 
       const eid = world.createEntity();
       world.addComponent(eid, Position, { x: sx, y: sy });
@@ -507,7 +546,7 @@ export class BossSystem implements System {
       world.addComponent(eid, Visual, {
         shape: ShapeVal.Circle,
         colorR: 200, colorG: 200, colorB: 200,
-        size: 14,
+        size: LUCIFER_SKELETON_VISUAL_SIZE,
         alpha: 1,
         facing: 1,
       });
