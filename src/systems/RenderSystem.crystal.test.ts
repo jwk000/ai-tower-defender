@@ -7,6 +7,8 @@ import {
   Boss,
   Category,
   CategoryVal,
+  DeathEffect,
+  DisintegrateEffect,
   Health,
   Movement,
   Position,
@@ -16,6 +18,7 @@ import {
   Visual,
 } from '../core/components.js';
 import { formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
+import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 
@@ -297,5 +300,45 @@ describe('RenderSystem — 水晶显示', () => {
 
     expect(eliteBody).toEqual(expect.objectContaining({ stroke: undefined, strokeWidth: undefined }));
     expect(soldierBody).toEqual(expect.objectContaining({ stroke: '#ffffff', strokeWidth: 3 }));
+  });
+
+  it('死亡灰飞烟灭特效首帧必须先渲染，再进入生命周期清理', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    const effectId = world.createEntity();
+    world.addComponent(effectId, Position, { x: 48, y: 32 });
+    world.addComponent(effectId, Visual, {
+      shape: ShapeVal.Circle,
+      colorR: 120,
+      colorG: 120,
+      colorB: 120,
+      size: 32,
+      alpha: 1,
+    });
+    world.addComponent(effectId, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
+    world.addComponent(effectId, DisintegrateEffect, {
+      shardCount: 10,
+      radius: 32,
+      colorR: 170,
+      colorG: 170,
+      colorB: 170,
+    });
+
+    const deathEffectSystem = new DeathEffectSystem();
+    deathEffectSystem.update(world, 1);
+    world.cleanupDeadEntities();
+
+    const renderer = new RendererStub();
+    const renderSystem = new RenderSystem(renderer as never, makeMap());
+    renderSystem.update(world, 0);
+
+    const ashShards = renderer.commands.filter((cmd) =>
+      cmd.color === 'rgb(170, 170, 170)' &&
+      (cmd.shape === 'triangle' || cmd.shape === 'diamond'),
+    );
+
+    expect(ashShards.length).toBe(10);
+    expect(DeathEffect.renderedFrames[effectId]).toBe(1);
   });
 });

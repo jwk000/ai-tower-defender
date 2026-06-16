@@ -394,6 +394,7 @@ export const Elite = defineComponent({
 export const DeathEffect = defineComponent({
   duration: Types.f32,
   elapsed: Types.f32,
+  renderedFrames: Types.ui8,
 });
 
 /** 敌方灰飞烟灭破碎消散效果 */

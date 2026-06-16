@@ -133,7 +133,7 @@ describe('DeathEffectSystem — 死亡动作生命周期', () => {
     const world = new TowerWorld();
     const system = new DeathEffectSystem();
     const effect = world.createEntity();
-    world.addComponent(effect, DeathEffect, { duration: 0.3, elapsed: 0 });
+    world.addComponent(effect, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 1 });
     registerDeathSpriteArtId(effect, 'enemy_goblin');
 
     system.update(world, 0.31);

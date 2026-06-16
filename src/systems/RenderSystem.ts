@@ -1074,6 +1074,9 @@ export class RenderSystem implements System {
     for (const eid of sorted) {
       const posX = Position.x[eid]!;
       const posY = Position.y[eid]!;
+      if (hasComponent(world.world, DeathEffect, eid)) {
+        DeathEffect.renderedFrames[eid] = Math.min(255, (DeathEffect.renderedFrames[eid] ?? 0) + 1);
+      }
 
       // ---- Type identification ----
       const isProjectile = hasComponent(world.world, Projectile, eid);

@@ -96,7 +96,7 @@ export class LifecycleSystem implements System {
       const eid = world.createEntity();
       world.addComponent(eid, Position, { x, y });
       world.addComponent(eid, Visual, { shape: ShapeVal.Circle, colorR: r, colorG: g, colorB: b, size });
-      world.addComponent(eid, DeathEffect, { duration: 0.3 });
+      world.addComponent(eid, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
       return eid;
     }
 
@@ -104,7 +104,7 @@ export class LifecycleSystem implements System {
     const ringEid = world.createEntity();
     world.addComponent(ringEid, Position, { x, y });
     world.addComponent(ringEid, Visual, { shape: ShapeVal.Circle, colorR: cfg.cr, colorG: cfg.cg, colorB: cfg.cb, size });
-    world.addComponent(ringEid, DeathEffect, { duration: cfg.dur });
+    world.addComponent(ringEid, DeathEffect, { duration: cfg.dur, elapsed: 0, renderedFrames: 0 });
     // Use ExplosionEffect for the ring to expand outward
     world.addComponent(ringEid, ExplosionEffect as object, { duration: cfg.dur, maxRadius: size * 1.5, elapsed: 0 });
 
@@ -124,7 +124,7 @@ export class LifecycleSystem implements System {
         size: cfg.pSize,
         alpha: 0.9,
       });
-      world.addComponent(pEid, DeathEffect, { duration: cfg.dur - i * 0.03 });
+      world.addComponent(pEid, DeathEffect, { duration: cfg.dur - i * 0.03, elapsed: 0, renderedFrames: 0 });
     }
     return ringEid;
   }
@@ -213,7 +213,7 @@ export class LifecycleSystem implements System {
             colorB,
             size,
           });
-          world.addComponent(effectEid, DeathEffect, { duration: 0.3 });
+          world.addComponent(effectEid, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
           if (isEnemy) {
             world.addComponent(effectEid, DisintegrateEffect, {
               shardCount: hasComponent(world.world, Boss, eid) ? 18 : 10,

@@ -762,7 +762,7 @@ class TowerDefenderGame extends Game {
             colorR: 0xf4, colorG: 0x43, colorB: 0x36,
             size: 24,
           });
-          this.world.addComponent(effectId, DeathEffect, { duration: 0.3 });
+          this.world.addComponent(effectId, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
         }
       },
       (batId) => {

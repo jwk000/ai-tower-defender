@@ -492,6 +492,7 @@ export const playEffect: RuleHandlerFn = (world, entityId, params, _context) => 
     }
     DeathEffect.duration[effectId] = dDur;
     DeathEffect.elapsed[effectId] = 0;
+    DeathEffect.renderedFrames[effectId] = 0;
     Visual.colorR[effectId] = dR;
     Visual.colorG[effectId] = dG;
     Visual.colorB[effectId] = dB;
