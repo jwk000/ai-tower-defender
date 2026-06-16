@@ -215,6 +215,19 @@ const HAND_CARD_HOVER_SCALE = 1.08;
 const HAND_CARD_HOVER_LIFT = 24;
 const HAND_CARD_HOVER_SPEED = 12;
 
+function resolveSpellCardConfig(spellCardId: string): CardConfig | undefined {
+  const candidates = [
+    spellCardId,
+    `${spellCardId}_card`,
+    spellCardId.startsWith('card_') ? `${spellCardId.slice(5)}_card` : `card_${spellCardId}`,
+  ];
+  for (const id of candidates) {
+    const cfg = cardConfigRegistry.get(id);
+    if (cfg) return cfg;
+  }
+  return undefined;
+}
+
 type UILayer = 'board' | 'normal' | 'fullscreen';
 
 // ============================================================
@@ -1704,7 +1717,7 @@ export class UISystem implements System {
       case 'spell': {
         const spellId = ds.spellCardId;
         if (spellId) {
-          const cardCfg = cardConfigRegistry.get(spellId);
+          const cardCfg = resolveSpellCardConfig(spellId);
           if (cardCfg) {
             const extras = cardCfg as Record<string, unknown>;
             const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;

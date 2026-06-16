@@ -560,7 +560,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       dragState: {
         active: true,
         entityType: 'spell',
-        spellCardId: 'fireball_card',
+        spellCardId: 'fireball',
         cardIndex: 0,
       },
     });
@@ -599,7 +599,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       dragState: {
         active: true,
         entityType: 'spell',
-        spellCardId: 'blizzard_card',
+        spellCardId: 'blizzard',
         cardIndex: 0,
       },
     });
