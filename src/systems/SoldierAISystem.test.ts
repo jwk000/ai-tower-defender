@@ -778,7 +778,7 @@ describe('SoldierAISystem — differentiated soldier mechanics', () => {
     expect(Visual.attackAnimTimer[archer]).toBe(Visual.attackAnimDuration[archer]);
   });
 
-  it('牧师治疗我方士兵，并保留少量攻击能力', () => {
+  it('牧师每1秒治疗我方士兵，并保留少量攻击能力', () => {
     const priest = makeSoldier(world, {
       x: 200, y: 200,
       homeX: 200, homeY: 200,
@@ -800,6 +800,12 @@ describe('SoldierAISystem — differentiated soldier mechanics', () => {
 
     expect(Health.current[wounded]).toBe(62);
     expect(Attack.damage[priest]).toBe(6);
+
+    system.update(world, 0.5);
+    expect(Health.current[wounded]).toBe(62);
+
+    system.update(world, 0.5);
+    expect(Health.current[wounded]).toBe(74);
   });
 
   it('法师周期法术造成魔法伤害并施加负面buff', () => {

@@ -222,7 +222,7 @@ priest:
     speed: 28
     armor: 5
     mr: 20
-    healAmount: 8
+    healAmount: 12
     healRange: 150
     moveRange: 100
 
@@ -251,6 +251,7 @@ priest:
     movementMode: player_directed
     special:
       healAmount: 12
+      healCooldown: 1.0
       healRange: 180
       alertRange: 240
 
@@ -260,8 +261,8 @@ priest:
       cooldown: 5
       energyCost: 10
       range: 150
-      value: 5.0
-      description: 给周围我方士兵持续回血，并用少量神圣伤害协助攻击
+      value: 12
+      description: 每1秒治疗范围内HP最低的友方士兵12点生命，并用少量神圣伤害协助攻击
 
   lifecycle:
     onDeath:

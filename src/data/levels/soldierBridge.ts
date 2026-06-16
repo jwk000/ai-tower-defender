@@ -119,6 +119,7 @@ export function injectSoldierConfigsFromRegistry(): number {
       'periodicSpellDamage',
       'periodicSpellRadius',
       'healAmount',
+      'healCooldown',
       'healRange',
       'repairAmount',
       'repairRange',

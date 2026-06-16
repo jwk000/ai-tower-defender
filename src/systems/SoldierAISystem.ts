@@ -86,6 +86,8 @@ export class SoldierAISystem implements System {
 
   /** Per-soldier periodic spell cooldown side-channel. */
   private periodicSpellTimers = new Map<number, number>();
+  /** Per-soldier heal cooldown side-channel. */
+  private healTimers = new Map<number, number>();
 
   // ============================================================
   // Frame Update
@@ -470,7 +472,7 @@ export class SoldierAISystem implements System {
     this.tickPeriodicSpell(world, eid, dt, config);
 
     if ((config.healAmount ?? 0) > 0) {
-      this.healMostWoundedFriendly(world, eid, config);
+      this.tickHealAction(world, eid, dt, config);
     }
 
     if ((config.repairAmount ?? 0) > 0) {
@@ -513,7 +515,7 @@ export class SoldierAISystem implements System {
     this.periodicSpellTimers.set(eid, cooldown);
   }
 
-  private healMostWoundedFriendly(world: TowerWorld, eid: number, config: UnitConfig): void {
+  private healMostWoundedFriendly(world: TowerWorld, eid: number, config: UnitConfig): boolean {
     const range = config.healRange ?? Attack.range[eid] ?? 0;
     const amount = config.healAmount ?? 0;
     const target = this.findMostWoundedFriendly(world, eid, range, (candidate) => (
@@ -521,6 +523,23 @@ export class SoldierAISystem implements System {
     ));
     if (target !== 0) {
       applyHealToTarget(world, target, amount);
+      return true;
+    }
+    return false;
+  }
+
+  private tickHealAction(world: TowerWorld, eid: number, dt: number, config: UnitConfig): void {
+    const cooldown = Math.max(0, config.healCooldown ?? 1);
+    const remaining = Math.max(0, (this.healTimers.get(eid) ?? 0) - dt);
+    if (remaining > 0) {
+      this.healTimers.set(eid, remaining);
+      return;
+    }
+
+    if (this.healMostWoundedFriendly(world, eid, config)) {
+      this.healTimers.set(eid, cooldown);
+    } else {
+      this.healTimers.set(eid, Math.min(cooldown, 0.25));
     }
   }
 

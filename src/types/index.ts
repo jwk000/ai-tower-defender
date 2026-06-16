@@ -444,6 +444,7 @@ export interface UnitConfig {
   periodicSpellDamage?: number; // 周期法术伤害
   periodicSpellRadius?: number; // 周期法术半径
   healAmount?: number; // 治疗量
+  healCooldown?: number; // 治疗间隔（秒）
   healRange?: number; // 治疗范围
   repairAmount?: number; // 修塔量
   repairRange?: number; // 修塔范围
