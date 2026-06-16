@@ -15,7 +15,9 @@ import {
   Visual,
 } from '../core/components.js';
 import { BossType } from './BossSystem.js';
+import { DeathEffectSystem } from './DeathEffectSystem.js';
 import { LifecycleSystem } from './LifecycleSystem.js';
+import { getDeathSpriteArtId, registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 
 const deathFxQuery = defineQuery([DeathEffect, DisintegrateEffect]);
 
@@ -58,6 +60,18 @@ describe('LifecycleSystem — Boss死亡与敌方灰飞烟灭', () => {
     const effects = deathFxQuery(world.world);
     expect(effects.length).toBe(1);
     expect(DisintegrateEffect.shardCount[effects[0]!]).toBe(10);
+  });
+
+  it('普通敌方单位死亡效果继承原单位death动作资源', () => {
+    const world = new TowerWorld();
+    const system = new LifecycleSystem();
+    makeEnemy(world, 0);
+
+    system.update(world, 0.016);
+
+    const effects = deathFxQuery(world.world);
+    expect(effects.length).toBe(1);
+    expect(getDeathSpriteArtId(effects[0]!)).toBe('enemy_goblin');
   });
 
   it('Boss死亡会立即让场上剩余敌方单位进入死亡状态并生成破碎效果', () => {
@@ -111,5 +125,19 @@ describe('LifecycleSystem — Boss死亡与敌方灰飞烟灭', () => {
 
     expect(Health.current[enemy]).toBe(0);
     expect(deathFxQuery(world.world).length).toBe(2);
+  });
+});
+
+describe('DeathEffectSystem — 死亡动作生命周期', () => {
+  it('死亡效果结束后清理死亡动作资源映射并销毁实体', () => {
+    const world = new TowerWorld();
+    const system = new DeathEffectSystem();
+    const effect = world.createEntity();
+    world.addComponent(effect, DeathEffect, { duration: 0.3, elapsed: 0 });
+    registerDeathSpriteArtId(effect, 'enemy_goblin');
+
+    system.update(world, 0.31);
+
+    expect(getDeathSpriteArtId(effect)).toBeNull();
   });
 });
