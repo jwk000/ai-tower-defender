@@ -41,6 +41,12 @@ const MAX_DUPLICATE_CARDS_IN_HAND = 2;
 /** 受控手牌大类在当前手牌中的最大数量 */
 const MAX_LIMITED_CATEGORY_CARDS_IN_HAND = 2;
 
+/** 卡池随机权重初始值 */
+const INITIAL_CARD_DRAW_WEIGHT = 20;
+
+/** 卡池随机权重下限 */
+const MIN_CARD_DRAW_WEIGHT = 5;
+
 // ---- HandSystem ----
 
 /**
@@ -55,6 +61,9 @@ export class HandSystem implements System {
 
   /** 卡牌库（cardId → CardInstance），由 initialize 注入 */
   private cardLibrary: Map<string, CardInstance> = new Map();
+
+  /** 每张卡当前随机权重（cardId → weight），本局内随抽取次数递减 */
+  private cardDrawWeights: Map<string, number> = new Map();
 
   /** 出牌回调 */
   onCardPlayed?: (cardId: string) => void;
@@ -82,8 +91,10 @@ export class HandSystem implements System {
    */
   initialize(cardPool: CardInstance[]): void {
     this.cardLibrary.clear();
+    this.cardDrawWeights.clear();
     for (const card of cardPool) {
       this.cardLibrary.set(card.id, card);
+      this.ensureCardDrawWeight(card.id);
     }
 
     // 重置手牌
@@ -134,6 +145,7 @@ export class HandSystem implements System {
 
     for (let i = 0; i < initialSlice.length; i++) {
       this.hand[i] = initialSlice[i]!;
+      this.consumeCardDrawWeight(initialSlice[i]!.id);
     }
   }
 
@@ -150,6 +162,7 @@ export class HandSystem implements System {
     const slot = this.hand.findIndex((s) => s === null);
     if (slot === -1) return false;
     this.hand[slot] = card;
+    this.consumeCardDrawWeight(cardId);
     return true;
   }
 
@@ -165,15 +178,15 @@ export class HandSystem implements System {
     const slot = this.hand.findIndex((s) => s === null);
     if (slot === -1) return false;
 
-    // 从卡牌库中随机选择一张
+    // 从卡牌库中按当前随机权重选择一张
     const cards = Array.from(this.cardLibrary.values()).filter((card) => this.canAddCardToHand(card.id));
     if (cards.length === 0) return false;
 
-    const randomIndex = Math.floor(Math.random() * cards.length);
-    const card = cards[randomIndex];
+    const card = this.pickWeightedCard(cards);
     if (!card) return false;
 
     this.hand[slot] = card;
+    this.consumeCardDrawWeight(card.id);
     return true;
   }
 
@@ -259,6 +272,7 @@ export class HandSystem implements System {
     for (const card of cards) {
       if (!this.cardLibrary.has(card.id)) {
         this.cardLibrary.set(card.id, card);
+        this.ensureCardDrawWeight(card.id);
         added.push(card);
       }
     }
@@ -300,5 +314,36 @@ export class HandSystem implements System {
     if (card.type === 'spell') return 'spell';
     if (card.type !== 'unit') return null;
     return card.id.endsWith('_tower') ? 'tower' : 'soldier';
+  }
+
+  private ensureCardDrawWeight(cardId: string): void {
+    if (!this.cardDrawWeights.has(cardId)) {
+      this.cardDrawWeights.set(cardId, INITIAL_CARD_DRAW_WEIGHT);
+    }
+  }
+
+  private getCardDrawWeight(cardId: string): number {
+    this.ensureCardDrawWeight(cardId);
+    return this.cardDrawWeights.get(cardId)!;
+  }
+
+  private consumeCardDrawWeight(cardId: string): void {
+    const current = this.getCardDrawWeight(cardId);
+    this.cardDrawWeights.set(cardId, Math.max(MIN_CARD_DRAW_WEIGHT, current - 1));
+  }
+
+  private pickWeightedCard(cards: readonly CardInstance[]): CardInstance | null {
+    let totalWeight = 0;
+    for (const card of cards) {
+      totalWeight += this.getCardDrawWeight(card.id);
+    }
+    if (totalWeight <= 0) return null;
+
+    let roll = Math.random() * totalWeight;
+    for (const card of cards) {
+      roll -= this.getCardDrawWeight(card.id);
+      if (roll < 0) return card;
+    }
+    return cards[cards.length - 1] ?? null;
   }
 }

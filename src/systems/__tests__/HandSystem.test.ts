@@ -30,6 +30,18 @@ function makeCard(id: string, name = id): CardInstance {
   return { id, name, type: 'unit', description: '测试卡牌', goldCost: 0 };
 }
 
+function makeTrapCard(id: string, name = id): CardInstance {
+  return { id, name, type: 'trap', description: '测试机关', goldCost: 0 };
+}
+
+function getDrawWeight(handSystem: HandSystem, cardId: string): number | undefined {
+  return (handSystem as unknown as { cardDrawWeights: Map<string, number> }).cardDrawWeights.get(cardId);
+}
+
+function setDrawWeight(handSystem: HandSystem, cardId: string, weight: number): void {
+  (handSystem as unknown as { cardDrawWeights: Map<string, number> }).cardDrawWeights.set(cardId, weight);
+}
+
 describe('HandSystem — 手牌管理', () => {
   let handSystem: HandSystem;
   let world: TowerWorld;
@@ -232,6 +244,45 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.drawCard('card_arrow_rain')).toBe(true);
       expect(handSystem.drawCard('card_gold_rush')).toBe(false);
       expect(handSystem.getHand().filter((card) => card?.type === 'spell')).toHaveLength(2);
+    });
+
+    it('成功抽入手牌后对应卡牌随机权重降低 1 点，最低为 5', () => {
+      const pool = [
+        makeTrapCard('card_spike_trap', '地刺'),
+        makeTrapCard('card_bear_trap', '捕兽夹'),
+        makeTrapCard('card_tar_pit', '焦油坑'),
+        makeTrapCard('card_boulder', '巨石'),
+        makeTrapCard('card_bomb', '炸弹'),
+      ];
+
+      handSystem.initialize(pool);
+      expect(getDrawWeight(handSystem, 'card_spike_trap')).toBe(19);
+
+      for (let i = 0; i < 30; i++) {
+        handSystem.reset();
+        expect(handSystem.drawCard('card_spike_trap')).toBe(true);
+      }
+
+      expect(getDrawWeight(handSystem, 'card_spike_trap')).toBe(5);
+    });
+
+    it('随机补牌按当前卡牌权重加权选择', () => {
+      handSystem.initialize([
+        makeTrapCard('card_spike_trap', '地刺'),
+        makeTrapCard('card_bear_trap', '捕兽夹'),
+      ]);
+      handSystem.reset();
+      setDrawWeight(handSystem, 'card_spike_trap', 5);
+      setDrawWeight(handSystem, 'card_bear_trap', 20);
+
+      vi.spyOn(Math, 'random').mockReturnValueOnce(0.19);
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_spike_trap');
+
+      handSystem.reset();
+      vi.spyOn(Math, 'random').mockReturnValueOnce(0.2);
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_bear_trap');
     });
   });
 
