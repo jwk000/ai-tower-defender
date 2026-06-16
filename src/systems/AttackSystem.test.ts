@@ -40,6 +40,7 @@ import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
 import { Sound } from '../utils/Sound.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
 import { TileType, TowerType, type MapConfig } from '../types/index.js';
+import { cardCanCounterLowAir, towerCanTargetLowAir } from '../utils/lowAirTargeting.js';
 
 const lightningStormQuery = defineQuery([LightningStorm]);
 const screenShakeQuery = defineQuery([ScreenShake]);
@@ -147,6 +148,19 @@ describe('AttackSystem.canAttackLayer (P1-#12)', () => {
       it(name, () => {
         expect(AttackSystem.canAttackLayer(attacker, target, ranged)).toBe(expected);
       });
+    }
+  });
+});
+
+describe('LowAir targeting whitelist', () => {
+  it('冰塔、火塔、毒塔都可以主动攻击 LowAir 单位', () => {
+    for (const towerType of [TowerType.Ice, TowerType.Fire, TowerType.Poison]) {
+      expect(towerCanTargetLowAir(towerType)).toBe(true);
+      expect(TOWER_CONFIGS[towerType].canTargetLowAir).toBe(true);
+    }
+
+    for (const cardId of ['card_ice_tower', 'card_fire_tower', 'card_poison_tower']) {
+      expect(cardCanCounterLowAir(cardId)).toBe(true);
     }
   });
 });

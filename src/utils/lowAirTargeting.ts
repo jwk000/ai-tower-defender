@@ -6,6 +6,9 @@ export const LOW_AIR_TOWER_TYPES = new Set<TowerType>([
   TowerType.Laser,
   TowerType.Bat,
   TowerType.Lightning,
+  TowerType.Ice,
+  TowerType.Fire,
+  TowerType.Poison,
 ]);
 
 export const LOW_AIR_SOLDIER_TYPES = new Set<UnitType>([
@@ -18,6 +21,9 @@ export const LOW_AIR_COUNTER_CARD_IDS = new Set<string>([
   'card_laser_tower',
   'card_bat_tower',
   'card_lightning_tower',
+  'card_ice_tower',
+  'card_fire_tower',
+  'card_poison_tower',
   'card_archer',
 ]);
 

@@ -297,7 +297,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [20, 40],
     color: '#81d4fa',
     buildTime: 1.5,
-    canTargetLowAir: false,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Ice],
   },
 
@@ -319,7 +319,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [15, 35],
     color: '#ff5722',
     buildTime: 2.0,
-    canTargetLowAir: false,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Fire],
   },
 
@@ -341,7 +341,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     upgradeRangeBonus: [15, 35],
     color: '#66bb6a',
     buildTime: 1.5,
-    canTargetLowAir: false,
+    canTargetLowAir: true,
     visualParts: TOWER_BASE_VISUAL_PARTS[TowerType.Poison],
   },
 
