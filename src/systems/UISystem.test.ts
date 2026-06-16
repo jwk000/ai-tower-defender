@@ -181,7 +181,7 @@ describe('UISystem 顶部 HUD 布局', () => {
 
     ui.update(new TowerWorld(), 1 / 60);
 
-    const cheatButton = buttonsOf(ui).find((button) => button.label === '+');
+    const cheatButton = buttonsOf(ui).find((button) => button.label === '☝');
     expect(cheatButton).toBeDefined();
     expect(cheatButton!.x).toBe(UISystem.TOP_HUD_SIDE_MARGIN + 224);
     expect(cheatButton!.y).toBe(4);
@@ -198,7 +198,7 @@ describe('UISystem 顶部 HUD 布局', () => {
 
     ui.update(new TowerWorld(), 1 / 60);
 
-    expect(buttonsOf(ui).some((button) => button.label === '+')).toBe(false);
+    expect(buttonsOf(ui).some((button) => button.label === '☝')).toBe(false);
   });
 
   it('倒计时状态下右侧按钮组整体保留相同右边距', () => {

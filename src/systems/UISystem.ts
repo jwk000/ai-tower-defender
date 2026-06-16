@@ -1149,7 +1149,7 @@ export class UISystem implements System {
         y: cheatBtnY,
         w: GOLD_CHEAT_BUTTON_W,
         h: GOLD_CHEAT_BUTTON_H,
-        label: '+',
+        label: '☝',
         color: '#5d4037',
         textColor: '#ffd54f',
         enabled: true,
