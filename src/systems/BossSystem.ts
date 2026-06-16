@@ -38,6 +38,7 @@ export const BossType = {
 export type BossTypeVal = (typeof BossType)[keyof typeof BossType];
 
 const GIANT_SLIME_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.GiantSlime);
+const SKELETON_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.Skeleton);
 
 // ============================================================
 // Bitecs queries
@@ -499,6 +500,7 @@ export class BossSystem implements System {
       world.addComponent(eid, Layer, { value: LayerVal.Ground });
       world.addComponent(eid, UnitTag, {
         isEnemy: 1,
+        unitTypeNum: SKELETON_ENEMY_TYPE_NUM,
         atk: 8,
         rewardGold: 5,
       });

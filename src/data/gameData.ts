@@ -730,6 +730,12 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     canAttackBuildings: true, rewardGold: 200, color: '#b71c1c', radius: 40,
     isBoss: true, bossType: 'Lucifer', bossPhase2HpRatio: 0.5, attackAnimDuration: 0.95,
   },
+  [EnemyType.Skeleton]: {
+    type: EnemyType.Skeleton, name: '骷髅', hp: 60, speed: 50, atk: 8,
+    defense: 0, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
+    canAttackBuildings: true, rewardGold: 5, color: '#e0e0e0', radius: 12,
+    attackAnimDuration: 0.3,
+  },
   [EnemyType.SuperRobot]: {
     type: EnemyType.SuperRobot, name: '超级机器人', hp: 2000, speed: 10, atk: 60,
     defense: 40, magicResist: 15, attackRange: 100, attackSpeed: 0.3,
@@ -1192,6 +1198,7 @@ export const ENEMY_TYPE_BY_ID: readonly EnemyType[] = [
   EnemyType.GiantSlime,
   EnemyType.QueenBeetle,
   EnemyType.Lucifer,
+  EnemyType.Skeleton,
   EnemyType.SuperRobot,
   EnemyType.AbyssLord,
 ];

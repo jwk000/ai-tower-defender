@@ -319,6 +319,7 @@ export enum EnemyType {
   DarkPriest = 'dark_priest',
   Frankenstein = 'frankenstein',
   Lucifer = 'lucifer',
+  Skeleton = 'skeleton',
   // 末日废土（机械族）
   Plane = 'plane',
   Tank = 'tank',

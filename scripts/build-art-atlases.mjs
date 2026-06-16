@@ -26,6 +26,7 @@ from PIL import Image
 ROOT = Path(sys.argv[1]).resolve()
 ART_ROOT = ROOT / "public" / "art"
 LEVEL_ROOT = ROOT / "src" / "config" / "levels"
+UNIT_CONFIG_ROOT = ROOT / "src" / "config" / "units"
 ATLAS_ROOT = ART_ROOT / "atlases"
 MAX_SIZE = 2048
 PADDING = 2
@@ -113,6 +114,38 @@ def level_enemy_ids(path: Path) -> list[str]:
     return sorted(set(re.findall(r"enemyType:\s*([A-Za-z0-9_]+)", text)))
 
 
+def dynamic_spawn_enemy_ids(source_enemy_ids: list[str]) -> list[str]:
+    config_path = UNIT_CONFIG_ROOT / "enemies.yaml"
+    if not config_path.exists():
+        return []
+
+    text = config_path.read_text(encoding="utf-8")
+    sections: dict[str, str] = {}
+    matches = list(re.finditer(r"^([A-Za-z0-9_]+):\s*$", text, re.MULTILINE))
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[match.group(1)] = text[start:end]
+
+    dynamic_ids: set[str] = set()
+    pending = list(source_enemy_ids)
+    visited: set[str] = set()
+
+    while pending:
+        enemy_id = pending.pop()
+        if enemy_id in visited:
+            continue
+        visited.add(enemy_id)
+        section = sections.get(enemy_id, "")
+        spawned = set(re.findall(r"(?:spawnUnit|unitId):\s*([A-Za-z0-9_]+)", section))
+        for spawned_id in spawned:
+            if spawned_id not in dynamic_ids:
+                dynamic_ids.add(spawned_id)
+                pending.append(spawned_id)
+
+    return sorted(dynamic_ids)
+
+
 def build_plans() -> list[AtlasPlan]:
     plans: list[AtlasPlan] = []
 
@@ -148,7 +181,8 @@ def build_plans() -> list[AtlasPlan]:
 
     for level_file in sorted(LEVEL_ROOT.glob("level-*.yaml")):
         files: list[Path] = []
-        for enemy_id in level_enemy_ids(level_file):
+        level_enemy_types = level_enemy_ids(level_file)
+        for enemy_id in sorted(set(level_enemy_types + dynamic_spawn_enemy_ids(level_enemy_types))):
             files.extend(enemy_groups.get(enemy_id, []))
         level_id = level_id_from_file(level_file)
         for index, chunk in enumerate(chunked(sorted(set(files)), 42), start=1):

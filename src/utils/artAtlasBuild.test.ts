@@ -44,4 +44,12 @@ describe('art atlas build output', () => {
     expect(existsSync(join(process.cwd(), 'public/art/enemies/enemy_dark_priest.png'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public/art/enemies/enemy_priest.png'))).toBe(false);
   });
+
+  it('packs dynamically summoned enemy unit frames referenced by boss skills', () => {
+    const frames = frameKeys(readAtlasIndex());
+
+    expect(frames).toContain('/art/units/unit_enemy_skeleton_idle_0.png');
+    expect(frames).toContain('/art/units/unit_enemy_skeleton_attack_1.png');
+    expect(existsSync(join(process.cwd(), 'public/art/enemies/enemy_skeleton.png'))).toBe(true);
+  });
 });
