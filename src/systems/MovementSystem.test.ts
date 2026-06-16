@@ -416,6 +416,47 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Movement.currentSpeed[boss]).toBe(0);
   });
 
+  it('普通敌人普攻玩家单位时会触发攻击动作并停步', () => {
+    const tower = makeTower(world, 80);
+    const enemy = world.createEntity();
+    world.addComponent(enemy, Position, { x: 90, y: 100 });
+    world.addComponent(enemy, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
+    world.addComponent(enemy, Movement, {
+      speed: 30,
+      currentSpeed: 30,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+    });
+    world.addComponent(enemy, UnitTag, { isEnemy: 1, isBoss: 0, atk: 12 });
+    world.addComponent(enemy, Category, { value: CategoryVal.Enemy });
+    world.addComponent(enemy, Visual, {
+      shape: 1,
+      colorR: 200,
+      colorG: 0,
+      colorB: 0,
+      size: 24,
+      alpha: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0.45,
+    });
+    world.addComponent(enemy, Attack, {
+      damage: 12,
+      attackSpeed: 1,
+      range: 40,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+    });
+
+    system.update(world, 0.016);
+
+    expect(Health.current[tower]).toBe(68);
+    expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
+    expect(Movement.currentSpeed[enemy]).toBe(0);
+  });
+
   it('Boss 到达水晶后立即判定失败', () => {
     makeBase(world, 100);
     makeEnemyAtEnd(world, { atk: 5, isBoss: true });
