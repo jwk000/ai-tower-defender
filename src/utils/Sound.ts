@@ -193,6 +193,25 @@ const SFX_PATH: Record<SfxKey, string> = {
   soldier_heal: '/sfx/soldier_heal.ogg',
 };
 
+const SFX_KEY_ALIASES: Readonly<Record<string, SfxKey>> = {
+  SFX_ENEMY_DIE: 'enemy_death',
+  SFX_ENEMY_SPAWN: 'enemy_spawn',
+  SFX_BOSS_SPAWN: 'wave_boss',
+  SFX_BOSS_DIE: 'victory',
+  SFX_BOSS_PHASE2: 'boss_phase2',
+  SFX_BOSS_PHASE3: 'boss_phase2',
+  SFX_MAGIC_SHOOT: 'mage_attack',
+  SFX_TRAP_TRIGGER: 'exploder_boom',
+  SFX_CHEST_OPEN: 'gold_earn',
+};
+
+export function normalizeSfxKey(value: string): SfxKey | null {
+  const fileMatch = value.match(/(?:^|\/)([a-z0-9_]+)\.ogg$/);
+  const key = fileMatch?.[1] ?? value;
+  if (key in SFX_PATH) return key as SfxKey;
+  return SFX_KEY_ALIASES[key] ?? null;
+}
+
 const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   // Tower attacks — increased to reduce density when multiple towers fire
   tower_arrow: 80,
@@ -330,7 +349,8 @@ export class Sound {
 
   static play(key: SfxKey): void {
     if (Sound.muted) return;
-    if (!(key in SFX_PATH)) return;
+    const normalizedKey = normalizeSfxKey(key);
+    if (!normalizedKey) return;
     // Skip in non-browser environments (e.g. Node.js test runner)
     if (typeof Audio === 'undefined') return;
 
@@ -344,20 +364,20 @@ export class Sound {
     Sound.recentPlayTimes.push(now);
 
     // ── Per-key throttle ──
-    const last = Sound.lastPlayedAt[key] ?? 0;
-    const throttle = PER_KEY_THROTTLE_MS[key] ?? 0;
+    const last = Sound.lastPlayedAt[normalizedKey] ?? 0;
+    const throttle = PER_KEY_THROTTLE_MS[normalizedKey] ?? 0;
     if (now - last < throttle) return;
-    Sound.lastPlayedAt[key] = now;
+    Sound.lastPlayedAt[normalizedKey] = now;
 
     // Create fresh Audio element — more reliable than cloneNode for media elements.
     // Use synth URL for keys that have no OGG file; fall back to OGG otherwise.
     let src: string;
-    if (SYNTH_ONLY_KEYS.has(key)) {
-      const synthUrl = getSynthUrl(key);
+    if (SYNTH_ONLY_KEYS.has(normalizedKey)) {
+      const synthUrl = getSynthUrl(normalizedKey);
       if (!synthUrl) return; // synth generation failed, silently skip
       src = synthUrl;
     } else {
-      src = sfxUrl(key);
+      src = sfxUrl(normalizedKey);
     }
     const audio = new Audio(src);
     audio.volume = Sound.volume;

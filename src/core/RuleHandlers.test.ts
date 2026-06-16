@@ -594,6 +594,26 @@ describe('spawnProjectile / playSound', () => {
     expect(playSpy).toHaveBeenCalledWith('tower_arrow');
     playSpy.mockRestore();
   });
+
+  it('playSound 兼容设计配置里的 SFX 常量别名', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+
+    playSound(world, 0, { sound: 'SFX_ENEMY_DIE' }, mkCtx());
+    playSound(world, 0, { sound: 'SFX_BOSS_PHASE3' }, mkCtx());
+
+    expect(playSpy).toHaveBeenNthCalledWith(1, 'enemy_death');
+    expect(playSpy).toHaveBeenNthCalledWith(2, 'boss_phase2');
+    playSpy.mockRestore();
+  });
+
+  it('playSound 兼容资源路径形式的音效配置', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+
+    playSound(world, 0, { sound: 'sfx/victory_meadow.ogg' }, mkCtx());
+
+    expect(playSpy).toHaveBeenCalledWith('victory_meadow');
+    playSpy.mockRestore();
+  });
 });
 
 // ============================================================

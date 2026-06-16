@@ -59,6 +59,7 @@ import { ComboKillSystem } from './systems/ComboKillSystem.js';
 import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
 import { FloatingTextSystem } from './systems/FloatingTextSystem.js';
 import { Music } from './utils/Music.js';
+import type { BgmKey } from './utils/Music.js';
 import {
   generateSeed,
   getGlobalRandom,
@@ -66,6 +67,7 @@ import {
 } from './utils/Random.js';
 import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
+import { normalizeSfxKey } from './utils/Sound.js';
 import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
 import { preloadArtAtlasIndex, preloadArtAtlases } from './utils/imageCache.js';
 import { hexToRgb } from './utils/visualHelpers.js';
@@ -113,6 +115,11 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
+
+function normalizeBgmKey(value: string): BgmKey {
+  const fileMatch = value.match(/(?:^|\/)([a-z0-9_]+)\.(?:ogg|mp3)$/);
+  return (fileMatch?.[1] ?? value) as BgmKey;
+}
 
 // TOWER_TYPE_ID: 从 UnitFactory 导入共享映射
 
@@ -1291,8 +1298,9 @@ class TowerDefenderGame extends Game {
     this.stopBattleLogic();
 
     // 播放胜利音频
-    Sound.play(victoryConfig.audio.sfx as never);
-    Music.play(victoryConfig.audio.bgm as never, 0.5);
+    const victorySfx = normalizeSfxKey(victoryConfig.audio.sfx);
+    if (victorySfx) Sound.play(victorySfx);
+    Music.play(normalizeBgmKey(victoryConfig.audio.bgm), 0.5);
 
     // P0-2: 胜利屏幕震动
     ScreenShakeSystem.triggerShake(this.world, 6, 0.5, 25);
