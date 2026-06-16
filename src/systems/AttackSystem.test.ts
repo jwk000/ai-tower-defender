@@ -6,7 +6,7 @@
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AttackSystem, doLaserAttack, findEnemiesInRange, hasActiveLaserBeam, LASER_BEAM_DURATION } from './AttackSystem.js';
+import { AttackSystem, doLaserAttack, doLightningAttack, findEnemiesInRange, hasActiveLaserBeam, LASER_BEAM_DURATION } from './AttackSystem.js';
 import { TowerWorld } from '../core/World.js';
 import {
   Faction,
@@ -15,6 +15,7 @@ import {
   Position,
   Attack,
   LaserBeam,
+  LightningBolt,
   Tower,
   UnitTag,
   Layer,
@@ -24,6 +25,8 @@ import {
 import { ruleEngine } from '../core/RuleEngine.js';
 import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
 import { Sound } from '../utils/Sound.js';
+import { TOWER_CONFIGS } from '../data/gameData.js';
+import { TowerType } from '../types/index.js';
 
 describe('AttackSystem.canAttackLayer (P1-#12)', () => {
   describe('Ground attacker', () => {
@@ -211,6 +214,93 @@ describe('doLaserAttack — 激光塔单束锁敌', () => {
     const beam = activeLaserBeamsFor(towerId)[0]!;
     expect(LaserBeam.damage[beam]).toBe(10);
     expect(LaserBeam.duration[beam]).toBe(LASER_BEAM_DURATION);
+  });
+});
+
+describe('doLightningAttack — 电塔线性弹跳成长', () => {
+  let world: TowerWorld;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+  });
+
+  function makeLightningTower(damage: number): number {
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Layer, { value: LayerVal.Ground });
+    world.addComponent(towerId, Tower, { towerType: 3, level: 1, totalInvested: 110 });
+    world.addComponent(towerId, Attack, {
+      damage,
+      attackSpeed: 0.9,
+      range: 170,
+      alertRange: 340,
+      damageType: DamageTypeVal.Magic,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 1,
+      canTargetLowAir: 1,
+      splashRadius: 0,
+      chainCount: 3,
+      chainRange: 120,
+      chainDecay: 0.2,
+    });
+    world.addComponent(towerId, Health, { current: 1800, max: 1800, armor: 0, magicResist: 0 });
+    return towerId;
+  }
+
+  function makeEnemyLine(count: number): number[] {
+    return Array.from({ length: count }, (_, index) => (
+      makeAttackable(world, 60 + index * 40, 0, FactionVal.Evil, 100)
+    ));
+  }
+
+  function activeLightningBoltsFor(towerId: number): number[] {
+    const result: number[] = [];
+    let currentSourceId = towerId;
+    for (let eid = 1; eid < LightningBolt.sourceId.length; eid++) {
+      if ((LightningBolt.duration[eid] ?? 0) <= 0) continue;
+      if (LightningBolt.sourceId[eid] === currentSourceId) {
+        result.push(eid);
+        currentSourceId = LightningBolt.targetId[eid]!;
+      }
+    }
+    return result;
+  }
+
+  it('配置为 L1 跳跃 3 次，每次升级跳跃次数 +1', () => {
+    expect(TOWER_CONFIGS[TowerType.Lightning].chainCount).toBe(3);
+    expect(TOWER_CONFIGS[TowerType.Lightning].chainCountByLevel).toEqual([3, 4, 5, 6, 7]);
+    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 35, 30, 40]);
+  });
+
+  it('L1 连锁最多命中 3 个目标', () => {
+    vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const towerId = makeLightningTower(20);
+    const enemies = makeEnemyLine(5);
+
+    doLightningAttack(world, towerId, enemies[0]!, 1);
+
+    expect(Health.current[enemies[0]!]).toBeCloseTo(80);
+    expect(Health.current[enemies[1]!]).toBeCloseTo(84);
+    expect(Health.current[enemies[2]!]).toBeCloseTo(87.2);
+    expect(Health.current[enemies[3]!]).toBe(100);
+    expect(Health.current[enemies[4]!]).toBe(100);
+    expect(activeLightningBoltsFor(towerId)).toHaveLength(3);
+  });
+
+  it('L5 连锁最多命中 7 个目标', () => {
+    vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const towerId = makeLightningTower(135);
+    const enemies = makeEnemyLine(8);
+
+    doLightningAttack(world, towerId, enemies[0]!, 5);
+
+    expect(enemies.filter((eid) => Health.current[eid]! < 100)).toHaveLength(7);
+    expect(Health.current[enemies[7]!]!).toBe(100);
+    expect(activeLightningBoltsFor(towerId)).toHaveLength(7);
   });
 });
 

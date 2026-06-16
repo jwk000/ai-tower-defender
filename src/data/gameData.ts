@@ -352,15 +352,15 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     cost: 110,
     hp: 1800,
     atk: 20,
-    attackSpeed: 1.5,
-    range: 160,
+    attackSpeed: 0.9,
+    range: 170,
     damageType: 'magic',
-    chainCount: 2,
-    chainCountByLevel: [2, 3, 7, 9, 12],
+    chainCount: 3,
+    chainCountByLevel: [3, 4, 5, 6, 7],
     chainDecay: 0.2,
-    // 后期战略塔：L3 弹跳质变，L4-L5 提供昂贵长线成长。
+    // 后期战略塔：L1 起步 3 次弹跳，每次升级弹跳 +1，并通过更高伤害成长维持后期压制。
     upgradeCosts: [65, 580, 780, 1100],
-    upgradeAtkBonus: [6, 28, 20, 30],
+    upgradeAtkBonus: [10, 35, 30, 40],
     upgradeRangeBonus: [15, 25, 20, 20],
     color: '#fff176',
     buildTime: 2.0,
@@ -445,7 +445,7 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
     { level: 2, scaleMultiplier: 1.09, extraParts: [] },
     { level: 3, scaleMultiplier: 1.18, extraParts: [
       { shape: 'triangle', offsetX: -10, offsetY: -18, size: 10, color: '#ffb300', alpha: 0.9 },
-    ], glow: { radius: 22, color: '#fff176', alpha: 0.15 }, passiveVisual: { type: 'arc_upgrade', description: 'bounces +2, decay down to 15%' } },
+    ], glow: { radius: 22, color: '#fff176', alpha: 0.15 }, passiveVisual: { type: 'arc_upgrade', description: 'chain +1 per level, higher damage growth' } },
     { level: 4, scaleMultiplier: 1.26, extraParts: [
       { shape: 'triangle', offsetX: -12, offsetY: -20, size: 11, color: '#ffb300', alpha: 0.9 },
       { shape: 'triangle', offsetX: 12, offsetY: -20, size: 11, color: '#ffb300', alpha: 0.9 },

@@ -770,7 +770,7 @@ export function spawnProjectile(
 /**
  * 执行闪电链攻击（design/23 §0.5 `lightning_chain` 节点核心副作用）。
  *
- * 服务 lightning 塔。chainCount = baseChain + (level-1) 跳，每跳衰减 chainDecay，
+ * 服务 lightning 塔。chainCount 优先读取等级表，每跳衰减 chainDecay，
  * 每跳 spawn LightningBolt entity（视觉 0.5s）+ applyDamageToTarget 直接造成伤害。
  * 首跳 Sound.play('lightning_hit') 避免噪音过载。
  *

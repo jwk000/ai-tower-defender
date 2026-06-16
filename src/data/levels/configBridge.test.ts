@@ -18,6 +18,7 @@ function registerConfig(config: RegistryUnitConfig): void {
 
 describe('unit config bridge', () => {
   const originalArrow = { ...TOWER_CONFIGS[TowerType.Arrow] };
+  const originalLightning = { ...TOWER_CONFIGS[TowerType.Lightning] };
   const originalMissile = { ...TOWER_CONFIGS[TowerType.Missile] };
   const originalMage = { ...UNIT_CONFIGS[UnitType.Mage] };
   const originalWizard = { ...ENEMY_CONFIGS.wizard! };
@@ -30,12 +31,39 @@ describe('unit config bridge', () => {
 
   afterEach(() => {
     TOWER_CONFIGS[TowerType.Arrow] = { ...originalArrow };
+    TOWER_CONFIGS[TowerType.Lightning] = { ...originalLightning };
     TOWER_CONFIGS[TowerType.Missile] = { ...originalMissile };
     UNIT_CONFIGS[UnitType.Mage] = { ...originalMage };
     ENEMY_CONFIGS.wizard = { ...originalWizard };
     ENEMY_CONFIGS.giant_slime = { ...originalGiantSlime };
     TRAP_CONFIGS.spike_trap = { ...originalSpikeTrap };
     unitConfigRegistry.clear();
+  });
+
+  it('电塔从 YAML 注入线性弹跳次数与提高后的伤害成长', () => {
+    registerConfig({
+      id: 'lightning_tower',
+      name: '测试电塔',
+      category: 'Tower',
+      faction: 'Player',
+      layer: 'Ground',
+      stats: { hp: 1800, atk: 20, attackSpeed: 0.9, range: 170, armor: 0, mr: 0, damageType: 'magic' },
+      cost: { build: 110, upgrade: [65, 580, 780, 1100], atkGrowth: [10, 35, 30, 40], rangeGrowth: [15, 25, 20, 20] },
+      visual: { shape: 'rect', color: '#fff176', size: 34 },
+      behavior: {
+        targetSelection: 'nearest',
+        attackMode: 'chain',
+        movementMode: 'hold_position',
+        special: { chainCount: 3, chainCountByLevel: [3, 4, 5, 6, 7], chainRange: 120, chainDecay: 0.2 },
+      },
+    });
+
+    injectTowerConfigsFromRegistry();
+
+    expect(TOWER_CONFIGS[TowerType.Lightning].atk).toBe(20);
+    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 35, 30, 40]);
+    expect(TOWER_CONFIGS[TowerType.Lightning].chainCount).toBe(3);
+    expect(TOWER_CONFIGS[TowerType.Lightning].chainCountByLevel).toEqual([3, 4, 5, 6, 7]);
   });
 
   it('塔从 stats.damageType 读取伤害类型，支持 true 伤害', () => {

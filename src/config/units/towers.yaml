@@ -202,7 +202,7 @@ lightning_tower:
 
   stats:
     hp: 1800
-    atk: 15
+    atk: 20
     attackSpeed: 0.9
     range: 170
     armor: 0
@@ -212,8 +212,8 @@ lightning_tower:
   cost:
     build: 110
     upgrade: [65, 580, 780, 1100]
-    atkGrowth: [6, 28, 20, 30]
-    chainGrowth: [1, 2, 1, 1]
+    atkGrowth: [10, 35, 30, 40]
+    chainGrowth: [1, 1, 1, 1]
     rangeGrowth: [15, 25, 20, 20]
 
   visual:
@@ -227,8 +227,8 @@ lightning_tower:
     attackMode: chain
     movementMode: hold_position
     special:
-      chainCount: 2
-      chainCountByLevel: [2, 3, 7, 9, 12]
+      chainCount: 3
+      chainCountByLevel: [3, 4, 5, 6, 7]
       chainRange: 120
       chainDecay: 0.2
 
@@ -249,10 +249,10 @@ lightning_tower:
     l3:
       id: overcharge
       name: 过载
-      description: 弹跳+2，衰减降至15%
+      description: 伤害成长提高，连锁弹跳继续随等级+1
       params:
-        chainBonus: 2
-        chainDecay: 0.15
+        damageBonus: 35
+        chainBonus: 1
 
 ---
 # 激光塔 — 贯穿光束攻击塔
