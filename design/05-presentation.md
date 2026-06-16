@@ -617,24 +617,22 @@ Abyss（深渊层）    — 最低，预留
 
 ### 10.1 定位
 
-胜利界面是一个**全屏覆盖层**（z=1000），在战斗画面定格后以单层 3 阶段动画序列呈现。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动。详见 `design/04-levels.md` §9。
+胜利/失败界面是一个**全屏结算覆盖层**（z=1000）。进入结算时清理棋盘与战斗实体，画面只保留当前关卡主题背景图，再叠加 85% 不透明的 UI 面板、章节句、剧情文字与战斗统计。所有视觉、音频、故事参数由关卡 YAML 的 `victory` 配置节驱动。详见 `design/04-levels.md` §9。
 
 ### 10.2 渲染架构
 
 ```
 VictoryScreenSystem (implement System)
-  ├── 内部状态机: Phase1 → Phase2 → Phase3 → Done
-  ├── Phase1 (0~1.2s): "恭喜你通关xxxx（关卡名）" 大字弹性弹出 (scale 2.2→1, elastic-out)
-  │   └── 同步触发 ScreenShakeSystem (震幅6px, 持续0.5s, 频率25Hz)
-  ├── Phase2 (1.2~4.2s): 彩带飘落 + 星星评定逐个闪烁 (每颗0.5s间隔)
-  ├── Phase3 (4.2s+): 通关剧情标题浮现，正文以打字机效果逐字出现，不绘制底框
-  │   └── 正文打完后显示 "点击继续" 提示，整屏点击继续
+  ├── mode: victory | defeat
+  ├── Phase1 (0~1.2s): 章节结尾句弹性浮现，胜利句来自 victory.story.title，失败句来自 victory.defeatStory.title
+  ├── Phase2 (1.2~2.2s): 胜利显示彩带与星级；失败显示暗红光效
+  ├── Phase3 (2.2s+): 剧情正文打字机浮现，统计卡片依次出现
   └── 绘制: 在 UISystem.renderUI() 之后，直接写 Canvas 2D
 ```
 
-通关标题使用 `typography.titleColor` 渐变填充，baseSize=64px，内容为“恭喜你通关xxxx（关卡名）”。光晕随 alpha 从 0 → 24px 渐变。屏幕震动在 `main.ts:handleVictory()` 中通过 `ScreenShakeSystem.triggerShake()` 触发。
+标题不再使用“恭喜你通关xxxx（关卡名）”，而是直接显示章节结尾句，使每关结算具备叙事收束感。结算面板统一使用 `typography.panelBg` 的 RGB 与固定 0.85 alpha，面板内必须展示：波次、敌人数量、使用塔、兵数量、水晶血量、总得分、总伤害。
 
-Defeat 模式使用同一套全屏覆盖层，不再显示旧的 `UISystem` 失败覆盖层和失败故事面板。失败时直接显示失败剧情标题，剧情正文在同一层以打字机效果逐字出现，文字直接浮现在画面上且不带底框；正文打完后显示“点击返回”，整屏点击返回关卡选择。
+Defeat 模式复用同一套全屏覆盖层，不再显示旧的 `UISystem` 失败覆盖层和失败故事面板。失败时不显示星级和彩带，剧情正文出现方式与胜利一致，正文打完后显示“点击返回”，整屏点击返回关卡选择。
 
 ### 10.3 彩带粒子系统
 
@@ -681,11 +679,11 @@ interface ConfettiParticle {
 
 | 时间 | 阶段 | 事件 |
 |------|------|------|
-| t=0.00 | Phase1 开始 | 播放 `victory` SFX；交叉淡入 `victory` BGM；屏幕震动触发（震幅6px，持续0.5s） |
-| t=0.15 | Phase1 | “恭喜你通关xxxx（关卡名）”从 scale=2.2、alpha=0 弹出到 scale=1.0、alpha=1（弹性缓出，持续0.6s） |
+| t=0.00 | Phase1 开始 | 播放胜利/失败 SFX；交叉淡入胜利/失败 BGM；胜利触发屏幕震动（震幅6px，持续0.5s） |
+| t=0.15 | Phase1 | 章节结尾句从 scale=1.18、alpha=0 过渡到 scale=1.0、alpha=1（弹性缓出） |
 | t=1.00 | Phase1 | 屏幕震动结束 |
-| t=1.20 | Phase2 开始 | 彩带粒子生成（`confetti.count` 个）；星星评定开始逐个闪烁（每个星星0.5s间隔） |
-| t=4.20 | Phase3 开始 | 通关剧情标题浮现，段落文字在同一覆盖层中以打字机效果逐字出现，文字较大，直接显示在画面上，不带底框 |
+| t=1.20 | Phase2 开始 | 胜利彩带粒子生成（`confetti.count` 个）；星星评定开始逐个闪烁 |
+| t=2.20 | Phase3 开始 | 剧情标题浮现，段落文字在同一覆盖层中以打字机效果逐字出现；统计项依次出现 |
 | 正文打完后 | - | “点击继续”提示出现，等待玩家点击任意位置继续 |
 | 点击后 | Done | 存储 `LevelCompletionState` → 跳转关卡选择界面 |
 

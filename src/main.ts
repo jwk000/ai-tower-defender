@@ -41,7 +41,7 @@ import { TrapSystem } from './systems/TrapSystem.js';
 import { UISystem } from './systems/UISystem.js';
 import type { LifecycleEvent } from './core/RuleEngine.js';
 import type { LifecycleRule } from './config/registry.js';
-import { VictoryScreenSystem } from './systems/VictoryScreenSystem.js';
+import { VictoryScreenSystem, type BattleSettlementStats } from './systems/VictoryScreenSystem.js';
 import { UnitAnimationSystem } from './systems/UnitAnimationSystem.js';
 import { UnitFactory } from './systems/UnitFactory.js';
 import { UnitSystem } from './systems/UnitSystem.js';
@@ -179,6 +179,8 @@ class TowerDefenderGame extends Game {
   private defeatHandled = false;
   private victoryHandled = false;
   private previousPhase: GamePhase = GamePhase.Deployment;
+  private battleTotalDamage = 0;
+  private battleEnemiesDefeated = 0;
 
   private editorOnExit: (() => void) | null = null;
 
@@ -338,6 +340,8 @@ class TowerDefenderGame extends Game {
     this.defeatHandled = false;
     this.victoryHandled = false;
     this.previousPhase = GamePhase.Deployment;
+    this.battleTotalDamage = 0;
+    this.battleEnemiesDefeated = 0;
     Music.play(Music.getLevelBgm(this.currentLevelId));
 
     // Select card pool based on level (defined early for use in callbacks)
@@ -401,6 +405,9 @@ class TowerDefenderGame extends Game {
     // P0-1: 伤害数字飘字 — 注册 DamageNumberSystem 的观察者
     this.damageNumberSystem = new DamageNumberSystem();
     registerDamageObserver((targetId, _sourceId, actualDamage) => {
+      if (UnitTag.isEnemy[targetId] === 1) {
+        this.battleTotalDamage += actualDamage;
+      }
       this.damageNumberSystem.enqueueDamage(targetId, actualDamage);
     });
 
@@ -696,6 +703,7 @@ class TowerDefenderGame extends Game {
       () => this.phase,
       (p) => { this.phase = p; },
       (enemyId) => {
+        this.battleEnemiesDefeated += 1;
         Sound.play('enemy_death');
         // v5.1: 随机掉落金币 + 连杀加成 + 飘字
         const baseGold = this.economy.rewardForEnemy(enemyId);
@@ -1110,7 +1118,7 @@ class TowerDefenderGame extends Game {
         if (this.phase === GamePhase.WaveBreak) {
           Music.play('wave_break');
         } else if (this.phase === GamePhase.Deployment) {
-          Music.play('battle_default');
+          Music.play(Music.getLevelBgm(this.currentLevelId));
         }
       }
 
@@ -1292,6 +1300,7 @@ class TowerDefenderGame extends Game {
     if (!levelConfig) return;
 
     const victoryConfig = this.resolveVictoryConfig(levelConfig);
+    const settlementStats = this.collectSettlementStats(stars);
     const prevCompletion = SaveManager.getLevelCompletion(this.currentLevelId);
     const timesCleared = (prevCompletion?.timesCleared ?? 0) + 1;
 
@@ -1314,7 +1323,14 @@ class TowerDefenderGame extends Game {
     ScreenShakeSystem.triggerShake(this.world, 6, 0.5, 25);
 
     // 启动胜利覆盖层（3阶段动画序列：通关标题 → 彩带星星 → 剧情文字）
-    this.victoryScreenSystem.activate(victoryConfig, stars, timesCleared, levelConfig.name);
+    this.victoryScreenSystem.activate(
+      victoryConfig,
+      stars,
+      timesCleared,
+      levelConfig.name,
+      settlementStats,
+      levelConfig.map.artTheme ?? levelConfig.theme,
+    );
   }
 
   private handleDefeat(): void {
@@ -1323,6 +1339,7 @@ class TowerDefenderGame extends Game {
     // 此处删除重复调用，避免每帧触发刺耳连播。
     this.phase = GamePhase.Defeat;
     this.levelSelectUI?.refresh?.();
+    const settlementStats = this.collectSettlementStats(0);
     this.stopBattleLogic();
 
     // 显示失败故事覆盖层
@@ -1334,7 +1351,62 @@ class TowerDefenderGame extends Game {
       showFullStoryOnlyFirst: false,
     };
     const typography = levelConfig?.victory?.typography ?? DEFAULT_VICTORY_CONFIG.typography;
-    this.victoryScreenSystem.activateDefeat(defeatStory, typography);
+    this.victoryScreenSystem.activateDefeat(
+      defeatStory,
+      typography,
+      settlementStats,
+      levelConfig?.map.artTheme ?? levelConfig?.theme,
+    );
+  }
+
+  private collectSettlementStats(stars: number): BattleSettlementStats {
+    const crystal = this.getCrystalHpSnapshot();
+    const { towersUsed, soldiersUsed } = this.countPlayerForces();
+    const totalWaves = this.waveSystem?.totalWaves ?? 0;
+    const currentWave = Math.min(Math.max(this.waveSystem?.currentWave ?? 0, 0), totalWaves > 0 ? totalWaves : Number.MAX_SAFE_INTEGER);
+    const spawned = this.waveSystem?.totalSpawned ?? 0;
+    const enemiesDefeated = Math.min(this.battleEnemiesDefeated, spawned);
+    const crystalRatio = crystal.max > 0 ? Math.max(0, crystal.current) / crystal.max : 0;
+    const score = Math.round(
+      stars * 1000
+      + enemiesDefeated * 120
+      + Math.max(0, crystalRatio) * 1500
+      + this.battleTotalDamage * 0.25
+      + (this.economy?.gold ?? 0) * 2,
+    );
+
+    return {
+      waves: { current: currentWave, total: totalWaves },
+      enemies: { spawned, defeated: enemiesDefeated },
+      towersUsed,
+      soldiersUsed,
+      crystalHp: crystal,
+      score,
+      totalDamage: this.battleTotalDamage,
+    };
+  }
+
+  private getCrystalHpSnapshot(): { current: number; max: number } {
+    if (this.baseEntityId === null) return { current: 0, max: 0 };
+    return {
+      current: Health.current[this.baseEntityId] ?? 0,
+      max: Health.max[this.baseEntityId] ?? 0,
+    };
+  }
+
+  private countPlayerForces(): { towersUsed: number; soldiersUsed: number } {
+    const w = this.world.world;
+    let towersUsed = 0;
+    let soldiersUsed = 0;
+    for (let eid = 1; eid < Position.x.length; eid++) {
+      if (!hasComponent(w, PlayerOwned, eid)) continue;
+      if (hasComponent(w, Tower, eid) && !hasComponent(w, BuildingTower, eid)) {
+        towersUsed++;
+      } else if (hasComponent(w, Soldier, eid) || (hasComponent(w, UnitTag, eid) && UnitTag.isEnemy[eid] === 0 && !hasComponent(w, Tower, eid))) {
+        soldiersUsed++;
+      }
+    }
+    return { towersUsed, soldiersUsed };
   }
 
   private stopBattleLogic(): void {
