@@ -607,6 +607,7 @@ class TowerDefenderGame extends Game {
         if (current === undefined || max === undefined) return null;
         return { current, max };
       },
+      () => this.triggerGoldCheat(),
     );
 
     // ---- Hand System (card management) ----
@@ -1380,6 +1381,21 @@ class TowerDefenderGame extends Game {
       typography,
       settlementStats,
       levelConfig?.map.artTheme ?? levelConfig?.theme,
+    );
+  }
+
+  private triggerGoldCheat(): void {
+    if (!this.economy || !this.floatingTextSystem) return;
+
+    const amount = Math.random() < 0.5 ? 1 : 2;
+    this.economy.addGold(amount);
+    Sound.play('gold_earn');
+    this.floatingTextSystem.show(
+      this.world,
+      350,
+      UISystem.TOP_H + 26,
+      `+${amount}💰`,
+      { r: 255, g: 213, b: 79 },
     );
   }
 

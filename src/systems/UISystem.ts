@@ -199,6 +199,8 @@ const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 
 const UI_HAND_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 72, bottom: 72 };
 const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom: 32 };
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
+const GOLD_CHEAT_BUTTON_W = 32;
+const GOLD_CHEAT_BUTTON_H = 28;
 const HAND_CARD_HOVER_SCALE = 1.08;
 const HAND_CARD_HOVER_LIFT = 24;
 const HAND_CARD_HOVER_SPEED = 12;
@@ -330,6 +332,7 @@ export class UISystem implements System {
     private getRefundQuote: ((entityId: number) => { amount: number; reason: string } | null) | null = null,
     private onUpgradeUnit: ((entityId: number) => void) | null = null,
     private getCrystalHealth: (() => { current: number; max: number } | null) | null = null,
+    private onGoldCheat: (() => void) | null = null,
   ) {}
 
   // ---- Selection getter/setter helpers (unchanged) ----
@@ -1126,6 +1129,34 @@ export class UISystem implements System {
       text: `💰${gold}`,
       color: '#ffd54f', size: 20,
     });
+    if (phase === GamePhase.Battle && this.onGoldCheat) {
+      const cheatBtnX = UISystem.TOP_HUD_SIDE_MARGIN + 150 + 74;
+      const cheatBtnY = (UISystem.TOP_H - GOLD_CHEAT_BUTTON_H) / 2;
+      this.renderer.push({
+        shape: 'rect',
+        x: cheatBtnX + GOLD_CHEAT_BUTTON_W / 2,
+        y: cheatBtnY + GOLD_CHEAT_BUTTON_H / 2,
+        size: GOLD_CHEAT_BUTTON_W,
+        h: GOLD_CHEAT_BUTTON_H,
+        color: '#5d4037',
+        alpha: 0.92,
+        stroke: '#ffd54f',
+        strokeWidth: 1,
+        z: UI_Z.NORMAL_UI,
+      });
+      this.buttons.push({
+        x: cheatBtnX,
+        y: cheatBtnY,
+        w: GOLD_CHEAT_BUTTON_W,
+        h: GOLD_CHEAT_BUTTON_H,
+        label: '+',
+        color: '#5d4037',
+        textColor: '#ffd54f',
+        enabled: true,
+        solidColor: true,
+        onClick: () => { this.onGoldCheat?.(); },
+      });
+    }
 
     if (phase === GamePhase.Battle && world) {
       // Count alive enemies via bitecs query

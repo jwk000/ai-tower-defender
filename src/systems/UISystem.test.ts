@@ -82,13 +82,15 @@ function makeUISystem(
   countdown: number,
   options: {
     isPaused?: boolean;
+    phase?: GamePhase;
     pointer?: { x: number; y: number };
     dragState?: { active: boolean } & Record<string, unknown>;
+    onGoldCheat?: () => void;
   } = {},
 ): UISystem {
   return new UISystem(
     renderer as any,
-    () => GamePhase.Battle,
+    () => options.phase ?? GamePhase.Battle,
     () => 100,
     () => 1,
     () => 3,
@@ -117,6 +119,7 @@ function makeUISystem(
     null,
     null,
     () => ({ current: 85, max: 100 }),
+    options.onGoldCheat ?? null,
   );
 }
 
@@ -170,6 +173,32 @@ describe('UISystem 顶部 HUD 布局', () => {
     expect(gold).toBeDefined();
     expect(crystalHp!.x).toBe(UISystem.TOP_HUD_SIDE_MARGIN);
     expect(gold!.x).toBe(UISystem.TOP_HUD_SIDE_MARGIN + 150);
+  });
+
+  it('金手指按钮位于金币图标右侧，点击触发金币回调', () => {
+    const onGoldCheat = vi.fn();
+    const ui = makeUISystem(new RendererStub(), 0, { onGoldCheat });
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    const cheatButton = buttonsOf(ui).find((button) => button.label === '+');
+    expect(cheatButton).toBeDefined();
+    expect(cheatButton!.x).toBe(UISystem.TOP_HUD_SIDE_MARGIN + 224);
+    expect(cheatButton!.y).toBe(4);
+
+    expect(ui.handleClick(cheatButton!.x + 1, cheatButton!.y + 1)).toBe(true);
+    expect(onGoldCheat).toHaveBeenCalledTimes(1);
+  });
+
+  it('非战斗阶段不显示金手指按钮', () => {
+    const ui = makeUISystem(new RendererStub(), 0, {
+      phase: GamePhase.Deployment,
+      onGoldCheat: vi.fn(),
+    });
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    expect(buttonsOf(ui).some((button) => button.label === '+')).toBe(false);
   });
 
   it('倒计时状态下右侧按钮组整体保留相同右边距', () => {
