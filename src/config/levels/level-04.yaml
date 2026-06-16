@@ -249,23 +249,50 @@ waves:
     reward: 260
 
 cardPool:
+  - card_arrow_tower
+  - card_ice_tower
+  - card_cannon_tower
+  - card_laser_tower
+  - card_bat_tower
   - card_missile_tower
   - card_lightning_tower
-  - card_cannon_tower
-  - card_ice_tower
+  - card_fire_tower
+  - card_poison_tower
+  - card_shield_guard
   - card_archer
   - card_mage
+  - card_priest
   - card_assassin
+  - card_spike_trap
+  - card_bear_trap
+  - card_tar_pit
+  - card_boulder
+  - card_fireball
+  - card_arrow_rain
+  - card_bomb
+  - card_blizzard
 
 draftPool:
+  - card_arrow_tower
+  - card_cannon_tower
+  - card_laser_tower
+  - card_bat_tower
   - card_missile_tower
   - card_lightning_tower
-  - card_cannon_tower
   - card_ice_tower
   - card_fire_tower
   - card_poison_tower
+  - card_shield_guard
   - card_archer
   - card_mage
+  - card_priest
+  - card_spike_trap
+  - card_bear_trap
+  - card_tar_pit
+  - card_boulder
+  - card_fireball
+  - card_arrow_rain
+  - card_blizzard
   - card_bomb
   - card_gold_rush
 

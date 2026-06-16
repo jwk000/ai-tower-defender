@@ -34,6 +34,8 @@ interface RawEnemyUnit {
 
 interface RawLevelConfig {
   id: string;
+  cardPool: string[];
+  draftPool: string[];
   starting: {
     gold: number;
   };
@@ -177,6 +179,21 @@ describe('关卡 YAML 配置', () => {
       const raw = rawById.get(level.id);
       expect(raw).toBeDefined();
       expect(level.waves.map((wave) => wave.reward)).toEqual(raw!.waves.map((wave) => wave.reward));
+    }
+  });
+
+  it('后续关卡卡池继承所有前置关卡已出现卡牌', () => {
+    const seenCards = new Set<string>();
+
+    for (const level of loadRawLevels()) {
+      for (const cardId of seenCards) {
+        expect(level.cardPool, `${level.id} cardPool 缺少前置关卡卡牌 ${cardId}`).toContain(cardId);
+        expect(level.draftPool, `${level.id} draftPool 缺少前置关卡卡牌 ${cardId}`).toContain(cardId);
+      }
+
+      for (const cardId of [...level.cardPool, ...level.draftPool]) {
+        seenCards.add(cardId);
+      }
     }
   });
 

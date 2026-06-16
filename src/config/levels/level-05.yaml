@@ -381,6 +381,7 @@ cardPool:
   - card_archer
   - card_mage
   - card_priest
+  - card_assassin
   - card_spike_trap
   - card_bear_trap
   - card_tar_pit
@@ -407,6 +408,7 @@ draftPool:
   - card_archer
   - card_mage
   - card_priest
+  - card_assassin
   - card_spike_trap
   - card_bear_trap
   - card_tar_pit
