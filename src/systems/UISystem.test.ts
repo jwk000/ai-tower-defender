@@ -542,7 +542,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(true);
   });
 
-  it('法术卡拖动 ghost 只显示释放半径，不显示法术文字', () => {
+  it('法术卡拖动 ghost 同时显示释放点和释放半径', () => {
     cardConfigRegistry.register({
       id: 'fireball_card',
       name: '火球术',
@@ -574,7 +574,47 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.size === 160 &&
       cmd.color === '#ff5722'
     ))).toBe(true);
-    expect(renderer.commands.some((cmd) => cmd.label === '法术' || cmd.label === '火球术')).toBe(false);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 28 &&
+      cmd.color === '#ff5722' &&
+      cmd.label === '火球术'
+    ))).toBe(true);
+  });
+
+  it('真实手牌法术 ID 没有预加载卡牌注册表时也显示 ghost 和范围', () => {
+    cardConfigRegistry.clear();
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: 960, y: 540 },
+      dragState: {
+        active: true,
+        entityType: 'spell',
+        spellCardId: 'card_fireball',
+        cardIndex: 0,
+      },
+    });
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 160 &&
+      cmd.color === '#ff5722' &&
+      cmd.alpha === 0.35
+    ))).toBe(true);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 28 &&
+      cmd.color === '#ff5722' &&
+      cmd.label === '火球术'
+    ))).toBe(true);
   });
 
   it('暴风雪拖动 ghost 预览全棋盘攻击范围', () => {
@@ -616,6 +656,13 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.stroke === '#7c4dff'
     ))).toBe(true);
     expect(renderer.commands.some((cmd) => cmd.shape === 'circle' && cmd.size === 19998)).toBe(false);
-    expect(renderer.commands.some((cmd) => cmd.label === '暴风雪')).toBe(false);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'circle' &&
+      cmd.x === 960 &&
+      cmd.y === 540 &&
+      cmd.size === 28 &&
+      cmd.color === '#7c4dff' &&
+      cmd.label === '暴风雪'
+    ))).toBe(true);
   });
 });

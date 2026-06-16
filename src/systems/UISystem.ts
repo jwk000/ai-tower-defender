@@ -215,6 +215,15 @@ const HAND_CARD_HOVER_SCALE = 1.08;
 const HAND_CARD_HOVER_LIFT = 24;
 const HAND_CARD_HOVER_SPEED = 12;
 
+const SPELL_DRAG_PREVIEW_FALLBACKS: Record<string, { name: string; subtype: CardConfig['spellSubtype']; radius: number }> = {
+  fireball: { name: '火球术', subtype: 'damage', radius: 80 },
+  arrow_rain: { name: '剑雨', subtype: 'damage', radius: 128 },
+  blizzard: { name: '暴风雪', subtype: 'control', radius: 9999 },
+  bomb: { name: '炸弹', subtype: 'damage', radius: 96 },
+  earthquake: { name: '大地裂变', subtype: 'damage', radius: 9999 },
+  gold_rush: { name: '淘金热', subtype: 'utility', radius: 0 },
+};
+
 function resolveSpellCardConfig(spellCardId: string): CardConfig | undefined {
   const candidates = [
     spellCardId,
@@ -226,6 +235,32 @@ function resolveSpellCardConfig(spellCardId: string): CardConfig | undefined {
     if (cfg) return cfg;
   }
   return undefined;
+}
+
+function normalizeSpellPreviewId(spellCardId: string): string {
+  let id = spellCardId.startsWith('card_') ? spellCardId.slice(5) : spellCardId;
+  if (id.endsWith('_card')) id = id.slice(0, -'_card'.length);
+  return id;
+}
+
+function resolveSpellPreviewMeta(spellCardId: string): {
+  name: string;
+  subtype: CardConfig['spellSubtype'];
+  radius: number | undefined;
+} {
+  const cardCfg = resolveSpellCardConfig(spellCardId);
+  if (cardCfg) {
+    const extras = cardCfg as Record<string, unknown>;
+    const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;
+    return {
+      name: cardCfg.name,
+      subtype: cardCfg.spellSubtype,
+      radius: spellEffect?.radius as number | undefined,
+    };
+  }
+  const fallback = SPELL_DRAG_PREVIEW_FALLBACKS[normalizeSpellPreviewId(spellCardId)];
+  if (fallback) return fallback;
+  return { name: '法术', subtype: undefined, radius: undefined };
 }
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
@@ -1481,7 +1516,6 @@ export class UISystem implements System {
 
     const ghostAlpha = 0.5;
     const z = UI_Z.BOARD_TIPS;
-    const rangeOnly = ds.entityType === 'spell';
 
     // 1. 攻击范围预览（先渲染，显示在底层）
     if (range !== undefined && range > 0) {
@@ -1533,8 +1567,6 @@ export class UISystem implements System {
         });
       }
     }
-
-    if (rangeOnly) return;
 
     if (sceneArtId && this.drawDragGhostSprite(sceneArtId, ptr.x, ptr.y, size, ghostAlpha, z)) {
       return;
@@ -1717,12 +1749,9 @@ export class UISystem implements System {
       case 'spell': {
         const spellId = ds.spellCardId;
         if (spellId) {
-          const cardCfg = resolveSpellCardConfig(spellId);
-          if (cardCfg) {
-            const extras = cardCfg as Record<string, unknown>;
-            const spellEffect = extras.spellEffect as Record<string, unknown> | undefined;
-            const spellRadius = spellEffect?.radius as number | undefined;
-            const subtype = cardCfg.spellSubtype;
+          const spellMeta = resolveSpellPreviewMeta(spellId);
+          if (spellMeta.name !== '法术' || spellMeta.radius !== undefined) {
+            const subtype = spellMeta.subtype;
             let spellColor = '#7c4dff';
             switch (subtype) {
               case 'damage': spellColor = '#ff5722'; break;
@@ -1735,9 +1764,9 @@ export class UISystem implements System {
               shape: 'circle',
               size: 28,
               color: spellColor,
-              label: cardCfg.name,
-              range: spellRadius,
-              rangeMode: spellRadius !== undefined && spellRadius >= 9999 ? 'board' : 'circle',
+              label: spellMeta.name,
+              range: spellMeta.radius,
+              rangeMode: spellMeta.radius !== undefined && spellMeta.radius >= 9999 ? 'board' : 'circle',
             };
           }
         }

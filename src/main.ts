@@ -1917,8 +1917,9 @@ if (!canvas) throw new Error('Canvas element not found');
 
 async function bootstrapGame(): Promise<void> {
   // 加载所有 YAML 单位配置到 unitConfigRegistry（UnitFactory 依赖此注册表）
-  const { loadAllUnitConfigs } = await import('./config/loader.js');
+  const { loadAllCardConfigsSync, loadAllUnitConfigs } = await import('./config/loader.js');
   const unitConfigs = await loadAllUnitConfigs();
+  const cardConfigs = loadAllCardConfigsSync();
 
   const { ruleEngine } = await import('./core/RuleEngine.js');
   const { BUILTIN_HANDLERS } = await import('./core/RuleHandlers.js');
@@ -1956,7 +1957,7 @@ async function bootstrapGame(): Promise<void> {
   const soldierCount = injectSoldierConfigsFromRegistry();
   const skillCount = injectSkillConfigsFromRegistry();
   const trapCount = injectTrapConfigsFromRegistry();
-  console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills, ${trapCount} traps`);
+  console.log(`[Config] Injected from YAML: ${enemyCount} enemies, ${towerCount} towers, ${soldierCount} soldiers, ${skillCount} skills, ${trapCount} traps, ${cardConfigs.length} cards`);
 
   const game = new TowerDefenderGame(canvas);
   game.start();
