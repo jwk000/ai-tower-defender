@@ -5,16 +5,16 @@
 // 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪全屏覆盖，炸弹抛物线。
 // ============================================================
 
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, entityExists, hasComponent } from '../core/World.js';
 import {
   Position,
   SpellProjectile,
   SpellEffect,
   UnitTag,
   Health,
-  Movement,
   DamageTypeVal,
   ScreenShake,
+  Stunned,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
@@ -612,7 +612,7 @@ export class SpellProjectileSystem implements System {
             ? areaY + laneSeed * areaH
             : y - radius * 0.9 + laneSeed * radius * 1.8;
           const gustX = baseX + Math.sin(progress * 32 + i * 1.7) * 22;
-          const gustY = baseY + diagonal * 0.18 + Math.sin(phase * Math.PI * 2 + i) * 18;
+          const gustY = baseY + Math.sin(phase * Math.PI * 2 + i) * 18;
           if (gustX < areaX - 40 || gustX > areaX + areaW + 40 || gustY < areaY - 40 || gustY > areaY + areaH + 40) continue;
           const size = i % 6 === 0 ? 8 : 3 + (i % 4);
           this.renderer.push({
@@ -631,7 +631,7 @@ export class SpellProjectileSystem implements System {
               h: 2 + (i % 2),
               color: '#e1f5fe',
               alpha: windAlpha * 0.22,
-              rotation: 0.28,
+              rotation: 0,
               z: z + 1,
             });
           }
@@ -857,14 +857,21 @@ export class SpellProjectileSystem implements System {
       if (dist < radius || spellType === SPELL_EARTHQUAKE || spellType === SPELL_BLIZZARD) {
         applyDamageToTarget(world, eid, damage, damageType);
 
-        // Blizzard slow effect
         if (spellType === SPELL_BLIZZARD) {
-          const curSpeed = Movement.speed[eid];
-          if (curSpeed !== undefined) {
-            Movement.speed[eid] = curSpeed * 0.7;
-          }
+          this.applyBlizzardPushAndStun(world, eid);
         }
       }
     }
+  }
+
+  private applyBlizzardPushAndStun(world: TowerWorld, eid: number): void {
+    const tileSize = 64;
+    const boardRight = RenderSystem.sceneOffsetX + RenderSystem.sceneW;
+    const currentX = Position.x[eid] ?? 0;
+    Position.x[eid] = Math.min(currentX + tileSize, boardRight - tileSize / 2);
+
+    if (!entityExists(world.world, eid)) return;
+    const existingStun = hasComponent(world.world, Stunned, eid) ? Stunned.timer[eid]! : 0;
+    world.addComponent(eid, Stunned, { timer: Math.max(existingStun, 1.0) });
   }
 }

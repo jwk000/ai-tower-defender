@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineQuery, TowerWorld } from '../core/World.js';
+import { defineQuery, hasComponent, TowerWorld } from '../core/World.js';
 import {
   Health,
   Movement,
@@ -7,6 +7,7 @@ import {
   ScreenShake,
   SpellEffect,
   SpellProjectile,
+  Stunned,
   UnitTag,
 } from '../core/components.js';
 import type { Renderer } from '../render/Renderer.js';
@@ -164,7 +165,7 @@ describe('SpellProjectileSystem', () => {
     expect(Health.current[ally]).toBe(50);
   });
 
-  it('blizzard is a 5-second global spell that damages all enemies once and slows them', () => {
+  it('blizzard is a 5-second left-to-right global spell that damages, pushes enemies right, and stuns once', () => {
     const { renderer, commands } = makeRenderer();
     const world = new TowerWorld();
     const system = new SpellProjectileSystem(renderer);
@@ -177,6 +178,9 @@ describe('SpellProjectileSystem', () => {
     const enemyA = makeEnemy(world, 120, 100);
     const enemyB = makeEnemy(world, 700, 430);
     const ally = makeAlly(world, 300, 220);
+    const enemyAStartX = Position.x[enemyA]!;
+    const enemyBStartX = Position.x[enemyB]!;
+    const allyStartX = Position.x[ally]!;
 
     system.spawnGlobalEffect(world, 2, 45, 5);
 
@@ -184,8 +188,14 @@ describe('SpellProjectileSystem', () => {
     expect(Health.current[enemyA]).toBe(55);
     expect(Health.current[enemyB]).toBe(55);
     expect(Health.current[ally]).toBe(100);
-    expect(Movement.speed[enemyA]).toBe(70);
-    expect(Movement.speed[enemyB]).toBe(70);
+    expect(Position.x[enemyA]).toBe(enemyAStartX + 64);
+    expect(Position.x[enemyB]).toBe(RenderSystem.sceneOffsetX + RenderSystem.sceneW - 32);
+    expect(Position.x[ally]).toBe(allyStartX);
+    expect(hasComponent(world.world, Stunned, enemyA)).toBe(true);
+    expect(hasComponent(world.world, Stunned, enemyB)).toBe(true);
+    expect(hasComponent(world.world, Stunned, ally)).toBe(false);
+    expect(Stunned.timer[enemyA]).toBeCloseTo(1.0);
+    expect(Stunned.timer[enemyB]).toBeCloseTo(1.0);
     expect(effectQuery(world.world)).toHaveLength(1);
     expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#90caf9')).toBe(true);
     expect(commands.filter((cmd) => (
@@ -198,13 +208,15 @@ describe('SpellProjectileSystem', () => {
     expect(commands.filter((cmd) => (
       cmd.shape === 'rect' &&
       cmd.color === '#e1f5fe' &&
-      cmd.rotation === 0.28
+      cmd.rotation === 0
     )).length).toBeGreaterThanOrEqual(12);
 
     commands.length = 0;
     system.update(world, 2.4);
     expect(Health.current[enemyA]).toBe(55);
     expect(Health.current[enemyB]).toBe(55);
+    expect(Position.x[enemyA]).toBe(enemyAStartX + 64);
+    expect(Position.x[enemyB]).toBe(RenderSystem.sceneOffsetX + RenderSystem.sceneW - 32);
     expect(effectQuery(world.world)).toHaveLength(1);
     expect(commands.some((cmd) => cmd.shape === 'circle' || cmd.shape === 'diamond')).toBe(true);
 
