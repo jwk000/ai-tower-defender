@@ -285,6 +285,37 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.drawRandomCard()).toBe(true);
       expect(handSystem.getHand()[0]?.id).toBe('card_bear_trap');
     });
+
+    it('随机补牌不会连续两次抽到同一张卡', () => {
+      handSystem.initialize([
+        makeTrapCard('card_spike_trap', '地刺'),
+        makeTrapCard('card_bear_trap', '捕兽夹'),
+        makeTrapCard('card_tar_pit', '焦油坑'),
+      ]);
+      handSystem.reset();
+
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_spike_trap');
+
+      handSystem.reset();
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_bear_trap');
+    });
+
+    it('只有上一张卡是合法候选时允许连续抽到同一张卡兜底', () => {
+      handSystem.initialize([
+        makeTrapCard('card_spike_trap', '地刺'),
+      ]);
+      handSystem.reset();
+
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_spike_trap');
+
+      handSystem.reset();
+      expect(handSystem.drawRandomCard()).toBe(true);
+      expect(handSystem.getHand()[0]?.id).toBe('card_spike_trap');
+    });
   });
 
   describe('playCard — 出牌（v5.0: 自动补牌）', () => {

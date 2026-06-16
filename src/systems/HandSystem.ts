@@ -65,6 +65,9 @@ export class HandSystem implements System {
   /** 每张卡当前随机权重（cardId → weight），本局内随抽取次数递减 */
   private cardDrawWeights: Map<string, number> = new Map();
 
+  /** 上一次成功抽入手牌的卡牌 ID，用于避免连续两次随机抽到同一张卡 */
+  private lastDrawnCardId: string | null = null;
+
   /** 出牌回调 */
   onCardPlayed?: (cardId: string) => void;
 
@@ -92,6 +95,7 @@ export class HandSystem implements System {
   initialize(cardPool: CardInstance[]): void {
     this.cardLibrary.clear();
     this.cardDrawWeights.clear();
+    this.lastDrawnCardId = null;
     for (const card of cardPool) {
       this.cardLibrary.set(card.id, card);
       this.ensureCardDrawWeight(card.id);
@@ -145,7 +149,7 @@ export class HandSystem implements System {
 
     for (let i = 0; i < initialSlice.length; i++) {
       this.hand[i] = initialSlice[i]!;
-      this.consumeCardDrawWeight(initialSlice[i]!.id);
+      this.recordCardDrawn(initialSlice[i]!.id);
     }
   }
 
@@ -162,7 +166,7 @@ export class HandSystem implements System {
     const slot = this.hand.findIndex((s) => s === null);
     if (slot === -1) return false;
     this.hand[slot] = card;
-    this.consumeCardDrawWeight(cardId);
+    this.recordCardDrawn(cardId);
     return true;
   }
 
@@ -179,14 +183,14 @@ export class HandSystem implements System {
     if (slot === -1) return false;
 
     // 从卡牌库中按当前随机权重选择一张
-    const cards = Array.from(this.cardLibrary.values()).filter((card) => this.canAddCardToHand(card.id));
+    const cards = this.getRandomDrawCandidates();
     if (cards.length === 0) return false;
 
     const card = this.pickWeightedCard(cards);
     if (!card) return false;
 
     this.hand[slot] = card;
-    this.consumeCardDrawWeight(card.id);
+    this.recordCardDrawn(card.id);
     return true;
   }
 
@@ -330,6 +334,19 @@ export class HandSystem implements System {
   private consumeCardDrawWeight(cardId: string): void {
     const current = this.getCardDrawWeight(cardId);
     this.cardDrawWeights.set(cardId, Math.max(MIN_CARD_DRAW_WEIGHT, current - 1));
+  }
+
+  private recordCardDrawn(cardId: string): void {
+    this.consumeCardDrawWeight(cardId);
+    this.lastDrawnCardId = cardId;
+  }
+
+  private getRandomDrawCandidates(): CardInstance[] {
+    const candidates = Array.from(this.cardLibrary.values()).filter((card) => this.canAddCardToHand(card.id));
+    if (this.lastDrawnCardId === null || candidates.length <= 1) return candidates;
+
+    const nonRepeatingCandidates = candidates.filter((card) => card.id !== this.lastDrawnCardId);
+    return nonRepeatingCandidates.length > 0 ? nonRepeatingCandidates : candidates;
   }
 
   private pickWeightedCard(cards: readonly CardInstance[]): CardInstance | null {
