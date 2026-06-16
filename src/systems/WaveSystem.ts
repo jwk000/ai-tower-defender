@@ -597,8 +597,18 @@ export class WaveSystem implements System {
     });
     this.world.addComponent(eid, Movement, {
       speed: config.speed,
+      currentSpeed: 0,
+      targetX: x,
+      targetY: y,
+      pathIndex: 0,
+      progress: 0,
       moveMode: MoveModeVal.FollowPath,
+      homeX: x,
+      homeY: y,
+      moveRange: 0,
       spawnIdx: spawnIdx,
+      currentNodeIdx: 0,
+      targetNodeIdx: 1,
     });
 
     if (flock) {

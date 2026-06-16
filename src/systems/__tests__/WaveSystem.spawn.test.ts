@@ -92,6 +92,48 @@ describe('WaveSystem B.15 — spawn coords via resolveGraphFromMap (pathGraph-on
     expect(pos!.y).toBe(3 * 64 + 32);
   });
 
+  it('reused entity id does not inherit old path progress when spawning', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+
+    const stale = world.createEntity();
+    world.addComponent(stale, Movement, {
+      speed: 1,
+      currentSpeed: 1,
+      targetX: 999,
+      targetY: 999,
+      pathIndex: 1,
+      progress: 0.75,
+      moveMode: 1,
+      homeX: 999,
+      homeY: 999,
+      moveRange: 999,
+      spawnIdx: 0,
+      currentNodeIdx: 1,
+      targetNodeIdx: 2,
+    });
+    world.destroyEntity(stale);
+    world.cleanupDeadEntities();
+
+    const ws = new WaveSystem(world, map, makeSingleWave(), getPhase, setPhase);
+    ws.startWave();
+    ws.update(world, 0);
+
+    const enemies = enemyQuery(world.world).filter((eid) => UnitTag.isEnemy[eid] === 1 && UnitTag.isElite[eid] !== 1);
+    expect(enemies.length).toBe(1);
+    const eid = enemies[0]!;
+    expect(Movement.pathIndex[eid]).toBe(0);
+    expect(Movement.progress[eid]).toBe(0);
+    expect(Movement.currentSpeed[eid]).toBe(0);
+    expect(Movement.targetX[eid]).toBe(5 * 64 + 32);
+    expect(Movement.targetY[eid]).toBe(3 * 64 + 32);
+    expect(Position.x[eid]).toBe(5 * 64 + 32);
+    expect(Position.y[eid]).toBe(3 * 64 + 32);
+  });
+
   it('throws at construction when pathGraph is missing', () => {
     const world = new TowerWorld();
     const badMap = { ...makeBaseMap() } as MapConfig;
