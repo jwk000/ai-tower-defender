@@ -697,10 +697,8 @@ export class MovementSystem implements System {
 
       // Reset cooldown and set attack animation pause
       Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
-      if (pauseOnAttack) {
-        const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
-        Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
-      }
+      const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
+      Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
       return true;
     }
     return false;

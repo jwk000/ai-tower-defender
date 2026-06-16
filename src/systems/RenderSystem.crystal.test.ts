@@ -10,10 +10,14 @@ import {
   DeathEffect,
   DisintegrateEffect,
   Health,
+  Layer,
+  LayerVal,
   Movement,
   Position,
   ShapeVal,
   Tower,
+  Trap,
+  TrapTypeVal,
   UnitTag,
   Visual,
 } from '../core/components.js';
@@ -112,6 +116,37 @@ function makeNamedEntity(
     });
   }
   world.setDisplayName(eid, opts.name);
+  return eid;
+}
+
+function makeBoulderTrap(world: TowerWorld): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: 96, y: 32 });
+  world.addComponent(eid, Health, { current: 120, max: 200, armor: 20, magicResist: 0 });
+  world.addComponent(eid, Trap, {
+    damagePerSecond: 0,
+    radius: 0,
+    cooldown: 0,
+    cooldownTimer: 0,
+    animTimer: 0,
+    animDuration: 0.4,
+    triggerCount: 0,
+    maxTriggers: 0,
+    trapType: TrapTypeVal.Boulder,
+    direction: 0,
+    stunDuration: 0,
+    damage: 0,
+  });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: 120,
+    colorG: 144,
+    colorB: 156,
+    size: 40,
+    alpha: 1,
+    outline: 0,
+  });
   return eid;
 }
 
@@ -241,6 +276,34 @@ describe('RenderSystem — 水晶显示', () => {
       imageTint: { color: '#ffffff', alpha: 0.72 },
     }));
     expect(proceduralBody).toBeUndefined();
+  });
+
+  it('巨石机关绘制主体后仍显示血条', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    makeBoulderTrap(world);
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      shape: 'circle',
+      color: '#78909c',
+      size: 36,
+    }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      shape: 'rect',
+      color: '#222222',
+      h: 6,
+    }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      shape: 'rect',
+      color: '#ffc107',
+      h: 6,
+    }));
   });
 
   it('精英、Boss、我方士兵使用阵营化名称颜色', () => {

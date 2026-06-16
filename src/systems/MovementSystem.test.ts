@@ -488,7 +488,7 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Movement.currentSpeed[boss]).toBe(0);
   });
 
-  it('普通敌人普攻玩家单位时会攻击但继续沿路径移动', () => {
+  it('普通敌人普攻玩家单位时会播放攻击动作但继续沿路径移动', () => {
     const tower = makeTower(world, 80);
     Position.x[tower] = 20;
     Position.y[tower] = 16;
@@ -528,7 +528,7 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     longPathSystem.update(world, 0.016);
 
     expect(Health.current[tower]).toBe(68);
-    expect(Visual.attackAnimTimer[enemy]).toBe(0);
+    expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
     expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
     expect(Movement.progress[enemy]).toBeGreaterThan(0);
   });
@@ -567,6 +567,7 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Movement.progress[enemy]).toBe(0);
     expect(Movement.currentSpeed[enemy]).toBe(0);
     expect(Attack.targetId[enemy]).toBe(boulder);
+    expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
     expect(Health.current[boulder]).toBe(190);
   });
 

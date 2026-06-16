@@ -1098,6 +1098,7 @@ export class RenderSystem implements System {
       const hasSlowed = hasComponent(world.world, Slowed, eid);
       const hasStunnedComponent = hasComponent(world.world, Stunned, eid);
       const hasPoisoned = hasComponent(world.world, Poisoned, eid);
+      let trapBodyDrawn = false;
 
       // ========================================
       // TRAP rendering — 根据机关类型绘制不同外观
@@ -1133,12 +1134,12 @@ export class RenderSystem implements System {
             },
           )
         ) {
-          continue;
+          trapBodyDrawn = true;
         }
 
         const trapPartsId = Visual.partsId[eid] ?? 0;
         const trapParts = trapPartsId !== 0 ? world.getUnitVisualParts(trapPartsId) : undefined;
-        if (trapParts) {
+        if (!trapBodyDrawn && trapParts) {
           const trapSize = Visual.size[eid]! * (1 + animFactor * 0.08);
           this.drawUnitComposite(
             eid,
@@ -1152,10 +1153,11 @@ export class RenderSystem implements System {
             trapRenderZ,
             trapParts,
           );
-          continue;
+          trapBodyDrawn = true;
         }
 
-        switch (trapType) {
+        if (!trapBodyDrawn) {
+          switch (trapType) {
           case 0: // SpikeTrap - 地刺：灰色三角形尖刺从地面冒出
           {
             const spikeOffset = -animFactor * 12;
@@ -1274,9 +1276,11 @@ export class RenderSystem implements System {
                 alpha: 1,
               });
             }
+            break;
           }
+          }
+          trapBodyDrawn = true;
         }
-        continue;
       }
 
       // ========================================
@@ -1598,7 +1602,9 @@ export class RenderSystem implements System {
       // Crystal (Objective) — 使用文档定义的菱形复合+辉光+浮动动画渲染
       // 设计文档: design/05-presentation.md §5 水晶视觉
       const isObjective = hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Objective;
-      if (isObjective) {
+      if (isTrap && trapBodyDrawn) {
+        bodySpriteDrawn = true;
+      } else if (isObjective) {
         this.drawCrystal(eid, posX, posY, dt, displayAlpha);
       } else {
         const unitPartsId = Visual.partsId[eid] ?? 0;
