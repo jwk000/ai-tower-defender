@@ -81,6 +81,8 @@ export function injectTowerConfigsFromRegistry(): number {
     const chainCount = (special['chainCount'] as number) ?? 0;
     const chainCountByLevel = special['chainCountByLevel'] as number[] | undefined;
     const chainDecay = (special['chainDecay'] as number) ?? 0;
+    const lightningStormCooldown = (special['lightningStormCooldown'] as number) ?? 0;
+    const lightningStormDamage = (special['lightningStormDamage'] as number) ?? 0;
     const slowPercent = (special['slowPercent'] as number) ?? 0;
     const slowMaxStacks = (special['slowMaxStacks'] as number) ?? 1;
     const dotDamage = (special['dotDamage'] as number) ?? 0;
@@ -133,6 +135,8 @@ export function injectTowerConfigsFromRegistry(): number {
     if (chainCount > 0) cfg.chainCount = chainCount;
     if (chainCountByLevel && chainCountByLevel.length > 0) cfg.chainCountByLevel = chainCountByLevel;
     if (chainDecay > 0) cfg.chainDecay = chainDecay;
+    if (lightningStormCooldown > 0) cfg.lightningStormCooldown = lightningStormCooldown;
+    if (lightningStormDamage > 0) cfg.lightningStormDamage = lightningStormDamage;
     if (slowPercent > 0) cfg.slowPercent = slowPercent;
     if (slowMaxStacks > 1) cfg.slowMaxStacks = slowMaxStacks;
     if (dotDamage > 0) cfg.dotDamage = dotDamage;

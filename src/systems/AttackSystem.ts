@@ -7,6 +7,8 @@ import {
   Visual,
   Health,
   LightningBolt,
+  LightningStorm,
+  LightningStormSkill,
   LaserBeam,
   UnitTag,
   ShapeVal,
@@ -28,6 +30,8 @@ import { areHostile } from '../utils/factionUtils.js';
 import type { WeatherSystem } from './WeatherSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 import { ruleEngine } from '../core/RuleEngine.js';
+import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
+import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 
 // ============================================================
 // TowerType numeric ID → enum mapping (ui8 values)
@@ -49,6 +53,10 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
 const LASER_INITIAL_DAMAGE_RATIO = 0.5;
 export const LASER_BEAM_DURATION = 5.0;
 export const LASER_RAMP_DURATION = 2.0;
+export const LIGHTNING_STORM_MIN_LEVEL = 5;
+export const LIGHTNING_STORM_DEFAULT_COOLDOWN = 10;
+export const LIGHTNING_STORM_DEFAULT_DAMAGE = 900;
+export const LIGHTNING_STORM_DURATION = 0.9;
 
 // ============================================================
 // Projectile visual presets (replaces PROJECTILE_CFG)
@@ -160,6 +168,10 @@ export class AttackSystem implements System {
       }
 
       // Tick cooldown
+      if (towerTypeVal === 3) {
+        updateLightningStormSkill(world, eid, dt, this.map);
+      }
+
       if (Attack.cooldownTimer[eid]! > 0) {
         Attack.cooldownTimer[eid]! -= dt;
         continue;
@@ -854,6 +866,122 @@ export function doLightningAttack(
       targetId = nearestId !== 0 ? nearestId : targetId;
     }
   }
+}
+
+export interface CrystalAnchorPosition {
+  x: number;
+  y: number;
+}
+
+export function getCrystalAnchorPosition(map?: MapConfig): CrystalAnchorPosition {
+  if (!map) return { x: 0, y: 0 };
+  let row = map.rows - 1;
+  let col = map.cols - 1;
+  try {
+    const graph = resolveGraphFromMap(map);
+    const crystalNode = graph.pathGraph.nodes.find((node) => node.role === 'crystal_anchor');
+    if (crystalNode) {
+      row = crystalNode.row;
+      col = crystalNode.col;
+    }
+  } catch {
+    // Fall back to lower-right map corner when legacy test maps omit path data.
+  }
+  return {
+    x: col * map.tileSize + map.tileSize / 2,
+    y: row * map.tileSize + map.tileSize / 2,
+  };
+}
+
+export function findLightningStormTarget(
+  world: TowerWorld,
+  towerId: number,
+  map?: MapConfig,
+): number | null {
+  const towerFaction = Faction.value[towerId];
+  if (towerFaction === undefined) return null;
+
+  const candidates: number[] = [];
+  for (const eid of potentialTargetQuery(world.world)) {
+    const targetFaction = Faction.value[eid];
+    if (targetFaction === undefined || !areHostile(towerFaction, targetFaction)) continue;
+    if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (!AttackSystem.isValidTarget(world, towerId, eid)) continue;
+    candidates.push(eid);
+  }
+  if (candidates.length === 0) return null;
+
+  const priorityTarget = candidates
+    .filter((eid) => UnitTag.isBoss[eid] === 1 || UnitTag.isElite[eid] === 1)
+    .sort((a, b) => {
+      const bossDelta = (UnitTag.isBoss[b] ?? 0) - (UnitTag.isBoss[a] ?? 0);
+      if (bossDelta !== 0) return bossDelta;
+      return (Health.current[b] ?? 0) - (Health.current[a] ?? 0);
+    })[0];
+  if (priorityTarget !== undefined) return priorityTarget;
+
+  const crystal = getCrystalAnchorPosition(map);
+  return candidates.sort((a, b) => {
+    const ax = Position.x[a] ?? 0;
+    const ay = Position.y[a] ?? 0;
+    const bx = Position.x[b] ?? 0;
+    const by = Position.y[b] ?? 0;
+    const da = (ax - crystal.x) ** 2 + (ay - crystal.y) ** 2;
+    const db = (bx - crystal.x) ** 2 + (by - crystal.y) ** 2;
+    return da - db;
+  })[0] ?? null;
+}
+
+export function updateLightningStormSkill(
+  world: TowerWorld,
+  towerId: number,
+  dt: number,
+  map?: MapConfig,
+): void {
+  if ((Tower.level[towerId] ?? 1) < LIGHTNING_STORM_MIN_LEVEL) return;
+
+  const cfg = TOWER_CONFIGS[TowerType.Lightning];
+  const cooldown = cfg.lightningStormCooldown ?? LIGHTNING_STORM_DEFAULT_COOLDOWN;
+  if (LightningStormSkill.cooldown[towerId] === undefined) {
+    world.addComponent(towerId, LightningStormSkill, { cooldown, timer: cooldown });
+  }
+  LightningStormSkill.cooldown[towerId] = cooldown;
+  LightningStormSkill.timer[towerId] = (LightningStormSkill.timer[towerId] ?? cooldown) + dt;
+
+  if (LightningStormSkill.timer[towerId]! < cooldown) return;
+
+  const targetId = findLightningStormTarget(world, towerId, map);
+  if (targetId === null) return;
+
+  triggerLightningStorm(world, towerId, targetId);
+  LightningStormSkill.timer[towerId] = 0;
+}
+
+export function triggerLightningStorm(
+  world: TowerWorld,
+  towerId: number,
+  targetId: number,
+): void {
+  const cfg = TOWER_CONFIGS[TowerType.Lightning];
+  const damage = cfg.lightningStormDamage ?? LIGHTNING_STORM_DEFAULT_DAMAGE;
+  const damageType = Attack.damageType[towerId] ?? DamageTypeVal.Magic;
+  applyDamageToTarget(world, targetId, damage, damageType);
+  Visual.hitFlashTimer[targetId] = 0.32;
+
+  const eid = world.createEntity();
+  const targetX = Position.x[targetId] ?? 0;
+  const targetY = Position.y[targetId] ?? 0;
+  world.addComponent(eid, LightningStorm, {
+    targetId,
+    targetX,
+    targetY,
+    damage,
+    duration: LIGHTNING_STORM_DURATION,
+    elapsed: 0,
+  });
+
+  ScreenShakeSystem.triggerShake(world, 14, 0.55, 18);
+  Sound.play('lightning_hit');
 }
 
 /**

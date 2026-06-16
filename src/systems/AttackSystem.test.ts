@@ -6,9 +6,20 @@
  * - design/02-gameplay.md §6.2 4阵营交互规则矩阵
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AttackSystem, doLaserAttack, doLightningAttack, findEnemiesInRange, hasActiveLaserBeam, LASER_BEAM_DURATION } from './AttackSystem.js';
+import {
+  AttackSystem,
+  doLaserAttack,
+  doLightningAttack,
+  findEnemiesInRange,
+  findLightningStormTarget,
+  hasActiveLaserBeam,
+  LASER_BEAM_DURATION,
+  triggerLightningStorm,
+  updateLightningStormSkill,
+} from './AttackSystem.js';
 import { TowerWorld } from '../core/World.js';
 import {
+  defineQuery,
   Faction,
   FactionVal,
   Health,
@@ -16,6 +27,8 @@ import {
   Attack,
   LaserBeam,
   LightningBolt,
+  LightningStorm,
+  ScreenShake,
   Tower,
   UnitTag,
   Layer,
@@ -26,7 +39,10 @@ import { ruleEngine } from '../core/RuleEngine.js';
 import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
 import { Sound } from '../utils/Sound.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
-import { TowerType } from '../types/index.js';
+import { TileType, TowerType, type MapConfig } from '../types/index.js';
+
+const lightningStormQuery = defineQuery([LightningStorm]);
+const screenShakeQuery = defineQuery([ScreenShake]);
 
 describe('AttackSystem.canAttackLayer (P1-#12)', () => {
   describe('Ground attacker', () => {
@@ -301,6 +317,123 @@ describe('doLightningAttack — 电塔线性弹跳成长', () => {
     expect(enemies.filter((eid) => Health.current[eid]! < 100)).toHaveLength(7);
     expect(Health.current[enemies[7]!]!).toBe(100);
     expect(activeLightningBoltsFor(towerId)).toHaveLength(7);
+  });
+});
+
+describe('LightningStorm — 电塔5级全屏落雷战略技能', () => {
+  let world: TowerWorld;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+  });
+
+  function makeMap(): MapConfig {
+    return {
+      name: 'storm-test',
+      cols: 10,
+      rows: 10,
+      tileSize: 32,
+      tiles: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => TileType.Path)),
+      pathGraph: {
+        nodes: [
+          { id: 's', row: 0, col: 0, role: 'spawn', spawnId: 's0' },
+          { id: 'c', row: 8, col: 8, role: 'crystal_anchor' },
+        ],
+        edges: [{ from: 's', to: 'c' }],
+      },
+      spawns: [{ id: 's0', row: 0, col: 0 }],
+    };
+  }
+
+  function makeStormTower(level = 5): number {
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Layer, { value: LayerVal.Ground });
+    world.addComponent(towerId, Tower, { towerType: 3, level, totalInvested: 2635 });
+    world.addComponent(towerId, Attack, {
+      damage: 135,
+      attackSpeed: 0.9,
+      range: 250,
+      alertRange: 500,
+      damageType: DamageTypeVal.Magic,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 1,
+      canTargetLowAir: 1,
+      splashRadius: 0,
+      chainCount: 7,
+      chainRange: 120,
+      chainDecay: 0.2,
+    });
+    world.addComponent(towerId, Health, { current: 1800, max: 1800, armor: 0, magicResist: 0 });
+    return towerId;
+  }
+
+  function makeStormEnemy(x: number, y: number, hp = 1000, opts: { boss?: boolean; elite?: boolean } = {}): number {
+    const eid = makeAttackable(world, x, y, FactionVal.Evil, hp, LayerVal.Ground, 1, 0);
+    UnitTag.isBoss[eid] = opts.boss ? 1 : 0;
+    UnitTag.isElite[eid] = opts.elite ? 1 : 0;
+    return eid;
+  }
+
+  it('目标选择优先Boss，其次精英，不按距离抢目标', () => {
+    const tower = makeStormTower();
+    const normal = makeStormEnemy(250, 250);
+    const elite = makeStormEnemy(120, 120, 1000, { elite: true });
+    const boss = makeStormEnemy(400, 400, 3000, { boss: true });
+
+    expect(findLightningStormTarget(world, tower, makeMap())).toBe(boss);
+    Health.current[boss] = 0;
+    expect(findLightningStormTarget(world, tower, makeMap())).toBe(elite);
+    Health.current[elite] = 0;
+    expect(findLightningStormTarget(world, tower, makeMap())).toBe(normal);
+  });
+
+  it('没有Boss和精英时选择离水晶最近的敌人', () => {
+    const tower = makeStormTower();
+    makeStormEnemy(40, 40);
+    const nearCrystal = makeStormEnemy(8 * 32 + 16, 7 * 32 + 16);
+
+    expect(findLightningStormTarget(world, tower, makeMap())).toBe(nearCrystal);
+  });
+
+  it('5级电塔冷却满后造成900魔法伤害并创建落雷和屏幕震动表现', () => {
+    vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const tower = makeStormTower(5);
+    const elite = makeStormEnemy(160, 160, 900, { elite: true });
+
+    updateLightningStormSkill(world, tower, 10, makeMap());
+
+    expect(Health.current[elite]).toBeLessThanOrEqual(0);
+    expect(lightningStormQuery(world.world)).toHaveLength(1);
+    expect(screenShakeQuery(world.world)).toHaveLength(1);
+    expect(Sound.play).toHaveBeenCalledWith('lightning_hit');
+  });
+
+  it('5级以下电塔不会触发全屏落雷', () => {
+    const tower = makeStormTower(4);
+    makeStormEnemy(160, 160, 900, { elite: true });
+
+    updateLightningStormSkill(world, tower, 20, makeMap());
+
+    expect(lightningStormQuery(world.world)).toHaveLength(0);
+  });
+
+  it('直接触发落雷时记录目标点用于天空压暗和落雷柱渲染', () => {
+    vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const tower = makeStormTower();
+    const target = makeStormEnemy(192, 224, 1200);
+
+    triggerLightningStorm(world, tower, target);
+
+    const stormId = lightningStormQuery(world.world)[0]!;
+    expect(LightningStorm.targetId[stormId]).toBe(target);
+    expect(LightningStorm.targetX[stormId]).toBe(192);
+    expect(LightningStorm.targetY[stormId]).toBe(224);
+    expect(LightningStorm.damage[stormId]).toBe(900);
   });
 });
 

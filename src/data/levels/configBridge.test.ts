@@ -54,7 +54,14 @@ describe('unit config bridge', () => {
         targetSelection: 'nearest',
         attackMode: 'chain',
         movementMode: 'hold_position',
-        special: { chainCount: 3, chainCountByLevel: [3, 4, 5, 6, 7], chainRange: 120, chainDecay: 0.2 },
+        special: {
+          chainCount: 3,
+          chainCountByLevel: [3, 4, 5, 6, 7],
+          chainRange: 120,
+          chainDecay: 0.2,
+          lightningStormCooldown: 10,
+          lightningStormDamage: 900,
+        },
       },
     });
 
@@ -64,6 +71,8 @@ describe('unit config bridge', () => {
     expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 35, 30, 40]);
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCount).toBe(3);
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCountByLevel).toEqual([3, 4, 5, 6, 7]);
+    expect(TOWER_CONFIGS[TowerType.Lightning].lightningStormCooldown).toBe(10);
+    expect(TOWER_CONFIGS[TowerType.Lightning].lightningStormDamage).toBe(900);
   });
 
   it('塔从 stats.damageType 读取伤害类型，支持 true 伤害', () => {

@@ -25,6 +25,7 @@ import { InterLevelBuffSystem } from './systems/InterLevelBuffSystem.js';
 import { LaserBeamSystem } from './systems/LaserBeamSystem.js';
 import { LifecycleSystem } from './systems/LifecycleSystem.js';
 import { LightningBoltSystem } from './systems/LightningBoltSystem.js';
+import { LightningStormSystem } from './systems/LightningStormSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { ProductionSystem } from './systems/ProductionSystem.js';
 import { ProjectileSystem } from './systems/ProjectileSystem.js';
@@ -95,6 +96,7 @@ import {
   UnitTag,
   Visual,
   DamageNumberStyle,
+  LightningStormSkill,
 } from './core/components.js';
 
 import { hasComponent } from './core/World.js';
@@ -495,6 +497,9 @@ class TowerDefenderGame extends Game {
           Attack.damage[entityId]! += towerCfg.upgradeAtkBonus[costIdx] ?? 0;
           Attack.range[entityId]! += towerCfg.upgradeRangeBonus[costIdx] ?? 0;
         }
+        if (tt === TowerType.Lightning && Tower.level[entityId] === 5) {
+          LightningStormSkill.timer[entityId] = LightningStormSkill.cooldown[entityId] ?? 10;
+        }
         Sound.play('upgrade');
       }
     };
@@ -790,6 +795,7 @@ class TowerDefenderGame extends Game {
     const fadingMarkSystem = new FadingMarkSystem();
     const enemySkillParticleSystem = new EnemySkillParticleSystem(this.renderer);
     const lightningBoltSystem = new LightningBoltSystem(this.renderer);
+    const lightningStormSystem = new LightningStormSystem(this.renderer);
     this.laserBeamSystem = new LaserBeamSystem(this.renderer);
     this.spellProjectileSystem = new SpellProjectileSystem(this.renderer);
     const slashEffectSystem = new SlashEffectSystem(this.renderer);
@@ -820,6 +826,7 @@ class TowerDefenderGame extends Game {
           fogOverlay: map.lighting?.fogOverlay,
           backgroundImageActive: this.debugManager.isBackgroundImageEnabled() && areArtResourcesEnabled(),
         });
+        lightningStormSystem.render(this.world);
       }
       // P0-1: 伤害飘字渲染（在场景之上、UI 之下）
       if (this.currentScreen === GameScreen.Battle) {
@@ -1166,6 +1173,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(unitAnimationSystem);
     this.world.registerSystem(renderSystem);
     this.world.registerSystem(lightningBoltSystem);
+    this.world.registerSystem(lightningStormSystem);
     this.world.registerSystem(this.uiSystem);
     this.world.registerSystem(this.victoryScreenSystem);
 

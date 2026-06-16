@@ -262,6 +262,8 @@ export interface TowerConfig {
   chainDecay?: number;
   canTargetLowAir?: boolean;
   chainRange?: number;
+  lightningStormCooldown?: number;
+  lightningStormDamage?: number;
   // Bat tower specific
   batCount?: number;
   batCountByLevel?: number[];

@@ -314,6 +314,12 @@ export const Tower = defineComponent({
   totalInvested: Types.f32,// 总投资（用于回收计算）
 });
 
+/** 电塔 L5 全屏落雷战略技能冷却 */
+export const LightningStormSkill = defineComponent({
+  cooldown: Types.f32,
+  timer: Types.f32,
+});
+
 /** 生产建筑属性 */
 export const Production = defineComponent({
   resourceType: Types.ui8, // ResourceTypeVal
@@ -645,6 +651,16 @@ export const LightningBolt = defineComponent({
   duration: Types.f32,
   elapsed: Types.f32,
   chainIndex: Types.ui8,
+});
+
+/** 全屏落雷视觉：天空压暗、白闪、屏幕震动和目标落雷柱 */
+export const LightningStorm = defineComponent({
+  targetId: Types.eid,
+  targetX: Types.f32,
+  targetY: Types.f32,
+  damage: Types.f32,
+  duration: Types.f32,
+  elapsed: Types.f32,
 });
 
 // ============================================================

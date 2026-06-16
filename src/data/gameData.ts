@@ -358,6 +358,8 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     chainCount: 3,
     chainCountByLevel: [3, 4, 5, 6, 7],
     chainDecay: 0.2,
+    lightningStormCooldown: 10,
+    lightningStormDamage: 900,
     // 后期战略塔：L1 起步 3 次弹跳，每次升级弹跳 +1，并通过更高伤害成长维持后期压制。
     upgradeCosts: [65, 580, 780, 1100],
     upgradeAtkBonus: [10, 35, 30, 40],
@@ -458,7 +460,7 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
       { shape: 'triangle', offsetX: 10, offsetY: -16, size: 11, color: '#ffb300', alpha: 0.85 },
       { shape: 'triangle', offsetX: -18, offsetY: -10, size: 10, color: '#ffb300', alpha: 0.7 },
       { shape: 'triangle', offsetX: 18, offsetY: -10, size: 10, color: '#ffb300', alpha: 0.7 },
-    ], glow: { radius: 42, color: '#fff176', alpha: 0.4, pulseAmplitude: 0.12 } },
+    ], glow: { radius: 42, color: '#fff176', alpha: 0.4, pulseAmplitude: 0.12 }, passiveVisual: { type: 'arc_upgrade', description: 'strategic lightning storm every 10s' } },
   ],
   laser_tower: [
     { level: 1, scaleMultiplier: 1.0, extraParts: [] },

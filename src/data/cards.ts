@@ -84,7 +84,7 @@ const lightningTower: CardInstance = {
   id: 'card_lightning_tower',
   name: '电塔',
   type: 'unit',
-  description: '魔法连锁攻击，闪电在敌人间弹跳',
+  description: '魔法连锁攻击，5级每10秒全屏落雷优先轰击Boss/精英',
   goldCost: 110,
 };
 

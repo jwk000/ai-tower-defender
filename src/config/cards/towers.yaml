@@ -43,7 +43,7 @@ ice_tower_card:
 
 lightning_tower_card:
   name: 闪电塔
-  description: 链击塔，攻击在敌人之间跳跃
+  description: 链击塔，5级每10秒全屏落雷优先轰击Boss/精英
   type: unit
   rarity: rare
   energyCost: 5

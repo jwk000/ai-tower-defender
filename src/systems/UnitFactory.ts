@@ -35,6 +35,7 @@ import {
   TargetSelectionVal,
   TrapTypeVal,
   Barrel,
+  LightningStormSkill,
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import {
@@ -282,6 +283,14 @@ export class UnitFactory {
         tauntCapacity: 0,
         attackerCount: 0,
       });
+
+      if (towerType === TowerType.Lightning) {
+        const cooldown = (cfg.lightningStormCooldown as number | undefined) ?? 10;
+        this.world.addComponent(eid, LightningStormSkill, {
+          cooldown,
+          timer: cooldown,
+        });
+      }
     }
 
     // PlayerOwned
