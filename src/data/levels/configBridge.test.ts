@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { unitConfigRegistry, type UnitConfig as RegistryUnitConfig } from '../../config/registry.js';
-import { DamageTypeVal, Visual } from '../../core/components.js';
+import { DamageTypeVal, Health, Visual } from '../../core/components.js';
 import { TowerType, UnitType } from '../../types/index.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS } from '../gameData.js';
 import { injectTowerConfigsFromRegistry } from './towerBridge.js';
@@ -105,6 +105,12 @@ describe('unit config bridge', () => {
     expect(TOWER_CONFIGS[TowerType.Missile].damageType).toBe('true');
     expect(TOWER_CONFIGS[TowerType.Missile].upgradeCosts).toHaveLength(4);
     expect(TOWER_CONFIGS[TowerType.Missile].projectileCount).toEqual([1, 1, 2, 2, 3]);
+
+    const world = new TowerWorld();
+    const factory = new UnitFactory(world);
+    const eid = factory.createTower(TowerType.Arrow, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 0 })!;
+    expect(Health.current[eid]).toBe(100);
+    expect(Health.max[eid]).toBe(100);
   });
 
   it('塔默认不显示白色描边，选中态由渲染选中状态负责', () => {
