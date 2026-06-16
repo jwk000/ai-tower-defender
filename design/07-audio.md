@@ -29,7 +29,7 @@
 
 | 来源 | 说明 | 覆盖 |
 |------|------|------|
-| **音频文件** | `public/sfx/` 中的外部或程序化导出音频文件 | 95 个 SFX 键 |
+| **音频文件** | `public/sfx/` 中的外部音频文件 | 95 个 SFX 键 |
 | **SoundSynth 合成** | `src/utils/SoundSynth.ts` 程序化生成 WAV | 运行时备用波形 |
 | **BGM 文件** | `public/bgm/` 中的外部音乐文件 | 19 个 BGM 键 |
 
@@ -77,13 +77,13 @@
 | `exploder_boom` | 自爆爆炸 | 自爆单位/技能 | OGG + Synth |
 | `base_hit` | 水晶受击 | 水晶命中（失败判定前） | OGG + Synth |
 | `boss_phase2` | Boss 二阶段 | HP 低于阈值进入狂暴 | OGG + Synth |
-| `enemy_death_heavy` | 重型敌人死亡 | 大型/高护甲单位死亡 | WAV |
-| `enemy_death_magic` | 魔法敌人死亡 | 法师/亡灵/深渊单位死亡 | WAV |
-| `enemy_death_machine` | 机械敌人死亡 | 机器狗等机械单位死亡 | WAV |
-| `enemy_death_flying` | 飞行敌人死亡 | 飞机/无人机等低空单位死亡 | WAV |
-| `enemy_spawn_flying` | 飞行敌人出生 | 低空单位入场 | WAV |
-| `enemy_spawn_machine` | 机械敌人出生 | 机械单位入场 | WAV |
-| `enemy_spawn_undead` | 亡灵敌人出生 | 亡灵/混沌单位入场 | WAV |
+| `enemy_death_heavy` | 重型敌人死亡 | 大型/高护甲单位死亡 | OpenGameArt CC0 OGG |
+| `enemy_death_magic` | 魔法敌人死亡 | 法师/亡灵/深渊单位死亡 | OpenGameArt CC0 OGG |
+| `enemy_death_machine` | 机械敌人死亡 | 机器狗等机械单位死亡 | OpenGameArt CC0 OGG |
+| `enemy_death_flying` | 飞行敌人死亡 | 飞机/无人机等低空单位死亡 | OpenGameArt CC0 OGG |
+| `enemy_spawn_flying` | 飞行敌人出生 | 低空单位入场 | OpenGameArt CC0 OGG |
+| `enemy_spawn_machine` | 机械敌人出生 | 机械单位入场 | OpenGameArt CC0 OGG |
+| `enemy_spawn_undead` | 亡灵敌人出生 | 亡灵/混沌单位入场 | OpenGameArt CC0 OGG |
 
 ### 2.4 Boss 技能音效
 
@@ -93,24 +93,24 @@
 | `boss_summon` | 虫族女王 / 路西法 | 召唤随从 | OGG + Synth |
 | `boss_missile` | 超级机器人 | 远程导弹轰炸 | OGG + Synth |
 | `boss_devour` | 深渊领主 | 黑暗吞噬 | OGG + Synth |
-| `boss_enter_slime` | 巨型史莱姆 | 出场 | WAV |
-| `boss_enter_beetle` | 虫族女王 | 出场 | WAV |
-| `boss_enter_lucifer` | 路西法 | 出场 | WAV |
-| `boss_enter_robot` | 超级机器人 | 出场 | WAV |
-| `boss_enter_abyss` | 深渊领主 | 出场 | WAV |
-| `boss_death_heavy` | 主线 Boss | 重型死亡 | WAV |
-| `boss_death_void` | 深渊领主 | 虚空死亡 | WAV |
-| `boss_missile_warning` | 超级机器人 | 导弹预警 | WAV |
-| `boss_missile_impact` | 超级机器人 | 导弹落地 | WAV |
-| `boss_devour_cast` | 深渊领主 | 吞噬施法 | WAV |
-| `boss_devour_impact` | 深渊领主 | 吞噬命中 | WAV |
-| `boss_summon_insect` | 虫族 Boss | 虫群召唤 | WAV |
-| `boss_summon_undead` | 路西法 | 亡灵召唤 | WAV |
-| `boss_summon_machine` | 机械 Boss | 机械召唤 | WAV |
-| `boss_summon_void` | 深渊/菌群 Boss | 虚空召唤 | WAV |
-| `boss_phase_ice` | 冰霜 Boss | 冰霜阶段/控制 | WAV |
-| `boss_phase_void` | 深渊 Boss | 虚空阶段/扭曲 | WAV |
-| `boss_phase_enrage` | Boss | 狂暴阶段 | WAV |
+| `boss_enter_slime` | 巨型史莱姆 | 出场 | OpenGameArt CC0 OGG |
+| `boss_enter_beetle` | 虫族女王 | 出场 | OpenGameArt CC0 OGG |
+| `boss_enter_lucifer` | 路西法 | 出场 | OpenGameArt CC0 OGG |
+| `boss_enter_robot` | 超级机器人 | 出场 | OpenGameArt CC0 OGG |
+| `boss_enter_abyss` | 深渊领主 | 出场 | OpenGameArt CC0 OGG |
+| `boss_death_heavy` | 主线 Boss | 重型死亡 | OpenGameArt CC0 OGG |
+| `boss_death_void` | 深渊领主 | 虚空死亡 | OpenGameArt CC0 OGG |
+| `boss_missile_warning` | 超级机器人 | 导弹预警 | OpenGameArt CC0 OGG |
+| `boss_missile_impact` | 超级机器人 | 导弹落地 | OpenGameArt CC0 OGG |
+| `boss_devour_cast` | 深渊领主 | 吞噬施法 | OpenGameArt CC0 OGG |
+| `boss_devour_impact` | 深渊领主 | 吞噬命中 | OpenGameArt CC0 OGG |
+| `boss_summon_insect` | 虫族 Boss | 虫群召唤 | OpenGameArt CC0 OGG |
+| `boss_summon_undead` | 路西法 | 亡灵召唤 | OpenGameArt CC0 OGG |
+| `boss_summon_machine` | 机械 Boss | 机械召唤 | OpenGameArt CC0 OGG |
+| `boss_summon_void` | 深渊/菌群 Boss | 虚空召唤 | OpenGameArt CC0 OGG |
+| `boss_phase_ice` | 冰霜 Boss | 冰霜阶段/控制 | OpenGameArt CC0 OGG |
+| `boss_phase_void` | 深渊 Boss | 虚空阶段/扭曲 | OpenGameArt CC0 OGG |
+| `boss_phase_enrage` | Boss | 狂暴阶段 | OpenGameArt CC0 OGG |
 
 ### 2.5 波次系统音效
 
@@ -242,8 +242,8 @@
 |------|--------|------|
 | 塔攻击 (10 种) | 10/10 | ✅ 全部有 OGG 文件 |
 | 弹道命中 (8 种) | 8/8 | ✅ 全部有 OGG 文件 |
-| 敌人事件 (15 种) | 15/15 | ✅ 通用 OGG + 类型化 WAV |
-| Boss 技能/事件 (22 种) | 22/22 | ✅ 通用 OGG + 专属 WAV |
+| 敌人事件 (15 种) | 15/15 | ✅ 通用 OGG + 类型化 OpenGameArt CC0 OGG |
+| Boss 技能/事件 (22 种) | 22/22 | ✅ 通用 OGG + 专属 OpenGameArt CC0 OGG |
 | 波次系统 (5 种) | 5/5 | ✅ |
 | 建造升级 (4 种) | 4/4 | ✅ |
 | 经济 (2 种) | 2/2 | ✅ |
@@ -330,15 +330,14 @@ Sound.play('your_sfx_key');
 
 | 来源 | 数量 | 许可 |
 |------|------|------|
-| OGG 文件 (public/sfx/) | 70 | OpenGameArt / 合成 / 混合来源 |
-| WAV 文件 (public/sfx/) | 25 | 程序化生成，无版权限制 |
+| OGG 文件 (public/sfx/) | 95 | OpenGameArt CC0 / 合成 / 混合来源 |
 | BGM 文件 (public/bgm/) | 17 | OpenGameArt |
 | SoundSynth 程序化合成 | 运行时备用 | 原创代码生成，无版权限制 |
 
 ### 7.3 目标
 
 - 所有外部音频文件使用 CC0 或 CC-BY 许可证
-- 优先使用程序化合成（无版权问题，体积小）
+- 新增外部音效优先使用开源音效库下载资源，避免临时程序生成音效进入正式资源
 - 商业化使用前须最终审核所有外部文件许可证
 
 ---
@@ -347,10 +346,10 @@ Sound.play('your_sfx_key');
 
 | 类别 | 文件数 | 总大小（约） |
 |------|--------|------------|
-| public/sfx/ | 95 | ~7 MB |
+| public/sfx/ | 95 | ~3 MB |
 | public/bgm/ | 17 | ~21 MB |
 | SoundSynth 生成（运行时） | 备用生成器 | <500 KB（内存缓存） |
-| **合计运行时音频** | 114 个声明键 | ~28 MB |
+| **合计运行时音频** | 114 个声明键 | ~24 MB |
 
 ---
 
