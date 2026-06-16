@@ -35,6 +35,7 @@ class RendererStub {
   commands: RenderCommand[] = [];
   redrawPredicates: Array<(cmd: RenderCommand) => boolean> = [];
   fillRects: Array<{ x: number; y: number; w: number; h: number; color: string }> = [];
+  textDraws: Array<{ type: 'fill' | 'stroke'; text: string; x: number; y: number }> = [];
   context = {
     save: () => {},
     restore: () => {},
@@ -52,7 +53,12 @@ class RendererStub {
     strokeRect: () => {},
     fill: () => {},
     stroke: () => {},
-    fillText: () => {},
+    fillText: (text: string, x: number, y: number) => {
+      this.textDraws.push({ type: 'fill', text, x, y });
+    },
+    strokeText: (text: string, x: number, y: number) => {
+      this.textDraws.push({ type: 'stroke', text, x, y });
+    },
     translate: () => {},
     rotate: () => {},
     scale: () => {},
@@ -200,6 +206,20 @@ describe('UISystem 顶部 HUD 布局', () => {
     ui.update(new TowerWorld(), 1 / 60);
 
     expect(buttonsOf(ui).some((button) => button.label === '☝')).toBe(false);
+  });
+
+  it('金手指飘字在按钮文本之后绘制，避免被按钮挡住', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, { onGoldCheat: vi.fn() });
+
+    ui.update(new TowerWorld(), 1 / 60);
+    ui.showGoldCheatFeedback('+2💰');
+    ui.renderUI();
+
+    const buttonTextIndex = renderer.textDraws.findIndex((draw) => draw.type === 'fill' && draw.text === '☝');
+    const feedbackTextIndex = renderer.textDraws.findIndex((draw) => draw.type === 'fill' && draw.text === '+2💰');
+    expect(buttonTextIndex).toBeGreaterThanOrEqual(0);
+    expect(feedbackTextIndex).toBeGreaterThan(buttonTextIndex);
   });
 
   it('倒计时状态下右侧按钮组整体保留相同右边距', () => {

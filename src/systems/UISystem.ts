@@ -168,6 +168,13 @@ interface UIOverlay {
   subtext: string;
 }
 
+interface UIGoldCheatFeedback {
+  text: string;
+  x: number;
+  y: number;
+  lifetime: number;
+}
+
 interface DragState {
   active: boolean;
   entityType: 'tower' | 'unit' | 'production' | 'trap' | 'spell';
@@ -202,6 +209,8 @@ const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom:
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
 const GOLD_CHEAT_BUTTON_W = 32;
 const GOLD_CHEAT_BUTTON_H = 28;
+const GOLD_CHEAT_FEEDBACK_DURATION = 0.8;
+const GOLD_CHEAT_FEEDBACK_FLOAT = 24;
 const HAND_CARD_HOVER_SCALE = 1.08;
 const HAND_CARD_HOVER_LIFT = 24;
 const HAND_CARD_HOVER_SPEED = 12;
@@ -243,6 +252,16 @@ export class UISystem implements System {
     };
   }
 
+  showGoldCheatFeedback(text: string): void {
+    const button = UISystem.goldCheatButtonRect();
+    this.goldCheatFeedbacks.push({
+      text,
+      x: button.x + button.w / 2,
+      y: button.y + button.h + 10,
+      lifetime: 0,
+    });
+  }
+
   private buttons: UIButton[] = [];
   private infos: UIInfo[] = [];
   private overlay: UIOverlay | null = null;
@@ -258,6 +277,7 @@ export class UISystem implements System {
   private cardIconDraws: CardIconDraw[] = [];
   private imageDraws: UIImageDraw[] = [];
   private handCardHoverProgress: number[] = Array.from({ length: HAND_ZONE_DEFAULT_SLOT_COUNT }, () => 0);
+  private goldCheatFeedbacks: UIGoldCheatFeedback[] = [];
   private frameDt: number = 1 / 60;
 
   public selectedEntityId: number | null = null;
@@ -395,6 +415,7 @@ export class UISystem implements System {
     this.hasFullscreenOverlay = false;
     this.cardIconDraws = [];
     this.imageDraws = [];
+    this.updateGoldCheatFeedbacks(dt);
 
     if (this.enemyEntityId !== null) {
       this.enemySelectTimer -= dt;
@@ -743,6 +764,45 @@ export class UISystem implements System {
       ctx.fillText(info.text, info.x, info.y);
       ctx.restore();
     }
+
+    if (layer === 'normal') {
+      this.drawGoldCheatFeedbacks();
+    }
+  }
+
+  private updateGoldCheatFeedbacks(dt: number): void {
+    if (this.goldCheatFeedbacks.length === 0) return;
+
+    for (const feedback of this.goldCheatFeedbacks) {
+      feedback.lifetime += dt;
+    }
+    this.goldCheatFeedbacks = this.goldCheatFeedbacks.filter(
+      (feedback) => feedback.lifetime < GOLD_CHEAT_FEEDBACK_DURATION,
+    );
+  }
+
+  private drawGoldCheatFeedbacks(): void {
+    if (this.goldCheatFeedbacks.length === 0) return;
+
+    const ctx = this.renderer.context;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = getFont(16, true);
+    ctx.lineWidth = 2.5;
+
+    for (const feedback of this.goldCheatFeedbacks) {
+      const progress = Math.min(1, feedback.lifetime / GOLD_CHEAT_FEEDBACK_DURATION);
+      const y = feedback.y - progress * GOLD_CHEAT_FEEDBACK_FLOAT;
+      const alpha = progress > 0.7 ? 1 - (progress - 0.7) / 0.3 : 1;
+
+      ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.65})`;
+      ctx.strokeText(feedback.text, feedback.x, y);
+      ctx.fillStyle = `rgba(255, 213, 79, ${alpha})`;
+      ctx.fillText(feedback.text, feedback.x, y);
+    }
+
+    ctx.restore();
   }
 
   private drawUIImage(ctx: CanvasRenderingContext2D, image: UIImageDraw): boolean {

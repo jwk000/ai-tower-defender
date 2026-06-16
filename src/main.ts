@@ -1385,21 +1385,12 @@ class TowerDefenderGame extends Game {
   }
 
   private triggerGoldCheat(): void {
-    if (!this.economy || !this.floatingTextSystem) return;
+    if (!this.economy || !this.uiSystem) return;
 
     const amount = Math.random() < 0.5 ? 1 : 2;
-    const buttonRect = UISystem.goldCheatButtonRect();
-    const buttonCenterX = buttonRect.x + buttonRect.w / 2;
-    const buttonFeedbackY = buttonRect.y + buttonRect.h + 8;
     this.economy.addGold(amount);
     Sound.play('gold_earn');
-    this.floatingTextSystem.show(
-      this.world,
-      buttonCenterX,
-      buttonFeedbackY,
-      `+${amount}💰`,
-      { r: 255, g: 213, b: 79 },
-    );
+    this.uiSystem.showGoldCheatFeedback(`+${amount}💰`);
   }
 
   private collectSettlementStats(stars: number): BattleSettlementStats {
