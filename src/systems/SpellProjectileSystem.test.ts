@@ -210,6 +210,19 @@ describe('SpellProjectileSystem', () => {
       cmd.color === '#e1f5fe' &&
       cmd.rotation === 0
     )).length).toBeGreaterThanOrEqual(12);
+    expect(commands.filter((cmd) => (
+      cmd.shape === 'diamond' &&
+      cmd.size >= 9 &&
+      cmd.alpha !== undefined &&
+      cmd.alpha >= 0.45 &&
+      (cmd.color === '#ffffff' || cmd.color === '#e3f2fd')
+    )).length).toBeGreaterThanOrEqual(40);
+    expect(commands.filter((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.color === '#ffffff' &&
+      cmd.h === 2 &&
+      cmd.size >= 16
+    )).length).toBeGreaterThanOrEqual(40);
 
     commands.length = 0;
     system.update(world, 2.4);

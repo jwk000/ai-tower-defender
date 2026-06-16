@@ -555,7 +555,7 @@ export class SpellProjectileSystem implements System {
       case SPELL_BLIZZARD: {
         const z = 7;
         const entrance = Math.min(progress / 0.04, 1);
-        const windAlpha = Math.max(0, alpha) * entrance;
+        const windAlpha = Math.max(0, alpha) * Math.max(0.72, entrance);
         const isGlobal = radius >= Math.max(RenderSystem.sceneW, RenderSystem.sceneH);
         const areaX = isGlobal ? RenderSystem.sceneOffsetX : x - radius;
         const areaY = isGlobal ? RenderSystem.sceneOffsetY : y - radius;
@@ -635,6 +635,53 @@ export class SpellProjectileSystem implements System {
               z: z + 1,
             });
           }
+        }
+        for (let i = 0; i < 72; i++) {
+          const phase = (progress * 3.4 + i * 0.023) % 1;
+          const laneSeed = (i * 47) % 103 / 102;
+          const baseX = isGlobal
+            ? areaX - 60 + phase * (areaW + 120)
+            : x - radius + phase * radius * 2;
+          const baseY = isGlobal
+            ? areaY + laneSeed * areaH
+            : y - radius + laneSeed * radius * 2;
+          const flakeX = baseX + Math.sin(progress * 18 + i * 0.9) * 16;
+          const flakeY = baseY + Math.sin(progress * 9 + i * 1.3) * 22;
+          if (flakeX < areaX - 40 || flakeX > areaX + areaW + 40 || flakeY < areaY - 40 || flakeY > areaY + areaH + 40) continue;
+
+          const flakeSize = 9 + (i % 5) * 2;
+          const flakeAlpha = windAlpha * (0.62 + (i % 4) * 0.08);
+          this.renderer.push({
+            shape: 'diamond',
+            x: flakeX,
+            y: flakeY,
+            size: flakeSize,
+            color: i % 3 === 0 ? '#e3f2fd' : '#ffffff',
+            alpha: flakeAlpha,
+            z: z + 4,
+          });
+          this.renderer.push({
+            shape: 'rect',
+            x: flakeX,
+            y: flakeY,
+            size: flakeSize * 1.8,
+            h: 2,
+            color: '#ffffff',
+            alpha: flakeAlpha * 0.72,
+            rotation: 0,
+            z: z + 4,
+          });
+          this.renderer.push({
+            shape: 'rect',
+            x: flakeX,
+            y: flakeY,
+            size: flakeSize * 1.4,
+            h: 2,
+            color: '#e1f5fe',
+            alpha: flakeAlpha * 0.62,
+            rotation: Math.PI / 2,
+            z: z + 4,
+          });
         }
         for (let i = 0; i < 16; i++) {
           const angle = progress * Math.PI * 4.5 + i * Math.PI * 0.2;
