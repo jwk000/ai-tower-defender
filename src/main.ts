@@ -1,6 +1,6 @@
 import { Game } from './core/Game.js';
 import { ALL_BUFFS } from './data/buffs.js';
-import { LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL } from './data/cards.js';
+import { ALL_CARDS, LEVEL_1_CARD_POOL, LEVEL_2_CARD_POOL, LEVEL_3_CARD_POOL, LEVEL_4_CARD_POOL, LEVEL_5_CARD_POOL } from './data/cards.js';
 import { ENEMY_CONFIGS, SKILL_CONFIGS, TOWER_CONFIGS, UNIT_CONFIGS, UNIT_ID_BY_TYPE, UNIT_TYPE_BY_ID } from './data/gameData.js';
 import { LEVELS } from './data/levels/index.js';
 import { resolveGraphFromMap } from './level/graph/loaderAdapter.js';
@@ -117,6 +117,16 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Poison,    // 8
   TowerType.Ballista,  // 9
 ];
+
+const CARD_BY_ID = new Map(ALL_CARDS.map((card) => [card.id, card]));
+
+function resolveCardPool(cardIds: readonly string[] | undefined, fallback: typeof LEVEL_1_CARD_POOL): typeof LEVEL_1_CARD_POOL {
+  if (!cardIds || cardIds.length === 0) return fallback;
+  const resolved = cardIds
+    .map((id) => CARD_BY_ID.get(id))
+    .filter((card): card is (typeof LEVEL_1_CARD_POOL)[number] => card !== undefined);
+  return resolved.length > 0 ? resolved : fallback;
+}
 
 function normalizeBgmKey(value: string): BgmKey {
   const fileMatch = value.match(/(?:^|\/)([a-z0-9_]+)\.(?:ogg|mp3)$/);
@@ -352,7 +362,9 @@ class TowerDefenderGame extends Game {
       4: LEVEL_4_CARD_POOL,
       5: LEVEL_5_CARD_POOL,
     };
-    const initialPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
+    const fallbackPool = cardPoolByLevel[this.currentLevelId] ?? LEVEL_1_CARD_POOL;
+    const initialPool = resolveCardPool(config.cardPool, fallbackPool);
+    const draftPool = resolveCardPool(config.draftPool, fallbackPool);
 
     // ---- Create base entity ----
     // 水晶视觉: design/05-presentation.md §5 — 红色菱形复合几何体
@@ -658,6 +670,7 @@ class TowerDefenderGame extends Game {
     this.cardDraftSystem.onDraftComplete = (_addedCardIds) => {
       this.paused = false;
     };
+    this.handSystem.addCardsToLibrary(draftPool);
 
     // ---- Inter-Level Buff System ----
     this.interLevelBuffSystem = new InterLevelBuffSystem();

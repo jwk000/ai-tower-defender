@@ -104,6 +104,8 @@ export function modelToLevelConfig(model: LevelFormModel): LevelConfig {
     unlockPrevLevelId: null,
   };
 
+  if (model.cardPool?.length) config.cardPool = [...model.cardPool];
+  if (model.draftPool?.length) config.draftPool = [...model.draftPool];
   if (model.sceneDescription) config.sceneDescription = model.sceneDescription;
   if (weatherPool?.length) config.weatherPool = weatherPool;
   if (weatherInitial) config.weatherFixed = weatherInitial;

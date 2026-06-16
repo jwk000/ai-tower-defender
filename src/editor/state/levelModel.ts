@@ -68,6 +68,8 @@ export interface LevelFormModel {
   available?: AvailableContent;
   weather?: WeatherSection;
   difficulty?: DifficultyMultipliers;
+  cardPool?: string[];
+  draftPool?: string[];
   banPool?: string[] | null;
   neutralPool?: string[] | null;
   __extras?: Record<string, unknown>;
@@ -86,6 +88,8 @@ const TOP_LEVEL_FIELD_ORDER: Array<keyof LevelFormModel> = [
   'available',
   'weather',
   'difficulty',
+  'cardPool',
+  'draftPool',
   'banPool',
   'neutralPool',
 ];
@@ -114,6 +118,8 @@ const KNOWN_TOP_LEVEL_KEYS = new Set<string>([
   'available',
   'weather',
   'difficulty',
+  'cardPool',
+  'draftPool',
   'banPool',
   'neutralPool',
 ]);
@@ -291,6 +297,12 @@ export function parseYamlToModel(yaml: string): LevelFormModel {
     if (Object.keys(d).length > 0) model.difficulty = d;
   }
 
+  if ('cardPool' in root) {
+    model.cardPool = asStringArray(root.cardPool) ?? [];
+  }
+  if ('draftPool' in root) {
+    model.draftPool = asStringArray(root.draftPool) ?? [];
+  }
   if ('banPool' in root) {
     model.banPool = root.banPool === null ? null : (asStringArray(root.banPool) ?? null);
   }

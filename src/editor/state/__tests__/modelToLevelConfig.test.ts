@@ -93,6 +93,15 @@ describe('modelToLevelConfig', () => {
     expect(cfg.weatherPool).toContain(WeatherType.Rain);
   });
 
+  it('maps cardPool and draftPool to runtime level config', () => {
+    const cfg = modelToLevelConfig(makeModel({
+      cardPool: ['card_arrow_tower', 'card_spike_trap'],
+      draftPool: ['card_bear_trap', 'card_tar_pit', 'card_boulder'],
+    }));
+    expect(cfg.cardPool).toEqual(['card_arrow_tower', 'card_spike_trap']);
+    expect(cfg.draftPool).toEqual(['card_bear_trap', 'card_tar_pit', 'card_boulder']);
+  });
+
   it('maps weather pool with PascalCase values (case-insensitive)', () => {
     const cfg = modelToLevelConfig(makeModel({ weather: { pool: ['Night', 'Fog'], initial: 'Night' } }));
     expect(cfg.weatherPool).toHaveLength(2);

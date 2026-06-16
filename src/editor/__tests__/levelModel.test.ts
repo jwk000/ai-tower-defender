@@ -28,6 +28,8 @@ describe('levelModel: parseYamlToModel', () => {
     expect(model.map.cols).toBe(21);
     expect(model.waves.length).toBeGreaterThan(0);
     expect(model.available?.towers).toEqual(expect.arrayContaining(['arrow', 'ice']));
+    expect(model.cardPool).toEqual(expect.arrayContaining(['card_spike_trap', 'card_bear_trap']));
+    expect(model.draftPool).toEqual(expect.arrayContaining(['card_tar_pit', 'card_boulder']));
   });
 
   it('preserves map.tiles dimensions for all 5 levels', () => {
@@ -99,6 +101,8 @@ describe('levelModel: serializeModelToYaml', () => {
       'starting',
       'available',
       'weather',
+      'cardPool',
+      'draftPool',
       'banPool',
       'neutralPool',
     ];

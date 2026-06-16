@@ -859,6 +859,8 @@ export interface LevelConfig {
   startingGold: number;
   availableTowers: TowerType[];
   availableUnits: UnitType[];
+  cardPool?: string[];
+  draftPool?: string[];
   unlockStarsRequired: number;
   unlockPrevLevelId: string | null;
   weatherPool?: WeatherType[];
