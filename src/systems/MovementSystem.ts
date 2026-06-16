@@ -278,11 +278,18 @@ export class MovementSystem implements System {
     const next = path[pathIndex + 1]!;
     const nextX = next.col * ts + ts / 2 + ox;
     const nextY = next.row * ts + ts / 2 + oy;
+    const anchorOffsetX = EnemyFlockMember.anchorOffsetX[eid] ?? 0;
+    const anchorOffsetY = EnemyFlockMember.anchorOffsetY[eid] ?? 0;
+    const targetX = nextX + anchorOffsetX;
+    const targetY = nextY + anchorOffsetY;
 
     const toNextX = nextX - bx;
     const toNextY = nextY - by;
     const toNextLen = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
-    if (toNextLen <= FLOCK_PATH_ADVANCE_RADIUS) {
+    const toTargetX = targetX - bx;
+    const toTargetY = targetY - by;
+    const toTargetLen = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
+    if (toNextLen <= FLOCK_PATH_ADVANCE_RADIUS || toTargetLen <= FLOCK_PATH_ADVANCE_RADIUS) {
       Movement.pathIndex[eid] = pathIndex + 1;
       Movement.progress[eid] = 0;
       if (pathIndex >= path.length - 2) {
@@ -352,8 +359,6 @@ export class MovementSystem implements System {
       }
     }
 
-    const targetX = nextX + (EnemyFlockMember.anchorOffsetX[eid] ?? 0);
-    const targetY = nextY + (EnemyFlockMember.anchorOffsetY[eid] ?? 0);
     const pathDx = targetX - bx;
     const pathDy = targetY - by;
     const pathLen = Math.sqrt(pathDx * pathDx + pathDy * pathDy);
@@ -362,8 +367,8 @@ export class MovementSystem implements System {
       fy += (pathDy / pathLen) * speed * FLOCK_PATH_WEIGHT;
     }
 
-    const offsetDx = (nextX + (EnemyFlockMember.anchorOffsetX[eid] ?? 0) * 0.5) - bx;
-    const offsetDy = (nextY + (EnemyFlockMember.anchorOffsetY[eid] ?? 0) * 0.5) - by;
+    const offsetDx = (nextX + anchorOffsetX * 0.5) - bx;
+    const offsetDy = (nextY + anchorOffsetY * 0.5) - by;
     const offsetLen = Math.sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
     if (offsetLen > 0.01) {
       fx += (offsetDx / offsetLen) * speed * FLOCK_OFFSET_WEIGHT;

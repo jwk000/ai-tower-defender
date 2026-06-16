@@ -239,6 +239,50 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Movement.progress[enemy]).toBe(-1);
   });
 
+  it('LowAir 鸟群敌人靠近带偏移的编队目标点时会推进路径索引', () => {
+    makeBase(world, 100);
+    const enemy = world.createEntity();
+    world.addComponent(enemy, Position, { x: TILE + TILE / 2 + 24, y: TILE / 2 });
+    world.addComponent(enemy, Health, { current: 30, max: 30, armor: 0, magicResist: 0 });
+    world.addComponent(enemy, Movement, {
+      speed: 50,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0.9,
+      spawnIdx: 0,
+    });
+    world.addComponent(enemy, UnitTag, {
+      isEnemy: 1,
+      rewardGold: 4,
+      canAttackBuildings: 0,
+      atk: 8,
+    });
+    world.addComponent(enemy, Visual, {
+      shape: 1,
+      colorR: 120,
+      colorG: 120,
+      colorB: 255,
+      size: 12,
+      alpha: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+    });
+    world.addComponent(enemy, EnemyFlockMember, {
+      flockId: 1,
+      memberIndex: 1,
+      groupSize: 4,
+      velocityX: 0,
+      velocityY: 0,
+      anchorOffsetX: 24,
+      anchorOffsetY: 0,
+    });
+
+    system.update(world, 0.016);
+
+    expect(Movement.pathIndex[enemy]).toBe(1);
+    expect(Movement.progress[enemy]).toBe(-1);
+  });
+
   it('真实刷怪的初始 attackAnimDuration > 0 时，到达水晶第一帧仍会扣血', () => {
     const base = makeBase(world, 100);
     makeEnemyAtEnd(world, { atk: 7, initialAttackAnimDuration: 0.45 });
