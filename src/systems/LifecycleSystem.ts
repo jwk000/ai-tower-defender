@@ -18,7 +18,7 @@ import {
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import { EnemyType, TowerType, UnitType } from '../types/index.js';
-import { UNIT_TYPE_BY_ID } from '../data/gameData.js';
+import { ENEMY_TYPE_BY_ID, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 import { BossType } from './BossSystem.js';
 
@@ -38,33 +38,6 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
 ];
 
 const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
-
-const ENEMY_TYPE_BY_ID: EnemyType[] = [
-  EnemyType.Goblin,
-  EnemyType.Boar,
-  EnemyType.Elephant,
-  EnemyType.Giant,
-  EnemyType.DesertBeetle,
-  EnemyType.BurrowBeetle,
-  EnemyType.Locust,
-  EnemyType.BombBeetle,
-  EnemyType.Werewolf,
-  EnemyType.VampireBat,
-  EnemyType.Wizard,
-  EnemyType.Priest,
-  EnemyType.Frankenstein,
-  EnemyType.Plane,
-  EnemyType.Tank,
-  EnemyType.OilTruck,
-  EnemyType.RobotDog,
-  EnemyType.GiantRobot,
-  EnemyType.Drone,
-  EnemyType.GiantSlime,
-  EnemyType.QueenBeetle,
-  EnemyType.Lucifer,
-  EnemyType.SuperRobot,
-  EnemyType.AbyssLord,
-];
 
 /**
  * 生命周期系统 — 检测单位死亡/创建事件，分发给 RuleEngine

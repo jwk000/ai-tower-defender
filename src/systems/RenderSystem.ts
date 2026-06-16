@@ -50,7 +50,7 @@ import { getTileTexturePath } from '../utils/pathTileTexture.js';
 import { objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
 import { getLoadedImageFrame, type LoadedArtFrame } from '../utils/imageCache.js';
 import { getDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
-import { UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
+import { ENEMY_TYPE_BY_ID, UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
 
@@ -69,33 +69,6 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
 ];
 
 const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
-
-const ENEMY_TYPE_BY_ID: EnemyType[] = [
-  EnemyType.Goblin,
-  EnemyType.Boar,
-  EnemyType.Elephant,
-  EnemyType.Giant,
-  EnemyType.DesertBeetle,
-  EnemyType.BurrowBeetle,
-  EnemyType.Locust,
-  EnemyType.BombBeetle,
-  EnemyType.Werewolf,
-  EnemyType.VampireBat,
-  EnemyType.Wizard,
-  EnemyType.Priest,
-  EnemyType.Frankenstein,
-  EnemyType.Plane,
-  EnemyType.Tank,
-  EnemyType.OilTruck,
-  EnemyType.RobotDog,
-  EnemyType.GiantRobot,
-  EnemyType.Drone,
-  EnemyType.GiantSlime,
-  EnemyType.QueenBeetle,
-  EnemyType.Lucifer,
-  EnemyType.SuperRobot,
-  EnemyType.AbyssLord,
-];
 
 // ---- Query: all entities with position + visual ----
 const renderableQuery = defineQuery([Position, Visual]);

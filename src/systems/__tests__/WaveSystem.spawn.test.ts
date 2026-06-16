@@ -6,7 +6,7 @@ import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../typ
 import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal, EnemyFlockMember, Layer, LayerVal, Movement } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
-import { ENEMY_CONFIGS } from '../../data/gameData.js';
+import { ENEMY_CONFIGS, ENEMY_TYPE_BY_ID } from '../../data/gameData.js';
 import { BossSystem, BossType } from '../BossSystem.js';
 
 const enemyQuery = defineQuery([Position, UnitTag]);
@@ -318,6 +318,30 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(Elite.cardOptions[eliteEid]).toBe(3);
     expect(Elite.hpMultiplier[eliteEid]).toBe(2.0);
     expect(Elite.atkMultiplier[eliteEid]).toBe(1.5);
+  });
+
+  it('黑暗牧师写入正确敌人类型编号，避免场景贴图回退成哥布林', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      enemies: [{ enemyType: EnemyType.DarkPriest, count: 1, spawnInterval: 0 }],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.startWave();
+
+    for (let i = 0; i < 20; i++) ws.update(world, 0.1);
+
+    const regularDarkPriest = enemyQuery(world.world).find((eid) => UnitTag.isEnemy[eid] === 1 && UnitTag.isElite[eid] !== 1);
+    expect(regularDarkPriest).not.toBeUndefined();
+    expect(ENEMY_TYPE_BY_ID[UnitTag.unitTypeNum[regularDarkPriest!]!]).toBe(EnemyType.DarkPriest);
+    expect(world.getDisplayName(regularDarkPriest!)).toBe('黑暗牧师');
   });
 
   it('only one elite spawned per wave', () => {

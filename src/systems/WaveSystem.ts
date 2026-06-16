@@ -20,7 +20,7 @@ import {
   ShapeVal,
   EnemyFlockMember,
 } from '../core/components.js';
-import { ENEMY_CONFIGS } from '../data/gameData.js';
+import { ENEMY_CONFIGS, ENEMY_ID_BY_TYPE } from '../data/gameData.js';
 import { EnemyType, GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
 import { registerEnemySkillEntity } from './EnemySkillSystem.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -33,33 +33,6 @@ import { BossType } from './BossSystem.js';
 // ---- bitecs query for alive enemy check ----
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
-
-const ENEMY_TYPE_BY_ID: EnemyType[] = [
-  EnemyType.Goblin,
-  EnemyType.Boar,
-  EnemyType.Elephant,
-  EnemyType.Giant,
-  EnemyType.DesertBeetle,
-  EnemyType.BurrowBeetle,
-  EnemyType.Locust,
-  EnemyType.BombBeetle,
-  EnemyType.Werewolf,
-  EnemyType.VampireBat,
-  EnemyType.Wizard,
-  EnemyType.Priest,
-  EnemyType.Frankenstein,
-  EnemyType.Plane,
-  EnemyType.Tank,
-  EnemyType.OilTruck,
-  EnemyType.RobotDog,
-  EnemyType.GiantRobot,
-  EnemyType.Drone,
-  EnemyType.GiantSlime,
-  EnemyType.QueenBeetle,
-  EnemyType.Lucifer,
-  EnemyType.SuperRobot,
-  EnemyType.AbyssLord,
-];
 
 // ---- hex color → RGB helper ----
 
@@ -628,7 +601,7 @@ export class WaveSystem implements System {
     this.world.addComponent(eid, UnitTag, {
       isEnemy: 1,
       isElite: isElite ? 1 : 0,
-      unitTypeNum: ENEMY_TYPE_BY_ID.indexOf(config.type as EnemyType),
+      unitTypeNum: ENEMY_ID_BY_TYPE[config.type as EnemyType] ?? 0,
       rewardGold: config.rewardGold,
       goldVariance: config.goldVariance ?? 0.2,
       canAttackBuildings: config.canAttackBuildings ? 1 : 0,

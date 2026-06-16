@@ -19,6 +19,7 @@ import {
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { EnemyType } from '../types/index.js';
+import { ENEMY_TYPE_BY_ID } from '../data/gameData.js';
 import { Sound } from '../utils/Sound.js';
 import { getSummonSfx } from '../utils/audioKeys.js';
 import { MovementSystem } from './MovementSystem.js';
@@ -36,32 +37,6 @@ export const BossType = {
 } as const;
 export type BossTypeVal = (typeof BossType)[keyof typeof BossType];
 
-const ENEMY_TYPE_BY_ID: EnemyType[] = [
-  EnemyType.Goblin,
-  EnemyType.Boar,
-  EnemyType.Elephant,
-  EnemyType.Giant,
-  EnemyType.DesertBeetle,
-  EnemyType.BurrowBeetle,
-  EnemyType.Locust,
-  EnemyType.BombBeetle,
-  EnemyType.Werewolf,
-  EnemyType.VampireBat,
-  EnemyType.Wizard,
-  EnemyType.Priest,
-  EnemyType.Frankenstein,
-  EnemyType.Plane,
-  EnemyType.Tank,
-  EnemyType.OilTruck,
-  EnemyType.RobotDog,
-  EnemyType.GiantRobot,
-  EnemyType.Drone,
-  EnemyType.GiantSlime,
-  EnemyType.QueenBeetle,
-  EnemyType.Lucifer,
-  EnemyType.SuperRobot,
-  EnemyType.AbyssLord,
-];
 const GIANT_SLIME_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.GiantSlime);
 
 // ============================================================

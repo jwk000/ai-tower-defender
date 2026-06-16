@@ -667,8 +667,8 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     defense: 5, magicResist: 20, attackRange: 180, attackSpeed: 0.8,
     canAttackBuildings: true, rewardGold: 15, color: '#7b1fa2', radius: 14, attackAnimDuration: 0.5,
   },
-  [EnemyType.Priest]: {
-    type: EnemyType.Priest, name: '黑暗牧师', hp: 120, speed: 25, atk: 1,
+  [EnemyType.DarkPriest]: {
+    type: EnemyType.DarkPriest, name: '黑暗牧师', hp: 120, speed: 25, atk: 1,
     defense: 10, magicResist: 15, attackRange: 150, attackSpeed: 0,
     canAttackBuildings: false, rewardGold: 18, color: '#e0e0e0', radius: 16, attackAnimDuration: 0.45,
   },
@@ -1168,6 +1168,37 @@ export const UNIT_TYPE_BY_ID: readonly UnitType[] = [
   UnitType.Assassin,
   UnitType.Mage,
 ];
+
+export const ENEMY_TYPE_BY_ID: readonly EnemyType[] = [
+  EnemyType.Goblin,
+  EnemyType.Boar,
+  EnemyType.Elephant,
+  EnemyType.Giant,
+  EnemyType.DesertBeetle,
+  EnemyType.BurrowBeetle,
+  EnemyType.Locust,
+  EnemyType.BombBeetle,
+  EnemyType.Werewolf,
+  EnemyType.VampireBat,
+  EnemyType.Wizard,
+  EnemyType.DarkPriest,
+  EnemyType.Frankenstein,
+  EnemyType.Plane,
+  EnemyType.Tank,
+  EnemyType.OilTruck,
+  EnemyType.RobotDog,
+  EnemyType.GiantRobot,
+  EnemyType.Drone,
+  EnemyType.GiantSlime,
+  EnemyType.QueenBeetle,
+  EnemyType.Lucifer,
+  EnemyType.SuperRobot,
+  EnemyType.AbyssLord,
+];
+
+export const ENEMY_ID_BY_TYPE: Readonly<Record<EnemyType, number>> = Object.freeze(
+  Object.fromEntries(ENEMY_TYPE_BY_ID.map((type, index) => [type, index])) as Record<EnemyType, number>,
+);
 
 export const UNIT_ID_BY_TYPE: Readonly<Record<UnitType, number>> = {
   [UnitType.ShieldGuard]: 0,

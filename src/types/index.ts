@@ -316,7 +316,7 @@ export enum EnemyType {
   Werewolf = 'werewolf',
   VampireBat = 'vampire_bat',
   Wizard = 'wizard',
-  Priest = 'priest',
+  DarkPriest = 'dark_priest',
   Frankenstein = 'frankenstein',
   Lucifer = 'lucifer',
   // 末日废土（机械族）
