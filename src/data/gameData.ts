@@ -1191,7 +1191,7 @@ export const SKILL_CONFIGS: Record<string, SkillConfig> = {
     range: 130,
     value: 3,
     buffId: null,
-    description: '范围内敌人优先攻击盾卫',
+    description: '范围内1个敌人优先攻击盾卫',
   },
   volley: {
     id: 'volley',

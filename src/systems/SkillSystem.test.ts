@@ -191,7 +191,7 @@ function makeEnemy(world: TowerWorld, x: number): number {
 }
 
 describe('SkillSystem — 盾卫自动嘲讽', () => {
-  it('自动嘲讽范围内且可攻击盾卫的敌人，使其停止移动并锁定攻击盾卫', () => {
+  it('自动嘲讽范围内最近的1个敌人，使其停止移动并锁定攻击盾卫', () => {
     const world = new TowerWorld();
     world.createEntity();
     RenderSystem.sceneOffsetX = 0;
@@ -217,21 +217,20 @@ describe('SkillSystem — 盾卫自动嘲讽', () => {
       new SkillSystem(() => true).update(world, 0.016);
 
       expect(hasComponent(world.world, Taunted, enemyA)).toBe(true);
-      expect(hasComponent(world.world, Taunted, enemyB)).toBe(true);
+      expect(hasComponent(world.world, Taunted, enemyB)).toBe(false);
       expect(Taunted.sourceId[enemyA]).toBe(shield);
-      expect(Taunted.sourceId[enemyB]).toBe(shield);
 
       const enemyAX = Position.x[enemyA]!;
       const enemyBX = Position.x[enemyB]!;
       new MovementSystem(makeMap()).update(world, 1);
 
       expect(Position.x[enemyA]).toBe(enemyAX);
-      expect(Position.x[enemyB]).toBe(enemyBX);
+      expect(Movement.progress[enemyB]).toBeGreaterThan(0);
       expect(Movement.currentSpeed[enemyA]).toBe(0);
-      expect(Movement.currentSpeed[enemyB]).toBe(0);
+      expect(Movement.currentSpeed[enemyB]).toBeGreaterThan(0);
       expect(Attack.targetId[enemyA]).toBe(shield);
-      expect(Attack.targetId[enemyB]).toBe(shield);
-      expect(Health.current[shield]).toBe(80);
+      expect(Attack.targetId[enemyB]).not.toBe(shield);
+      expect(Health.current[shield]).toBe(90);
     } finally {
       SKILL_CONFIGS.taunt = originalTaunt;
     }
@@ -256,5 +255,24 @@ describe('SkillSystem — 盾卫自动嘲讽', () => {
     expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
     expect(Health.current[shield]).toBe(100);
     expect(Attack.targetId[enemy]).toBe(shield);
+  });
+
+  it('盾卫死亡后嘲讽效果消失，敌人恢复沿路径推进', () => {
+    const world = new TowerWorld();
+    world.createEntity();
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+    const shield = makeShieldGuard(world);
+    const enemy = makeEnemy(world, 70);
+    world.addComponent(enemy, Taunted, { sourceId: shield, timer: 3 });
+    Attack.targetId[enemy] = shield;
+    Health.current[shield] = 0;
+
+    new MovementSystem(makeMap()).update(world, 1);
+
+    expect(hasComponent(world.world, Taunted, enemy)).toBe(false);
+    expect(Attack.targetId[enemy]).toBe(0);
+    expect(Movement.progress[enemy]).toBeGreaterThan(0);
+    expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
   });
 });

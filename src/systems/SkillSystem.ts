@@ -217,10 +217,19 @@ export class SkillSystem implements System {
 
     const duration = Math.max(config.value, 0.25);
     const enemies = enemyQuery(world.world);
+    let retainedTarget: number | null = null;
+    let nearestTarget: number | null = null;
+    let nearestDist = Infinity;
+
     for (let i = 0; i < enemies.length; i++) {
       const eid = enemies[i]!;
       if (UnitTag.isEnemy[eid] !== 1) continue;
-      if ((Health.current[eid] ?? 0) <= 0) continue;
+      if ((Health.current[eid] ?? 0) <= 0) {
+        if (hasComponent(world.world, Taunted, eid) && Taunted.sourceId[eid] === sourceId) {
+          world.removeComponent(eid, Taunted);
+        }
+        continue;
+      }
 
       const ex = Position.x[eid];
       const ey = Position.y[eid];
@@ -236,10 +245,34 @@ export class SkillSystem implements System {
         continue;
       }
 
-      world.addComponent(eid, Taunted, { sourceId, timer: duration });
-      if (Attack.targetId[eid] !== undefined) {
-        Attack.targetId[eid] = sourceId;
+      if (retainedTarget === null && hasComponent(world.world, Taunted, eid) && Taunted.sourceId[eid] === sourceId) {
+        retainedTarget = eid;
       }
+
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestTarget = eid;
+      }
+    }
+
+    const selectedTarget = retainedTarget ?? nearestTarget;
+    for (let i = 0; i < enemies.length; i++) {
+      const eid = enemies[i]!;
+      if (!hasComponent(world.world, Taunted, eid) || Taunted.sourceId[eid] !== sourceId) continue;
+
+      if (eid !== selectedTarget) {
+        world.removeComponent(eid, Taunted);
+        if (Attack.targetId[eid] === sourceId) {
+          Attack.targetId[eid] = 0;
+        }
+      }
+    }
+
+    if (selectedTarget === null) return;
+
+    world.addComponent(selectedTarget, Taunted, { sourceId, timer: duration });
+    if (Attack.targetId[selectedTarget] !== undefined) {
+      Attack.targetId[selectedTarget] = sourceId;
     }
   }
 }

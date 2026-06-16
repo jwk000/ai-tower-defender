@@ -109,11 +109,14 @@ export class MovementSystem implements System {
         continue;
       }
 
-      // Attack animation pause — stop moving during attack wind-down
+      // 只有需要完整蓄力表现的 Boss 普攻、到达水晶结算会用攻击动画阻断移动。
+      const isBlockingAttackAnimation = hasComponent(world.world, Boss, eid) || this.isAtPathEnd(eid);
       if (Visual.attackAnimTimer[eid]! > 0) {
         Visual.attackAnimTimer[eid] = Math.max(0, Visual.attackAnimTimer[eid]! - dt);
-        Movement.currentSpeed[eid] = 0;
-        continue; // skip movement, but attack logic below won't re-fire due to cooldown
+        if (isBlockingAttackAnimation) {
+          Movement.currentSpeed[eid] = 0;
+          continue; // skip movement, but attack logic below won't re-fire due to cooldown
+        }
       }
 
       // Skip if not in follow-path mode
@@ -122,10 +125,17 @@ export class MovementSystem implements System {
         continue;
       }
 
-      // 敌人若本帧能攻击玩家单位，则先攻击并停止移动，避免 Boss/近战单位边走边拆塔。
-      if (hasComponent(world.world, Attack, eid) && this.processEnemyAttack(world, eid, dt)) {
-        Movement.currentSpeed[eid] = 0;
-        continue;
+      // 普通敌人沿路径推进时可以顺手攻击；只有 Boss 普攻保持专用停步蓄力表现。
+      if (hasComponent(world.world, Attack, eid)) {
+        const shouldStopForAttack = hasComponent(world.world, Boss, eid)
+          && this.processEnemyAttack(world, eid, dt, true);
+        if (shouldStopForAttack) {
+          Movement.currentSpeed[eid] = 0;
+          continue;
+        }
+        if (!hasComponent(world.world, Boss, eid) && !hasComponent(world.world, Taunted, eid)) {
+          this.processEnemyAttack(world, eid, dt, false);
+        }
       }
 
       if (hasComponent(world.world, EnemyFlockMember, eid)) {
@@ -215,8 +225,14 @@ export class MovementSystem implements System {
         Visual.breathPhase[eid] = ((Visual.breathPhase[eid] ?? 0) + dt * ENEMY_MOVE_BREATH_RATE) % (Math.PI * 2);
       }
 
-      // 攻击逻辑已在移动前处理，确保攻击帧不移动。
+      // 攻击逻辑已在移动前处理；普通敌人攻击不会阻断本帧路径推进。
     }
+  }
+
+  private isAtPathEnd(eid: number): boolean {
+    const spawnIdx = Movement.spawnIdx[eid]!;
+    const path = (spawnIdx >= 0 && spawnIdx < this.paths.length) ? this.paths[spawnIdx]! : this.paths[0]!;
+    return Movement.pathIndex[eid]! >= path.length - 1;
   }
 
   private updateBurrowTravel(world: TowerWorld, eid: number, stepDist: number, tileSize: number, dt: number): void {
@@ -569,7 +585,7 @@ export class MovementSystem implements System {
   /** 近战 vs 远程判定阈值（像素） */
   private static readonly MELEE_RANGE_THRESHOLD = 60;
 
-  private processEnemyAttack(world: TowerWorld, eid: number, dt: number): boolean {
+  private processEnemyAttack(world: TowerWorld, eid: number, dt: number, pauseOnAttack = true): boolean {
     const attackRange = Attack.range[eid] ?? 30;
     const damage = Attack.damage[eid] ?? 0;
     const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
@@ -661,8 +677,10 @@ export class MovementSystem implements System {
 
       // Reset cooldown and set attack animation pause
       Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
-      const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
-      Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
+      if (pauseOnAttack) {
+        const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
+        Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
+      }
       return true;
     }
     return false;

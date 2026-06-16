@@ -416,10 +416,12 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Movement.currentSpeed[boss]).toBe(0);
   });
 
-  it('普通敌人普攻玩家单位时会触发攻击动作并停步', () => {
+  it('普通敌人普攻玩家单位时会攻击但继续沿路径移动', () => {
     const tower = makeTower(world, 80);
+    Position.x[tower] = 20;
+    Position.y[tower] = 16;
     const enemy = world.createEntity();
-    world.addComponent(enemy, Position, { x: 90, y: 100 });
+    world.addComponent(enemy, Position, { x: TILE / 2, y: TILE / 2 });
     world.addComponent(enemy, Health, { current: 60, max: 60, armor: 0, magicResist: 0 });
     world.addComponent(enemy, Movement, {
       speed: 30,
@@ -450,11 +452,13 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
       targetId: 0,
     });
 
-    system.update(world, 0.016);
+    const longPathSystem = new MovementSystem(makeFourTileMap());
+    longPathSystem.update(world, 0.016);
 
     expect(Health.current[tower]).toBe(68);
-    expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
-    expect(Movement.currentSpeed[enemy]).toBe(0);
+    expect(Visual.attackAnimTimer[enemy]).toBe(0);
+    expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
+    expect(Movement.progress[enemy]).toBeGreaterThan(0);
   });
 
   it('Boss 到达水晶后立即判定失败', () => {

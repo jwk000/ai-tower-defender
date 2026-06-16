@@ -55,7 +55,7 @@ shield_guard:
       range: 120
       value: 3
       buffId: taunt_buff
-      description: 自动嘲讽周围敌人停止移动并攻击自己，无数量上限
+      description: 自动嘲讽周围1个敌人攻击自己，目标在攻击范围内时停止移动
 
   lifecycle:
     onDeath:
