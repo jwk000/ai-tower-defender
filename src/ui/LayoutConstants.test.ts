@@ -25,8 +25,11 @@ describe('resolveCardToEntityType', () => {
   });
 
   it('keeps full-screen damage spells drag-released on the board instead of click-cast', () => {
+    expect(isSelfTargetSpell('fireball')).toBe(false);
+    expect(isSelfTargetSpell('arrow_rain')).toBe(false);
     expect(isSelfTargetSpell('gold_rush')).toBe(false);
     expect(isSelfTargetSpell('blizzard')).toBe(false);
+    expect(isSelfTargetSpell('bomb')).toBe(false);
     expect(isSelfTargetSpell('earthquake')).toBe(false);
   });
 });

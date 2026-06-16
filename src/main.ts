@@ -49,7 +49,7 @@ import { WaveSystem } from './systems/WaveSystem.js';
 import { WeatherSystem } from './systems/WeatherSystem.js';
 import { LevelIntroSystem } from './systems/LevelIntroSystem.js';
 import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig, type VictoryConfig } from './types/index.js';
-import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType } from './ui/LayoutConstants.js';
+import { hitTestHandCard, resolveCardToEntityType, type ResolvedCardEntity } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
 import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
@@ -119,6 +119,14 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
 ];
 
 const CARD_BY_ID = new Map(ALL_CARDS.map((card) => [card.id, card]));
+const CARD_DRAG_START_DISTANCE = 12;
+
+interface PendingCardDrag {
+  startX: number;
+  startY: number;
+  cardIndex: number;
+  resolved: ResolvedCardEntity;
+}
 
 function resolveCardPool(cardIds: readonly string[] | undefined, fallback: typeof LEVEL_1_CARD_POOL): typeof LEVEL_1_CARD_POOL {
   if (!cardIds || cardIds.length === 0) return fallback;
@@ -185,6 +193,7 @@ class TowerDefenderGame extends Game {
   private enemyCodex!: EnemyCodexUI;
 
   private unitDragId: number | null = null;
+  private pendingCardDrag: PendingCardDrag | null = null;
   private defeatSfxPlayed = false;
   private defeatHandled = false;
   private victoryHandled = false;
@@ -919,34 +928,12 @@ class TowerDefenderGame extends Game {
             const resolved = resolveCardToEntityType(unitConfigId);
             console.log('[CardDrag] onPointerDown - cardId:', card.cardId, 'unitConfigId:', unitConfigId, 'resolved:', resolved, 'cardIdx:', cardIdx);
             if (resolved) {
-              if (resolved.entityType === 'spell') {
-                // 技能卡
-                if (isSelfTargetSpell(resolved.spellCardId)) {
-                  // 自施法技能卡：点击即生效，无需拖拽
-                  // v5.0: 出牌前检查金币
-                  const handCards = this.handSystem.getHand();
-                  const handCard = handCards[cardIdx];
-                  if (handCard && !this.economy.spendGold(handCard.goldCost)) {
-                    Sound.play('build_deny');
-                    return;
-                  }
-                  this.executeSpellAt(resolved.spellCardId, 0, 0);
-                  this.handSystem.playCard(cardIdx);
-                  return;
-                }
-                // 区域目标技能卡：开始拖拽
-                this.buildSystem.startDrag('spell', {
-                  spellCardId: resolved.spellCardId,
-                  cardIndex: cardIdx,
-                });
-              } else {
-                this.buildSystem.startDrag(resolved.entityType, {
-                  towerType: 'towerType' in resolved ? resolved.towerType : undefined,
-                  unitType: 'unitType' in resolved ? resolved.unitType : undefined,
-                  trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
-                  cardIndex: cardIdx,
-                });
-              }
+              this.pendingCardDrag = {
+                startX: e.x,
+                startY: e.y,
+                cardIndex: cardIdx,
+                resolved,
+              };
               return;
             }
           }
@@ -1001,6 +988,13 @@ class TowerDefenderGame extends Game {
         this.enemyCodex.handleMouseMove(e.x, e.y);
         return;
       }
+      if (this.pendingCardDrag && !this.buildSystem.dragState?.active) {
+        const dx = e.x - this.pendingCardDrag.startX;
+        const dy = e.y - this.pendingCardDrag.startY;
+        if (Math.hypot(dx, dy) >= CARD_DRAG_START_DISTANCE) {
+          this.startPendingCardDrag();
+        }
+      }
       if (this.unitDragId !== null) {
         const ctrlTargetX = PlayerControllable.targetX[this.unitDragId];
         if (ctrlTargetX !== undefined) {
@@ -1021,6 +1015,10 @@ class TowerDefenderGame extends Game {
       }
       if (this.unitDragId !== null) {
         this.unitDragId = null;
+        return;
+      }
+      if (this.pendingCardDrag && !this.buildSystem.dragState?.active) {
+        this.pendingCardDrag = null;
         return;
       }
 
@@ -1447,6 +1445,7 @@ class TowerDefenderGame extends Game {
     this.world.clearEntities();
     this.baseEntityId = null;
     this.unitDragId = null;
+    this.pendingCardDrag = null;
     this.buildSystem?.cancelDrag();
     if (this.uiSystem) {
       this.uiSystem.selectedEntityId = null;
@@ -1501,6 +1500,28 @@ class TowerDefenderGame extends Game {
 
   private spawnNeutralUnits(_map: MapConfig): void {
     // Phase 3 neutral units — stub for now
+  }
+
+  private startPendingCardDrag(): void {
+    const pending = this.pendingCardDrag;
+    if (!pending) return;
+    this.pendingCardDrag = null;
+
+    const resolved = pending.resolved;
+    if (resolved.entityType === 'spell') {
+      this.buildSystem.startDrag('spell', {
+        spellCardId: resolved.spellCardId,
+        cardIndex: pending.cardIndex,
+      });
+      return;
+    }
+
+    this.buildSystem.startDrag(resolved.entityType, {
+      towerType: 'towerType' in resolved ? resolved.towerType : undefined,
+      unitType: 'unitType' in resolved ? resolved.unitType : undefined,
+      trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
+      cardIndex: pending.cardIndex,
+    });
   }
 
   // ================================================================
