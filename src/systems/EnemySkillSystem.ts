@@ -17,7 +17,8 @@ import {
   EnemySkillParticleEffect, EnemySkillParticleEffectVal, Burrowed,
 } from '../core/components.js';
 import { unitConfigRegistry } from '../config/registry.js';
-import { Sound } from '../utils/Sound.js';
+import { Sound, type SfxKey } from '../utils/Sound.js';
+import { getPhaseSfx, getSummonSfx } from '../utils/audioKeys.js';
 import { hexToRgb } from '../utils/visualHelpers.js';
 
 // ============================================================
@@ -378,7 +379,7 @@ const handleSummon: SkillHandler = (world, bossEid, skill, _phase) => {
     90,
     0.8,
   );
-  Sound.play('boss_summon');
+  Sound.play(getSummonSfx(skill.id));
   triggerScreenShake(world, 2, 0.2, 12);
 };
 
@@ -395,7 +396,7 @@ const handleAoeAttack: SkillHandler = (world, bossEid, skill, _phase) => {
   let slowPercent = 0;
   let slowDuration = 0;
   let color = { r: 255, g: 100, b: 50 };
-  let soundKey: 'boss_devour' | 'boss_phase2' | 'boss_missile' = 'boss_devour';
+  let soundKey: SfxKey = 'boss_devour_impact';
 
   switch (skill.id) {
     case 'ground_slam':
@@ -403,16 +404,16 @@ const handleAoeAttack: SkillHandler = (world, bossEid, skill, _phase) => {
       color = { r: 200, g: 150, b: 50 }; break;
     case 'frost_slam':
       knockback = 0; slowPercent = 0.5; slowDuration = 3;
-      color = { r: 100, g: 180, b: 255 }; soundKey = 'boss_phase2'; break;
+      color = { r: 100, g: 180, b: 255 }; soundKey = 'boss_phase_ice'; break;
     case 'ground_quake':
       knockback = 80; slowPercent = 0; slowDuration = 0;
       color = { r: 160, g: 140, b: 100 }; break;
     case 'tidal_wave':
       knockback = 100; slowPercent = 0; slowDuration = 0;
-      color = { r: 30, g: 120, b: 220 }; soundKey = 'boss_missile'; break;
+      color = { r: 30, g: 120, b: 220 }; soundKey = 'boss_missile_impact'; break;
     case 'void_eruption':
       knockback = 60; slowPercent = 0; slowDuration = 0;
-      color = { r: 100, g: 20, b: 160 }; soundKey = 'boss_devour'; break;
+      color = { r: 100, g: 20, b: 160 }; soundKey = 'boss_phase_void'; break;
   }
 
   // Damage enemies (faction = Player/Justice)
@@ -473,7 +474,7 @@ const handleWarCry: SkillHandler = (world, bossEid, skill, _phase) => {
   }
 
   createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.WarCry, { r: 255, g: 200, b: 50 }, radius, 0.9);
-  Sound.play('boss_summon');
+  Sound.play('boss_phase_enrage');
   triggerScreenShake(world, 3, 0.3, 10);
 };
 
@@ -502,7 +503,7 @@ const handleMassPetrify: SkillHandler = (world, bossEid, skill, _phase) => {
 
   if (petrified > 0) {
     createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.Petrify, { r: 180, g: 180, b: 180 }, radius, 1.0);
-    Sound.play('boss_phase2');
+    Sound.play(getPhaseSfx(skill.id));
     triggerScreenShake(world, 4, 0.3, 8);
   }
 };
@@ -540,7 +541,7 @@ const handleRealityWarp: SkillHandler = (world, bossEid, skill, _phase) => {
       skill.range || 180,
       1.0,
     );
-    Sound.play('boss_missile');
+    Sound.play(getPhaseSfx(skill.id));
     triggerScreenShake(world, 5, 0.4, 12);
   }
 };
@@ -675,7 +676,7 @@ const handleSporeSpawn: SkillHandler = (world, casterEid, skill, _phase) => {
     });
   }
   createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.Summon, { r: 120, g: 220, b: 120 }, 64, 0.7);
-  Sound.play('boss_summon');
+  Sound.play(getSummonSfx(skill.id));
 };
 
 const handlePoisonPool: SkillHandler = (world, casterEid, skill, _phase) => {
@@ -703,7 +704,7 @@ const handleSlimePulse: SkillHandler = (world, bossEid, skill, _phase) => {
   });
   createSkillParticles(world, x, y, EnemySkillParticleEffectVal.PoisonPool, { r: 100, g: 220, b: 100 }, skill.range, skill.duration ?? 4);
   createSkillParticles(world, x, y, EnemySkillParticleEffectVal.AoeSlam, { r: 100, g: 220, b: 100 }, skill.range, 0.5);
-  Sound.play('boss_phase2');
+  Sound.play('boss_phase_enrage');
 };
 
 const handleTargetedMissile: SkillHandler = (world, bossEid, skill, _phase) => {
@@ -714,7 +715,7 @@ const handleTargetedMissile: SkillHandler = (world, bossEid, skill, _phase) => {
   const y = Position.y[target] ?? 0;
   dealAoeDamage(world, x, y, 80, skill.value, FactionVal.Justice, { falloff: true });
   createSkillParticles(world, x, y, EnemySkillParticleEffectVal.Missile, { r: 255, g: 80, b: 40 }, 80, Math.max(0.8, skill.duration ?? 2));
-  Sound.play('boss_missile');
+  Sound.play('boss_missile_impact');
   triggerScreenShake(world, 7, 0.4, 16);
 };
 
@@ -741,7 +742,7 @@ const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
     );
   }
   createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.DarkDevour, { r: 80, g: 0, b: 140 }, skill.range, 0.9);
-  Sound.play('boss_devour');
+  Sound.play('boss_devour_impact');
   triggerScreenShake(world, 8, 0.5, 12);
 };
 

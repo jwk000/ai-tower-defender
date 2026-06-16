@@ -85,14 +85,40 @@ export type SfxKey =
   | 'boss_split'
   | 'boss_summon'
   | 'boss_devour'
-  | 'boss_missile';
+  | 'boss_missile'
+  | 'boss_enter_slime'
+  | 'boss_enter_beetle'
+  | 'boss_enter_lucifer'
+  | 'boss_enter_robot'
+  | 'boss_enter_abyss'
+  | 'boss_death_heavy'
+  | 'boss_death_void'
+  | 'boss_missile_warning'
+  | 'boss_missile_impact'
+  | 'boss_devour_cast'
+  | 'boss_devour_impact'
+  | 'boss_summon_insect'
+  | 'boss_summon_undead'
+  | 'boss_summon_machine'
+  | 'boss_summon_void'
+  | 'boss_phase_ice'
+  | 'boss_phase_void'
+  | 'boss_phase_enrage'
+  | 'enemy_death_heavy'
+  | 'enemy_death_magic'
+  | 'enemy_death_machine'
+  | 'enemy_death_flying'
+  | 'enemy_spawn_flying'
+  | 'enemy_spawn_machine'
+  | 'enemy_spawn_undead';
 
 /** Vite base URL — adapts to deployment path (/, /repo-name/, etc.) */
 const BASE = import.meta.env.BASE_URL;
 
 /** Resolve a relative SFX path to a full URL matching the current base. */
 function sfxUrl(key: SfxKey): string {
-  return `${BASE}sfx/${key}.ogg`;
+  const path = SFX_PATH[key].replace(/^\//, '');
+  return `${BASE}${path}`;
 }
 
 /**
@@ -165,6 +191,31 @@ const SFX_PATH: Record<SfxKey, string> = {
   boss_summon: '/sfx/boss_summon.ogg',
   boss_devour: '/sfx/boss_devour.ogg',
   boss_missile: '/sfx/boss_missile.ogg',
+  boss_enter_slime: '/sfx/boss_enter_slime.wav',
+  boss_enter_beetle: '/sfx/boss_enter_beetle.wav',
+  boss_enter_lucifer: '/sfx/boss_enter_lucifer.wav',
+  boss_enter_robot: '/sfx/boss_enter_robot.wav',
+  boss_enter_abyss: '/sfx/boss_enter_abyss.wav',
+  boss_death_heavy: '/sfx/boss_death_heavy.wav',
+  boss_death_void: '/sfx/boss_death_void.wav',
+  boss_missile_warning: '/sfx/boss_missile_warning.wav',
+  boss_missile_impact: '/sfx/boss_missile_impact.wav',
+  boss_devour_cast: '/sfx/boss_devour_cast.wav',
+  boss_devour_impact: '/sfx/boss_devour_impact.wav',
+  boss_summon_insect: '/sfx/boss_summon_insect.wav',
+  boss_summon_undead: '/sfx/boss_summon_undead.wav',
+  boss_summon_machine: '/sfx/boss_summon_machine.wav',
+  boss_summon_void: '/sfx/boss_summon_void.wav',
+  boss_phase_ice: '/sfx/boss_phase_ice.wav',
+  boss_phase_void: '/sfx/boss_phase_void.wav',
+  boss_phase_enrage: '/sfx/boss_phase_enrage.wav',
+  enemy_death_heavy: '/sfx/enemy_death_heavy.wav',
+  enemy_death_magic: '/sfx/enemy_death_magic.wav',
+  enemy_death_machine: '/sfx/enemy_death_machine.wav',
+  enemy_death_flying: '/sfx/enemy_death_flying.wav',
+  enemy_spawn_flying: '/sfx/enemy_spawn_flying.wav',
+  enemy_spawn_machine: '/sfx/enemy_spawn_machine.wav',
+  enemy_spawn_undead: '/sfx/enemy_spawn_undead.wav',
   // New tower attacks (synth-only, paths for type completeness)
   tower_fire: '/sfx/tower_fire.ogg',
   tower_poison: '/sfx/tower_poison.ogg',
@@ -206,7 +257,7 @@ const SFX_KEY_ALIASES: Readonly<Record<string, SfxKey>> = {
 };
 
 export function normalizeSfxKey(value: string): SfxKey | null {
-  const fileMatch = value.match(/(?:^|\/)([a-z0-9_]+)\.ogg$/);
+  const fileMatch = value.match(/(?:^|\/)([a-z0-9_]+)\.(?:ogg|wav)$/);
   const key = fileMatch?.[1] ?? value;
   if (key in SFX_PATH) return key as SfxKey;
   return SFX_KEY_ALIASES[key] ?? null;
@@ -263,6 +314,31 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   boss_summon: 0,
   boss_devour: 0,
   boss_missile: 0,
+  boss_enter_slime: 0,
+  boss_enter_beetle: 0,
+  boss_enter_lucifer: 0,
+  boss_enter_robot: 0,
+  boss_enter_abyss: 0,
+  boss_death_heavy: 0,
+  boss_death_void: 0,
+  boss_missile_warning: 0,
+  boss_missile_impact: 0,
+  boss_devour_cast: 0,
+  boss_devour_impact: 0,
+  boss_summon_insect: 0,
+  boss_summon_undead: 0,
+  boss_summon_machine: 0,
+  boss_summon_void: 0,
+  boss_phase_ice: 0,
+  boss_phase_void: 0,
+  boss_phase_enrage: 0,
+  enemy_death_heavy: 120,
+  enemy_death_magic: 100,
+  enemy_death_machine: 120,
+  enemy_death_flying: 80,
+  enemy_spawn_flying: 0,
+  enemy_spawn_machine: 0,
+  enemy_spawn_undead: 0,
   // New tower attacks — moderate throttle
   tower_fire: 80,
   tower_poison: 80,

@@ -20,6 +20,7 @@ import {
 } from '../core/components.js';
 import { EnemyType } from '../types/index.js';
 import { Sound } from '../utils/Sound.js';
+import { getSummonSfx } from '../utils/audioKeys.js';
 import { MovementSystem } from './MovementSystem.js';
 
 // ============================================================
@@ -381,7 +382,7 @@ export class BossSystem implements System {
       Boss.spawnTimer[eid] = 0;
       spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 110, { r: 230, g: 180, b: 40 }, 0.7);
       this.spawnQueenWormMinions(world, eid);
-      Sound.play('boss_summon');
+      Sound.play(getSummonSfx('summon_desert_beetles'));
       triggerScreenShake(world, 2, 0.2, 12);
     }
   }
@@ -467,7 +468,7 @@ export class BossSystem implements System {
         const ex = Position.x[eid] ?? 0;
         const ey = Position.y[eid] ?? 0;
         spawnBossSkillBurst(world, ex, ey, 140, { r: 200, g: 30, b: 30 }, 1.0);
-        Sound.play('boss_phase2');
+        Sound.play('boss_phase_enrage');
         triggerScreenShake(world, 6, 0.5, 15);
       }
     }
@@ -477,7 +478,7 @@ export class BossSystem implements System {
       Boss.spawnTimer[eid] = 0;
       spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 120, { r: 156, g: 39, b: 176 }, 0.7);
       this.spawnLuciferSkeletons(world, eid);
-      Sound.play('boss_summon');
+      Sound.play(getSummonSfx('summon_skeletons'));
     }
   }
 
@@ -578,6 +579,7 @@ export class BossSystem implements System {
         // Create TargetingMark at target location (2s warning)
         this.createMissileWarning(world, eid, target.x, target.y);
         spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 100, { r: 255, g: 23, b: 68 }, 0.55);
+        Sound.play('boss_missile_warning');
         // Reset abilityTimer and enter warning phase
         Boss.abilityTimer[eid] = 0;
         Boss.phase[eid] = 1; // 1 = warning phase
@@ -591,7 +593,7 @@ export class BossSystem implements System {
     if (Boss.phase[eid] === 1) {
       const warnTimer = Boss.abilityTimer[eid] ?? 0;
       if (warnTimer >= SUPERROBOT_WARNING_DURATION) {
-        Sound.play('boss_missile');
+        Sound.play('boss_missile_impact');
         triggerScreenShake(world, 8, 0.5, 20);
         this.detonateMissile(world, eid);
         Boss.abilityTimer[eid] = 0;
@@ -736,7 +738,7 @@ export class BossSystem implements System {
     const abilityTimer = Boss.abilityTimer[eid] ?? 0;
     if (abilityTimer >= ABYSSLORD_ANNIHILATE_INTERVAL) {
       Boss.abilityTimer[eid] = 0;
-      Sound.play('boss_devour');
+      Sound.play('boss_devour_cast');
       triggerScreenShake(world, 12, 0.8, 15);
 
       // Dark implosion visual effect
@@ -745,6 +747,7 @@ export class BossSystem implements System {
       spawnBossSkillBurst(world, bx, by, ABYSSLORD_ANNIHILATE_RADIUS, { r: 26, g: 0, b: 51 }, 0.8);
 
       this.performAbyssAnnihilation(world, eid);
+      Sound.play('boss_devour_impact');
     }
   }
 

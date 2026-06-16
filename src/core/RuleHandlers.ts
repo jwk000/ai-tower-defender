@@ -34,6 +34,7 @@ import { getGlobalRandom } from '../utils/Random.js';
 import type { BuffData } from '../systems/BuffSystem.js';
 import { hexToRgb } from '../utils/visualHelpers.js';
 import { normalizeSfxKey, Sound } from '../utils/Sound.js';
+import { getBossDeathSfx, getBossEnterSfx, getEnemyDeathSfx, getEnemySpawnSfx } from '../utils/audioKeys.js';
 
 // ============================================================
 // 回调注册（用于系统间解耦）
@@ -529,6 +530,22 @@ export const spawnProjectile: RuleHandlerFn = (_world, _entityId, _params, _cont
 export const playSound: RuleHandlerFn = (_world, _entityId, params, _context) => {
   const sound = params['sound'];
   if (typeof sound !== 'string') return;
+  if (sound === 'SFX_BOSS_SPAWN') {
+    Sound.play(getBossEnterSfx(Boss.bossType[_entityId]));
+    return;
+  }
+  if (sound === 'SFX_BOSS_DIE') {
+    Sound.play(getBossDeathSfx(Boss.bossType[_entityId]));
+    return;
+  }
+  if (sound === 'SFX_ENEMY_SPAWN') {
+    Sound.play(getEnemySpawnSfx(_entityId));
+    return;
+  }
+  if (sound === 'SFX_ENEMY_DIE') {
+    Sound.play(getEnemyDeathSfx(_entityId));
+    return;
+  }
   const key = normalizeSfxKey(sound);
   if (!key) return;
   Sound.play(key);

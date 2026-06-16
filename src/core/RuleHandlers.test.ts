@@ -606,6 +606,36 @@ describe('spawnProjectile / playSound', () => {
     playSpy.mockRestore();
   });
 
+  it('playSound 按 Boss 类型映射出场与死亡音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const boss = addEntity(world);
+    addComponent(world, Boss, boss);
+    addComponent(world, UnitTag, boss);
+    Boss.bossType[boss] = 4;
+    UnitTag.isBoss[boss] = 1;
+
+    playSound(world, boss, { sound: 'SFX_BOSS_SPAWN' }, mkCtx());
+    playSound(world, boss, { sound: 'SFX_BOSS_DIE' }, mkCtx());
+
+    expect(playSpy).toHaveBeenNthCalledWith(1, 'boss_enter_abyss');
+    expect(playSpy).toHaveBeenNthCalledWith(2, 'boss_death_void');
+    playSpy.mockRestore();
+  });
+
+  it('playSound 按敌人类型映射出生与死亡音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const enemy = addEntity(world);
+    addComponent(world, UnitTag, enemy);
+    UnitTag.unitTypeNum[enemy] = 17;
+
+    playSound(world, enemy, { sound: 'SFX_ENEMY_SPAWN' }, mkCtx());
+    playSound(world, enemy, { sound: 'SFX_ENEMY_DIE' }, mkCtx());
+
+    expect(playSpy).toHaveBeenNthCalledWith(1, 'enemy_spawn_machine');
+    expect(playSpy).toHaveBeenNthCalledWith(2, 'enemy_death_heavy');
+    playSpy.mockRestore();
+  });
+
   it('playSound 兼容资源路径形式的音效配置', () => {
     const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
 
