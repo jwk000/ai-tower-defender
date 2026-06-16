@@ -297,11 +297,12 @@ export class Renderer {
         const tx = cmd.targetX ?? cx + s;
         const ty = cmd.targetY ?? cy;
         const angle = Math.atan2(ty - cy, tx - cx);
-        const headLen = s * 0.55;
-        const headWidth = headLen * 0.4;
-        const shaftW = s * 0.18;
-        const tipX = s * 0.7;          // head tip — extends forward
-        const shaftStart = -s * 0.4;   // shaft tail — extends backward
+        const lengthScale = cmd.arrowLengthScale ?? 1;
+        const headLen = s * 0.55 * lengthScale;
+        const headWidth = headLen * (cmd.arrowHeadWidthRatio ?? 0.4);
+        const shaftW = s * (cmd.arrowShaftWidthRatio ?? 0.18);
+        const tipX = s * 0.7 * lengthScale;          // head tip — extends forward
+        const shaftStart = -s * 0.4 * lengthScale;   // shaft tail — extends backward
 
         // Arrow shaft — gradient when arrowGradientTail is set
         ctx.save();

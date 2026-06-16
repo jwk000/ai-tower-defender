@@ -87,12 +87,21 @@ describe('SpellProjectileSystem', () => {
       observedDamage += actualDamage;
     });
 
-    system.update(world, 0.25);
+    system.update(world, 0.49);
     expect(Health.current[enemy]).toBe(100);
     expect(observedDamage).toBe(0);
 
-    system.update(world, 0.25);
+    system.update(world, 0.01);
     world.cleanupDeadEntities();
+    expect(Health.current[enemy]).toBe(100);
+    expect(observedDamage).toBe(0);
+    expect(effectQuery(world.world)).toHaveLength(1);
+
+    system.update(world, 0.23);
+    expect(Health.current[enemy]).toBe(100);
+    expect(observedDamage).toBe(0);
+
+    system.update(world, 0.01);
     expect(Health.current[enemy]).toBeLessThan(100);
     expect(observedDamage).toBeGreaterThan(0);
     expect(effectQuery(world.world)).toHaveLength(1);
@@ -119,6 +128,11 @@ describe('SpellProjectileSystem', () => {
 
     system.update(world, 0.01);
     world.cleanupDeadEntities();
+    expect(Health.current[vampireBat]).toBe(40);
+    expect(Health.current[drone]).toBe(30);
+    expect(damageEvents).toHaveLength(0);
+
+    system.update(world, 0.24);
     expect(Health.current[vampireBat]).toBe(15);
     expect(Health.current[drone]).toBe(5);
     expect(Health.current[sturdyEnemy]).toBe(55);
@@ -147,6 +161,40 @@ describe('SpellProjectileSystem', () => {
     expect(commands.some((cmd) => cmd.image)).toBe(false);
     expect(commands.some((cmd) => cmd.shape === 'arrow')).toBe(true);
     expect(commands.some((cmd) => cmd.shape === 'diamond')).toBe(true);
+  });
+
+  it('renders arrow rain as slim red diagonal arrows with trails in both waves', () => {
+    const { renderer, commands } = makeRenderer();
+    const world = new TowerWorld();
+    const system = new SpellProjectileSystem(renderer);
+    makeProjectile(world, 1, 0.5);
+
+    system.update(world, 0.4);
+    const fallingArrows = commands.filter((cmd) => cmd.shape === 'arrow' && cmd.color === '#d32f2f');
+    expect(fallingArrows.length).toBeGreaterThan(0);
+    expect(fallingArrows.every((cmd) => cmd.arrowShaftWidthRatio === 0.08)).toBe(true);
+    expect(fallingArrows.every((cmd) => cmd.arrowHeadWidthRatio === 0.26)).toBe(true);
+    expect(fallingArrows.every((cmd) => cmd.arrowLengthScale === 1.45)).toBe(true);
+    expect(fallingArrows.every((cmd) => (cmd.targetX ?? cmd.x) > cmd.x && (cmd.targetY ?? cmd.y) > cmd.y)).toBe(true);
+    expect(commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.color === '#ffcdd2' &&
+      cmd.alpha !== undefined &&
+      cmd.alpha < 0.3
+    ))).toBe(true);
+
+    commands.length = 0;
+    system.update(world, 0.1);
+    world.cleanupDeadEntities();
+    system.update(world, 0.1);
+    const firstWaveArrows = commands.filter((cmd) => cmd.shape === 'arrow' && cmd.color === '#d32f2f');
+    expect(firstWaveArrows.length).toBeGreaterThan(0);
+
+    commands.length = 0;
+    system.update(world, 0.45);
+    const secondWaveArrows = commands.filter((cmd) => cmd.shape === 'arrow' && cmd.color === '#d32f2f');
+    expect(secondWaveArrows.length).toBeGreaterThan(0);
+    expect(secondWaveArrows.every((cmd) => (cmd.targetX ?? cmd.x) > cmd.x && (cmd.targetY ?? cmd.y) > cmd.y)).toBe(true);
   });
 
   it('earthquake damages all units once per second, lightly jitters tiles, and triggers sustained shake audio', () => {

@@ -668,6 +668,12 @@ export interface RenderCommand {
   targetY?: number;
   /** Arrow gradient tail color — when set, arrow shaft renders gradient from this color to `color` */
   arrowGradientTail?: string;
+  /** Arrow shaft width ratio relative to size; defaults to 0.18 */
+  arrowShaftWidthRatio?: number;
+  /** Arrow head width ratio relative to head length; defaults to 0.4 */
+  arrowHeadWidthRatio?: number;
+  /** Arrow length scale relative to size; defaults to 1 */
+  arrowLengthScale?: number;
   h?: number;           // height for rect (defaults to size = square)
   /** 渲染层级 (z-index)，值越大越靠前。默认 5 (Ground 层) */
   z?: number;

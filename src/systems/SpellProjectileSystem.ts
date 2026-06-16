@@ -27,7 +27,11 @@ const SPELL_ARROW_RAIN = 1;
 const SPELL_BLIZZARD = 2;
 const SPELL_BOMB = 3;
 const SPELL_EARTHQUAKE = 4;
-const ARROW_RAIN_DAMAGE_TICKS = [0, 0.45] as const;
+const ARROW_RAIN_WAVE_STARTS = [0, 0.45] as const;
+const ARROW_RAIN_WAVE_FALL_TIME = 0.24;
+const ARROW_RAIN_ARROW_COLOR = '#d32f2f';
+const ARROW_RAIN_ARROW_TAIL = 'rgba(211, 47, 47, 0)';
+const ARROW_RAIN_TRAIL_COLOR = '#ffcdd2';
 
 const projectileQuery = defineQuery([SpellProjectile, Position]);
 const effectQuery = defineQuery([SpellEffect, Position]);
@@ -270,32 +274,10 @@ export class SpellProjectileSystem implements System {
           const drift = Math.sin(elapsed * 9 + i * 1.7) * 8;
           const ax = startX + lane * 13 + drift;
           const ay = startY + (targetY - startY) * localProgress;
-          const tx = targetX + lane * 9 - 22;
-          const ty = ay + 56;
+          const tx = ax + 36;
+          const ty = ay + 108;
           const a = localProgress < 0.05 ? localProgress / 0.05 : 1;
-          this.renderer.push({
-            shape: 'arrow',
-            x: ax,
-            y: ay,
-            targetX: tx,
-            targetY: ty,
-            size: 28,
-            color: '#d7ccc8',
-            arrowGradientTail: 'rgba(215, 204, 200, 0)',
-            alpha: a * 0.88,
-            z,
-          });
-          this.renderer.push({
-            shape: 'rect',
-            x: ax + 6,
-            y: ay - 18,
-            size: 3,
-            h: 34,
-            color: '#f5f5f5',
-            alpha: a * 0.22,
-            rotation: -0.45,
-            z: z - 1,
-          });
+          this.renderArrowRainArrow(ax, ay, tx, ty, 24, a * 0.9, z);
         }
         break;
       }
@@ -494,51 +476,45 @@ export class SpellProjectileSystem implements System {
 
       case SPELL_ARROW_RAIN: {
         const z = 7;
-        const volleyProgress = Math.min(progress / 0.62, 1);
-        for (let i = 0; i < 32; i++) {
-          const col = (i % 8) - 3.5;
-          const row = Math.floor(i / 8) - 1.5;
-          const delay = (i % 5) * 0.035;
-          const fall = Math.max(0, Math.min(1, volleyProgress * 1.2 - delay));
-          const impactX = x + col * 24 + Math.sin(i * 12.9898) * 11;
-          const impactY = y + row * 25 + Math.cos(i * 7.233) * 9;
-          const ax = impactX - 54 * (1 - fall);
-          const ay = impactY - 170 * (1 - fall);
-          if (fall < 1) {
-            this.renderer.push({
-              shape: 'arrow',
-              x: ax,
-              y: ay,
-              targetX: impactX + 8,
-              targetY: impactY + 42,
-              size: 30,
-              color: '#eceff1',
-              arrowGradientTail: 'rgba(236, 239, 241, 0)',
-              alpha: 0.92,
-              z: z + 2,
-            });
-          } else {
-            const dust = Math.max(0, 1 - (progress - 0.48 - delay) / 0.45);
-            this.renderer.push({
-              shape: 'circle',
-              x: impactX,
-              y: impactY,
-              size: 8 + (1 - dust) * 12,
-              color: '#b0bec5',
-              alpha: dust * 0.3,
-              z,
-            });
-            this.renderer.push({
-              shape: 'rect',
-              x: impactX,
-              y: impactY + 4,
-              size: 3,
-              h: 20,
-              color: '#795548',
-              alpha: dust * 0.9,
-              rotation: -0.18,
-              z: z + 1,
-            });
+        for (let wave = 0; wave < ARROW_RAIN_WAVE_STARTS.length; wave++) {
+          const waveStart = ARROW_RAIN_WAVE_STARTS[wave]!;
+          const waveLocal = progress * 0.8 - waveStart;
+          if (waveLocal < -0.04) continue;
+
+          for (let i = 0; i < 16; i++) {
+            const globalIndex = wave * 16 + i;
+            const col = (i % 8) - 3.5;
+            const row = Math.floor(i / 8) - 0.5;
+            const fall = Math.max(0, Math.min(1, waveLocal / ARROW_RAIN_WAVE_FALL_TIME));
+            const impactX = x + col * 24 + Math.sin(globalIndex * 12.9898) * 11;
+            const impactY = y + row * 42 + Math.cos(globalIndex * 7.233) * 9;
+            const ax = impactX - 72 * (1 - fall);
+            const ay = impactY - 210 * (1 - fall);
+            if (fall < 1) {
+              this.renderArrowRainArrow(ax, ay, impactX + 28, impactY + 96, 25, 0.92, z + 2);
+            } else {
+              const dust = Math.max(0, 1 - (waveLocal - ARROW_RAIN_WAVE_FALL_TIME) / 0.42);
+              this.renderer.push({
+                shape: 'circle',
+                x: impactX,
+                y: impactY,
+                size: 7 + (1 - dust) * 10,
+                color: '#b0bec5',
+                alpha: dust * 0.28,
+                z,
+              });
+              this.renderer.push({
+                shape: 'rect',
+                x: impactX,
+                y: impactY + 6,
+                size: 2,
+                h: 24,
+                color: '#795548',
+                alpha: dust * 0.82,
+                rotation: -0.28,
+                z: z + 1,
+              });
+            }
           }
         }
         const ringAlpha = Math.max(0, 1 - progress * 1.8);
@@ -808,6 +784,36 @@ export class SpellProjectileSystem implements System {
     }
   }
 
+  private renderArrowRainArrow(x: number, y: number, targetX: number, targetY: number, size: number, alpha: number, z: number): void {
+    const angle = Math.atan2(targetY - y, targetX - x);
+    this.renderer.push({
+      shape: 'rect',
+      x: x - Math.cos(angle) * 30,
+      y: y - Math.sin(angle) * 30,
+      size: 2,
+      h: 62,
+      color: ARROW_RAIN_TRAIL_COLOR,
+      alpha: alpha * 0.24,
+      rotation: angle + Math.PI / 2,
+      z: z - 1,
+    });
+    this.renderer.push({
+      shape: 'arrow',
+      x,
+      y,
+      targetX,
+      targetY,
+      size,
+      color: ARROW_RAIN_ARROW_COLOR,
+      arrowGradientTail: ARROW_RAIN_ARROW_TAIL,
+      arrowShaftWidthRatio: 0.08,
+      arrowHeadWidthRatio: 0.26,
+      arrowLengthScale: 1.45,
+      alpha,
+      z,
+    });
+  }
+
   // ============================================================
   // Damage & Effects
   // ============================================================
@@ -896,8 +902,9 @@ export class SpellProjectileSystem implements System {
     const dealtTicks = SpellEffect.hasDealtDamage[effectId]!;
     let dueTicks = dealtTicks;
 
-    for (let i = dealtTicks; i < ARROW_RAIN_DAMAGE_TICKS.length; i++) {
-      if (elapsed >= ARROW_RAIN_DAMAGE_TICKS[i]!) {
+    for (let i = dealtTicks; i < ARROW_RAIN_WAVE_STARTS.length; i++) {
+      const damageTime = ARROW_RAIN_WAVE_STARTS[i]! + ARROW_RAIN_WAVE_FALL_TIME;
+      if (elapsed >= damageTime) {
         this.dealAreaDamage(world, effectId, x, y, radius, SPELL_ARROW_RAIN);
         dueTicks = i + 1;
       }
