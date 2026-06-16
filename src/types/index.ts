@@ -421,7 +421,7 @@ export interface UnitConfig {
   cost: number;
   moveRange: number;
   alertRange?: number; // detection radius for soldier AI alert behavior (default 0)
-  tauntCapacity?: number; // 嘲讽光环标记：>0 表示可自动嘲讽，嘲讽目标无数量上限（默认 0 = 无嘲讽）
+  tauntCapacity?: number; // 嘲讽光环标记：>0 表示可自动嘲讽，同一盾卫同时只维持 1 个目标（默认 0 = 无嘲讽）
   tauntCapacityPerLevel?: number; // 旧配置兼容字段；当前不再限制嘲讽数量
   splashRadius?: number; // 近战 AOE 半径（px），>0 时每次攻击对周围目标造成 60% 溅射伤害
   splashDamage?: number; // 近战 AOE 固定溅射伤害，未配置时使用攻击力 60%

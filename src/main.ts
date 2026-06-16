@@ -1573,7 +1573,7 @@ class TowerDefenderGame extends Game {
     const x = col * ts + ts / 2 + ox;
     const y = row * ts + ts / 2 + oy;
 
-    const SKILL_ID_TO_NUM: Record<string, number> = { taunt: 0, whirlwind: 1, assassinate: 2 };
+    const SKILL_ID_TO_NUM: Record<string, number> = { taunt: 1, whirlwind: 2, assassinate: 3 };
     const skillId = SKILL_ID_TO_NUM[config.skillId] ?? 0;
 
     const id = this.unitFactory.createSoldier(dragUnitType, x, y, { row, col }, {

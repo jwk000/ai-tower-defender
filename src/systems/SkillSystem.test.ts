@@ -101,7 +101,7 @@ function makeShieldGuard(world: TowerWorld): number {
     stateTimer: 0,
   });
   world.addComponent(eid, Skill, {
-    skillId: 0,
+    skillId: 1,
     cooldown: 0,
     currentCooldown: 0,
     energyCost: 0,
@@ -274,5 +274,19 @@ describe('SkillSystem — 盾卫自动嘲讽', () => {
     expect(Attack.targetId[enemy]).toBe(0);
     expect(Movement.progress[enemy]).toBeGreaterThan(0);
     expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
+  });
+
+  it('非盾卫士兵的未知技能数字不会被误判为嘲讽', () => {
+    const world = new TowerWorld();
+    world.createEntity();
+    RenderSystem.sceneOffsetX = 0;
+    RenderSystem.sceneOffsetY = 0;
+    const archerLike = makeShieldGuard(world);
+    const enemy = makeEnemy(world, 70);
+    Skill.skillId[archerLike] = 0;
+
+    new SkillSystem(() => true).update(world, 0.016);
+
+    expect(hasComponent(world.world, Taunted, enemy)).toBe(false);
   });
 });

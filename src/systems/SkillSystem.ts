@@ -9,13 +9,14 @@ import { Sound } from '../utils/Sound.js';
 // --- Skill ID Mapping (string key → bitecs ui8 value) ---
 
 const SkillIdNum: Record<string, number> = {
-  taunt: 0,
-  whirlwind: 1,
-  assassinate: 2,
+  none: 0,
+  taunt: 1,
+  whirlwind: 2,
+  assassinate: 3,
 };
 
 /** Reverse lookup: ui8 → string skill key */
-const SKILL_ID_MAP: string[] = ['taunt', 'whirlwind', 'assassinate'];
+const SKILL_ID_MAP: string[] = ['none', 'taunt', 'whirlwind', 'assassinate'];
 
 // ============================================================
 // SkillSystem — 玩家技能执行（嘲讽、旋风斩、暗杀）
@@ -41,7 +42,7 @@ export class SkillSystem implements System {
       // Apply passive skills
       const sid = Skill.skillId[eid]!;
       const key = SKILL_ID_MAP[sid];
-      if (key !== undefined) {
+      if (key !== undefined && key !== 'none') {
         const config = SKILL_CONFIGS[key];
         if (config && config.trigger === SkillTrigger.Passive) {
           this.applyPassive(world, eid, config);
