@@ -554,7 +554,8 @@ export class SpellProjectileSystem implements System {
 
       case SPELL_BLIZZARD: {
         const z = 7;
-        const windAlpha = Math.max(0, alpha);
+        const entrance = Math.min(progress / 0.04, 1);
+        const windAlpha = Math.max(0, alpha) * entrance;
         const isGlobal = radius >= Math.max(RenderSystem.sceneW, RenderSystem.sceneH);
         const areaX = isGlobal ? RenderSystem.sceneOffsetX : x - radius;
         const areaY = isGlobal ? RenderSystem.sceneOffsetY : y - radius;
@@ -570,6 +571,16 @@ export class SpellProjectileSystem implements System {
             color: '#90caf9',
             alpha: windAlpha * 0.12,
             z,
+          });
+          this.renderer.push({
+            shape: 'rect',
+            x: areaX + areaW / 2,
+            y: areaY + areaH / 2,
+            size: areaW,
+            h: areaH,
+            color: '#e3f2fd',
+            alpha: windAlpha * 0.08,
+            z: z + 1,
           });
         }
         this.renderer.push({
@@ -590,44 +601,45 @@ export class SpellProjectileSystem implements System {
           strokeWidth: 3,
           z: z + 1,
         });
-        for (let i = 0; i < 42; i++) {
-          const phase = (progress * 2.2 + i * 0.061) % 1;
-          const band = i % 6;
-          const lane = band - 2.5;
-          const gustX = isGlobal
-            ? areaX + phase * areaW
-            : x - radius * 0.95 + phase * radius * 1.9;
-          const gustY = isGlobal
-            ? areaY + ((i * 37) % Math.max(1, areaH)) + Math.sin(phase * Math.PI * 2 + i) * 18
-            : y + lane * 24 + Math.sin(phase * Math.PI * 2 + i) * 18;
-          const size = i % 4 === 0 ? 7 : 3 + (i % 3);
+        for (let i = 0; i < 96; i++) {
+          const phase = (progress * 4.6 + i * 0.037) % 1;
+          const laneSeed = (i * 53) % 101 / 100;
+          const diagonal = phase * (areaW + areaH * 0.55);
+          const baseX = isGlobal
+            ? areaX - areaH * 0.25 + diagonal
+            : x - radius * 1.15 + phase * radius * 2.3;
+          const baseY = isGlobal
+            ? areaY + laneSeed * areaH
+            : y - radius * 0.9 + laneSeed * radius * 1.8;
+          const gustX = baseX + Math.sin(progress * 32 + i * 1.7) * 22;
+          const gustY = baseY + diagonal * 0.18 + Math.sin(phase * Math.PI * 2 + i) * 18;
+          if (gustX < areaX - 40 || gustX > areaX + areaW + 40 || gustY < areaY - 40 || gustY > areaY + areaH + 40) continue;
+          const size = i % 6 === 0 ? 8 : 3 + (i % 4);
           this.renderer.push({
-            shape: i % 4 === 0 ? 'diamond' : 'circle',
+            shape: i % 6 === 0 ? 'diamond' : 'circle',
             x: gustX,
             y: gustY,
             size,
-            color: i % 4 === 0 ? '#e1f5fe' : '#ffffff',
-            alpha: windAlpha * (0.3 + (i % 5) * 0.06),
+            color: i % 6 === 0 ? '#e1f5fe' : '#ffffff',
+            alpha: windAlpha * (0.34 + (i % 5) * 0.07),
             z: z + 2,
           });
-          if (i % 5 === 0) {
+          if (i % 4 === 0) {
             this.renderer.push({
-              shape: 'rect',
-              x: gustX - 10,
-              y: gustY + 2,
-              size: 34,
-              h: 3,
+              shape: 'rect', x: gustX - 16, y: gustY + 2,
+              size: 48 + (i % 3) * 18,
+              h: 2 + (i % 2),
               color: '#e1f5fe',
-              alpha: windAlpha * 0.16,
-              rotation: -0.32,
+              alpha: windAlpha * 0.22,
+              rotation: 0.28,
               z: z + 1,
             });
           }
         }
-        for (let i = 0; i < 10; i++) {
-          const angle = progress * Math.PI * 3.5 + i * Math.PI * 0.2;
+        for (let i = 0; i < 16; i++) {
+          const angle = progress * Math.PI * 4.5 + i * Math.PI * 0.2;
           const dist = isGlobal
-            ? Math.min(areaW, areaH) * (0.12 + (i % 5) * 0.045)
+            ? Math.min(areaW, areaH) * (0.12 + (i % 8) * 0.04)
             : radius * (0.25 + (i % 5) * 0.12);
           this.renderer.push({
             shape: 'diamond',

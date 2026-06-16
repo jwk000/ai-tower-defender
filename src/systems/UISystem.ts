@@ -186,6 +186,7 @@ interface DragGhostVisual {
   label: string;
   visualParts?: UnitVisualParts;
   range?: number;
+  rangeMode?: 'circle' | 'board';
   sceneArtId?: string;
 }
 
@@ -1409,26 +1410,55 @@ export class UISystem implements System {
     const z = UI_Z.BOARD_TIPS;
     const rangeOnly = ds.entityType === 'spell';
 
-    // 1. 攻击范围圆圈（先渲染，显示在底层）
+    // 1. 攻击范围预览（先渲染，显示在底层）
     if (range !== undefined && range > 0) {
-      this.renderer.push({
-        shape: 'circle',
-        x: ptr.x, y: ptr.y,
-        size: range * 2,
-        color,
-        alpha: 0.1,
-        z,
-      });
-      this.renderer.push({
-        shape: 'circle',
-        x: ptr.x, y: ptr.y,
-        size: range * 2,
-        color,
-        alpha: 0.35,
-        stroke: color,
-        strokeWidth: 2,
-        z,
-      });
+      if (visual.rangeMode === 'board') {
+        const boardX = RenderSystem.sceneOffsetX;
+        const boardY = RenderSystem.sceneOffsetY;
+        const boardW = RenderSystem.sceneW;
+        const boardH = RenderSystem.sceneH;
+        this.renderer.push({
+          shape: 'rect',
+          x: boardX + boardW / 2,
+          y: boardY + boardH / 2,
+          size: boardW,
+          h: boardH,
+          color,
+          alpha: 0.12,
+          z,
+        });
+        this.renderer.push({
+          shape: 'rect',
+          x: boardX + boardW / 2,
+          y: boardY + boardH / 2,
+          size: boardW,
+          h: boardH,
+          color,
+          alpha: 0.28,
+          stroke: color,
+          strokeWidth: 3,
+          z,
+        });
+      } else {
+        this.renderer.push({
+          shape: 'circle',
+          x: ptr.x, y: ptr.y,
+          size: range * 2,
+          color,
+          alpha: 0.1,
+          z,
+        });
+        this.renderer.push({
+          shape: 'circle',
+          x: ptr.x, y: ptr.y,
+          size: range * 2,
+          color,
+          alpha: 0.35,
+          stroke: color,
+          strokeWidth: 2,
+          z,
+        });
+      }
     }
 
     if (rangeOnly) return;
@@ -1634,6 +1664,7 @@ export class UISystem implements System {
               color: spellColor,
               label: cardCfg.name,
               range: spellRadius,
+              rangeMode: spellRadius !== undefined && spellRadius >= 9999 ? 'board' : 'circle',
             };
           }
         }

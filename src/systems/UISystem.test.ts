@@ -556,4 +556,46 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(true);
     expect(renderer.commands.some((cmd) => cmd.label === '法术' || cmd.label === '火球术')).toBe(false);
   });
+
+  it('暴风雪拖动 ghost 预览全棋盘攻击范围', () => {
+    cardConfigRegistry.register({
+      id: 'blizzard_card',
+      name: '暴风雪',
+      type: 'spell',
+      energyCost: 4,
+      goldCost: 90,
+      rarity: 'rare',
+      spellSubtype: 'control',
+      placement: { targetType: 'global' },
+      spellEffect: { handler: 'aoe_damage_slow', damage: 45, radius: 9999, slowDuration: 5.0 },
+    });
+    RenderSystem.sceneOffsetX = 120;
+    RenderSystem.sceneOffsetY = 80;
+    RenderSystem.sceneW = 640;
+    RenderSystem.sceneH = 384;
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0, {
+      pointer: { x: 960, y: 540 },
+      dragState: {
+        active: true,
+        entityType: 'spell',
+        spellCardId: 'blizzard_card',
+        cardIndex: 0,
+      },
+    });
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.x === 440 &&
+      cmd.y === 272 &&
+      cmd.size === 640 &&
+      cmd.h === 384 &&
+      cmd.color === '#7c4dff' &&
+      cmd.stroke === '#7c4dff'
+    ))).toBe(true);
+    expect(renderer.commands.some((cmd) => cmd.shape === 'circle' && cmd.size === 19998)).toBe(false);
+    expect(renderer.commands.some((cmd) => cmd.label === '暴风雪')).toBe(false);
+  });
 });

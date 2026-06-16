@@ -188,11 +188,25 @@ describe('SpellProjectileSystem', () => {
     expect(Movement.speed[enemyB]).toBe(70);
     expect(effectQuery(world.world)).toHaveLength(1);
     expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#90caf9')).toBe(true);
+    expect(commands.filter((cmd) => (
+      (cmd.shape === 'circle' || cmd.shape === 'diamond') &&
+      cmd.x >= RenderSystem.sceneOffsetX &&
+      cmd.x <= RenderSystem.sceneOffsetX + RenderSystem.sceneW &&
+      cmd.y >= RenderSystem.sceneOffsetY &&
+      cmd.y <= RenderSystem.sceneOffsetY + RenderSystem.sceneH
+    )).length).toBeGreaterThanOrEqual(48);
+    expect(commands.filter((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.color === '#e1f5fe' &&
+      cmd.rotation === 0.28
+    )).length).toBeGreaterThanOrEqual(12);
 
+    commands.length = 0;
     system.update(world, 2.4);
     expect(Health.current[enemyA]).toBe(55);
     expect(Health.current[enemyB]).toBe(55);
     expect(effectQuery(world.world)).toHaveLength(1);
+    expect(commands.some((cmd) => cmd.shape === 'circle' || cmd.shape === 'diamond')).toBe(true);
 
     system.update(world, 2.5);
     world.cleanupDeadEntities();
