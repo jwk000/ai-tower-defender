@@ -757,6 +757,27 @@ describe('SoldierAISystem — differentiated soldier mechanics', () => {
     expect(Projectile.damage[projectiles[0]!]).toBe(36);
   });
 
+  it('弓手远程攻击会触发攻击动作计时器', () => {
+    const archer = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 360,
+      alertRange: 420,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Archer],
+      damage: 12,
+    });
+    const enemy = makeEnemy(world, { x: 260, y: 200, hp: 100 });
+
+    SoldierComp.state[archer] = STATE_COMBAT;
+    SoldierComp.attackTarget[archer] = enemy;
+
+    system.update(world, 0.016);
+
+    expect(Visual.attackAnimDuration[archer]).toBeGreaterThan(0);
+    expect(Visual.attackAnimTimer[archer]).toBe(Visual.attackAnimDuration[archer]);
+  });
+
   it('牧师治疗我方士兵，并保留少量攻击能力', () => {
     const priest = makeSoldier(world, {
       x: 200, y: 200,

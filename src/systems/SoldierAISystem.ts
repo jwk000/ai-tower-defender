@@ -265,11 +265,13 @@ export class SoldierAISystem implements System {
         const attackRange = Attack.range[eid] ?? 50;
 
         if (this.tryExecuteTarget(world, eid, attackTarget, config)) {
+          this.triggerAttackAnimation(eid);
           Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
           return;
         }
 
         // 远程单位（射程>80）发射投射物，近战单位显示扇形刀光
+        this.triggerAttackAnimation(eid);
         if (attackRange > 80) {
           this.spawnSoldierProjectile(world, eid, attackTarget, damage, config);
         } else {
@@ -361,6 +363,14 @@ export class SoldierAISystem implements System {
   // ============================================================
   // Attack Visual Effects
   // ============================================================
+
+  private triggerAttackAnimation(eid: number): void {
+    const duration = Visual.attackAnimDuration[eid] && Visual.attackAnimDuration[eid]! > 0
+      ? Visual.attackAnimDuration[eid]!
+      : 0.35;
+    Visual.attackAnimDuration[eid] = duration;
+    Visual.attackAnimTimer[eid] = duration;
+  }
 
   /** 生成近战扇形刀光特效 */
   private spawnSlashEffect(world: TowerWorld, attackerId: number, targetId: number): void {
