@@ -13,6 +13,7 @@ export const LOW_AIR_TOWER_TYPES = new Set<TowerType>([
 
 export const LOW_AIR_SOLDIER_TYPES = new Set<UnitType>([
   UnitType.Archer,
+  UnitType.Mage,
 ]);
 
 export const LOW_AIR_COUNTER_CARD_IDS = new Set<string>([
@@ -25,6 +26,7 @@ export const LOW_AIR_COUNTER_CARD_IDS = new Set<string>([
   'card_fire_tower',
   'card_poison_tower',
   'card_archer',
+  'card_mage',
 ]);
 
 export function towerCanTargetLowAir(towerType: TowerType): boolean {

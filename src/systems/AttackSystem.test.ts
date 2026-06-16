@@ -39,8 +39,8 @@ import { ruleEngine } from '../core/RuleEngine.js';
 import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
 import { Sound } from '../utils/Sound.js';
 import { TOWER_CONFIGS } from '../data/gameData.js';
-import { TileType, TowerType, type MapConfig } from '../types/index.js';
-import { cardCanCounterLowAir, towerCanTargetLowAir } from '../utils/lowAirTargeting.js';
+import { TileType, TowerType, UnitType, type MapConfig } from '../types/index.js';
+import { cardCanCounterLowAir, soldierCanTargetLowAir, towerCanTargetLowAir } from '../utils/lowAirTargeting.js';
 
 const lightningStormQuery = defineQuery([LightningStorm]);
 const screenShakeQuery = defineQuery([ScreenShake]);
@@ -160,6 +160,16 @@ describe('LowAir targeting whitelist', () => {
     }
 
     for (const cardId of ['card_ice_tower', 'card_fire_tower', 'card_poison_tower']) {
+      expect(cardCanCounterLowAir(cardId)).toBe(true);
+    }
+  });
+
+  it('弓手、法师都可以主动攻击 LowAir 单位', () => {
+    for (const unitType of [UnitType.Archer, UnitType.Mage]) {
+      expect(soldierCanTargetLowAir(unitType)).toBe(true);
+    }
+
+    for (const cardId of ['card_archer', 'card_mage']) {
       expect(cardCanCounterLowAir(cardId)).toBe(true);
     }
   });

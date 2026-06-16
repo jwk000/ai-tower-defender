@@ -958,7 +958,7 @@ export const UNIT_CONFIGS: Record<UnitType, UnitConfig> = {
     upgradeAtkBonus: [7, 11],
     shape: 'rect',
     attackAnimDuration: 0.4,
-    canTargetLowAir: false,
+    canTargetLowAir: true,
     visualParts: {
       eyes: {
         offsetX: 3,
