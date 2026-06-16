@@ -178,6 +178,13 @@ describe('MovementSystem B.12a — path equivalence after linearizeForLegacy ref
     expect(getUnitSpriteScaleX(-1, getUnitSpriteArtFacesLeft(true, true))).toBe(1);
   });
 
+  it('wizard and dark priest enemy sprites keep right-facing source mapping', () => {
+    expect(getUnitSpriteArtFacesLeft(true, false, 'wizard')).toBe(false);
+    expect(getUnitSpriteArtFacesLeft(true, false, 'dark_priest')).toBe(false);
+    expect(getUnitSpriteScaleX(1, getUnitSpriteArtFacesLeft(true, false, 'wizard'))).toBe(1);
+    expect(getUnitSpriteScaleX(-1, getUnitSpriteArtFacesLeft(true, false, 'dark_priest'))).toBe(-1);
+  });
+
   it('swordsman and mage player sprites are mirrored from left-facing source art', () => {
     expect(getUnitSpriteArtFacesLeft(false, false, 'swordsman')).toBe(true);
     expect(getUnitSpriteArtFacesLeft(false, false, 'mage')).toBe(true);

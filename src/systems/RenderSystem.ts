@@ -147,7 +147,7 @@ export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): numbe
 }
 
 export function getUnitSpriteArtFacesLeft(isEnemy: boolean, _isBoss = false, unitId = ''): boolean {
-  if (isEnemy) return true;
+  if (isEnemy) return unitId !== EnemyType.Wizard && unitId !== EnemyType.DarkPriest;
   return unitId === UnitType.Swordsman || unitId === UnitType.Mage;
 }
 
