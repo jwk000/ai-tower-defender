@@ -712,7 +712,7 @@ class TowerDefenderGame extends Game {
     this.setupEnemyCodex(config);
 
     // ---- Soldier AI System ----
-    this.soldierAISystem = new SoldierAISystem();
+    this.soldierAISystem = new SoldierAISystem(config.map);
 
     // ---- Boss System ----
     this.bossSystem = new BossSystem();

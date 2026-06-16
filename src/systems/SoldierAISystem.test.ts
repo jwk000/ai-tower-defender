@@ -563,6 +563,28 @@ describe('SoldierAISystem — COMBAT state', () => {
     expect(SoldierComp.state[soldier]).toBe(STATE_COMBAT); // stays in combat
   });
 
+  it('士兵有效攻击距离至少为1格，可以攻击配置射程外但1格内的目标', () => {
+    system = new SoldierAISystem({ tileSize: 32 });
+    const soldier = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 20,
+      alertRange: 150,
+      damage: 25,
+    });
+    const enemy = makeEnemy(world, { x: 230, y: 200, hp: 100 });
+
+    SoldierComp.state[soldier] = STATE_COMBAT;
+    SoldierComp.attackTarget[soldier] = enemy;
+
+    system.update(world, 0.016);
+
+    expect(SoldierComp.state[soldier]).toBe(STATE_COMBAT);
+    expect(Attack.targetId[soldier]).toBe(enemy);
+    expect(Health.current[enemy]).toBeLessThan(100);
+  });
+
   it('soldier in COMBAT faces toward target', () => {
     const soldier = makeSoldier(world, {
       x: 200, y: 200,

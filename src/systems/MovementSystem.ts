@@ -14,6 +14,7 @@ import { linearizeSpawnPaths } from '../level/graph/PathGraph.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 import { GamePhase } from '../types/index.js';
+import { clampAttackRangeToTile } from '../utils/combatRange.js';
 
 /** Distance threshold multiplier: enemy is "off-path" when perpendicular distance > ts * this */
 const PATH_RECOVERY_MULT = 1.5;
@@ -607,7 +608,8 @@ export class MovementSystem implements System {
     pauseOnAttack = true,
     contactTarget: number | null = null,
   ): boolean {
-    const attackRange = Attack.range[eid] ?? 30;
+    const rawAttackRange = Attack.range[eid] ?? 30;
+    const attackRange = clampAttackRangeToTile(rawAttackRange, this.map);
     const damage = Attack.damage[eid] ?? 0;
     const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
 
@@ -683,7 +685,7 @@ export class MovementSystem implements System {
 
     // Attack the target
     if (nearestTarget !== null) {
-      const isRanged = attackRange > MovementSystem.MELEE_RANGE_THRESHOLD;
+      const isRanged = rawAttackRange > MovementSystem.MELEE_RANGE_THRESHOLD;
 
       // Face toward target
       Attack.targetId[eid] = nearestTarget;

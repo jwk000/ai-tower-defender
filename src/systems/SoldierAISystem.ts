@@ -40,9 +40,10 @@ import {
 import { areHostile } from '../utils/factionUtils.js';
 import { applyDamageToTarget, applyHealToTarget } from '../utils/damageUtils.js';
 import { UNIT_CONFIGS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
-import type { UnitConfig } from '../types/index.js';
+import type { MapConfig, UnitConfig } from '../types/index.js';
 import { addBuff } from './BuffSystem.js';
 import { AttackSystem } from './AttackSystem.js';
+import { clampAttackRangeToTile } from '../utils/combatRange.js';
 
 // ============================================================
 // 状态常量
@@ -74,6 +75,8 @@ export const SoldierProjectileDebuffBySlot: Readonly<Record<number, { id: string
 
 export class SoldierAISystem implements System {
   readonly name = 'SoldierAISystem';
+
+  constructor(private map?: Pick<MapConfig, 'tileSize'>) {}
 
   /** Query: player soldier entities with full combat components */
   private soldierQuery = defineQuery([Position, Movement, Soldier, Attack, Faction]);
@@ -264,7 +267,7 @@ export class SoldierAISystem implements System {
       const damage = this.rollAttackDamage(eid, config);
       const attackSpeed = Attack.attackSpeed[eid] ?? 1.0;
       if (damage > 0 && attackSpeed > 0) {
-        const attackRange = Attack.range[eid] ?? 50;
+        const attackRange = this.getAttackRange(eid);
 
         if (this.tryExecuteTarget(world, eid, attackTarget, config)) {
           this.triggerAttackAnimation(eid);
@@ -701,7 +704,7 @@ export class SoldierAISystem implements System {
     if (alertRange !== undefined && alertRange > 0) return alertRange;
 
     const atkRange = Attack.range[eid];
-    if (atkRange !== undefined && atkRange > 0) return atkRange * 1.5;
+    if (atkRange !== undefined && atkRange > 0) return this.getAttackRange(eid) * 1.5;
 
     const moveRange = Soldier.moveRange[eid];
     if (moveRange !== undefined && moveRange > 0) return moveRange;
@@ -712,7 +715,7 @@ export class SoldierAISystem implements System {
   /** Get soldier's attack range */
   private getAttackRange(eid: number): number {
     const atkRange = Attack.range[eid];
-    if (atkRange !== undefined && atkRange > 0) return atkRange;
+    if (atkRange !== undefined && atkRange > 0) return clampAttackRangeToTile(atkRange, this.map);
 
     const moveRange = Soldier.moveRange[eid];
     if (moveRange !== undefined && moveRange > 0) return moveRange;

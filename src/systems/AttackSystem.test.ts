@@ -34,6 +34,7 @@ import {
   Layer,
   LayerVal,
   DamageTypeVal,
+  Projectile,
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
@@ -44,6 +45,7 @@ import { cardCanCounterLowAir, soldierCanTargetLowAir, towerCanTargetLowAir } fr
 
 const lightningStormQuery = defineQuery([LightningStorm]);
 const screenShakeQuery = defineQuery([ScreenShake]);
+const projectileQuery = defineQuery([Projectile]);
 
 describe('AttackSystem.canAttackLayer (P1-#12)', () => {
   describe('Ground attacker', () => {
@@ -729,5 +731,39 @@ describe('AttackSystem — 配置驱动攻击音效', () => {
     new AttackSystem().update(world, 1 / 60);
 
     expect(playSpy).toHaveBeenCalledWith('tower_arrow');
+  });
+
+  it('塔的有效攻击距离至少为1格，可以攻击配置射程外但1格内的敌人', () => {
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Layer, { value: LayerVal.Ground });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+    world.addComponent(towerId, Attack, {
+      damage: 10,
+      attackSpeed: 1,
+      range: 20,
+      alertRange: 40,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 0,
+      canTargetLowAir: 1,
+      splashRadius: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+    });
+    world.addComponent(towerId, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+    const enemy = makeAttackable(world, 30, 0, FactionVal.Evil, 100);
+
+    new AttackSystem(undefined, { name: 'range-test', cols: 2, rows: 1, tileSize: 32, tiles: [] }).update(world, 1 / 60);
+
+    const projectiles = projectileQuery(world.world);
+    expect(projectiles).toHaveLength(1);
+    expect(Projectile.targetId[projectiles[0]!]).toBe(enemy);
+    expect(Attack.cooldownTimer[towerId]).toBeGreaterThan(0);
   });
 });

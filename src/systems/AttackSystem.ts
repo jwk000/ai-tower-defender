@@ -32,6 +32,7 @@ import { getEffectiveValue } from './BuffSystem.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
+import { clampAttackRangeToTile } from '../utils/combatRange.js';
 
 // ============================================================
 // TowerType numeric ID → enum mapping (ui8 values)
@@ -141,7 +142,7 @@ export class AttackSystem implements System {
 
       // ── 炮管平滑旋转（始终执行，不受冷却限制）──
       if (hasComponent(world.world, Barrel, eid)) {
-        const range = Attack.range[eid]!;
+        const range = clampAttackRangeToTile(Attack.range[eid]!, this.map);
         const enemies = findEnemiesInRange(world, eid, range);
         if (enemies.length > 0) {
           const targetPos = enemies[0]!;
@@ -178,7 +179,7 @@ export class AttackSystem implements System {
       }
 
       // Find enemies in range
-      const range = Attack.range[eid]!;
+      const range = clampAttackRangeToTile(Attack.range[eid]!, this.map);
       const enemies = findEnemiesInRange(world, eid, range);
       if (enemies.length === 0) continue;
 

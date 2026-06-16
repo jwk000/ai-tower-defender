@@ -597,6 +597,23 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Health.current[boulder]).toBeCloseTo(191.666, 2);
   });
 
+  it('敌人有效攻击距离至少为1格，可以攻击配置射程外但1格内的目标', () => {
+    const tower = makeTower(world, 100);
+    Position.x[tower] = 46;
+    Position.y[tower] = TILE / 2;
+    const enemy = makePathEnemy(world, {
+      speed: 0,
+      atk: 12,
+      attackRange: 20,
+      size: 24,
+    });
+
+    system.update(world, 0.1);
+
+    expect(Attack.targetId[enemy]).toBe(tower);
+    expect(Health.current[tower]).toBeLessThan(100);
+  });
+
   it('巨石被破坏后，地面敌人可以继续前进', () => {
     makeBoulder(world, 1, 0);
     const enemy = makePathEnemy(world, { speed: TILE, atk: 12 });
