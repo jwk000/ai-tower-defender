@@ -1041,6 +1041,17 @@ class TowerDefenderGame extends Game {
           // 技能卡：在释放位置执行法术效果
           const spellId = ds.spellCardId;
           if (spellId) {
+            const insideBoard =
+              e.x >= RenderSystem.sceneOffsetX &&
+              e.x < RenderSystem.sceneOffsetX + RenderSystem.sceneW &&
+              e.y >= RenderSystem.sceneOffsetY &&
+              e.y < RenderSystem.sceneOffsetY + RenderSystem.sceneH;
+            if (!insideBoard) {
+              this.floatingTextSystem.show(this.world, e.x, e.y, '超出地图范围');
+              Sound.play('build_deny');
+              this.buildSystem.cancelDrag();
+              return;
+            }
             // v5.0: 校验通过后再扣金币
             const handCards = this.handSystem.getHand();
             const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
@@ -1730,7 +1741,7 @@ class TowerDefenderGame extends Game {
 
   /**
    * 在指定坐标执行法术效果。
-   * 对于自施法技能卡，x/y 参数被忽略。
+   * 对于全屏法术，x/y 仅用于拖拽释放校验，实际效果覆盖整块棋盘。
    * 对于区域技能卡，创建投射物动画，由 SpellProjectileSystem 处理。
    */
   private executeSpellAt(spellCardId: string, x: number, y: number): void {
@@ -1841,7 +1852,7 @@ class TowerDefenderGame extends Game {
       }
 
       case 'earthquake': {
-        // 大地裂变：全棋盘持续震动，每秒对全部敌人造成物理伤害
+        // 大地裂变：全棋盘持续震动，每秒对全部有生命单位造成物理伤害
         this.spellProjectileSystem.spawnGlobalEffect(this.world, 4, 100, 3.0);
         break;
       }

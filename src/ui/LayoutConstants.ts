@@ -250,11 +250,9 @@ export function resolveCardToEntityType(
   return null;
 }
 
-/** 自施法技能卡（点击即生效，无需拖拽到场景） */
-const SELF_TARGET_SPELL_IDS = ['gold_rush', 'earthquake', 'blizzard'];
 
 export function isSelfTargetSpell(spellCardId: string): boolean {
-  return SELF_TARGET_SPELL_IDS.includes(spellCardId);
+  return false;
 }
 
 // ============================================================

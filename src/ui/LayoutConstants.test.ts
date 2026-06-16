@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TowerType, UnitType } from '../types/index.js';
-import { resolveCardToEntityType } from './LayoutConstants.js';
+import { isSelfTargetSpell, resolveCardToEntityType } from './LayoutConstants.js';
 
 describe('resolveCardToEntityType', () => {
   it('resolves YAML soldier card IDs to unit types', () => {
@@ -22,5 +22,11 @@ describe('resolveCardToEntityType', () => {
       entityType: 'unit',
       unitType: UnitType.Swordsman,
     });
+  });
+
+  it('keeps full-screen damage spells drag-released on the board instead of click-cast', () => {
+    expect(isSelfTargetSpell('gold_rush')).toBe(false);
+    expect(isSelfTargetSpell('blizzard')).toBe(false);
+    expect(isSelfTargetSpell('earthquake')).toBe(false);
   });
 });
