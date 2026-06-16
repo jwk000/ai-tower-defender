@@ -468,6 +468,8 @@ export interface TrapConfig {
   type: string;
   name: string;
   hp: number;
+  defense?: number;
+  magicResist?: number;
   damagePerSecond: number;
   radius: number;
   cooldown: number;

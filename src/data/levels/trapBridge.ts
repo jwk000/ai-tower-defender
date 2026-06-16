@@ -19,6 +19,8 @@ export function injectTrapConfigsFromRegistry(): number {
       type: trapType,
       name: u.name,
       hp: (stats?.hp as number) ?? 99999,
+      defense: (stats?.armor as number) ?? 0,
+      magicResist: (stats?.mr as number) ?? 0,
       damagePerSecond: (trap?.damagePerSecond as number) ?? 0,
       radius: (trap?.radius as number) ?? 0,
       cooldown: (trap?.cooldown as number) ?? 0,

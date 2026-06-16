@@ -24,6 +24,7 @@ describe('unit config bridge', () => {
   const originalWizard = { ...ENEMY_CONFIGS.wizard! };
   const originalGiantSlime = { ...ENEMY_CONFIGS.giant_slime! };
   const originalSpikeTrap = { ...TRAP_CONFIGS.spike_trap! };
+  const originalBoulder = { ...TRAP_CONFIGS.boulder! };
 
   beforeEach(() => {
     unitConfigRegistry.clear();
@@ -37,6 +38,7 @@ describe('unit config bridge', () => {
     ENEMY_CONFIGS.wizard = { ...originalWizard };
     ENEMY_CONFIGS.giant_slime = { ...originalGiantSlime };
     TRAP_CONFIGS.spike_trap = { ...originalSpikeTrap };
+    TRAP_CONFIGS.boulder = { ...originalBoulder };
     unitConfigRegistry.clear();
   });
 
@@ -182,6 +184,36 @@ describe('unit config bridge', () => {
     expect(Visual.outline[eid]).toBe(0);
     expect(Trap.damagePerSecond[eid]).toBe(3);
     expect(Trap.cooldown[eid]).toBeCloseTo(0.2);
+  });
+
+  it('巨石机关从 stats 读取血量、防御和魔抗，确保可被攻击破坏', () => {
+    registerConfig({
+      id: 'boulder',
+      name: '测试巨石',
+      category: 'Trap',
+      faction: 'Player',
+      layer: 'Ground',
+      stats: { hp: 200, atk: 0, armor: 20, mr: 5 },
+      cost: { build: 60 },
+      trap: { type: 'Boulder' },
+      visual: { shape: 'circle', color: '#78909c', size: 40, outline: false },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'hold_position' },
+    } as RegistryUnitConfig);
+
+    injectTrapConfigsFromRegistry();
+
+    const world = new TowerWorld();
+    const factory = new UnitFactory(world);
+    const eid = factory.createTrap('boulder', 0, 0, { row: 0, col: 0 })!;
+
+    const cfg = TRAP_CONFIGS.boulder!;
+    expect(cfg.hp).toBe(200);
+    expect(cfg.defense).toBe(20);
+    expect(cfg.magicResist).toBe(5);
+    expect(Health.current[eid]).toBe(200);
+    expect(Health.max[eid]).toBe(200);
+    expect(Health.armor[eid]).toBe(20);
+    expect(Health.magicResist[eid]).toBe(5);
   });
 
   it('士兵升级成长和伤害类型来自 cost/stats 配置', () => {
