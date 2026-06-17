@@ -124,10 +124,9 @@ function sfxUrl(key: SfxKey): string {
 
 /**
  * Keys that have NO OGG audio file and rely entirely on SoundSynth.
- * All other keys have a corresponding .ogg file in public/sfx/.
- * Updated: 31 new OGG files downloaded from open-source packs.
+ * All current runtime SFX keys have a corresponding .ogg file in public/sfx/.
  */
-const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>(['skill_earthquake']);
+const SYNTH_ONLY_KEYS: ReadonlySet<SfxKey> = new Set<SfxKey>();
 
 const SFX_PATH: Record<SfxKey, string> = {
   // Legacy

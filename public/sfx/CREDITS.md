@@ -49,3 +49,14 @@ All files listed here are audio assets used by the game runtime under `public/sf
 | `enemy_death_flying.ogg` | `misc_04.ogg` |
 | `enemy_spawn_flying.ogg` | `misc_05.ogg` |
 | `enemy_spawn_machine.ogg` | `terminal_03.ogg` |
+
+### 100 CC0 SFX 2
+
+- Source: OpenGameArt, `sfx_100_v2.zip`
+- Download URL: `https://opengameart.org/sites/default/files/sfx_100_v2.zip`
+- License: CC0 / Public Domain
+- Used files:
+
+| Runtime file | Original file |
+|--------------|---------------|
+| `skill_earthquake.ogg` | `sfx100v2_thunder_01.ogg` |
