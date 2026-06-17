@@ -150,7 +150,7 @@ describe('Renderer arrow effects', () => {
     expect(strokeSpy).toHaveBeenCalledTimes(3);
   });
 
-  it('arrow 设置 image 时使用图片主体并保留程序化特效', () => {
+  it('arrow 设置 image 时只绘制图片主体，不叠加程序化特效', () => {
     const mainCalls: string[] = [];
     const baseCanvas = document.createElement('canvas');
     const image = document.createElement('canvas');
@@ -179,6 +179,6 @@ describe('Renderer arrow effects', () => {
     renderer.endFrame();
 
     expect(mainCalls).toContain('drawImage:source-over');
-    expect(strokeSpy).toHaveBeenCalledTimes(3);
+    expect(strokeSpy).not.toHaveBeenCalled();
   });
 });

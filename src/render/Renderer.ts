@@ -308,6 +308,28 @@ export class Renderer {
         ctx.translate(cx, cy);
         ctx.rotate(angle);
 
+        if (cmd.image) {
+          const imageW = s;
+          const imageH = cmd.h ?? s;
+          if (cmd.imageSource) {
+            ctx.drawImage(
+              cmd.image,
+              cmd.imageSource.x,
+              cmd.imageSource.y,
+              cmd.imageSource.w,
+              cmd.imageSource.h,
+              -imageW / 2,
+              -imageH / 2,
+              imageW,
+              imageH,
+            );
+          } else {
+            ctx.drawImage(cmd.image, -imageW / 2, -imageH / 2, imageW, imageH);
+          }
+          ctx.restore();
+          break;
+        }
+
         if (cmd.arrowGlowColor) {
           ctx.save();
           ctx.globalAlpha = cmd.arrowGlowAlpha ?? 0.28;
@@ -337,28 +359,6 @@ export class Renderer {
             ctx.stroke();
           }
           ctx.restore();
-        }
-
-        if (cmd.image) {
-          const imageW = s;
-          const imageH = cmd.h ?? s;
-          if (cmd.imageSource) {
-            ctx.drawImage(
-              cmd.image,
-              cmd.imageSource.x,
-              cmd.imageSource.y,
-              cmd.imageSource.w,
-              cmd.imageSource.h,
-              -imageW / 2,
-              -imageH / 2,
-              imageW,
-              imageH,
-            );
-          } else {
-            ctx.drawImage(cmd.image, -imageW / 2, -imageH / 2, imageW, imageH);
-          }
-          ctx.restore();
-          break;
         }
 
         // Arrow shaft — gradient when arrowGradientTail is set
