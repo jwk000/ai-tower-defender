@@ -13,7 +13,7 @@ import {
   Position, Projectile, Health, Visual,
   Stunned, ExplosionEffect, BloodParticle, FadingMark,
   UnitTag, Boss, ShapeVal, DamageTypeVal,
-  TargetingMark, Layer, LayerVal,
+  TargetingMark, Layer, LayerVal, Faction, FactionVal,
   Tower, Poisoned, Attack,
 } from '../core/components.js';
 import { calcPhysicalDamage } from '../utils/combatFormulas.js';
@@ -29,6 +29,7 @@ import type { DamageNumberSystem } from './DamageNumberSystem.js';
 import { DamageNumberStyle } from '../core/components.js';
 import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
 import { AttackSystem } from './AttackSystem.js';
+import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 
 // ============================================================
 // Queries
@@ -126,9 +127,10 @@ export class ProjectileSystem implements System {
       const targetId = Projectile.targetId[eid] as number;
       const sourceTowerType = Projectile.sourceTowerType[eid] as number;
       const isMissile = sourceTowerType === 6;
+      const isBossMissile = sourceTowerType === SUPERROBOT_PROJECTILE_SOURCE_TYPE;
       const isCannonParabola = sourceTowerType === 1 && Projectile.totalTime[eid]! > 0;
 
-      if (isMissile || isCannonParabola) {
+      if (isMissile || isBossMissile || isCannonParabola) {
         // ── 抛物线轨迹（导弹塔 + 炮塔 Cannon）──
         // 飞行参数发射时一次锁定在 Projectile 组件，飞行期不读 mark 实体
         const fromX = Projectile.fromX[eid]!;
@@ -338,6 +340,12 @@ export class ProjectileSystem implements System {
     const sourceId = Projectile.sourceId[eid] as number;
     const sourceTowerType = Projectile.sourceTowerType[eid] as number;
     const isMissile = sourceTowerType === 6;
+    const isBossMissile = sourceTowerType === SUPERROBOT_PROJECTILE_SOURCE_TYPE;
+
+    if (isBossMissile) {
+      this.onSuperRobotMissileHit(world, eid, targetId, sourceId, hitX, hitY);
+      return;
+    }
 
     // -- Deal damage to primary target --
     const damageType = Projectile.damageType[eid]!;
@@ -482,6 +490,46 @@ export class ProjectileSystem implements System {
         }
       }
     }
+  }
+
+  private onSuperRobotMissileHit(
+    world: TowerWorld,
+    projectileId: number,
+    targetId: number,
+    sourceId: number,
+    hitX: number,
+    hitY: number,
+  ): void {
+    const radius = Projectile.splashRadius[projectileId] ?? 80;
+    const centerDamage = Projectile.damage[projectileId] ?? 80;
+    const damageType = Projectile.damageType[projectileId] ?? DamageTypeVal.Physical;
+    const allEntities = defineQuery([Position, Health, Faction])(world.world);
+
+    for (let i = 0; i < allEntities.length; i++) {
+      const target = allEntities[i]!;
+      if (target === sourceId) continue;
+      if ((Health.current[target] ?? 0) <= 0) continue;
+      if (Faction.value[target] !== FactionVal.Justice) continue;
+
+      const dx = (Position.x[target] ?? 0) - hitX;
+      const dy = (Position.y[target] ?? 0) - hitY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > radius) continue;
+
+      const falloff = 1 - dist / radius;
+      applyDamageToTarget(world, target, centerDamage * falloff, damageType);
+      if (hasComponent(world.world, Visual, target)) {
+        Visual.hitFlashTimer[target] = 0.12;
+      }
+    }
+
+    if (targetId !== 0 && hasComponent(world.world, TargetingMark, targetId)) {
+      world.destroyEntity(targetId);
+    }
+    this.spawnExplosion(world, hitX, hitY, radius, 6, 0.45);
+    this.spawnBlackSmokeExplosion(world, hitX, hitY, radius);
+    ScreenShakeSystem.triggerShake(world, 8, 0.45, 24);
+    Sound.play('boss_missile_impact');
   }
 
   private applyProjectileDebuff(
@@ -781,6 +829,45 @@ export class ProjectileSystem implements System {
       hitFlashTimer: 0,
       idlePhase: 0,
     });
+  }
+
+  private spawnBlackSmokeExplosion(world: TowerWorld, hitX: number, hitY: number, splashRadius: number): void {
+    const smokeColors = [
+      { r: 0x12, g: 0x12, b: 0x12, alpha: 0.68 },
+      { r: 0x24, g: 0x22, b: 0x20, alpha: 0.55 },
+      { r: 0x38, g: 0x34, b: 0x30, alpha: 0.42 },
+    ];
+
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2;
+      const offset = splashRadius * (0.12 + (i % 3) * 0.08);
+      const color = smokeColors[i % smokeColors.length]!;
+      const sid = world.createEntity();
+      world.addComponent(sid, Position, {
+        x: hitX + Math.cos(angle) * offset,
+        y: hitY + Math.sin(angle) * offset * 0.65,
+      });
+      world.addComponent(sid, ExplosionEffect, {
+        duration: 0.9 + (i % 3) * 0.12,
+        elapsed: 0,
+        radius: 8 + (i % 2) * 3,
+        maxRadius: splashRadius * (0.42 + (i % 3) * 0.08),
+        colorR: color.r,
+        colorG: color.g,
+        colorB: color.b,
+      });
+      world.addComponent(sid, Visual, {
+        shape: ShapeVal.Circle,
+        colorR: color.r,
+        colorG: color.g,
+        colorB: color.b,
+        size: 10,
+        alpha: color.alpha,
+        outline: 0,
+        hitFlashTimer: 0,
+        idlePhase: 0,
+      });
+    }
   }
 
   // ---- Visual: persistent ground mark (Cannon hit) ----

@@ -15,16 +15,18 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
-  Tower, TargetingMark, ScreenShake, ExplosionEffect,
+  TargetingMark, ScreenShake, ExplosionEffect, Projectile,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
   EnemySkillParticleEffect, EnemySkillParticleEffectVal, EnemyFlockMember,
 } from '../core/components.js';
-import { EnemyType } from '../types/index.js';
+import { EnemyType, type MapConfig } from '../types/index.js';
 import { ENEMY_ID_BY_TYPE, ENEMY_TYPE_BY_ID } from '../data/gameData.js';
 import { Sound } from '../utils/Sound.js';
 import { getSummonSfx } from '../utils/audioKeys.js';
 import { MovementSystem } from './MovementSystem.js';
 import type { BossSkillAnnouncementSystem } from './BossSkillAnnouncementSystem.js';
+import { computeMissileParabola } from './AttackSystem.js';
+import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 
 // ============================================================
 // Boss type enum
@@ -117,8 +119,8 @@ const QUEENWORM_SUMMON_POOL = [
 // ============================================================
 
 const bossQuery = defineQuery([Position, Health, Boss, Faction]);
-const towerQuery = defineQuery([Position, Tower]);
 const allPositionedQuery = defineQuery([Position]);
+const justiceCombatantQuery = defineQuery([Position, Health, Faction, Category]);
 
 // ============================================================
 // Constants
@@ -139,6 +141,11 @@ const LUCIFER_SKELETON_SPREAD_ARC = (Math.PI * 2) / 3;
 const LUCIFER_SKELETON_FLOCK_ID_BASE = 9000;
 const SUPERROBOT_MISSILE_INTERVAL = 10;
 const SUPERROBOT_WARNING_DURATION = 2;
+export const SUPERROBOT_ATTACK_RANGE_RATIO = 1 / 3;
+const SUPERROBOT_MISSILE_SPEED = 760;
+const SUPERROBOT_MISSILE_DAMAGE = 80;
+const SUPERROBOT_MISSILE_RADIUS = 80;
+const SUPERROBOT_MISSILE_SIZE = 34;
 const SLIME_CHILD_STATS: Record<number, { hp: number; atk: number; size: number; speed: number }> = {
   1: { hp: 200, atk: 15, size: 86, speed: 20 },
   2: { hp: 80, atk: 12, size: 58, speed: 28 },
@@ -262,7 +269,10 @@ export class BossSystem implements System {
   /** World reference for use in spawn helpers */
   private world: TowerWorld | null = null;
 
-  constructor(private bossSkillAnnouncements?: BossSkillAnnouncementSystem) {}
+  constructor(
+    private bossSkillAnnouncements?: BossSkillAnnouncementSystem,
+    private map?: MapConfig,
+  ) {}
 
   // ============================================================
   // System.update
@@ -690,10 +700,11 @@ export class BossSystem implements System {
     // Phase 0: idle, wait for interval
     if (abilityTimer >= SUPERROBOT_MISSILE_INTERVAL) {
       // Find tower-dense area and launch missile
-      const target = this.findTowerDenseArea(world);
+      const target = this.findTowerDenseArea(world, eid);
       if (target) {
         // Create TargetingMark at target location (2s warning)
-        this.createMissileWarning(world, eid, target.x, target.y);
+        const markId = this.createMissileWarning(world, eid, target.x, target.y);
+        Boss.transitionTimer[eid] = markId;
         spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 100, { r: 255, g: 23, b: 68 }, 0.55);
         Sound.play('boss_missile_warning');
         // Reset abilityTimer and enter warning phase
@@ -709,52 +720,78 @@ export class BossSystem implements System {
     if (Boss.phase[eid] === 1) {
       const warnTimer = Boss.abilityTimer[eid] ?? 0;
       if (warnTimer >= SUPERROBOT_WARNING_DURATION) {
-        Sound.play('boss_missile_impact');
-        triggerScreenShake(world, 8, 0.5, 20);
-        this.detonateMissile(world, eid);
+        this.launchSuperRobotMissile(world, eid);
         Boss.abilityTimer[eid] = 0;
         Boss.phase[eid] = 0;
       }
     }
   }
 
-  /** Find the tower with the most nearby towers (within 3 tiles = 192px) */
-  private findTowerDenseArea(world: TowerWorld): { x: number; y: number } | null {
-    const towers = towerQuery(world.world);
-    if (towers.length === 0) return null;
+  /** Find the best Justice tower/soldier cluster inside SuperRobot's limited attack range. */
+  private findTowerDenseArea(world: TowerWorld, bossEid: number): { x: number; y: number } | null {
+    const combatants = justiceCombatantQuery(world.world).filter((eid) => (
+      Faction.value[eid] === FactionVal.Justice
+      && (Health.current[eid] ?? 0) > 0
+      && (
+        Category.value[eid] === CategoryVal.Tower
+        || Category.value[eid] === CategoryVal.Soldier
+      )
+    ));
+    if (combatants.length === 0) return null;
 
-    let bestDensity = -1;
-    let bestTower: number | null = null;
+    let bestTowerDensity = -1;
+    let bestSoldierDensity = -1;
+    let bestTarget: number | null = null;
+    const bossX = Position.x[bossEid] ?? 0;
+    const bossY = Position.y[bossEid] ?? 0;
+    const attackRange = this.getSuperRobotAttackRange(world);
 
-    for (let i = 0; i < towers.length; i++) {
-      const tid = towers[i]!;
-      const tx = Position.x[tid] ?? 0;
-      const ty = Position.y[tid] ?? 0;
-      let count = 0;
+    for (let i = 0; i < combatants.length; i++) {
+      const target = combatants[i]!;
+      const tx = Position.x[target] ?? 0;
+      const ty = Position.y[target] ?? 0;
+      const bdx = tx - bossX;
+      const bdy = ty - bossY;
+      if (bdx * bdx + bdy * bdy > attackRange * attackRange) continue;
 
-      for (let j = 0; j < towers.length; j++) {
+      let towerDensity = Category.value[target] === CategoryVal.Tower ? 1 : 0;
+      let soldierDensity = Category.value[target] === CategoryVal.Soldier ? 1 : 0;
+
+      for (let j = 0; j < combatants.length; j++) {
         if (i === j) continue;
-        const otherId = towers[j]!;
+        const otherId = combatants[j]!;
         const ox = Position.x[otherId] ?? 0;
         const oy = Position.y[otherId] ?? 0;
         const dx = tx - ox;
         const dy = ty - oy;
         if (Math.sqrt(dx * dx + dy * dy) <= 192) {
-          count++;
+          if (Category.value[otherId] === CategoryVal.Tower) {
+            towerDensity++;
+          } else if (Category.value[otherId] === CategoryVal.Soldier) {
+            soldierDensity++;
+          }
         }
       }
 
-      if (count > bestDensity) {
-        bestDensity = count;
-        bestTower = tid;
+      if (
+        towerDensity > bestTowerDensity
+        || (towerDensity === bestTowerDensity && soldierDensity > bestSoldierDensity)
+      ) {
+        bestTowerDensity = towerDensity;
+        bestSoldierDensity = soldierDensity;
+        bestTarget = target;
       }
     }
 
-    if (bestTower === null) return null;
+    if (bestTarget === null) return null;
     return {
-      x: Position.x[bestTower] ?? 0,
-      y: Position.y[bestTower] ?? 0,
+      x: Position.x[bestTarget] ?? 0,
+      y: Position.y[bestTarget] ?? 0,
     };
+  }
+
+  private getSuperRobotAttackRange(world: TowerWorld): number {
+    return Math.max(1, (this.map?.cols ?? 12) * (this.map?.tileSize ?? 64) * SUPERROBOT_ATTACK_RANGE_RATIO);
   }
 
   /** Create a TargetingMark entity at the target location for visual warning */
@@ -766,14 +803,14 @@ export class BossSystem implements System {
     const eid = world.createEntity();
     world.addComponent(eid, Position, { x, y });
     world.addComponent(eid, TargetingMark, {
-      blastRadius: 80,
+      blastRadius: SUPERROBOT_MISSILE_RADIUS,
       pulsePhase: 0,
       ringRotation: 0,
     });
     world.addComponent(eid, Visual, {
       shape: ShapeVal.Circle,
       colorR: 255, colorG: 60, colorB: 60,
-      size: 80,
+      size: SUPERROBOT_MISSILE_RADIUS,
       alpha: 0.5,
       outline: 1,
       facing: 1,
@@ -783,66 +820,81 @@ export class BossSystem implements System {
     return eid;
   }
 
-  /** Detonate missile at the TargetingMark location — AOE damage in 80px radius */
-  private detonateMissile(world: TowerWorld, bossEid: number): void {
-    // Read target position from the TargetingMark entity (set during warning phase)
-    let centerX: number | undefined;
-    let centerY: number | undefined;
-    const allMarks = allPositionedQuery(world.world);
-    for (let i = 0; i < allMarks.length; i++) {
-      const eid = allMarks[i]!;
-      if (hasComponent(world.world, TargetingMark, eid) && Category.value[eid] === CategoryVal.Effect) {
-        centerX = Position.x[eid] ?? 0;
-        centerY = Position.y[eid] ?? 0;
-        break;
-      }
-    }
-    // Fallback: re-find tower-dense area if no TargetingMark exists
-    if (centerX === undefined || centerY === undefined) {
-      const target = this.findTowerDenseArea(world);
+  /** Launch a visible rusty missile projectile from SuperRobot to its warned target. */
+  private launchSuperRobotMissile(world: TowerWorld, bossEid: number): void {
+    let markId = Boss.transitionTimer[bossEid] ?? 0;
+    if (markId <= 0 || !hasComponent(world.world, TargetingMark, markId)) {
+      const target = this.findTowerDenseArea(world, bossEid);
       if (!target) return;
-      centerX = target.x;
-      centerY = target.y;
-    }
-    const blastRadius = 80;
-    const centerDamage = 80;
-
-    // Find all entities in blast radius
-    const allEntities = allPositionedQuery(world.world);
-    for (let i = 0; i < allEntities.length; i++) {
-      const eid = allEntities[i]!;
-      if (eid === bossEid) continue; // don't damage self
-      if (Health.current[eid] === undefined || Health.current[eid]! <= 0) continue;
-
-      const ex = Position.x[eid] ?? 0;
-      const ey = Position.y[eid] ?? 0;
-      const dx = ex - centerX;
-      const dy = ey - centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist <= blastRadius) {
-        // Linear falloff: centerDamage at center, 0 at edge
-        const falloff = 1 - dist / blastRadius;
-        const damage = Math.round(centerDamage * falloff);
-        if (damage > 0) {
-          Health.current[eid] = (Health.current[eid]!) - damage;
-        }
-      }
+      markId = this.createMissileWarning(world, bossEid, target.x, target.y);
     }
 
-    // Clean up any TargetingMark entities
-    spawnBossSkillBurst(world, centerX, centerY, blastRadius, { r: 255, g: 80, b: 30 }, 0.45);
-    this.cleanupTargetingMarks(world);
+    const fromX = Position.x[bossEid] ?? 0;
+    const fromY = Position.y[bossEid] ?? 0;
+    const targetX = Position.x[markId] ?? fromX;
+    const targetY = Position.y[markId] ?? fromY;
+    const { totalTime, vyInitial } = computeMissileParabola(fromX, fromY, targetX, targetY, SUPERROBOT_MISSILE_SPEED);
+    const projectileId = world.createEntity();
+
+    world.addComponent(projectileId, Position, { x: fromX, y: fromY });
+    world.addComponent(projectileId, Projectile, {
+      speed: SUPERROBOT_MISSILE_SPEED,
+      damage: SUPERROBOT_MISSILE_DAMAGE,
+      damageType: DamageTypeVal.Physical,
+      targetId: markId,
+      sourceId: bossEid,
+      fromX,
+      fromY,
+      shape: ShapeVal.Diamond,
+      colorR: 150,
+      colorG: 72,
+      colorB: 36,
+      size: SUPERROBOT_MISSILE_SIZE,
+      splashRadius: SUPERROBOT_MISSILE_RADIUS,
+      stunDuration: 0,
+      slowPercent: 0,
+      slowMaxStacks: 0,
+      freezeDuration: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+      isChain: 0,
+      chainIndex: 0,
+      drainAmount: 0,
+      sourceTowerType: SUPERROBOT_PROJECTILE_SOURCE_TYPE,
+      debuffSlot: 0,
+      debuffValue: 0,
+      debuffDuration: 0,
+      debuffIsPercent: 0,
+      targetX,
+      targetY,
+      flightTime: 0,
+      totalTime,
+      vyInitial,
+      dirX: 0,
+      dirY: 0,
+    });
+    world.addComponent(projectileId, Visual, {
+      shape: ShapeVal.Diamond,
+      colorR: 150,
+      colorG: 72,
+      colorB: 36,
+      size: SUPERROBOT_MISSILE_SIZE,
+      alpha: 1,
+      outline: 1,
+      facing: 1,
+      hitFlashTimer: 0,
+      idlePhase: 0,
+      bobPhase: 0,
+      breathPhase: 0,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0,
+      partsId: 0,
+    });
+    world.addComponent(projectileId, Layer, { value: LayerVal.Ground });
+    world.setDisplayName(projectileId, '超级机器人导弹');
+    Boss.transitionTimer[bossEid] = 0;
+    Sound.play('boss_missile');
   }
 
-  /** Remove all TargetingMark entities from the world */
-  private cleanupTargetingMarks(world: TowerWorld): void {
-    const allEntities = allPositionedQuery(world.world);
-    for (let i = 0; i < allEntities.length; i++) {
-      const eid = allEntities[i]!;
-      if (hasComponent(world.world, TargetingMark, eid) && Category.value[eid] === CategoryVal.Effect) {
-        world.destroyEntity(eid);
-      }
-    }
-  }
 }

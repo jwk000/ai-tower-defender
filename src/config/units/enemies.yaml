@@ -3543,7 +3543,7 @@ super_robot:
   visual: { shape: rect, color: "#d32f2f", size: 158.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   boss: { bossType: SuperRobot, missileInterval: 10.0, warningDuration: 2.0, missileDamage: 80, missileRadius: 80 }
-  skills: [{ id: targeted_missile, name: "远程导弹轰炸", cooldown: 10, range: 9999, value: 80, duration: 2, description: "按塔密度/士兵密度评分选择目标点，2s预警后造成中心80、半径80px递减伤害" }]
+  skills: [{ id: targeted_missile, name: "远程导弹轰炸", cooldown: 10, range: 0.333, value: 80, duration: 2, description: "攻击距离为1/3棋盘宽度；按塔密度/士兵密度评分选择目标点，2s预警后从Boss身上发射铁锈色高速导弹实体，抛物线落地造成中心80、半径80px递减伤害并冒出黑色烟雾" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

@@ -718,7 +718,7 @@ class TowerDefenderGame extends Game {
 
     // ---- Boss System ----
     this.bossSkillAnnouncementSystem = new BossSkillAnnouncementSystem();
-    this.bossSystem = new BossSystem(this.bossSkillAnnouncementSystem);
+    this.bossSystem = new BossSystem(this.bossSkillAnnouncementSystem, config.map);
 
     // ---- Combo Kill System ----
     // 必须在 HealthSystem 之前创建，因为 onEnemyKilled 回调会引用它

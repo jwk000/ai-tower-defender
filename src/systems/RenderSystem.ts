@@ -53,6 +53,7 @@ import { getDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 import { ENEMY_TYPE_BY_ID, UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
+import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 
 // ---- TowerType numeric ID → enum mapping ----
 const TOWER_TYPE_BY_ID: TowerType[] = [
@@ -885,7 +886,7 @@ export class RenderSystem implements System {
   //   2) blue exhaust trail (3 fading dots behind, sized by velocity angle)
   //   3) black missile body (rotated rect aligned with flight direction)
   //   4) red warhead (diamond at the front tip)
-  private drawMissileProjectile(eid: number, posX: number, posY: number): void {
+  private drawMissileProjectile(eid: number, posX: number, posY: number, variant: 'tower' | 'boss' = 'tower'): void {
     const angle = Visual.idlePhase[eid] ?? 0;
     const size = Visual.size[eid] ?? 40;
     const layerVal = Layer.value[eid] ?? LayerVal.Ground;
@@ -893,6 +894,15 @@ export class RenderSystem implements System {
 
     const bodyLen = size;
     const bodyW = Math.max(6, size * 0.32);
+    const isBossMissile = variant === 'boss';
+    const glowOuter = isBossMissile ? '#b86b2f' : '#ff5722';
+    const glowInner = isBossMissile ? '#f2a65a' : '#ff8a50';
+    const trailOuter = isBossMissile ? '#fff0a6' : '#40c4ff';
+    const trailInner = isBossMissile ? '#ffe082' : '#82e9ff';
+    const bodyColor = isBossMissile ? '#8f3f1f' : '#111111';
+    const bodyStroke = isBossMissile ? '#4e2417' : '#3a3a3a';
+    const headColor = isBossMissile ? '#b95c2b' : '#ff1744';
+    const headHighlight = isBossMissile ? '#ffe6a3' : '#ffcdd2';
 
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
@@ -900,11 +910,11 @@ export class RenderSystem implements System {
     const pulse = 0.85 + 0.15 * Math.sin(Date.now() * 0.012);
     this.renderer.push({
       shape: 'circle', x: posX, y: posY, size: size * 1.6 * pulse,
-      color: '#ff5722', alpha: 0.22, z,
+      color: glowOuter, alpha: 0.22, z,
     });
     this.renderer.push({
       shape: 'circle', x: posX, y: posY, size: size * 1.0 * pulse,
-      color: '#ff8a50', alpha: 0.35, z,
+      color: glowInner, alpha: 0.35, z,
     });
 
     for (let i = 1; i <= 3; i++) {
@@ -915,19 +925,19 @@ export class RenderSystem implements System {
       const tSize = bodyW * (1.4 - i * 0.25);
       this.renderer.push({
         shape: 'circle', x: tx, y: ty, size: tSize * 1.8,
-        color: '#40c4ff', alpha: tAlpha * 0.4, z,
+        color: trailOuter, alpha: tAlpha * 0.4, z,
       });
       this.renderer.push({
         shape: 'circle', x: tx, y: ty, size: tSize,
-        color: '#82e9ff', alpha: tAlpha, z,
+        color: trailInner, alpha: tAlpha, z,
       });
     }
 
     this.renderer.push({
       shape: 'rect', x: posX, y: posY,
       size: bodyLen, h: bodyW,
-      color: '#111111', alpha: 1,
-      stroke: '#3a3a3a', strokeWidth: 1,
+      color: bodyColor, alpha: 1,
+      stroke: bodyStroke, strokeWidth: 1,
       rotation: angle, z,
     });
 
@@ -937,11 +947,11 @@ export class RenderSystem implements System {
     this.renderer.push({
       shape: 'diamond', x: tipX, y: tipY,
       size: bodyW * 1.4,
-      color: '#ff1744', alpha: 1, z,
+      color: headColor, alpha: 1, z,
     });
     this.renderer.push({
       shape: 'circle', x: tipX, y: tipY, size: bodyW * 0.55,
-      color: '#ffcdd2', alpha: 0.9, z,
+      color: headHighlight, alpha: 0.9, z,
     });
   }
 
@@ -1090,6 +1100,10 @@ export class RenderSystem implements System {
       // sourceTowerType=6 (Missile) gets a fully custom render path. Bypasses the generic arrow render.
       if (isProjectile && Projectile.sourceTowerType[eid] === 6) {
         this.drawMissileProjectile(eid, posX, posY);
+        continue;
+      }
+      if (isProjectile && Projectile.sourceTowerType[eid] === SUPERROBOT_PROJECTILE_SOURCE_TYPE) {
+        this.drawMissileProjectile(eid, posX, posY, 'boss');
         continue;
       }
 

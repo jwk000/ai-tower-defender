@@ -10,12 +10,14 @@ import type { System } from '../core/World.js';
 import {
   Position, Health, Boss, Faction, FactionVal,
   Attack, UnitTag, Visual, Category, CategoryVal, Movement,
-  Tower, TargetingMark, EnemySkillParticleEffect, EnemySkillParticleEffectVal,
+  Tower, TargetingMark, Projectile, EnemySkillParticleEffect, EnemySkillParticleEffectVal,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
 } from '../core/components.js';
 import { BossSystem, BossType } from './BossSystem.js';
+import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 import { HealthSystem } from './HealthSystem.js';
 import { MovementSystem } from './MovementSystem.js';
+import { ProjectileSystem } from './ProjectileSystem.js';
 import { GamePhase } from '../types/index.js';
 import { ENEMY_ID_BY_TYPE, MAP_01 } from '../data/gameData.js';
 import { EnemyType } from '../types/index.js';
@@ -28,6 +30,7 @@ const allHealthQuery = defineQuery([Health]);
 const allPositionedQuery = defineQuery([Position]);
 const bossQuery = defineQuery([Boss]);
 const skillParticleQuery = defineQuery([EnemySkillParticleEffect]);
+const projectileQuery = defineQuery([Projectile]);
 const GIANT_SLIME_UNIT_TYPE_NUM = 19;
 
 // ============================================================
@@ -110,6 +113,22 @@ function makeTower(world: TowerWorld, x: number, y: number, hp: number = 200): n
     size: 20, alpha: 1, facing: 1,
   });
   world.setDisplayName(eid, 'Tower');
+  return eid;
+}
+
+function makeSoldier(world: TowerWorld, x: number, y: number, hp: number = 120): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 2, magicResist: 2 });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Category, { value: CategoryVal.Soldier });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  world.addComponent(eid, UnitTag, { isEnemy: 0, atk: 10 });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle, colorR: 80, colorG: 180, colorB: 120,
+    size: 18, alpha: 1, facing: 1,
+  });
+  world.setDisplayName(eid, 'Soldier');
   return eid;
 }
 
@@ -705,7 +724,7 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
     system = new BossSystem();
   });
 
-  it('首次10秒后进入警告阶段(phase=1)，创建TargetingMark', () => {
+  it('首次10秒后进入警告阶段(phase=1)，创建TargetingMark且不立即伤害', () => {
     // Create towers for targeting
     makeTower(world, 500, 300, 200);
     makeTower(world, 520, 310, 200); // close to first tower (dense area)
@@ -726,30 +745,95 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
       }
     }
     expect(markFound).toBe(true);
+    expect(projectileQuery(world.world).length).toBe(0);
   });
 
-  it('12秒后导弹爆炸，伤害密集区域内的塔', () => {
+  it('预警结束后从Boss身上发射铁锈色抛物线导弹实体', () => {
     // Create towers: 2 close (dense area) + 1 far
-    const tower1 = makeTower(world, 500, 300, 200);
-    const tower2 = makeTower(world, 530, 310, 200); // within 192px
-    const tower3 = makeTower(world, 800, 300, 200); // far away (outside blast)
+    makeTower(world, 500, 300, 200);
+    makeTower(world, 530, 310, 200); // within 192px
 
     // Boss in warning phase, 0.1s from detonation (abilityTimer=1.9 + 0.2 = 2.1 >= 2)
     const boss = makeBoss(world, BossType.SuperRobot, {
-      hp: 2000, maxHp: 2000, abilityTimer: 1.9, phase: 1,
+      hp: 2000, maxHp: 2000, abilityTimer: 9.9, phase: 0,
     });
-
-    // Tick to trigger detonation
     system.update(world, 0.2);
 
-    // Tower1 and Tower2 should take damage (they're in the dense cluster)
-    // Tower3 should NOT take damage (far away)
-    expect(Health.current[tower1]).toBeLessThan(200);
-    expect(Health.current[tower2]).toBeLessThan(200);
-    expect(Health.current[tower3]).toBe(200); // unharmed
+    // Tick to launch projectile after warning.
+    Boss.abilityTimer[boss] = 1.9;
+    system.update(world, 0.2);
+
+    const projectiles = projectileQuery(world.world);
+    expect(projectiles.length).toBe(1);
+    const missile = projectiles[0]!;
+    expect(Projectile.sourceTowerType[missile]).toBe(SUPERROBOT_PROJECTILE_SOURCE_TYPE);
+    expect(Projectile.sourceId[missile]).toBe(boss);
+    expect(Position.x[missile]).toBe(Position.x[boss]);
+    expect(Position.y[missile]).toBe(Position.y[boss]);
+    expect(Visual.colorR[missile]).toBe(150);
+    expect(Visual.colorG[missile]).toBe(72);
+    expect(Visual.colorB[missile]).toBe(36);
   });
 
-  it('没有塔时不发射导弹', () => {
+  it('Boss导弹落地后伤害我方单位并冒出黑色烟雾', () => {
+    const tower1 = makeTower(world, 500, 300, 200);
+    const tower2 = makeTower(world, 530, 310, 200);
+    const tower3 = makeTower(world, 800, 300, 200);
+    const boss = makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 9.9, phase: 0, x: 420, y: 300,
+    });
+
+    system.update(world, 0.2);
+    Boss.abilityTimer[boss] = 1.9;
+    system.update(world, 0.2);
+
+    const missile = projectileQuery(world.world)[0]!;
+    const projectileSystem = new ProjectileSystem(MAP_01);
+    for (let i = 0; i < 90 && hasComponent(world.world, Projectile, missile); i++) {
+      projectileSystem.update(world, 1 / 60);
+      world.cleanupDeadEntities();
+    }
+
+    expect(Health.current[tower1]).toBeLessThan(200);
+    expect(Health.current[tower2]).toBeLessThan(200);
+    expect(Health.current[tower3]).toBe(200);
+
+    const blackSmoke = allPositionedQuery(world.world).filter((eid) => (
+      hasComponent(world.world, Visual, eid)
+      && (Visual.colorR[eid] ?? 255) <= 0x38
+      && (Visual.colorG[eid] ?? 255) <= 0x34
+      && (Visual.colorB[eid] ?? 255) <= 0x30
+    ));
+    expect(blackSmoke.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('超级机器人只攻击1/3棋盘宽度范围内的我方单位', () => {
+    makeTower(world, 760, 300, 200);
+    const boss = makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 10, phase: 0, x: 300, y: 300,
+    });
+
+    system.update(world, 0.1);
+
+    expect(Boss.abilityTimer[boss]).toBe(0);
+    expect(projectileQuery(world.world).length).toBe(0);
+  });
+
+  it('没有塔但有范围内士兵时也会发射导弹预警', () => {
+    makeSoldier(world, 500, 300, 120);
+    makeSoldier(world, 530, 310, 120);
+    const boss = makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 10, phase: 0, x: 420, y: 300,
+    });
+
+    system.update(world, 0.1);
+
+    const marks = allPositionedQuery(world.world).filter((eid) => hasComponent(world.world, TargetingMark, eid));
+    expect(marks.length).toBe(1);
+    expect(Boss.phase[boss]).toBe(1);
+  });
+
+  it('没有我方单位时不发射导弹', () => {
     const boss = makeBoss(world, BossType.SuperRobot, {
       hp: 2000, maxHp: 2000, abilityTimer: 10, phase: 0,
     });
@@ -770,4 +854,3 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
     expect(Boss.abilityTimer[boss]).toBe(0);
   });
 });
-
