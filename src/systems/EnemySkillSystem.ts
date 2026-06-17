@@ -28,6 +28,7 @@ import { hexToRgb } from '../utils/visualHelpers.js';
 const entityConfigId = new Map<number, string>();
 const genericSkillTimers = new Map<number, number[]>();
 const temporaryArmorBonuses = new Map<number, Array<{ amount: number; timer: number }>>();
+const ABYSS_LORD_BOSS_TYPE = 4; // Keep in sync with BossType.AbyssLord without importing BossSystem.
 
 /** Register an enemy entity with its YAML config ID */
 export function registerEnemySkillEntity(eid: number, configId: string): void {
@@ -728,10 +729,12 @@ const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
     if (eid === bossEid) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
     if (hasComponent(world.world, Boss, eid)) continue;
+    if (Category.value[eid] === CategoryVal.Objective) continue;
     const dx = (Position.x[eid] ?? 0) - bx;
     const dy = (Position.y[eid] ?? 0) - by;
     if (dx * dx + dy * dy <= skill.range * skill.range) {
       Health.current[eid] = 0;
+      world.destroyEntity(eid);
       devoured++;
     }
   }
@@ -925,7 +928,7 @@ export class EnemySkillSystem implements System {
       if (hp === undefined || hp <= 0) continue;
 
       // Only process data-driven bosses (bossType === 0xFF)
-      if (Boss.bossType[eid] !== 0xFF) continue;
+      if (Boss.bossType[eid] !== 0xFF && Boss.bossType[eid] !== ABYSS_LORD_BOSS_TYPE) continue;
 
       const configId = entityConfigId.get(eid);
       if (!configId) continue;

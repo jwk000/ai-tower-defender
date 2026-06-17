@@ -371,7 +371,7 @@ export const Boss = defineComponent({
   phase: Types.ui8,           // 当前阶段 1/2/3
   phase2HpRatio: Types.f32,   // 进入二阶段的血量比例
   transitionTimer: Types.f32, // 阶段过渡计时/暴怒标记(Lucifer)
-  abilityTimer: Types.f32,    // 技能冷却计时（通用: SuperRobot/AbyssLord 等）
+  abilityTimer: Types.f32,    // BossSystem 专用技能计时（如 SuperRobot）
   spawnTimer: Types.f32,      // 召唤间隔计时（通用: QueenWorm/Lucifer）
   splitCount: Types.ui8,      // GiantSlime 分裂层级: 0=giant, 1=medium, 2=small
   immuneToTowers: Types.ui8,  // QueenWorm 免疫塔攻击: 0/1

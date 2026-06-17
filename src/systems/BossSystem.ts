@@ -6,7 +6,7 @@
 //   1 QueenWorm  — immune to towers, spawns 5 random insect units/10s
 //   2 Lucifer    — Chaos faction, spawns 3 skeletons/10s (cap 12), enrage <30% HP
 //   3 SuperRobot — missile bombardment at tower-dense area every 10s (2s warning)
-//   4 AbyssLord  — 5s annihilation (150px radius), heals 2% max HP per kill
+//   4 AbyssLord  — handled by EnemySkillSystem via YAML skill dark_devour
 //
 // 对应设计文档:
 //   design/03-units.md §6 (BOSS)
@@ -139,9 +139,6 @@ const LUCIFER_SKELETON_SPREAD_ARC = (Math.PI * 2) / 3;
 const LUCIFER_SKELETON_FLOCK_ID_BASE = 9000;
 const SUPERROBOT_MISSILE_INTERVAL = 10;
 const SUPERROBOT_WARNING_DURATION = 2;
-const ABYSSLORD_ANNIHILATE_INTERVAL = 5;
-const ABYSSLORD_ANNIHILATE_RADIUS = 150;
-const ABYSSLORD_HEAL_RATIO = 0.02;     // 2% max HP per kill
 const SLIME_CHILD_STATS: Record<number, { hp: number; atk: number; size: number; speed: number }> = {
   1: { hp: 200, atk: 15, size: 86, speed: 20 },
   2: { hp: 80, atk: 12, size: 58, speed: 28 },
@@ -313,10 +310,6 @@ export class BossSystem implements System {
 
         case BossType.SuperRobot:
           this.handleSuperRobot(world, eid, dt);
-          break;
-
-        case BossType.AbyssLord:
-          this.handleAbyssLord(world, eid, dt);
           break;
 
         default:
@@ -850,74 +843,6 @@ export class BossSystem implements System {
       if (hasComponent(world.world, TargetingMark, eid) && Category.value[eid] === CategoryVal.Effect) {
         world.destroyEntity(eid);
       }
-    }
-  }
-
-  // ============================================================
-  // AbyssLord (4) — annihilation (150px) + heal
-  // ============================================================
-
-  private handleAbyssLord(world: TowerWorld, eid: number, _dt: number): void {
-    const abilityTimer = Boss.abilityTimer[eid] ?? 0;
-    if (abilityTimer >= ABYSSLORD_ANNIHILATE_INTERVAL) {
-      Boss.abilityTimer[eid] = 0;
-      Sound.play('boss_devour_cast');
-      triggerScreenShake(world, 12, 0.8, 15);
-
-      // Dark implosion visual effect
-      const bx = Position.x[eid] ?? 0;
-      const by = Position.y[eid] ?? 0;
-      spawnBossSkillBurst(world, bx, by, ABYSSLORD_ANNIHILATE_RADIUS, { r: 26, g: 0, b: 51 }, 0.8);
-
-      this.performAbyssAnnihilation(world, eid);
-      Sound.play('boss_devour_impact');
-    }
-  }
-
-  private performAbyssAnnihilation(world: TowerWorld, bossEid: number): void {
-    const bx = Position.x[bossEid] ?? 0;
-    const by = Position.y[bossEid] ?? 0;
-    const radius = ABYSSLORD_ANNIHILATE_RADIUS;
-
-    const allEntities = allPositionedQuery(world.world);
-    let killCount = 0;
-    const toDestroy: number[] = [];
-
-    for (let i = 0; i < allEntities.length; i++) {
-      const eid = allEntities[i]!;
-      if (eid === bossEid) continue;
-      if (Health.current[eid] === undefined || Health.current[eid]! <= 0) continue;
-
-      // Exclude other bosses
-      if (hasComponent(world.world, Boss, eid)) continue;
-
-      // Exclude objectives (crystal)
-      if (Category.value[eid] === CategoryVal.Objective) continue;
-
-      const ex = Position.x[eid] ?? 0;
-      const ey = Position.y[eid] ?? 0;
-      const dx = ex - bx;
-      const dy = ey - by;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist <= radius) {
-        toDestroy.push(eid);
-      }
-    }
-
-    // Destroy all entities in range
-    for (const eid of toDestroy) {
-      Health.current[eid] = 0;
-      world.destroyEntity(eid);
-      killCount++;
-    }
-
-    // Heal: 2% max HP per kill
-    if (killCount > 0) {
-      const maxHp = Health.max[bossEid] ?? 0;
-      const healAmount = Math.round(maxHp * ABYSSLORD_HEAL_RATIO * killCount);
-      const currentHp = Health.current[bossEid] ?? 0;
-      Health.current[bossEid] = Math.min(maxHp, currentHp + healAmount);
     }
   }
 }

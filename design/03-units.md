@@ -534,7 +534,7 @@
 
 当前敌人配置审查结论：
 
-- Boss 缺口：`giant_slime`、`queen_beetle`、`lucifer`、`super_robot`、`abyss_lord` 尚未配置 `skills`。
+- Boss 缺口：无。`giant_slime`、`queen_beetle`、`lucifer`、`super_robot`、`abyss_lord` 均已配置 `skills`。
 - 精英怪缺口：`heavy`、`mage`、`exploder`、`e_burrow_worm`、`e_giant_beetle`、`e_frost_marauder`、`e_yeti_charger`、`e_blizzard_sprite`、`e_brine_charger`、`e_steam_lancer`、`e_hammergrub_drone`、`e_minecart_juggernaut`、`e_myco_charger`、`e_brood_mother`、`e_blight_spitter`、`e_frost_lancer`、`e_blood_trickster` 尚未配置精英技能。
 
 Boss 技能补充设计：
