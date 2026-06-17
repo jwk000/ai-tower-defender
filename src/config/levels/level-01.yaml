@@ -133,6 +133,7 @@ cardPool:
   - card_arrow_tower
   - card_ice_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_spike_trap
   - card_bear_trap
@@ -142,6 +143,7 @@ draftPool:
   - card_arrow_tower
   - card_ice_tower
   - card_cannon_tower
+  - card_fire_tower
   - card_shield_guard
   - card_archer
   - card_mage

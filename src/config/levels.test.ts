@@ -62,6 +62,38 @@ const rawLevelModules = import.meta.glob('./levels/*.yaml', {
   eager: true,
 }) as Record<string, string>;
 
+const FRONTLINE_CARDS = new Set(['card_shield_guard', 'card_boulder', 'card_bear_trap']);
+const OUTPUT_CARDS = new Set([
+  'card_arrow_tower',
+  'card_ballista_tower',
+  'card_cannon_tower',
+  'card_laser_tower',
+  'card_bat_tower',
+  'card_missile_tower',
+  'card_fire_tower',
+  'card_poison_tower',
+  'card_lightning_tower',
+  'card_swordsman',
+  'card_archer',
+  'card_mage',
+  'card_assassin',
+]);
+const CONTROL_OR_CLEAR_CARDS = new Set([
+  'card_ice_tower',
+  'card_cannon_tower',
+  'card_fire_tower',
+  'card_poison_tower',
+  'card_lightning_tower',
+  'card_spike_trap',
+  'card_bear_trap',
+  'card_tar_pit',
+  'card_fireball',
+  'card_arrow_rain',
+  'card_bomb',
+  'card_blizzard',
+  'card_earthquake',
+]);
+
 function loadRawEnemyConfigs(): Record<string, RawEnemyUnit> {
   const content = rawEnemyModules['./units/enemies.yaml']!;
   const enemies: Record<string, RawEnemyUnit> = {};
@@ -105,7 +137,7 @@ function worstCaseIncome(level: RawLevelConfig, enemies: Record<string, RawEnemy
     }
 
     const eliteRewardFloor = Math.min(
-      ...Array.from(waveTypes).map((enemyType) => Math.floor(((enemies[enemyType]!.reward?.gold ?? 0) * 0.8))),
+      ...Array.from(waveTypes).map((enemyType) => Math.floor(((enemies[enemyType]!.reward?.gold ?? 0) * 2.0 * 0.8))),
     );
     gold += Number.isFinite(eliteRewardFloor) ? eliteRewardFloor : 0;
 
@@ -194,6 +226,30 @@ describe('关卡 YAML 配置', () => {
       for (const cardId of [...level.cardPool, ...level.draftPool]) {
         seenCards.add(cardId);
       }
+    }
+  });
+
+  it('每关初始卡池覆盖前排、输出和控制/清线职责', () => {
+    for (const level of loadRawLevels()) {
+      expect(
+        level.cardPool.some((cardId) => FRONTLINE_CARDS.has(cardId)),
+        `${level.id} cardPool 缺少前排/阻挡职责卡牌`,
+      ).toBe(true);
+      expect(
+        level.cardPool.some((cardId) => OUTPUT_CARDS.has(cardId)),
+        `${level.id} cardPool 缺少稳定输出职责卡牌`,
+      ).toBe(true);
+      expect(
+        level.cardPool.some((cardId) => CONTROL_OR_CLEAR_CARDS.has(cardId)),
+        `${level.id} cardPool 缺少控制/清线职责卡牌`,
+      ).toBe(true);
+    }
+  });
+
+  it('每关卡池不包含重复卡牌', () => {
+    for (const level of loadRawLevels()) {
+      expect(new Set(level.cardPool).size, `${level.id} cardPool 存在重复卡牌`).toBe(level.cardPool.length);
+      expect(new Set(level.draftPool).size, `${level.id} draftPool 存在重复卡牌`).toBe(level.draftPool.length);
     }
   });
 

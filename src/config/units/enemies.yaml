@@ -79,7 +79,7 @@ runner:
     damageType: physical
 
   reward:
-    gold: 8
+    gold: 5
 
   visual:
     shape: circle
@@ -264,7 +264,7 @@ exploder:
     damageType: physical
 
   reward:
-    gold: 12
+    gold: 8
 
   visual:
     shape: circle
@@ -3163,7 +3163,7 @@ goblin:
   faction: Evil
   layer: Ground
   stats: { hp: 18, atk: 8, attackSpeed: 0.4, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
-  reward: { gold: 5 }
+  reward: { gold: 4 }
   visual: { shape: circle, color: "#4caf50", size: 26.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
@@ -3294,7 +3294,7 @@ bomb_beetle:
   faction: Evil
   layer: Ground
   stats: { hp: 50, atk: 80, attackSpeed: 0, range: 60, speed: 50, armor: 0, mr: 0, damageType: physical }
-  reward: { gold: 15 }
+  reward: { gold: 10 }
   visual: { shape: circle, color: "#ff5722", size: 28.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { targetBuildings: true, ignoreTaunt: true, selfDestruct: true, explosionRadius: 50 } }
   lifecycle:

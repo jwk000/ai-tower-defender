@@ -47,6 +47,7 @@ function hexToRGB(hex: string): { r: number; g: number; b: number } {
 
 // ---- gold color constant for elite outline ----
 const GOLD_RGB = hexToRGB('#FFD700');
+const ELITE_REWARD_GOLD_MULTIPLIER = 2.0;
 const BOSS_MIN_SIZE = 70;
 const BOSS_MAX_SIZE = 180;
 
@@ -598,11 +599,14 @@ export class WaveSystem implements System {
     }
 
     const effectiveAtk = Math.max(1, Math.round(config.atk * atkMult));
+    const rewardGold = isElite
+      ? Math.round(config.rewardGold * ELITE_REWARD_GOLD_MULTIPLIER)
+      : config.rewardGold;
     this.world.addComponent(eid, UnitTag, {
       isEnemy: 1,
       isElite: isElite ? 1 : 0,
       unitTypeNum: ENEMY_ID_BY_TYPE[config.type as EnemyType] ?? 0,
-      rewardGold: config.rewardGold,
+      rewardGold,
       goldVariance: config.goldVariance ?? 0.2,
       canAttackBuildings: config.canAttackBuildings ? 1 : 0,
       atk: effectiveAtk,

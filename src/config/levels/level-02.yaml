@@ -103,6 +103,7 @@ available:
     - fire
     - poison
   units:
+    - shield_guard
     - archer
     - mage
 
@@ -162,6 +163,7 @@ cardPool:
   - card_fire_tower
   - card_poison_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_spike_trap
@@ -173,12 +175,14 @@ cardPool:
 
 draftPool:
   - card_arrow_tower
+  - card_ballista_tower
   - card_cannon_tower
   - card_ice_tower
   - card_fire_tower
   - card_poison_tower
   - card_lightning_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_priest

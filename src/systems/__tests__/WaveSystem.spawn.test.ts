@@ -280,6 +280,7 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
 
     // Verify enhanced ATK (Goblin base ATK=8, ×1.5 elite × 0.8 difficulty = 9.6 → 10 rounded)
     expect(UnitTag.atk[eliteEid]).toBe(10);
+    expect(UnitTag.rewardGold[eliteEid]).toBe(ENEMY_CONFIGS[EnemyType.Goblin]!.rewardGold * 2);
 
     // Verify gold visual (elite gets gold color #FFD700 = R:255 G:215 B:0)
     expect(Visual.colorR[eliteEid]).toBe(255);

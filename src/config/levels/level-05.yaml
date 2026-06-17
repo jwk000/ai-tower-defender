@@ -187,6 +187,7 @@ available:
     - lightning
   units:
     - shield_guard
+    - swordsman
     - archer
     - mage
     - priest
@@ -378,6 +379,7 @@ cardPool:
   - card_poison_tower
   - card_lightning_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_priest
@@ -405,6 +407,7 @@ draftPool:
   - card_poison_tower
   - card_lightning_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_priest

@@ -1251,7 +1251,7 @@ class TowerDefenderGame extends Game {
           goldMin = Math.floor(baseGold * (1 - variance * 0.5));
           goldMax = Math.ceil(baseGold * (1 + variance * 0.5));
         } else if (type === 'elite') {
-          const eliteGold = baseGold * 1.5;
+          const eliteGold = baseGold * 2.0;
           goldMin = Math.floor(eliteGold * (1 - variance));
           goldMax = Math.ceil(eliteGold * (1 + variance));
         } else {

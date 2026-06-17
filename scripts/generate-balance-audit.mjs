@@ -198,14 +198,22 @@ for (const level of levels) {
   let levelGoldMin = level.starting?.gold ?? 0;
   let levelGoldMax = level.starting?.gold ?? 0;
   for (const wave of level.waves ?? []) {
+    const waveEnemyRows = [];
     const enemiesInWave = (wave.enemies ?? []).map((group) => {
       const config = enemyRows.find((enemy) => enemy.id === group.enemyType);
+      if (config) waveEnemyRows.push(config);
       const count = group.count ?? 0;
       levelEnemyCount += count;
       levelGoldMin += (config?.goldMin ?? 0) * count;
       levelGoldMax += (config?.goldMax ?? 0) * count;
       return `${group.enemyType}×${count}`;
     });
+    if (waveEnemyRows.length > 0) {
+      const eliteGoldMin = Math.min(...waveEnemyRows.map((enemy) => Math.floor(enemy.gold * 2.0 * 0.8)));
+      const eliteGoldMax = Math.min(...waveEnemyRows.map((enemy) => Math.floor(enemy.gold * 2.0 * 1.2)));
+      levelGoldMin += eliteGoldMin;
+      levelGoldMax += eliteGoldMax;
+    }
     levelGoldMin += wave.reward ?? 0;
     levelGoldMax += wave.reward ?? 0;
     waveRows.push({
@@ -258,14 +266,14 @@ const md = `# 数值总览与合理性审查
 
 > 生成时间：2026-06-17
 > 数据来源：\`src/config/units/*.yaml\`、\`src/config/levels/*.yaml\`
-> 计算口径：攻击 DPS = ATK × attackSpeed；塔和士兵等级按 \`cost.*Growth\` 逐级累加；击杀金币范围按 \`reward.gold × 0.8 ~ 1.2\` 向下取整。波次统计仅包含 YAML 明确配置的敌人，不含运行时额外随机精英。
+> 计算口径：攻击 DPS = ATK × attackSpeed；塔和士兵等级按 \`cost.*Growth\` 逐级累加；普通击杀金币范围按 \`reward.gold × 0.8 ~ 1.2\` 向下取整；关卡资源汇总额外计入每波 1 只随机精英的最低/最高掉落，精英金币按基础金币 ×2 后再应用随机方差。
 
 ## 结论摘要
 
 - 当前塔的基础 DPS 覆盖约 ${fmt(Math.min(...towerRows.filter((r) => r.level === 1).map((r) => r.dps)))} 到 ${fmt(Math.max(...towerRows.filter((r) => r.level === 1).map((r) => r.dps)))}，单体、AOE、控制、召唤型之间存在明显角色差异；高等级成长主要集中在后两级，形成偏后期的火力爆发。
 - 士兵中盾卫明显是承伤单位，输出极低；弓手和法师生存低但射程长，符合远程单位定位，不过需要避免被突进/低空波次瞬间击杀。
-- 敌人经济回报差异较大，部分高 HP 非 Boss 的 HP/金币比偏高，可能导致玩家感觉“打得久但没钱”；部分低 HP 敌人金币效率偏高，可作为奖励波，但不宜大量堆叠。
-- 关卡资源预算应继续以保底金币核算，因为设计文档说明运行时每波还会额外生成随机精英，实际压力会高于本表波次数量。
+- 敌人经济回报差异仍主要集中在高 HP 非 Boss 的 HP/金币比偏高；低 HP 刷钱点已通过下调哥布林、自爆类等基础金币缓解。
+- 关卡资源预算应继续以保底金币核算；本表资源汇总已计入每波随机精英的金币收益，但波次敌人数仍只展示 YAML 明确配置的敌人。
 
 ## 塔：所有等级攻击/防御/血量
 
@@ -370,7 +378,7 @@ ${issues.length > 0 ? [...new Set(issues)].join('\n') : '- 未发现明显异常
 
 - 优先把“HP/金币比”作为敌人经济手感指标：普通肉盾可高于杂兵，但非 Boss 长时间战斗不宜长期超过 35，否则容易形成拖时无收益。
 - 对低 DPS 控制塔和坦克士兵，应在关卡卡池中明确配套输出来源，避免玩家抽到防守组件却缺少击杀能力。
-- 对 Boss 波预算需要把随机精英也纳入验算；本表未计入额外精英，若实测压力偏高，应先调精英倍率或波次奖励，而不是只看 YAML 数量。
+- 对 Boss 波预算需要同时看 YAML 敌人和随机精英；若实测压力偏高，应先调精英倍率或波次奖励，而不是只看 YAML 数量。
 - 法术/陷阱的持续伤害项目前分布较少，后续如果扩充 DOT/地面效果，建议统一配置为显式 DPS、持续时间、半径，便于和塔 DPS 横向对比。
 `;
 

@@ -139,8 +139,10 @@ available:
     - cannon
     - ice
   units:
+    - shield_guard
     - archer
     - mage
+    - assassin
 
 waves:
   # 波次1: 三口各出机器狗×2+无人机精英×2
@@ -250,6 +252,7 @@ waves:
 
 cardPool:
   - card_arrow_tower
+  - card_ballista_tower
   - card_ice_tower
   - card_cannon_tower
   - card_laser_tower
@@ -259,6 +262,7 @@ cardPool:
   - card_fire_tower
   - card_poison_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_priest
@@ -274,6 +278,7 @@ cardPool:
 
 draftPool:
   - card_arrow_tower
+  - card_ballista_tower
   - card_cannon_tower
   - card_laser_tower
   - card_bat_tower
@@ -283,9 +288,11 @@ draftPool:
   - card_fire_tower
   - card_poison_tower
   - card_shield_guard
+  - card_swordsman
   - card_archer
   - card_mage
   - card_priest
+  - card_assassin
   - card_spike_trap
   - card_bear_trap
   - card_tar_pit
