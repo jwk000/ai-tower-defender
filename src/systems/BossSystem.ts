@@ -20,7 +20,7 @@ import {
   EnemySkillParticleEffect, EnemySkillParticleEffectVal,
 } from '../core/components.js';
 import { EnemyType } from '../types/index.js';
-import { ENEMY_TYPE_BY_ID } from '../data/gameData.js';
+import { ENEMY_ID_BY_TYPE, ENEMY_TYPE_BY_ID } from '../data/gameData.js';
 import { Sound } from '../utils/Sound.js';
 import { getSummonSfx } from '../utils/audioKeys.js';
 import { MovementSystem } from './MovementSystem.js';
@@ -43,6 +43,7 @@ const GIANT_SLIME_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.GiantSlime
 const SKELETON_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.Skeleton);
 const QUEENWORM_SUMMON_POOL = [
   {
+    type: EnemyType.DesertBeetle,
     name: '沙漠黑虫',
     hp: 40,
     armor: 2,
@@ -56,8 +57,10 @@ const QUEENWORM_SUMMON_POOL = [
     shape: ShapeVal.Circle,
     color: { r: 180, g: 120, b: 40 },
     size: 14,
+    attackAnimDuration: 0.35,
   },
   {
+    type: EnemyType.BurrowBeetle,
     name: '钻地甲虫',
     hp: 120,
     armor: 10,
@@ -71,8 +74,10 @@ const QUEENWORM_SUMMON_POOL = [
     shape: ShapeVal.Circle,
     color: { r: 121, g: 85, b: 72 },
     size: 18,
+    attackAnimDuration: 0.4,
   },
   {
+    type: EnemyType.Locust,
     name: '吸血蝗虫',
     hp: 30,
     armor: 0,
@@ -86,8 +91,10 @@ const QUEENWORM_SUMMON_POOL = [
     shape: ShapeVal.Triangle,
     color: { r: 175, g: 180, b: 43 },
     size: 10,
+    attackAnimDuration: 0.2,
   },
   {
+    type: EnemyType.BombBeetle,
     name: '自爆甲虫',
     hp: 50,
     armor: 0,
@@ -101,6 +108,7 @@ const QUEENWORM_SUMMON_POOL = [
     shape: ShapeVal.Circle,
     color: { r: 255, g: 87, b: 34 },
     size: 12,
+    attackAnimDuration: 0.3,
   },
 ] as const;
 
@@ -482,6 +490,7 @@ export class BossSystem implements System {
       world.addComponent(eid, Layer, { value: template.layer });
       world.addComponent(eid, UnitTag, {
         isEnemy: 1,
+        unitTypeNum: ENEMY_ID_BY_TYPE[template.type],
         atk: template.damage,
         rewardGold: template.rewardGold,
       });
@@ -492,7 +501,15 @@ export class BossSystem implements System {
         colorB: template.color.b,
         size: template.size,
         alpha: 1,
+        outline: 1,
         facing: 1,
+        hitFlashTimer: 0,
+        idlePhase: 0,
+        bobPhase: 0,
+        breathPhase: Math.random() * Math.PI * 2,
+        attackAnimTimer: 0,
+        attackAnimDuration: template.attackAnimDuration,
+        partsId: 0,
       });
       world.addComponent(eid, Attack, {
         damage: template.damage,

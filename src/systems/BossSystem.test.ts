@@ -17,7 +17,8 @@ import { BossSystem, BossType } from './BossSystem.js';
 import { HealthSystem } from './HealthSystem.js';
 import { MovementSystem } from './MovementSystem.js';
 import { GamePhase } from '../types/index.js';
-import { MAP_01 } from '../data/gameData.js';
+import { ENEMY_ID_BY_TYPE, MAP_01 } from '../data/gameData.js';
+import { EnemyType } from '../types/index.js';
 
 // ============================================================
 // Queries for tests
@@ -448,6 +449,29 @@ describe('BossSystem — QueenWorm (虫族女王)', () => {
     expect(summons.length).toBe(5);
     for (const eid of summons) {
       expect(allowedNames.has(world.getDisplayName(eid) ?? '')).toBe(true);
+    }
+  });
+
+  it('召唤单位写入真实敌人类型，避免渲染退回哥布林形象', () => {
+    const boss = makeBoss(world, BossType.QueenWorm, {
+      hp: 1000, spawnTimer: 10,
+    });
+    system.update(world, 0.1);
+
+    const allowedTypeNums = new Set([
+      ENEMY_ID_BY_TYPE[EnemyType.DesertBeetle],
+      ENEMY_ID_BY_TYPE[EnemyType.BurrowBeetle],
+      ENEMY_ID_BY_TYPE[EnemyType.Locust],
+      ENEMY_ID_BY_TYPE[EnemyType.BombBeetle],
+    ]);
+    const goblinTypeNum = ENEMY_ID_BY_TYPE[EnemyType.Goblin];
+    const summons = allHealthQuery(world.world).filter((eid) => eid !== boss && UnitTag.isEnemy[eid] === 1);
+
+    expect(summons.length).toBe(5);
+    for (const eid of summons) {
+      expect(allowedTypeNums.has(UnitTag.unitTypeNum[eid]!)).toBe(true);
+      expect(UnitTag.unitTypeNum[eid]).not.toBe(goblinTypeNum);
+      expect(Visual.attackAnimDuration[eid]).toBeGreaterThan(0);
     }
   });
 

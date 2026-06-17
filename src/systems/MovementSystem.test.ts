@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TowerWorld } from '../core/World.js';
+import { defineQuery } from '../core/components.js';
 import {
   Position,
   Health,
@@ -35,11 +36,15 @@ import {
   Burrowed,
   Trap,
   TrapTypeVal,
+  Soldier,
+  Projectile,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { GamePhase, TileType } from '../types/index.js';
+
+const projectileQuery = defineQuery([Projectile]);
 
 const TILE = 32;
 
@@ -537,6 +542,92 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Visual.attackAnimTimer[enemy]).toBeCloseTo(0.45);
     expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
     expect(Movement.progress[enemy]).toBeGreaterThan(0);
+  });
+
+  it('虫族女王攻击盾卫时播放攻击动作并停步', () => {
+    const shieldGuard = world.createEntity();
+    world.addComponent(shieldGuard, Position, { x: 80, y: 16 });
+    world.addComponent(shieldGuard, Health, { current: 300, max: 300, armor: 0, magicResist: 0 });
+    world.addComponent(shieldGuard, Category, { value: CategoryVal.Soldier });
+    world.addComponent(shieldGuard, UnitTag, { isEnemy: 0, unitTypeNum: 0, atk: 0 });
+    world.addComponent(shieldGuard, Movement, {
+      speed: 0,
+      currentSpeed: 0,
+      moveMode: MoveModeVal.PlayerDirected,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+      targetX: 80,
+      targetY: 16,
+      homeX: 80,
+      homeY: 16,
+      moveRange: 0,
+    });
+    world.addComponent(shieldGuard, Soldier, {
+      state: 0,
+      homeX: 80,
+      homeY: 16,
+      moveRange: 0,
+      attackTarget: 0,
+      stateTimer: 0,
+    });
+    world.addComponent(shieldGuard, Faction, { value: FactionVal.Justice });
+    world.addComponent(shieldGuard, Layer, { value: LayerVal.Ground });
+    world.addComponent(shieldGuard, Visual, {
+      shape: 1,
+      colorR: 80,
+      colorG: 120,
+      colorB: 220,
+      size: 32,
+      alpha: 1,
+      facing: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0.35,
+    });
+
+    const queen = world.createEntity();
+    world.addComponent(queen, Position, { x: TILE / 2, y: TILE / 2 });
+    world.addComponent(queen, Health, { current: 1000, max: 1000, armor: 15, magicResist: 20 });
+    world.addComponent(queen, Movement, {
+      speed: 20,
+      currentSpeed: 20,
+      moveMode: MoveModeVal.FollowPath,
+      pathIndex: 0,
+      progress: 0,
+      spawnIdx: 0,
+    });
+    world.addComponent(queen, UnitTag, { isEnemy: 1, isBoss: 1, atk: 30 });
+    world.addComponent(queen, Category, { value: CategoryVal.Enemy });
+    world.addComponent(queen, Faction, { value: FactionVal.Evil });
+    world.addComponent(queen, Layer, { value: LayerVal.Ground });
+    world.addComponent(queen, Visual, {
+      shape: 1,
+      colorR: 230,
+      colorG: 81,
+      colorB: 0,
+      size: 136.8,
+      alpha: 1,
+      facing: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0.9,
+    });
+    world.addComponent(queen, Attack, {
+      damage: 30,
+      attackSpeed: 0.6,
+      range: 80,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+    });
+    world.addComponent(queen, Boss, { bossType: 1, phase: 1, phase2HpRatio: 0.5, immuneToTowers: 1 });
+
+    const longPathSystem = new MovementSystem(makeFourTileMap());
+    longPathSystem.update(world, 0.016);
+
+    expect(Attack.targetId[queen]).toBe(shieldGuard);
+    expect(projectileQuery(world.world).length).toBe(1);
+    expect(Visual.attackAnimTimer[queen]).toBeCloseTo(0.9);
+    expect(Movement.currentSpeed[queen]).toBe(0);
   });
 
   it('Boss 到达水晶后立即判定失败', () => {
