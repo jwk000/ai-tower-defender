@@ -127,6 +127,7 @@ const CD_BAR_HEIGHT = 3;
 const CD_BAR_HALF_H = CD_BAR_HEIGHT / 2;
 const CD_BAR_GAP = 1;
 const CD_BAR_COLOR = '#2196f3';
+const BALLISTA_BOLT_FX_PATH = '/art/fx/fx_ballista_bolt.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
 const TOWER_LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
@@ -1442,7 +1443,7 @@ export class RenderSystem implements System {
               }
             }
           }
-          // 弩箭：60px 蓝色发光长弩矢 + 破空线
+          // 弩箭：AI 贴图主体 + 程序化蓝色发光和破空线；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
             extras.arrowGradientTail = '#ffffff';
             extras.arrowLengthScale = 1.5;
@@ -1451,10 +1452,18 @@ export class RenderSystem implements System {
             extras.arrowGlowColor = '#1e9fff';
             extras.arrowGlowAlpha = 0.34;
             extras.arrowAirStreaks = true;
+            const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);
+            if (boltFx) {
+              extras.image = boltFx.image;
+              extras.imageSource = boltFx.source ?? undefined;
+              extras.rotation = Math.atan2((targetY ?? posY) - posY, (targetX ?? posX + 1) - posX);
+              extras.size = 60;
+              extras.h = 60 * (boltFx.height / boltFx.width);
+            }
           }
         }
 
-        this.renderer.push({
+        const renderCommand = {
           shape,
           x: posX, y: posY,
           size: drawSize,
@@ -1466,7 +1475,11 @@ export class RenderSystem implements System {
           targetY,
           z: renderZ,
           ...extras,
-        });
+        };
+        renderCommand.x = posX;
+        renderCommand.y = posY;
+        renderCommand.shape = shape;
+        this.renderer.push(renderCommand);
       };
 
       // ========================================

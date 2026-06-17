@@ -339,6 +339,28 @@ export class Renderer {
           ctx.restore();
         }
 
+        if (cmd.image) {
+          const imageW = s;
+          const imageH = cmd.h ?? s;
+          if (cmd.imageSource) {
+            ctx.drawImage(
+              cmd.image,
+              cmd.imageSource.x,
+              cmd.imageSource.y,
+              cmd.imageSource.w,
+              cmd.imageSource.h,
+              -imageW / 2,
+              -imageH / 2,
+              imageW,
+              imageH,
+            );
+          } else {
+            ctx.drawImage(cmd.image, -imageW / 2, -imageH / 2, imageW, imageH);
+          }
+          ctx.restore();
+          break;
+        }
+
         // Arrow shaft — gradient when arrowGradientTail is set
         if (cmd.arrowGradientTail) {
           const grad = ctx.createLinearGradient(shaftStart, 0, tipX, 0);

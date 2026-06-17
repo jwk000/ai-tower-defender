@@ -149,4 +149,36 @@ describe('Renderer arrow effects', () => {
     expect(mainCalls).toContain('alpha:0.34');
     expect(strokeSpy).toHaveBeenCalledTimes(3);
   });
+
+  it('arrow 设置 image 时使用图片主体并保留程序化特效', () => {
+    const mainCalls: string[] = [];
+    const baseCanvas = document.createElement('canvas');
+    const image = document.createElement('canvas');
+    const mainCtx = makeContext(mainCalls);
+    vi.spyOn(baseCanvas, 'getContext').mockImplementation(((contextId: string) =>
+      contextId === '2d' ? mainCtx : null
+    ) as HTMLCanvasElement['getContext']);
+    const strokeSpy = vi.spyOn(mainCtx, 'stroke');
+
+    const renderer = new Renderer(baseCanvas);
+
+    renderer.beginFrame();
+    renderer.push({
+      shape: 'arrow',
+      x: 10,
+      y: 10,
+      size: 60,
+      h: 12,
+      color: '#1e9fff',
+      targetX: 70,
+      targetY: 10,
+      image,
+      arrowGlowColor: '#1e9fff',
+      arrowAirStreaks: true,
+    });
+    renderer.endFrame();
+
+    expect(mainCalls).toContain('drawImage:source-over');
+    expect(strokeSpy).toHaveBeenCalledTimes(3);
+  });
 });
