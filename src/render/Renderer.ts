@@ -304,10 +304,42 @@ export class Renderer {
         const tipX = s * 0.7 * lengthScale;          // head tip — extends forward
         const shaftStart = -s * 0.4 * lengthScale;   // shaft tail — extends backward
 
-        // Arrow shaft — gradient when arrowGradientTail is set
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(angle);
+
+        if (cmd.arrowGlowColor) {
+          ctx.save();
+          ctx.globalAlpha = cmd.arrowGlowAlpha ?? 0.28;
+          ctx.shadowColor = cmd.arrowGlowColor;
+          ctx.shadowBlur = Math.max(10, s * 0.35);
+          ctx.strokeStyle = cmd.arrowGlowColor;
+          ctx.lineWidth = Math.max(8, shaftW * 2.6);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(shaftStart, 0);
+          ctx.lineTo(tipX, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (cmd.arrowAirStreaks) {
+          ctx.save();
+          ctx.globalAlpha = 0.36;
+          ctx.strokeStyle = '#d7f5ff';
+          ctx.lineWidth = Math.max(1, shaftW * 0.32);
+          ctx.lineCap = 'round';
+          for (const offset of [-1, 1]) {
+            const y = offset * Math.max(8, shaftW * 2.5);
+            ctx.beginPath();
+            ctx.moveTo(shaftStart - s * 0.22, y);
+            ctx.lineTo(shaftStart + s * 0.42, y * 0.72);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Arrow shaft — gradient when arrowGradientTail is set
         if (cmd.arrowGradientTail) {
           const grad = ctx.createLinearGradient(shaftStart, 0, tipX, 0);
           grad.addColorStop(0, cmd.arrowGradientTail);
@@ -317,13 +349,9 @@ export class Renderer {
           ctx.fillStyle = cmd.color;
         }
         ctx.fillRect(shaftStart, -shaftW / 2, tipX - shaftStart, shaftW);
-        ctx.restore();
 
         // Arrow head (triangle) — always solid head color
         ctx.fillStyle = cmd.color;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angle);
         ctx.beginPath();
         ctx.moveTo(tipX, 0);
         ctx.lineTo(tipX - headLen, -headWidth);

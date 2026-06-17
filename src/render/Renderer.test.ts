@@ -49,6 +49,9 @@ function makeContext(calls: string[]): ContextRecord {
     },
     set strokeStyle(_value: string | CanvasGradient | CanvasPattern) {},
     set lineWidth(_value: number) {},
+    set lineCap(_value: CanvasLineCap) {},
+    set shadowColor(_value: string) {},
+    set shadowBlur(_value: number) {},
     set font(_value: string) {},
     set textAlign(_value: CanvasTextAlign) {},
     set textBaseline(_value: CanvasTextBaseline) {},
@@ -105,5 +108,45 @@ describe('Renderer image tint mask', () => {
     expect(mainCalls).toContain('alpha:0.72');
     expect(mainCalls).toContain('drawImage:source-over');
     expect(mainCalls).not.toContain('fillRect:source-atop');
+  });
+});
+
+describe('Renderer arrow effects', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('弩矢参数会绘制蓝色外发光和破空线', () => {
+    const mainCalls: string[] = [];
+    const baseCanvas = document.createElement('canvas');
+    const mainCtx = makeContext(mainCalls);
+    vi.spyOn(baseCanvas, 'getContext').mockImplementation(((contextId: string) =>
+      contextId === '2d' ? mainCtx : null
+    ) as HTMLCanvasElement['getContext']);
+    const strokeSpy = vi.spyOn(mainCtx, 'stroke');
+
+    const renderer = new Renderer(baseCanvas);
+
+    renderer.beginFrame();
+    renderer.push({
+      shape: 'arrow',
+      x: 10,
+      y: 10,
+      size: 40,
+      color: '#1e9fff',
+      targetX: 50,
+      targetY: 10,
+      arrowLengthScale: 1.5,
+      arrowShaftWidthRatio: 0.1,
+      arrowHeadWidthRatio: 0.32,
+      arrowGradientTail: '#ffffff',
+      arrowGlowColor: '#1e9fff',
+      arrowGlowAlpha: 0.34,
+      arrowAirStreaks: true,
+    });
+    renderer.endFrame();
+
+    expect(mainCalls).toContain('alpha:0.34');
+    expect(strokeSpy).toHaveBeenCalledTimes(3);
   });
 });

@@ -674,6 +674,12 @@ export interface RenderCommand {
   arrowHeadWidthRatio?: number;
   /** Arrow length scale relative to size; defaults to 1 */
   arrowLengthScale?: number;
+  /** Arrow outer glow color; when set, arrow renders a soft halo before body/head */
+  arrowGlowColor?: string;
+  /** Arrow outer glow alpha; defaults to 0.28 when arrowGlowColor is set */
+  arrowGlowAlpha?: number;
+  /** Draw thin air-slice streaks around fast arrows */
+  arrowAirStreaks?: boolean;
   h?: number;           // height for rect (defaults to size = square)
   /** 渲染层级 (z-index)，值越大越靠前。默认 5 (Ground 层) */
   z?: number;

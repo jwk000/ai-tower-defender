@@ -1442,9 +1442,15 @@ export class RenderSystem implements System {
               }
             }
           }
-          // 弩箭：白→蓝渐变箭杆
+          // 弩箭：60px 蓝色发光长弩矢 + 破空线
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
-            (extras as any).arrowGradientTail = '#ffffff';
+            extras.arrowGradientTail = '#ffffff';
+            extras.arrowLengthScale = 1.5;
+            extras.arrowShaftWidthRatio = 0.1;
+            extras.arrowHeadWidthRatio = 0.32;
+            extras.arrowGlowColor = '#1e9fff';
+            extras.arrowGlowAlpha = 0.34;
+            extras.arrowAirStreaks = true;
           }
         }
 

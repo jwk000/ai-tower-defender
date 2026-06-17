@@ -50,7 +50,7 @@
 | `tower_missile` | 导弹塔 | 重型发射轰鸣 + 低频拖尾 | OGG + Synth |
 | `tower_fire` | 火塔 | 火焰喷发声 + 温暖谐波 | OGG + Synth |
 | `tower_poison` | 毒塔 | 毒液喷射 + 低沉气泡 | OGG + Synth |
-| `tower_ballista` | 弩塔 | 弩机重击 + 穿透呼啸 | OGG + Synth |
+| `tower_ballista` | 弩塔 | 弩矢发射后的短促破空呼啸，突出高伤穿透感 | OGG + Synth |
 
 ### 2.2 弹道命中音效
 
@@ -327,6 +327,8 @@ Sound.play('your_sfx_key');
 所有 BGM 来自 [OpenGameArt.org](https://opengameart.org)，许可证包括 CC0（公共领域）、CC-BY（需署名）和 CC-BY-SA（需署名 + 相同许可证）。详见 `public/bgm/CREDITS.md`。
 
 ### 7.2 SFX 来源
+
+SFX 版权与原始文件对应关系维护在 `public/sfx/CREDITS.md`。弩塔飞行音效 `tower_ballista.ogg` 使用 OpenGameArt `80-CC0-RPG-SFX_0.zip` 中的 `blade_01.ogg`，许可证为 CC0 / Public Domain。
 
 | 来源 | 数量 | 许可 |
 |------|------|------|
