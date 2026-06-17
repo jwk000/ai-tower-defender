@@ -71,9 +71,11 @@ import { SaveManager } from './utils/SaveManager.js';
 import { Sound } from './utils/Sound.js';
 import { normalizeSfxKey } from './utils/Sound.js';
 import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
+import { resolveCardConfig } from './utils/cardConfigResolver.js';
 import { preloadArtAtlasIndex, preloadArtAtlases } from './utils/imageCache.js';
 import { hexToRgb } from './utils/visualHelpers.js';
 import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
+import type { CardRarity } from './config/cardRegistry.js';
 
 // ---- bitecs component stores ----
 import {
@@ -627,16 +629,20 @@ class TowerDefenderGame extends Game {
 
     // ---- Create RunContext for UISystem ----
     // UISystem expects runContext with hand, energy, registry, deck
-    const cardRegistry = new Map<string, { type: string; rarity: string; energyCost: number; goldCost: number; name: string; description: string }>();
-    for (const card of initialPool) {
-      cardRegistry.set(card.id, {
+    const cardRegistry = new Map<string, { type: string; rarity: CardRarity; energyCost: number; goldCost: number; name: string; description: string }>();
+    const toUiCardConfig = (card: { id: string; type: string; goldCost: number; name: string; description: string }) => {
+      const staticConfig = resolveCardConfig(card.id);
+      return {
         type: card.type,
-        rarity: 'common',
-        energyCost: 0,
+        rarity: staticConfig?.rarity ?? 'common',
+        energyCost: staticConfig?.energyCost ?? 0,
         goldCost: card.goldCost,
         name: card.name,
         description: card.description,
-      });
+      };
+    };
+    for (const card of initialPool) {
+      cardRegistry.set(card.id, toUiCardConfig(card));
     }
     const handSystemRef = this.handSystem;
     this.world.attachRunContext({
@@ -663,14 +669,7 @@ class TowerDefenderGame extends Game {
     // 同步 runContext.registry：当 HandSystem 卡牌库新增卡牌时，更新 runContext 的 registry
     this.handSystem.onCardAddedToLibrary = (cards) => {
       for (const card of cards) {
-        cardRegistry.set(card.id, {
-          type: card.type,
-          rarity: 'common',
-          energyCost: 0,
-          goldCost: card.goldCost,
-          name: card.name,
-          description: card.description,
-        });
+        cardRegistry.set(card.id, toUiCardConfig(card));
       }
     };
 

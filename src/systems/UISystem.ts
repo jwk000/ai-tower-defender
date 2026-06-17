@@ -60,6 +60,7 @@ import type {
 } from '../ui/LayoutConstants.js';
 import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 import { cardArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
+import { resolveCardConfig } from '../utils/cardConfigResolver.js';
 import { drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
 
 // Re-export for backward compatibility
@@ -225,16 +226,7 @@ const SPELL_DRAG_PREVIEW_FALLBACKS: Record<string, { name: string; subtype: Card
 };
 
 function resolveSpellCardConfig(spellCardId: string): CardConfig | undefined {
-  const candidates = [
-    spellCardId,
-    `${spellCardId}_card`,
-    spellCardId.startsWith('card_') ? `${spellCardId.slice(5)}_card` : `card_${spellCardId}`,
-  ];
-  for (const id of candidates) {
-    const cfg = cardConfigRegistry.get(id);
-    if (cfg) return cfg;
-  }
-  return undefined;
+  return resolveCardConfig(spellCardId);
 }
 
 function normalizeSpellPreviewId(spellCardId: string): string {

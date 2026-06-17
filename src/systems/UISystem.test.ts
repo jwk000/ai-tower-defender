@@ -432,6 +432,38 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
+  it('按卡牌稀有度绘制对应美术卡框', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: () => ({
+          id: 'card_ice_tower',
+          name: '冰塔',
+          type: 'unit',
+          energyCost: 0,
+          goldCost: 70,
+          rarity: 'rare',
+          placement: { targetType: 'tile' },
+          description: '控制塔，攻击附带减速效果',
+        }),
+      },
+      hand: { state: { hand: [{ cardId: 'card_ice_tower' }] } },
+    });
+
+    ui.update(world, 1 / 60);
+
+    expect(imageDrawsOf(ui).some((draw) => (
+      draw.layer === 'normal' &&
+      draw.path === '/art/ui/ui_card_frame_rare.png'
+    ))).toBe(true);
+    expect(imageDrawsOf(ui).some((draw) => (
+      draw.layer === 'normal' &&
+      draw.path === '/art/ui/ui_card_frame_common.png'
+    ))).toBe(false);
+  });
+
   it('单位卡拖动 ghost 在美术资源可用时使用场景单位图片而不是卡牌外观', () => {
     vi.stubGlobal('Image', LoadedImage);
     vi.stubGlobal('fetch', undefined);
