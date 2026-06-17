@@ -128,6 +128,7 @@ const CD_BAR_HALF_H = CD_BAR_HEIGHT / 2;
 const CD_BAR_GAP = 1;
 const CD_BAR_COLOR = '#2196f3';
 const BALLISTA_BOLT_FX_PATH = '/art/fx/fx_ballista_bolt.png';
+const MISSILE_PROJECTILE_FX_PATH = '/art/fx/fx_missile_projectile.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
 const TOWER_LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
@@ -880,13 +881,12 @@ export class RenderSystem implements System {
   }
 
   // ============================================
-  // Missile projectile rendering — black body + red warhead + blue trail + orange glow
+  // Missile projectile rendering — art missile body + blue trail + orange glow
   // ============================================
   // Drawn 4-layer back-to-front (each at projectile's z):
   //   1) outer orange-red glow halo (pulsing)
   //   2) blue exhaust trail (3 fading dots behind, sized by velocity angle)
-  //   3) black missile body (rotated rect aligned with flight direction)
-  //   4) red warhead (diamond at the front tip)
+  //   3) art missile body (fallback: rotated black body + red warhead)
   private drawMissileProjectile(eid: number, posX: number, posY: number, variant: 'tower' | 'boss' = 'tower'): void {
     const angle = Visual.idlePhase[eid] ?? 0;
     const size = Visual.size[eid] ?? 40;
@@ -904,6 +904,7 @@ export class RenderSystem implements System {
     const bodyStroke = isBossMissile ? '#4e2417' : '#3a3a3a';
     const headColor = isBossMissile ? '#b95c2b' : '#ff1744';
     const headHighlight = isBossMissile ? '#ffe6a3' : '#ffcdd2';
+    const missileFx = isBossMissile ? null : getLoadedImageFrame(MISSILE_PROJECTILE_FX_PATH);
 
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
@@ -932,6 +933,24 @@ export class RenderSystem implements System {
         shape: 'circle', x: tx, y: ty, size: tSize,
         color: trailInner, alpha: tAlpha, z,
       });
+    }
+
+    if (missileFx) {
+      this.renderer.push({
+        shape: 'arrow',
+        x: posX,
+        y: posY,
+        size: bodyLen * 1.45,
+        h: bodyLen * 1.45 * (missileFx.height / missileFx.width),
+        color: bodyColor,
+        alpha: 1,
+        targetX: posX + cos,
+        targetY: posY + sin,
+        image: missileFx.image,
+        imageSource: missileFx.source ?? undefined,
+        z,
+      });
+      return;
     }
 
     this.renderer.push({
@@ -1443,22 +1462,20 @@ export class RenderSystem implements System {
               }
             }
           }
-          // 弩箭：AI 贴图主体 + 程序化蓝色发光和破空线；贴图未加载时回退到几何弩矢。
+          // 弩箭：AI 贴图主体；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
-            extras.arrowGradientTail = '#ffffff';
-            extras.arrowLengthScale = 1.5;
-            extras.arrowShaftWidthRatio = 0.1;
-            extras.arrowHeadWidthRatio = 0.32;
-            extras.arrowGlowColor = '#1e9fff';
-            extras.arrowGlowAlpha = 0.34;
-            extras.arrowAirStreaks = true;
             const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);
             if (boltFx) {
               extras.image = boltFx.image;
               extras.imageSource = boltFx.source ?? undefined;
-              extras.rotation = Math.atan2((targetY ?? posY) - posY, (targetX ?? posX + 1) - posX);
+              extras.rotation = Math.atan2((targetY ?? posY) - posY, (targetX ?? posX + 1) - posX) + Math.PI;
               extras.size = 60;
               extras.h = 60 * (boltFx.height / boltFx.width);
+            } else {
+              extras.arrowGradientTail = '#ffffff';
+              extras.arrowLengthScale = 1.5;
+              extras.arrowShaftWidthRatio = 0.1;
+              extras.arrowHeadWidthRatio = 0.32;
             }
           }
         }
