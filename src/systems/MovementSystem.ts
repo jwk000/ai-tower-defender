@@ -1147,19 +1147,21 @@ export class MovementSystem implements System {
     x: number,
     y: number,
     tileSize: number,
-  ): { spawnIdx: number; pathIndex: number; progress: number } {
+  ): { spawnIdx: number; pathIndex: number; progress: number; projectedX: number; projectedY: number } {
     const allPaths = MovementSystem._paths;
     const ts = tileSize;
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
 
-    if (allPaths.length === 0) return { spawnIdx: 0, pathIndex: 0, progress: 0 };
+    if (allPaths.length === 0) return { spawnIdx: 0, pathIndex: 0, progress: 0, projectedX: x, projectedY: y };
 
     // Search across all path segments, so resumed entities keep their current
     // world position instead of jumping back to the nearest waypoint.
     let bestPathIdx = 0;
     let bestPointIdx = 0;
     let bestProgress = 0;
+    let bestProjectedX = x;
+    let bestProjectedY = y;
     let nearestDistSq = Infinity;
     for (let p = 0; p < allPaths.length; p++) {
       const path = allPaths[p]!;
@@ -1186,9 +1188,17 @@ export class MovementSystem implements System {
           bestPathIdx = p;
           bestPointIdx = i;
           bestProgress = progress;
+          bestProjectedX = px;
+          bestProjectedY = py;
         }
       }
     }
-    return { spawnIdx: bestPathIdx, pathIndex: bestPointIdx, progress: bestProgress };
+    return {
+      spawnIdx: bestPathIdx,
+      pathIndex: bestPointIdx,
+      progress: bestProgress,
+      projectedX: bestProjectedX,
+      projectedY: bestProjectedY,
+    };
   }
 }

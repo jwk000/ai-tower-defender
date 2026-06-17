@@ -17,7 +17,7 @@ import {
   Attack, Movement, UnitTag, Visual, Category, CategoryVal,
   Tower, TargetingMark, ScreenShake, ExplosionEffect,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
-  EnemySkillParticleEffect, EnemySkillParticleEffectVal,
+  EnemySkillParticleEffect, EnemySkillParticleEffectVal, EnemyFlockMember,
 } from '../core/components.js';
 import { EnemyType } from '../types/index.js';
 import { ENEMY_ID_BY_TYPE, ENEMY_TYPE_BY_ID } from '../data/gameData.js';
@@ -136,6 +136,7 @@ const LUCIFER_SUMMON_CAST_DURATION = 2;
 const LUCIFER_SKELETON_VISUAL_SIZE = 28;
 const LUCIFER_SKELETON_SPAWN_RADIUS = 96;
 const LUCIFER_SKELETON_SPREAD_ARC = (Math.PI * 2) / 3;
+const LUCIFER_SKELETON_FLOCK_ID_BASE = 9000;
 const SUPERROBOT_MISSILE_INTERVAL = 10;
 const SUPERROBOT_WARNING_DURATION = 2;
 const ABYSSLORD_ANNIHILATE_INTERVAL = 5;
@@ -618,6 +619,7 @@ export class BossSystem implements System {
       const dist = LUCIFER_SKELETON_SPAWN_RADIUS + Math.random() * 28;
       const sx = x + Math.cos(angle) * dist;
       const sy = y + Math.sin(angle) * dist;
+      const pathLocation = MovementSystem.findNearestPathLocation(world, sx, sy, 64);
 
       spawnSkeletonBurrowDust(world, sx, sy);
 
@@ -664,8 +666,21 @@ export class BossSystem implements System {
         speed: 50,
         currentSpeed: 50,
         moveMode: MoveModeVal.FollowPath,
-        targetX: 0, targetY: 0, pathIndex: 0, progress: 0, spawnIdx: 0,
+        targetX: 0,
+        targetY: 0,
+        pathIndex: pathLocation.pathIndex,
+        progress: pathLocation.progress,
+        spawnIdx: pathLocation.spawnIdx,
         homeX: sx, homeY: sy, moveRange: 0,
+      });
+      world.addComponent(eid, EnemyFlockMember, {
+        flockId: LUCIFER_SKELETON_FLOCK_ID_BASE + bossEid,
+        memberIndex: i,
+        groupSize: spawnCount,
+        anchorOffsetX: sx - pathLocation.projectedX,
+        anchorOffsetY: sy - pathLocation.projectedY,
+        velocityX: 0,
+        velocityY: 0,
       });
       world.setDisplayName(eid, '骷髅');
     }

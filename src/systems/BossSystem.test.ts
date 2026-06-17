@@ -571,6 +571,35 @@ describe('BossSystem — Lucifer (路西法)', () => {
     }
   });
 
+  it('召唤骷髅移动后不会瞬移回出生口', () => {
+    const movement = new MovementSystem(MAP_01, () => GamePhase.Battle);
+    const boss = makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
+      faction: FactionVal.Chaos,
+    });
+
+    system.update(world, 0.1);
+
+    const skeletons = getAliveNonBossChaosEnemies(world, boss);
+    expect(skeletons).toHaveLength(3);
+    const spawnPositions = skeletons.map((eid) => ({
+      eid,
+      x: Position.x[eid] ?? 0,
+      y: Position.y[eid] ?? 0,
+    }));
+    const spawn = MAP_01.spawns![0]!;
+    const spawnEntranceX = spawn.col * MAP_01.tileSize + MAP_01.tileSize / 2;
+    const spawnEntranceY = spawn.row * MAP_01.tileSize + MAP_01.tileSize / 2;
+
+    movement.update(world, 0.1);
+
+    for (const { eid, x, y } of spawnPositions) {
+      expect(distanceBetween(eid, boss)).toBeGreaterThan(70);
+      expect(Math.hypot((Position.x[eid] ?? 0) - x, (Position.y[eid] ?? 0) - y)).toBeLessThan(20);
+      expect(Math.hypot((Position.x[eid] ?? 0) - spawnEntranceX, (Position.y[eid] ?? 0) - spawnEntranceY)).toBeGreaterThan(120);
+    }
+  });
+
   it('场上骷髅数达到上限(12)时不继续召唤', () => {
     const boss = makeBoss(world, BossType.Lucifer, {
       hp: 1200, maxHp: 1200, spawnTimer: 10, x: 500, y: 300,
