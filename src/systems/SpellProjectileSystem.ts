@@ -5,7 +5,7 @@
 // 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪全屏覆盖，炸弹抛物线。
 // ============================================================
 
-import { TowerWorld, type System, defineQuery } from '../core/World.js';
+import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
   Position,
   SpellProjectile,
@@ -14,6 +14,8 @@ import {
   Health,
   DamageTypeVal,
   ScreenShake,
+  Soldier,
+  Tower,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
@@ -933,7 +935,7 @@ export class SpellProjectileSystem implements System {
                        DamageTypeVal.Physical;
 
     for (let eid = 1; eid < Position.x.length; eid++) {
-      if (spellType !== SPELL_EARTHQUAKE && UnitTag.isEnemy[eid] !== 1) continue;
+      if (!this.canSpellDamageTarget(world, spellType, eid)) continue;
       if ((Health.current[eid] ?? 0) <= 0) continue;
       const px = Position.x[eid] ?? 0;
       const py = Position.y[eid] ?? 0;
@@ -942,5 +944,14 @@ export class SpellProjectileSystem implements System {
         applyDamageToTarget(world, eid, damage, damageType);
       }
     }
+  }
+
+  private canSpellDamageTarget(world: TowerWorld, spellType: number, eid: number): boolean {
+    if (spellType === SPELL_EARTHQUAKE) return true;
+    if (spellType === SPELL_BLIZZARD) {
+      if (hasComponent(world.world, Tower, eid)) return false;
+      return UnitTag.isEnemy[eid] === 1 || hasComponent(world.world, Soldier, eid);
+    }
+    return UnitTag.isEnemy[eid] === 1;
   }
 }

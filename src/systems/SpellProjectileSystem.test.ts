@@ -7,6 +7,8 @@ import {
   ScreenShake,
   SpellEffect,
   SpellProjectile,
+  Soldier,
+  Tower,
   UnitTag,
 } from '../core/components.js';
 import type { Renderer } from '../render/Renderer.js';
@@ -36,11 +38,29 @@ function makeEnemy(world: TowerWorld, x: number, y: number, hp = 100): number {
   return eid;
 }
 
-function makeAlly(world: TowerWorld, x: number, y: number): number {
+function makeAllySoldier(world: TowerWorld, x: number, y: number): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x, y });
   world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
   world.addComponent(eid, UnitTag, { isEnemy: 0 });
+  world.addComponent(eid, Movement, { speed: 100, currentSpeed: 100 });
+  world.addComponent(eid, Soldier, {
+    state: 0,
+    homeX: x,
+    homeY: y,
+    moveRange: 100,
+    attackTarget: 0,
+    stateTimer: 0,
+  });
+  return eid;
+}
+
+function makeAllyTower(world: TowerWorld, x: number, y: number): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: 100, max: 100, armor: 0, magicResist: 0 });
+  world.addComponent(eid, UnitTag, { isEnemy: 0 });
+  world.addComponent(eid, Tower, { towerType: 0, level: 1, totalInvested: 50 });
   return eid;
 }
 
@@ -213,7 +233,7 @@ describe('SpellProjectileSystem', () => {
     const enemyB = makeEnemy(world, 700, 430);
     Health.current[enemyB] = 350;
     Health.max[enemyB] = 350;
-    const ally = makeAlly(world, 300, 220);
+    const ally = makeAllySoldier(world, 300, 220);
     Health.current[ally] = 350;
     Health.max[ally] = 350;
 
@@ -248,7 +268,7 @@ describe('SpellProjectileSystem', () => {
     expect(Health.current[ally]).toBe(50);
   });
 
-  it('blizzard is a 5-second left-to-right global spell that damages enemies once per second without push or stun', () => {
+  it('blizzard is a 5-second left-to-right global spell that damages enemies and allied soldiers once per second without damaging towers', () => {
     const { renderer, commands } = makeRenderer();
     const world = new TowerWorld();
     const system = new SpellProjectileSystem(renderer);
@@ -260,20 +280,22 @@ describe('SpellProjectileSystem', () => {
 
     const enemyA = makeEnemy(world, 120, 100, 300);
     const enemyB = makeEnemy(world, 700, 430, 300);
-    const ally = makeAlly(world, 300, 220);
+    const allySoldier = makeAllySoldier(world, 300, 220);
+    const allyTower = makeAllyTower(world, 340, 220);
     const enemyAStartX = Position.x[enemyA]!;
     const enemyBStartX = Position.x[enemyB]!;
-    const allyStartX = Position.x[ally]!;
+    const allyStartX = Position.x[allySoldier]!;
 
     system.spawnGlobalEffect(world, 2, 45, 5);
 
     system.update(world, 0.1);
     expect(Health.current[enemyA]).toBe(255);
     expect(Health.current[enemyB]).toBe(255);
-    expect(Health.current[ally]).toBe(100);
+    expect(Health.current[allySoldier]).toBe(55);
+    expect(Health.current[allyTower]).toBe(100);
     expect(Position.x[enemyA]).toBe(enemyAStartX);
     expect(Position.x[enemyB]).toBe(enemyBStartX);
-    expect(Position.x[ally]).toBe(allyStartX);
+    expect(Position.x[allySoldier]).toBe(allyStartX);
     expect(effectQuery(world.world)).toHaveLength(1);
     expect(commands.some((cmd) => cmd.shape === 'rect' && cmd.color === '#90caf9')).toBe(true);
     expect(commands.filter((cmd) => (
@@ -306,6 +328,8 @@ describe('SpellProjectileSystem', () => {
     system.update(world, 0.9);
     expect(Health.current[enemyA]).toBe(210);
     expect(Health.current[enemyB]).toBe(210);
+    expect(Health.current[allySoldier]).toBe(10);
+    expect(Health.current[allyTower]).toBe(100);
     expect(Position.x[enemyA]).toBe(enemyAStartX);
     expect(Position.x[enemyB]).toBe(enemyBStartX);
     expect(effectQuery(world.world)).toHaveLength(1);
@@ -313,6 +337,8 @@ describe('SpellProjectileSystem', () => {
     system.update(world, 1.0);
     expect(Health.current[enemyA]).toBe(165);
     expect(Health.current[enemyB]).toBe(165);
+    expect(Health.current[allySoldier]).toBe(-35);
+    expect(Health.current[allyTower]).toBe(100);
     expect(Position.x[enemyA]).toBe(enemyAStartX);
     expect(Position.x[enemyB]).toBe(enemyBStartX);
     expect(effectQuery(world.world)).toHaveLength(1);
@@ -322,6 +348,8 @@ describe('SpellProjectileSystem', () => {
     world.cleanupDeadEntities();
     expect(Health.current[enemyA]).toBe(75);
     expect(Health.current[enemyB]).toBe(75);
+    expect(Health.current[allySoldier]).toBe(-35);
+    expect(Health.current[allyTower]).toBe(100);
     expect(effectQuery(world.world)).toHaveLength(0);
   });
 });
