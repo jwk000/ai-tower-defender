@@ -845,6 +845,20 @@ export const FloatingText = defineComponent({
 export const floatingTextQuery = defineQuery([Position, FloatingText]);
 
 // ============================================================
+// Boss 技能提示飘字组件（Boss Skill Announcement）
+// ============================================================
+
+/** Boss 技能提示 — 棋盘上方显示技能名和描述，持续一段时间后消失 */
+export const BossSkillAnnouncement = defineComponent({
+  lifetime: Types.f32,
+  maxLifetime: Types.f32,
+  alpha: Types.f32,
+});
+
+/** Boss 技能提示实体查询 */
+export const bossSkillAnnouncementQuery = defineQuery([Position, BossSkillAnnouncement]);
+
+// ============================================================
 // 常用查询组合
 // ============================================================
 

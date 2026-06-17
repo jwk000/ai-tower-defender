@@ -35,6 +35,7 @@ import {
   LayerVal,
   DamageTypeVal,
   Projectile,
+  Boss,
 } from '../core/components.js';
 import { ruleEngine } from '../core/RuleEngine.js';
 import { BUILTIN_HANDLERS } from '../core/RuleHandlers.js';
@@ -602,6 +603,43 @@ describe('AttackSystem.isValidTarget — 阵营过滤 + 存活 + 层级', () => 
       const attacker = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 1, 1);
       const target = makeAttackable(world, 50, 0, FactionVal.Evil, 100, LayerVal.LowAir, 0);
       expect(AttackSystem.isValidTarget(world, attacker, target)).toBe(true);
+    });
+  });
+
+  describe('Boss塔免疫', () => {
+    it('塔无法锁定 immuneToTowers 的虫族女王目标', () => {
+      const tower = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 1, 0);
+      world.addComponent(tower, Tower, { towerType: 0, level: 1, range: 100, damage: 10 });
+      const boss = makeAttackable(world, 50, 0, FactionVal.Evil);
+      world.addComponent(boss, Boss, {
+        bossType: 1,
+        phase: 1,
+        phase2HpRatio: 0.5,
+        transitionTimer: 0,
+        abilityTimer: 0,
+        spawnTimer: 0,
+        splitCount: 0,
+        immuneToTowers: 1,
+      });
+
+      expect(AttackSystem.isValidTarget(world, tower, boss)).toBe(false);
+    });
+
+    it('非塔攻击者仍可锁定 immuneToTowers 的虫族女王目标', () => {
+      const soldier = makeAttackable(world, 0, 0, FactionVal.Justice, 100, LayerVal.Ground, 0, 0);
+      const boss = makeAttackable(world, 50, 0, FactionVal.Evil);
+      world.addComponent(boss, Boss, {
+        bossType: 1,
+        phase: 1,
+        phase2HpRatio: 0.5,
+        transitionTimer: 0,
+        abilityTimer: 0,
+        spawnTimer: 0,
+        splitCount: 0,
+        immuneToTowers: 1,
+      });
+
+      expect(AttackSystem.isValidTarget(world, soldier, boss)).toBe(true);
     });
   });
 });

@@ -4,7 +4,7 @@
  * 对应设计文档:
  * - design/03-units.md §6 (BOSS)
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TowerWorld, defineQuery, hasComponent } from '../core/World.js';
 import type { System } from '../core/World.js';
 import {
@@ -399,26 +399,24 @@ describe('BossSystem — QueenWorm (虫族女王)', () => {
     expect(Boss.immuneToTowers[boss]).toBe(1);
   });
 
-  it('每15秒召唤3只沙漠黑虫', () => {
+  it('每10秒召唤5只随机虫族单位', () => {
     const boss = makeBoss(world, BossType.QueenWorm, {
-      hp: 1000, spawnTimer: 14.9,
+      hp: 1000, spawnTimer: 9.9,
     });
     const initialEnemyCount = countAliveEnemies(world);
 
-    // Tick just past 15s
+    // Tick just past 10s
     system.update(world, 0.2);
 
-    // Should have spawned 3 beetles (enemies)
     const enemyCountAfter = countAliveEnemies(world);
-    expect(enemyCountAfter - initialEnemyCount).toBe(3);
+    expect(enemyCountAfter - initialEnemyCount).toBe(5);
 
-    // Spawn timer should reset
     expect(Boss.spawnTimer[boss]).toBeLessThan(1);
   });
 
-  it('召唤的沙漠黑虫在BOSS周围随机位置', () => {
+  it('召唤的随机虫族单位在BOSS周围随机位置', () => {
     const boss = makeBoss(world, BossType.QueenWorm, {
-      hp: 1000, spawnTimer: 15, x: 500, y: 300,
+      hp: 1000, spawnTimer: 10, x: 500, y: 300,
     });
     system.update(world, 0.1);
 
@@ -437,6 +435,37 @@ describe('BossSystem — QueenWorm (虫族女王)', () => {
       expect(dist).toBeLessThanOrEqual(70);
       expect(dist).toBeGreaterThanOrEqual(30);
     }
+  });
+
+  it('召唤单位来自虫族单位池', () => {
+    const boss = makeBoss(world, BossType.QueenWorm, {
+      hp: 1000, spawnTimer: 10,
+    });
+    system.update(world, 0.1);
+
+    const allowedNames = new Set(['沙漠黑虫', '钻地甲虫', '吸血蝗虫', '自爆甲虫']);
+    const summons = allHealthQuery(world.world).filter((eid) => eid !== boss && UnitTag.isEnemy[eid] === 1);
+    expect(summons.length).toBe(5);
+    for (const eid of summons) {
+      expect(allowedNames.has(world.getDisplayName(eid) ?? '')).toBe(true);
+    }
+  });
+
+  it('释放虫群孵化时创建Boss技能提示飘字', () => {
+    const announcementMock = {
+      show: vi.fn(),
+    };
+    system = new BossSystem(announcementMock as unknown as ConstructorParameters<typeof BossSystem>[0]);
+    makeBoss(world, BossType.QueenWorm, { hp: 1000, spawnTimer: 10 });
+
+    system.update(world, 0.1);
+
+    expect(announcementMock.show).toHaveBeenCalledWith(
+      world,
+      '虫群孵化',
+      '每10秒在女王周围召唤5只随机虫族单位；塔仍无法锁定女王',
+      10,
+    );
   });
 });
 

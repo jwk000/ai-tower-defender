@@ -256,6 +256,8 @@ export class BossSystem implements System {
   /** World reference for use in spawn helpers */
   private world: TowerWorld | null = null;
 
+  constructor(private bossSkillAnnouncements?: BossSkillAnnouncementSystem) {}
+
   // ============================================================
   // System.update
   // ============================================================
@@ -443,10 +445,11 @@ export class BossSystem implements System {
     // Set tower immunity flag
     Boss.immuneToTowers[eid] = 1;
 
-    // Spawn minions every 15s
+    // Spawn minions every 10s
     const spawnTimer = Boss.spawnTimer[eid] ?? 0;
     if (spawnTimer >= QUEENWORM_SPAWN_INTERVAL) {
       Boss.spawnTimer[eid] = 0;
+      this.bossSkillAnnouncements?.show(world, QUEENWORM_SKILL_NAME, QUEENWORM_SKILL_DESCRIPTION, 10);
       spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 110, { r: 230, g: 180, b: 40 }, 0.7);
       this.spawnQueenWormMinions(world, eid);
       Sound.play(getSummonSfx('summon_desert_beetles'));
@@ -459,8 +462,9 @@ export class BossSystem implements System {
     const y = Position.y[bossEid] ?? 0;
     const faction = Faction.value[bossEid] ?? FactionVal.Evil;
 
-    for (let i = 0; i < 3; i++) {
-      const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.5;
+    for (let i = 0; i < QUEENWORM_SPAWN_COUNT; i++) {
+      const template = QUEENWORM_SUMMON_POOL[Math.floor(Math.random() * QUEENWORM_SUMMON_POOL.length)]!;
+      const angle = (i / QUEENWORM_SPAWN_COUNT) * Math.PI * 2 + Math.random() * 0.5;
       const dist = 40 + Math.random() * 30;
       const sx = x + Math.cos(angle) * dist;
       const sy = y + Math.sin(angle) * dist;
@@ -468,29 +472,34 @@ export class BossSystem implements System {
       const eid = world.createEntity();
       world.addComponent(eid, Position, { x: sx, y: sy });
       world.addComponent(eid, Health, {
-        current: 40, max: 40, armor: 2, magicResist: 0,
+        current: template.hp,
+        max: template.hp,
+        armor: template.armor,
+        magicResist: template.magicResist,
       });
       world.addComponent(eid, Faction, { value: faction });
       world.addComponent(eid, Category, { value: CategoryVal.Enemy });
-      world.addComponent(eid, Layer, { value: LayerVal.Ground });
+      world.addComponent(eid, Layer, { value: template.layer });
       world.addComponent(eid, UnitTag, {
         isEnemy: 1,
-        atk: 6,
-        rewardGold: 3,
+        atk: template.damage,
+        rewardGold: template.rewardGold,
       });
       world.addComponent(eid, Visual, {
-        shape: ShapeVal.Circle,
-        colorR: 180, colorG: 120, colorB: 40,
-        size: 14,
+        shape: template.shape,
+        colorR: template.color.r,
+        colorG: template.color.g,
+        colorB: template.color.b,
+        size: template.size,
         alpha: 1,
         facing: 1,
       });
       world.addComponent(eid, Attack, {
-        damage: 6,
-        attackSpeed: 1.5,
-        range: 20,
+        damage: template.damage,
+        attackSpeed: template.attackSpeed,
+        range: template.range,
         damageType: DamageTypeVal.Physical,
-        isRanged: 0,
+        isRanged: template.range > 60 ? 1 : 0,
         canTargetLowAir: 0,
         alertRange: 150,
         cooldownTimer: 0,
@@ -504,13 +513,13 @@ export class BossSystem implements System {
         drainPercent: 0,
       });
       world.addComponent(eid, Movement, {
-        speed: 35,
-        currentSpeed: 35,
+        speed: template.speed,
+        currentSpeed: template.speed,
         moveMode: MoveModeVal.FollowPath,
         targetX: 0, targetY: 0, pathIndex: 0, progress: 0, spawnIdx: 0,
         homeX: sx, homeY: sy, moveRange: 0,
       });
-      world.setDisplayName(eid, '沙漠黑虫');
+      world.setDisplayName(eid, template.name);
     }
   }
 

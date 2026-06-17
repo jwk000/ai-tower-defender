@@ -59,6 +59,7 @@ import { clearDamageObservers, registerDamageObserver } from './utils/damageUtil
 import { ComboKillSystem } from './systems/ComboKillSystem.js';
 import { DamageNumberSystem } from './systems/DamageNumberSystem.js';
 import { FloatingTextSystem } from './systems/FloatingTextSystem.js';
+import { BossSkillAnnouncementSystem } from './systems/BossSkillAnnouncementSystem.js';
 import { Music } from './utils/Music.js';
 import type { BgmKey } from './utils/Music.js';
 import {
@@ -173,6 +174,7 @@ class TowerDefenderGame extends Game {
   private damageNumberSystem!: DamageNumberSystem;
   private floatingTextSystem!: FloatingTextSystem;
   private comboKillSystem!: ComboKillSystem;
+  private bossSkillAnnouncementSystem!: BossSkillAnnouncementSystem;
 
   // ---- Scene decoration ----
   private decorationSystem!: DecorationSystem;
@@ -715,7 +717,8 @@ class TowerDefenderGame extends Game {
     this.soldierAISystem = new SoldierAISystem(config.map);
 
     // ---- Boss System ----
-    this.bossSystem = new BossSystem();
+    this.bossSkillAnnouncementSystem = new BossSkillAnnouncementSystem();
+    this.bossSystem = new BossSystem(this.bossSkillAnnouncementSystem);
 
     // ---- Combo Kill System ----
     // 必须在 HealthSystem 之前创建，因为 onEnemyKilled 回调会引用它
@@ -878,6 +881,7 @@ class TowerDefenderGame extends Game {
         const ctx = this.renderer.context;
         if (ctx) {
           this.floatingTextSystem.renderAll(this.world, ctx);
+          this.bossSkillAnnouncementSystem.renderAll(this.world, ctx);
         }
       }
       this.uiSystem.renderUI();
@@ -1171,6 +1175,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(movementSystem);
     this.world.registerSystem(attackSystem);
     this.world.registerSystem(this.bossSystem);
+    this.world.registerSystem(this.bossSkillAnnouncementSystem);
     this.world.registerSystem(lifecycleSystem);
     this.world.registerSystem(new EnemySkillSystem());
     this.world.registerSystem(this.batSwarmSystem);

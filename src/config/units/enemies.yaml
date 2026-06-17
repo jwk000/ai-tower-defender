@@ -3313,8 +3313,8 @@ queen_beetle:
   reward: { gold: 150 }
   visual: { shape: circle, color: "#e65100", size: 136.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
-  boss: { bossType: QueenWorm, immuneToTowers: true, spawnInterval: 15.0, spawnUnit: desert_beetle, spawnCount: 3 }
-  skills: [{ id: summon_desert_beetles, name: "虫群孵化", cooldown: 15, range: 150, value: 3, duration: 0, unitId: desert_beetle, description: "在女王周围召唤3只desert_beetle；女王仍保持免疫塔攻击机制" }]
+  boss: { bossType: QueenWorm, immuneToTowers: true, spawnInterval: 10.0, spawnUnit: random_insect, spawnCount: 5 }
+  skills: [{ id: summon_desert_beetles, name: "虫群孵化", cooldown: 10, range: 150, value: 5, duration: 10, unitId: random_insect, description: "在女王周围召唤5只随机虫族单位；女王仍保持免疫塔攻击机制" }]
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

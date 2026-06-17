@@ -20,6 +20,7 @@ import {
   BuildingTower,
   Faction,
   Barrel,
+  Boss,
 } from '../core/components.js';
 import { TowerType } from '../types/index.js';
 import type { MapConfig } from '../types/index.js';
@@ -425,6 +426,10 @@ export class AttackSystem implements System {
     if (!areHostile(attackerFaction, targetFaction)) return false;
 
     if ((Health.current[targetEid] ?? 0) <= 0) return false;
+
+    if (hasComponent(world.world, Tower, attackerEid) && (Boss.immuneToTowers[targetEid] ?? 0) === 1) {
+      return false;
+    }
 
     const attackerLayer = Layer.value[attackerEid] ?? LayerVal.Ground;
     const targetLayer = Layer.value[targetEid] ?? LayerVal.Ground;
