@@ -709,6 +709,25 @@ describe('BossSystem — Lucifer (路西法)', () => {
     expect(Boss.abilityTimer[boss]).toBeGreaterThanOrEqual(0);
     expect(Movement.currentSpeed[boss]).toBeGreaterThan(0);
   });
+
+  it('释放召唤骷髅大军时创建Boss技能提示飘字', () => {
+    const announcementMock = {
+      show: vi.fn(),
+    };
+    system = new BossSystem(announcementMock as unknown as ConstructorParameters<typeof BossSystem>[0]);
+    makeBoss(world, BossType.Lucifer, {
+      hp: 1200, maxHp: 1200, spawnTimer: 10, faction: FactionVal.Chaos,
+    });
+
+    system.update(world, 0.1);
+
+    expect(announcementMock.show).toHaveBeenCalledWith(
+      world,
+      '召唤骷髅大军',
+      '在路西法周围召唤3个骷髅；低血量强化后冷却缩短至5秒',
+      10,
+    );
+  });
 });
 
 // ============================================================
@@ -831,6 +850,27 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
     const marks = allPositionedQuery(world.world).filter((eid) => hasComponent(world.world, TargetingMark, eid));
     expect(marks.length).toBe(1);
     expect(Boss.phase[boss]).toBe(1);
+  });
+
+  it('释放远程导弹轰炸预警时创建Boss技能提示飘字', () => {
+    const announcementMock = {
+      show: vi.fn(),
+    };
+    system = new BossSystem(announcementMock as unknown as ConstructorParameters<typeof BossSystem>[0], MAP_01);
+    makeTower(world, 500, 300, 200);
+    makeTower(world, 530, 310, 200);
+    makeBoss(world, BossType.SuperRobot, {
+      hp: 2000, maxHp: 2000, abilityTimer: 10, phase: 0, x: 420, y: 300,
+    });
+
+    system.update(world, 0.1);
+
+    expect(announcementMock.show).toHaveBeenCalledWith(
+      world,
+      '远程导弹轰炸',
+      '锁定塔和士兵密集区域，2秒预警后发射导弹造成范围伤害',
+      10,
+    );
   });
 
   it('没有我方单位时不发射导弹', () => {

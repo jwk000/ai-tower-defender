@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineQuery, hasComponent, TowerWorld } from '../core/World.js';
 import {
   Attack,
@@ -340,6 +340,80 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(Health.current[crystal]).toBe(500);
     expect(Health.current[boss]).toBe(2120);
     expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
+  });
+
+  it('YAML Boss 放招时创建Boss技能UI提示', () => {
+    const announcementMock = {
+      show: vi.fn(),
+    };
+    system = new EnemySkillSystem(announcementMock as unknown as ConstructorParameters<typeof EnemySkillSystem>[0]);
+    registerSkillConfig({
+      id: 'test_abyss_lord_announcement',
+      name: '测试深渊领主提示',
+      category: 'Boss',
+      faction: 'Enemy',
+      layer: 'Ground',
+      isBoss: true,
+      stats: { hp: 3000, atk: 50 },
+      visual: { shape: 'circle', color: '#1a0033', size: 162 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'dark_devour',
+          name: '黑暗吞噬',
+          cooldown: 5,
+          range: 150,
+          value: 2,
+          duration: 0,
+          description: '吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    makeSkillBoss(world, 'test_abyss_lord_announcement', { hp: 2000, maxHp: 3000, x: 500, y: 300 });
+
+    system.update(world, 0.1);
+
+    expect(announcementMock.show).toHaveBeenCalledWith(
+      world,
+      '黑暗吞噬',
+      '吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%',
+    );
+  });
+
+  it('精英技能不会创建Boss技能UI提示', () => {
+    const announcementMock = {
+      show: vi.fn(),
+    };
+    system = new EnemySkillSystem(announcementMock as unknown as ConstructorParameters<typeof EnemySkillSystem>[0]);
+    registerSkillConfig({
+      id: 'test_elite_no_boss_announcement',
+      name: '测试精英无Boss提示',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      tier: 'L2',
+      stats: { hp: 100, atk: 10 },
+      visual: { shape: 'circle', color: '#ce93d8', size: 28 },
+      behavior: { targetSelection: 'weakest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'arcane_bolt',
+          name: '奥术冲击',
+          cooldown: 8,
+          range: 250,
+          value: 35,
+          description: '对最弱玩家单位造成 35 魔法伤害',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    makeElite(world, 'test_elite_no_boss_announcement');
+    makeTower(world);
+
+    system.update(world, 0.1);
+
+    expect(announcementMock.show).not.toHaveBeenCalled();
   });
 
   it('钻地潜行会隐藏本体、挂载潜地状态并生成翻土粒子', () => {

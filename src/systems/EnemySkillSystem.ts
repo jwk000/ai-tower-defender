@@ -20,6 +20,7 @@ import { unitConfigRegistry } from '../config/registry.js';
 import { Sound, type SfxKey } from '../utils/Sound.js';
 import { getPhaseSfx, getSummonSfx } from '../utils/audioKeys.js';
 import { hexToRgb } from '../utils/visualHelpers.js';
+import type { BossSkillAnnouncementSystem } from './BossSkillAnnouncementSystem.js';
 
 // ============================================================
 // Entity → Config ID mapping (bitecs can't store strings)
@@ -917,6 +918,8 @@ const SKILL_HANDLERS: Record<string, SkillHandler> = {
 export class EnemySkillSystem implements System {
   readonly name = 'EnemySkillSystem';
 
+  constructor(private bossSkillAnnouncements?: BossSkillAnnouncementSystem) {}
+
   update(world: TowerWorld, dt: number): void {
     this.tickTemporaryArmor(dt);
     this.updateGenericEnemies(world, dt);
@@ -961,6 +964,7 @@ export class EnemySkillSystem implements System {
 
         // Execute the skill
         handler(world, eid, skill, phase);
+        this.bossSkillAnnouncements?.show(world, skill.name, skill.description);
         this.resetSkillTimer(eid, si, skill.cooldown);
         break; // only one skill per frame
       }

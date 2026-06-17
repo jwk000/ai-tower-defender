@@ -130,6 +130,8 @@ const QUEENWORM_SPAWN_INTERVAL = 10;   // seconds
 const QUEENWORM_SPAWN_COUNT = 5;
 const QUEENWORM_SKILL_NAME = '虫群孵化';
 const QUEENWORM_SKILL_DESCRIPTION = '每10秒在女王周围召唤5只随机虫族单位；塔仍无法锁定女王';
+const LUCIFER_SUMMON_SKILL_NAME = '召唤骷髅大军';
+const LUCIFER_SUMMON_SKILL_DESCRIPTION = '在路西法周围召唤3个骷髅；低血量强化后冷却缩短至5秒';
 const LUCIFER_SPAWN_INTERVAL_NORMAL = 10;
 const LUCIFER_SPAWN_INTERVAL_ENRAGE = 5;
 const LUCIFER_SKELETON_CAP = 12;
@@ -141,6 +143,8 @@ const LUCIFER_SKELETON_SPREAD_ARC = (Math.PI * 2) / 3;
 const LUCIFER_SKELETON_FLOCK_ID_BASE = 9000;
 const SUPERROBOT_MISSILE_INTERVAL = 10;
 const SUPERROBOT_WARNING_DURATION = 2;
+const SUPERROBOT_SKILL_NAME = '远程导弹轰炸';
+const SUPERROBOT_SKILL_DESCRIPTION = '锁定塔和士兵密集区域，2秒预警后发射导弹造成范围伤害';
 export const SUPERROBOT_ATTACK_RANGE_RATIO = 1 / 3;
 const SUPERROBOT_MISSILE_SPEED = 760;
 const SUPERROBOT_MISSILE_DAMAGE = 80;
@@ -584,6 +588,7 @@ export class BossSystem implements System {
       if (hasComponent(world.world, Movement, eid)) {
         Movement.currentSpeed[eid] = 0;
       }
+      this.bossSkillAnnouncements?.show(world, LUCIFER_SUMMON_SKILL_NAME, LUCIFER_SUMMON_SKILL_DESCRIPTION, 10);
       spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 120, { r: 156, g: 39, b: 176 }, 0.7);
       this.spawnLuciferSkeletons(world, eid);
       Sound.play(getSummonSfx('summon_skeletons'));
@@ -706,6 +711,7 @@ export class BossSystem implements System {
         const markId = this.createMissileWarning(world, eid, target.x, target.y);
         Boss.transitionTimer[eid] = markId;
         spawnBossSkillBurst(world, Position.x[eid] ?? 0, Position.y[eid] ?? 0, 100, { r: 255, g: 23, b: 68 }, 0.55);
+        this.bossSkillAnnouncements?.show(world, SUPERROBOT_SKILL_NAME, SUPERROBOT_SKILL_DESCRIPTION, 10);
         Sound.play('boss_missile_warning');
         // Reset abilityTimer and enter warning phase
         Boss.abilityTimer[eid] = 0;

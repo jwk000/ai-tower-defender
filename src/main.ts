@@ -1177,7 +1177,7 @@ class TowerDefenderGame extends Game {
     this.world.registerSystem(this.bossSystem);
     this.world.registerSystem(this.bossSkillAnnouncementSystem);
     this.world.registerSystem(lifecycleSystem);
-    this.world.registerSystem(new EnemySkillSystem());
+    this.world.registerSystem(new EnemySkillSystem(this.bossSkillAnnouncementSystem));
     this.world.registerSystem(this.batSwarmSystem);
     this.world.registerSystem(unitSystem);
     this.world.registerSystem(projectileSystem);
