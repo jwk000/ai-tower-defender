@@ -76,11 +76,70 @@
 - **永久解锁** ：通关越多，卡池越丰富。
 - **主题敌人** ：每关的敌人组合和地图结构都在逼你调整打法。
 
+## 当前内容规模
+
+以下统计基于当前仓库中的 YAML 配置、`public/art` 美术目录、`public/sfx` / `public/bgm` 音频目录，以及 `art-generation-progress.json` 的生成记录。
+
+| 类型 | 数量 | 统计口径 |
+| --- | ---: | --- |
+| 单位配置 | 100 | `src/config/units/*.yaml`，含塔、士兵、机关、敌人、Boss、中立物、目标物 |
+| 玩家卡牌 | 26 | `src/config/cards/*.yaml`，其中单位卡 16、机关卡 4、技能卡 6 |
+| 主题关卡 | 5 | `src/config/levels/level-*.yaml`，对应绿野、沙漠、古堡、废土、深渊 |
+| 天气类型 | 12 | `src/data/weatherConfigs.ts` 定义；当前 5 关使用 4 种初始天气 |
+| 场景装饰物 | 25 | `public/art/decor` 的装饰物种类，合计 50 帧 |
+| 主题 Boss | 5 | 巨型史莱姆、虫族女王、路西法、超级机器人、深渊领主 |
+| Boss / 精英级配置 | 14 | 含 5 个主题 Boss 与额外 Boss 标记配置 |
+| 技能机制 | 62 | 56 个单位 / 敌人 / Boss 技能 ID + 6 张可打出的技能卡 |
+| AI 绘制美术 | 315 | `art-generation-progress.json` 已完成记录，模型锁定为 `azure/gpt-image-2` |
+| 当前直出 AI 美术文件 | 254 | 生成记录中当前仍存在于仓库的 PNG / WebP 源文件 |
+| 程序处理 / 派生美术文件 | 319 | `public/art` 中除直出 AI 源文件外的图集、帧、瓦片、运行时辅助资源 |
+| 美术图片文件总数 | 573 | `public/art` 下 PNG / WebP 文件总数 |
+| 音效资源 | 96 | `public/sfx/*.ogg`，与 96 个运行时 SFX key 对齐 |
+| 背景音乐资源 | 17 | `public/bgm` 下 MP3 / OGG 文件；运行时映射 19 个 BGM key |
+| 程序合成音效 | 71 | `SoundSynth.ts` 中的合成器定义，用于生成或校验同风格音效 |
+
+单位配置拆分为：70 个敌人、10 个塔、6 个士兵、5 个机关、5 个主题 Boss、2 个中立物、2 个目标物。美术目录中还包含 32 张卡牌图、25 张敌人图、346 张单位动作帧、25 张地格图、15 张特效图、12 张 Buff 图、8 张 UI 图和 35 张图集图片。
+
+## 开发过程信息
+
+开发方式是 **LLM 辅助的配置驱动迭代**：先把玩法、数值、表现和验收规则写进 `design/` 文档，再同步 YAML 配置、ECS 系统、渲染表现、测试和开发日志。代码完成后用 Vitest / TypeScript typecheck 验证，并按原子任务提交。
+
+使用过的主要模型与分工：
+
+- **Codex 编程 Agent（GPT-5）**：负责代码实现、架构调整、配置同步、测试补齐、README / design / devlog 文档维护。
+- **`azure/gpt-image-2`**：负责生成暗黑奇幻休闲塔防风格的 UI、卡牌、单位、敌人、装饰、瓦片和特效源图。
+
+最重要的提示词原则：
+
+```text
+dark fantasy casual tower defense game art, stylized 2D hand-painted game asset,
+clean bold readable silhouette, high contrast rim light, mobile game friendly,
+no text, no watermark, no logo.
+```
+
+这条视觉提示词贯穿 AI 美术生成，保证素材不是写实插画，而是能在棋盘、卡牌和 HUD 中清晰读取的游戏资产。代码侧最重要的提示词则是项目规范本身：**设计先行、配置驱动、规则引擎调度、ECS 数据导向、PixiJS 程序化渲染、每个任务原子提交**。
+
+核心开发原则：
+
+- **文档是事实来源**：玩法、数值、表现变更先写入 `design/`，代码必须追随文档。
+- **配置驱动内容**：单位、卡牌、关卡、天气和技能优先用 YAML / TypeScript 数据定义，减少硬编码。
+- **规则引擎连接行为**：生命周期事件、攻击模式、目标选择和 Buff 尽量由规则层解释。
+- **系统职责清晰**：ECS 组件只存数据，系统负责更新，渲染始终在管线末尾同步显示。
+- **可验证优先**：新增机制配套单元测试，资源变更配套资源索引或加载校验。
+- **AI 资产可控落地**：AI 负责产出源图，脚本负责裁切、生成动作帧、打包图集和回退到程序化视觉。
+
 ## 技术实现
 
 项目使用 **Vite + TypeScript** 构建，底层由 **bitecs ECS** 、配置驱动规则系统和 **PixiJS WebGL** 渲染组成。
 
 技术方案的目标很简单：玩法内容尽量交给配置，系统代码负责稳定运行、规则调度和画面表现。更详细的架构说明见 [design/06-technical.md](./design/06-technical.md)。
+
+当前技术架构分为四层：
+
+1. **配置层**：`src/config` 与 `design` 定义单位、卡牌、关卡、技能和表现需求。
+2. **规则层**：`RuleEngine` / `RuleHandlers` 将声明式规则转换为运行时行为。
+3. **ECS 层**：`bitecs` 组件和系统承载移动、攻击、弹道、技能、天气、Boss、生命周期和创建逻辑。
+4. **表现层**：PixiJS WebGL 渲染实体、UI、粒子、图集资源、程序化 fallback 和音频反馈。
 
 ## 快速运行
 
