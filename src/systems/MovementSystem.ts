@@ -4,6 +4,7 @@ import {
   Visual, Attack, Projectile, Category, CategoryVal, Soldier,
   Faction, DamageTypeVal, Tower, PlayerOwned, SlashEffect, Layer, LayerVal, ShapeVal,
   Boss, EnemyFlockMember, Burrowed, EnemySkillParticleEffectVal, Taunted, Trap, TrapTypeVal,
+  SpellEffect,
 } from '../core/components.js';
 import { createSkillParticles } from './EnemySkillSystem.js';
 import type { MapConfig, GridPos } from '../types/index.js';
@@ -35,6 +36,7 @@ const FLOCK_PATH_WEIGHT = 2.4;
 const FLOCK_OFFSET_WEIGHT = 1.1;
 const FLOCK_WANDER_STRENGTH = 50;
 const FLOCK_PATH_ADVANCE_RADIUS = 18;
+const SPELL_BLIZZARD = 2;
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
@@ -50,6 +52,8 @@ export class MovementSystem implements System {
   private towerQuery = defineQuery([Position, Tower, Health]);
   /** Query: living traps, used by Boulder path blocking and enemy targeting */
   private trapQuery = defineQuery([Position, Trap, Health]);
+  /** Query: active spell effects, used by global movement locks such as Blizzard */
+  private spellEffectQuery = defineQuery([SpellEffect]);
   /** Per-spawn paths: paths[spawnIdx] = ordered GridPos[] from spawn to crystal_anchor */
   private readonly paths: readonly (readonly GridPos[])[];
 
@@ -71,18 +75,19 @@ export class MovementSystem implements System {
 
   update(world: TowerWorld, dt: number): void {
     this.frameCounter++;
+    const movementStoppedByBlizzard = this.hasActiveBlizzard(world);
     // Phase 1: Process enemy movement (FollowPath + path-recovery)
-    this.processEnemies(world, dt);
+    this.processEnemies(world, dt, movementStoppedByBlizzard);
 
     // Phase 2: Process soldier movement (HoldPosition / Patrol / ChaseTarget)
-    this.processSoldiers(world, dt);
+    this.processSoldiers(world, dt, movementStoppedByBlizzard);
   }
 
   // ================================================================
   // Enemy movement: FollowPath + path-recovery
   // ================================================================
 
-  private processEnemies(world: TowerWorld, dt: number): void {
+  private processEnemies(world: TowerWorld, dt: number, movementStoppedByBlizzard: boolean): void {
     const entities = this.movingQuery(world.world);
     const paths = this.paths;
     const ts = this.map.tileSize;
@@ -94,6 +99,11 @@ export class MovementSystem implements System {
 
       // Only process enemy units
       if (UnitTag.isEnemy[eid] !== 1) continue;
+
+      if (movementStoppedByBlizzard) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       // Skip stunned entities
       if (Stunned.timer[eid]! > 0) {
@@ -946,7 +956,7 @@ export class MovementSystem implements System {
   // Soldier movement: HoldPosition / Patrol / ChaseTarget
   // ================================================================
 
-  private processSoldiers(world: TowerWorld, dt: number): void {
+  private processSoldiers(world: TowerWorld, dt: number, movementStoppedByBlizzard: boolean): void {
     const soldiers = this.soldierQuery(world.world);
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
@@ -955,6 +965,11 @@ export class MovementSystem implements System {
 
     for (let i = 0; i < soldiers.length; i++) {
       const eid = soldiers[i]!;
+
+      if (movementStoppedByBlizzard) {
+        Movement.currentSpeed[eid] = 0;
+        continue;
+      }
 
       // Skip stunned/frozen
       if (Stunned.timer[eid]! > 0) continue;
@@ -980,6 +995,17 @@ export class MovementSystem implements System {
           break;
       }
     }
+  }
+
+  private hasActiveBlizzard(world: TowerWorld): boolean {
+    const effects = this.spellEffectQuery(world.world);
+    for (let i = 0; i < effects.length; i++) {
+      const eid = effects[i]!;
+      if (SpellEffect.spellType[eid] === SPELL_BLIZZARD && SpellEffect.elapsed[eid]! < SpellEffect.duration[eid]!) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Patrol: move to random points within moveRange of anchor */

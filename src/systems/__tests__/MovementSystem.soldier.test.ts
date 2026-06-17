@@ -18,6 +18,7 @@ import {
   Category,
   CategoryVal,
   Soldier,
+  SpellEffect,
 } from '../../core/components.js';
 import { MovementSystem } from '../MovementSystem.js';
 import { RenderSystem } from '../RenderSystem.js';
@@ -507,6 +508,42 @@ describe('MovementSystem — path recovery', () => {
 
     // Base should take damage (enemy reached end), enemy destroyed
     expect(Health.current[baseId]).toBeLessThan(100);
+  });
+
+  it('Blizzard stops enemy path movement and soldier patrol movement while active', () => {
+    const enemy = spawnEnemy(world, TILE / 2, TILE / 2, 80, 0);
+    const soldier = spawnSoldier(world, {
+      x: 200,
+      y: 200,
+      homeX: 200,
+      homeY: 200,
+      moveRange: 300,
+      moveMode: MoveModeVal.Patrol,
+      speed: 80,
+    });
+    const effect = world.createEntity();
+    world.addComponent(effect, SpellEffect, {
+      spellType: 2,
+      duration: 5,
+      elapsed: 1,
+      radius: 999,
+      damage: 45,
+      hasDealtDamage: 1,
+    });
+
+    const enemyX = Position.x[enemy]!;
+    const enemyY = Position.y[enemy]!;
+    const soldierX = Position.x[soldier]!;
+    const soldierY = Position.y[soldier]!;
+
+    sys.update(world, 0.5);
+
+    expect(Position.x[enemy]).toBeCloseTo(enemyX);
+    expect(Position.y[enemy]).toBeCloseTo(enemyY);
+    expect(Movement.currentSpeed[enemy]).toBe(0);
+    expect(Position.x[soldier]).toBeCloseTo(soldierX);
+    expect(Position.y[soldier]).toBeCloseTo(soldierY);
+    expect(Movement.currentSpeed[soldier]).toBe(0);
   });
 });
 

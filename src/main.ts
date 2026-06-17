@@ -1859,7 +1859,7 @@ class TowerDefenderGame extends Game {
       }
 
       case 'blizzard': {
-        // 暴风雪：全屏持续寒风，首帧造成伤害并施加减速
+        // 暴风雪：全屏持续寒风，每秒造成伤害并停止所有单位移动
         this.spellProjectileSystem.spawnGlobalEffect(this.world, 2, 45, 5.0);
         break;
       }

@@ -5,7 +5,7 @@
 // 设计：火球从手牌飞向目标，剑雨从天而降，暴风雪全屏覆盖，炸弹抛物线。
 // ============================================================
 
-import { TowerWorld, type System, defineQuery, entityExists, hasComponent } from '../core/World.js';
+import { TowerWorld, type System, defineQuery } from '../core/World.js';
 import {
   Position,
   SpellProjectile,
@@ -14,7 +14,6 @@ import {
   Health,
   DamageTypeVal,
   ScreenShake,
-  Stunned,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
@@ -27,6 +26,7 @@ const SPELL_ARROW_RAIN = 1;
 const SPELL_BLIZZARD = 2;
 const SPELL_BOMB = 3;
 const SPELL_EARTHQUAKE = 4;
+const BLIZZARD_DAMAGE_TICKS = 5;
 const ARROW_RAIN_WAVE_STARTS = [0, 0.45] as const;
 const ARROW_RAIN_WAVE_FALL_TIME = 0.24;
 const ARROW_RAIN_ARROW_COLOR = '#d32f2f';
@@ -139,6 +139,8 @@ export class SpellProjectileSystem implements System {
 
       if (spellType === SPELL_EARTHQUAKE) {
         this.updateEarthquakeDamage(world, eid, x, y, radius);
+      } else if (spellType === SPELL_BLIZZARD) {
+        this.updateBlizzardDamage(world, eid, x, y, radius);
       } else if (spellType === SPELL_ARROW_RAIN) {
         this.updateArrowRainDamage(world, eid, x, y, radius);
       } else if (SpellEffect.hasDealtDamage[eid] === 0) {
@@ -913,6 +915,16 @@ export class SpellProjectileSystem implements System {
     SpellEffect.hasDealtDamage[effectId] = dueTicks;
   }
 
+  private updateBlizzardDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {
+    const elapsed = SpellEffect.elapsed[effectId]!;
+    const dealtTicks = SpellEffect.hasDealtDamage[effectId]!;
+    const dueTicks = Math.min(BLIZZARD_DAMAGE_TICKS, Math.floor(elapsed) + 1);
+    for (let tick = dealtTicks + 1; tick <= dueTicks; tick++) {
+      this.dealAreaDamage(world, effectId, x, y, radius, SPELL_BLIZZARD);
+    }
+    SpellEffect.hasDealtDamage[effectId] = dueTicks;
+  }
+
   private dealAreaDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number, spellType: number): void {
     const damage = SpellEffect.damage[effectId]!;
     const damageType = spellType === SPELL_FIREBALL ? DamageTypeVal.Magic :
@@ -928,22 +940,7 @@ export class SpellProjectileSystem implements System {
       const dist = Math.hypot(px - x, py - y);
       if (dist < radius || spellType === SPELL_EARTHQUAKE || spellType === SPELL_BLIZZARD) {
         applyDamageToTarget(world, eid, damage, damageType);
-
-        if (spellType === SPELL_BLIZZARD) {
-          this.applyBlizzardPushAndStun(world, eid);
-        }
       }
     }
-  }
-
-  private applyBlizzardPushAndStun(world: TowerWorld, eid: number): void {
-    const tileSize = 64;
-    const boardRight = RenderSystem.sceneOffsetX + RenderSystem.sceneW;
-    const currentX = Position.x[eid] ?? 0;
-    Position.x[eid] = Math.min(currentX + tileSize, boardRight - tileSize / 2);
-
-    if (!entityExists(world.world, eid)) return;
-    const existingStun = hasComponent(world.world, Stunned, eid) ? Stunned.timer[eid]! : 0;
-    world.addComponent(eid, Stunned, { timer: Math.max(existingStun, 1.0) });
   }
 }

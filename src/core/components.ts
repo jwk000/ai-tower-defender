@@ -477,7 +477,7 @@ export const SpellEffect = defineComponent({
   elapsed: Types.f32,         // 已用时间
   radius: Types.f32,          // 效果半径
   damage: Types.f32,          // 伤害值
-  hasDealtDamage: Types.ui8,  // 是否已造成伤害
+  hasDealtDamage: Types.ui8,  // 已结算伤害次数（一次性法术为0/1，持续法术为tick数）
 });
 
 /** 敌人技能粒子特效：技能逻辑只创建此组件，表现由 EnemySkillParticleSystem 统一播放 */
