@@ -137,8 +137,8 @@ function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; alig
   return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> }).infos;
 }
 
-function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number }> {
-  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number }> }).imageDraws;
+function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number }> {
+  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number; z?: number }> }).imageDraws;
 }
 
 function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; alpha?: number }> {
@@ -462,6 +462,16 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       draw.layer === 'normal' &&
       draw.path === '/art/ui/ui_card_frame_common.png'
     ))).toBe(false);
+
+    const frameDraw = imageDrawsOf(ui).find((draw) => draw.path === '/art/ui/ui_card_frame_rare.png');
+    const contentRect = renderer.commands.find((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.color === '#0d1b2a' &&
+      cmd.size === 96 &&
+      cmd.h === 80
+    ));
+    expect(frameDraw?.alpha).toBe(1);
+    expect(frameDraw?.z).toBeGreaterThan(contentRect?.z ?? 0);
   });
 
   it('单位卡拖动 ghost 在美术资源可用时使用场景单位图片而不是卡牌外观', () => {

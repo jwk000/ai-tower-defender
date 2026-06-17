@@ -97,7 +97,7 @@ interface CardIconDraw {
 }
 
 interface UIImageDraw {
-  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice'; slice?: NineSliceInsets;
+  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice'; slice?: NineSliceInsets; z?: number;
 }
 
 interface HandCardDrawData {
@@ -759,7 +759,11 @@ export class UISystem implements System {
       ctx.restore();
     }
 
-    for (const image of this.imageDraws) {
+    const layerImages = this.imageDraws
+      .filter((image) => image.layer === layer)
+      .sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+
+    for (const image of layerImages) {
       if (image.layer !== layer || image.phase !== 'back') continue;
       ctx.save();
       ctx.globalAlpha = image.alpha ?? 1;
@@ -773,7 +777,7 @@ export class UISystem implements System {
       }
     }
 
-    for (const image of this.imageDraws) {
+    for (const image of layerImages) {
       if (image.layer !== layer || image.phase === 'back') continue;
       ctx.save();
       ctx.globalAlpha = image.alpha ?? 1;
@@ -963,6 +967,7 @@ export class UISystem implements System {
       phase: 'back',
       mode: 'nine-slice',
       slice: UI_HAND_PANEL_SLICE,
+      z: UI_Z.NORMAL_UI - 3,
     });
     this.renderer.push({
       shape: 'rect',
@@ -1115,7 +1120,7 @@ export class UISystem implements System {
       x: cardDraw.centerX, y: cardDraw.centerY,
       size: cardDraw.width, h: cardDraw.height,
       color: '#1a2332',
-      alpha: cardAlpha * 0.95,
+      alpha: cardAlpha * 0.35,
       stroke: borderColor, strokeWidth: cardDraw.progress > 0 ? 3 : 2,
       z: cardDraw.z,
     });
@@ -1126,7 +1131,8 @@ export class UISystem implements System {
       h: cardDraw.height,
       path: uiArtPath(`ui_card_frame_${config.rarity}`),
       layer: 'normal',
-      alpha: 0.92,
+      alpha: 1,
+      z: cardDraw.z + 6,
     });
 
     this.renderer.push({
@@ -2043,7 +2049,8 @@ export class UISystem implements System {
           h: cardH,
           path: uiArtPath(`ui_card_frame_${config.rarity}`),
           layer: 'fullscreen',
-          alpha: 0.92,
+          alpha: 1,
+          z: UI_Z.FULLSCREEN_UI + 6,
         });
       }
 
