@@ -3,7 +3,7 @@
 //
 // Handles 5 BOSS-specific mechanics per design/03-units.md §6:
 //   0 GiantSlime — split skill: giant → 2 medium → 4 small; only small death is real Boss death
-//   1 QueenWorm  — immune to towers, spawns 3 beetles/15s
+//   1 QueenWorm  — immune to towers, spawns 5 random insect units/10s
 //   2 Lucifer    — Chaos faction, spawns 3 skeletons/10s (cap 12), enrage <30% HP
 //   3 SuperRobot — missile bombardment at tower-dense area every 10s (2s warning)
 //   4 AbyssLord  — 5s annihilation (150px radius), heals 2% max HP per kill
@@ -24,6 +24,7 @@ import { ENEMY_TYPE_BY_ID } from '../data/gameData.js';
 import { Sound } from '../utils/Sound.js';
 import { getSummonSfx } from '../utils/audioKeys.js';
 import { MovementSystem } from './MovementSystem.js';
+import type { BossSkillAnnouncementSystem } from './BossSkillAnnouncementSystem.js';
 
 // ============================================================
 // Boss type enum
@@ -40,6 +41,68 @@ export type BossTypeVal = (typeof BossType)[keyof typeof BossType];
 
 const GIANT_SLIME_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.GiantSlime);
 const SKELETON_ENEMY_TYPE_NUM = ENEMY_TYPE_BY_ID.indexOf(EnemyType.Skeleton);
+const QUEENWORM_SUMMON_POOL = [
+  {
+    name: '沙漠黑虫',
+    hp: 40,
+    armor: 2,
+    magicResist: 0,
+    damage: 6,
+    attackSpeed: 1.5,
+    range: 20,
+    speed: 35,
+    rewardGold: 3,
+    layer: LayerVal.Ground,
+    shape: ShapeVal.Circle,
+    color: { r: 180, g: 120, b: 40 },
+    size: 14,
+  },
+  {
+    name: '钻地甲虫',
+    hp: 120,
+    armor: 10,
+    magicResist: 0,
+    damage: 15,
+    attackSpeed: 1.0,
+    range: 30,
+    speed: 40,
+    rewardGold: 12,
+    layer: LayerVal.Ground,
+    shape: ShapeVal.Circle,
+    color: { r: 121, g: 85, b: 72 },
+    size: 18,
+  },
+  {
+    name: '吸血蝗虫',
+    hp: 30,
+    armor: 0,
+    magicResist: 0,
+    damage: 10,
+    attackSpeed: 1.0,
+    range: 30,
+    speed: 25,
+    rewardGold: 4,
+    layer: LayerVal.LowAir,
+    shape: ShapeVal.Triangle,
+    color: { r: 175, g: 180, b: 43 },
+    size: 10,
+  },
+  {
+    name: '自爆甲虫',
+    hp: 50,
+    armor: 0,
+    magicResist: 0,
+    damage: 80,
+    attackSpeed: 1.0,
+    range: 60,
+    speed: 50,
+    rewardGold: 15,
+    layer: LayerVal.Ground,
+    shape: ShapeVal.Circle,
+    color: { r: 255, g: 87, b: 34 },
+    size: 12,
+  },
+] as const;
 
 // ============================================================
 // Bitecs queries
@@ -53,7 +116,10 @@ const allPositionedQuery = defineQuery([Position]);
 // Constants
 // ============================================================
 
-const QUEENWORM_SPAWN_INTERVAL = 15;   // seconds
+const QUEENWORM_SPAWN_INTERVAL = 10;   // seconds
+const QUEENWORM_SPAWN_COUNT = 5;
+const QUEENWORM_SKILL_NAME = '虫群孵化';
+const QUEENWORM_SKILL_DESCRIPTION = '每10秒在女王周围召唤5只随机虫族单位；塔仍无法锁定女王';
 const LUCIFER_SPAWN_INTERVAL_NORMAL = 10;
 const LUCIFER_SPAWN_INTERVAL_ENRAGE = 5;
 const LUCIFER_SKELETON_CAP = 12;
@@ -173,9 +239,9 @@ function spawnSkeletonBurrowDust(world: TowerWorld, x: number, y: number): void 
     radius: 46,
     targetX: x,
     targetY: y,
-    colorR: 150,
-    colorG: 105,
-    colorB: 56,
+    colorR: 38,
+    colorG: 34,
+    colorB: 30,
     seed: Math.random(),
   });
 }

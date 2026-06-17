@@ -512,9 +512,9 @@ describe('BossSystem — Lucifer (路西法)', () => {
     expect(dustEffects).toHaveLength(3);
     for (const effect of dustEffects) {
       expect(EnemySkillParticleEffect.radius[effect]).toBeGreaterThanOrEqual(46);
-      expect(EnemySkillParticleEffect.colorR[effect]).toBe(150);
-      expect(EnemySkillParticleEffect.colorG[effect]).toBe(105);
-      expect(EnemySkillParticleEffect.colorB[effect]).toBe(56);
+      expect(EnemySkillParticleEffect.colorR[effect]).toBe(38);
+      expect(EnemySkillParticleEffect.colorG[effect]).toBe(34);
+      expect(EnemySkillParticleEffect.colorB[effect]).toBe(30);
     }
   });
 
