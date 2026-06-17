@@ -18,10 +18,12 @@ import {
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { computeMissileParabola } from './AttackSystem.js';
 import { MAP_01 } from '../data/gameData.js';
+import { RenderSystem } from './RenderSystem.js';
 
 const MISSILE_TOWER_TYPE = 6;
 const FIRE_TOWER_TYPE = 7;
 const POISON_TOWER_TYPE = 8;
+const BALLISTA_TOWER_TYPE = 9;
 
 function addComp(world: BitecsWorld, eid: number, comp: object, values: Record<string, unknown>): void {
   addComponent(world, comp, eid);
@@ -121,6 +123,50 @@ function makeDotProjectile(
   addComp(w, id, Visual, {
     shape: 1, colorR: 255, colorG: 87, colorB: 34,
     size: 10, alpha: 1, outline: 0, hitFlashTimer: 0, idlePhase: 0,
+  });
+  addComp(w, id, Layer, { value: LayerVal.Ground });
+  return id;
+}
+
+function makeBallistaProjectile(
+  world: TowerWorld,
+  fromX: number,
+  fromY: number,
+  targetId: number,
+  sourceId: number,
+  speed: number = 600,
+): number {
+  const w = world.world;
+  const id = addEntity(w);
+  addComp(w, id, Position, { x: fromX, y: fromY });
+  addComp(w, id, Projectile, {
+    speed,
+    damage: 45,
+    damageType: DamageTypeVal.Physical,
+    targetId,
+    sourceId,
+    fromX,
+    fromY,
+    shape: 6,
+    colorR: 33,
+    colorG: 150,
+    colorB: 243,
+    size: 18,
+    splashRadius: 0,
+    stunDuration: 0,
+    slowPercent: 0,
+    slowMaxStacks: 0,
+    freezeDuration: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
+    sourceTowerType: BALLISTA_TOWER_TYPE,
+    dirX: 1,
+    dirY: 0,
+  });
+  addComp(w, id, Visual, {
+    shape: 6, colorR: 33, colorG: 150, colorB: 243,
+    size: 18, alpha: 1, outline: 0, hitFlashTimer: 0, idlePhase: 0,
   });
   addComp(w, id, Layer, { value: LayerVal.Ground });
   return id;
@@ -279,6 +325,83 @@ describe('ProjectileSystem — Splash friendly-fire guard', () => {
 
     expect(Health.current[sourceTowerId]).toBe(sourceHpBefore);
     expect(Health.current[enemy]).toBeLessThan(enemyHpBefore);
+  });
+});
+
+describe('ProjectileSystem — Ballista board-edge lifetime', () => {
+  it('弩箭使用屏幕棋盘边界，经过局部地图宽度后仍未到真实右边缘时不销毁', () => {
+    const originalX = RenderSystem.sceneOffsetX;
+    const originalY = RenderSystem.sceneOffsetY;
+    const originalW = RenderSystem.sceneW;
+    const originalH = RenderSystem.sceneH;
+    RenderSystem.sceneOffsetX = 300;
+    RenderSystem.sceneOffsetY = 120;
+    RenderSystem.sceneW = MAP_01.cols * MAP_01.tileSize;
+    RenderSystem.sceneH = MAP_01.rows * MAP_01.tileSize;
+
+    try {
+      const world = new TowerWorld();
+      const sys = new ProjectileSystem(MAP_01);
+      const tower = makeAlliedTower(world, RenderSystem.sceneOffsetX + 20, RenderSystem.sceneOffsetY + 160);
+      Attack.canTargetLowAir[tower] = 1;
+      const enemy = makeEnemy(world, RenderSystem.sceneOffsetX + 220, RenderSystem.sceneOffsetY + 160);
+      const projectile = makeBallistaProjectile(
+        world,
+        RenderSystem.sceneOffsetX + MAP_01.cols * MAP_01.tileSize - 30,
+        RenderSystem.sceneOffsetY + 160,
+        enemy,
+        tower,
+        600,
+      );
+
+      sys.update(world, 1 / 60);
+      world.cleanupDeadEntities();
+
+      expect(Position.x[projectile]).toBeGreaterThan(MAP_01.cols * MAP_01.tileSize + 60);
+      expect(Position.x[projectile]).toBeLessThan(RenderSystem.sceneOffsetX + RenderSystem.sceneW + 60);
+      expect(hasComponent(world.world, Projectile, projectile)).toBe(true);
+    } finally {
+      RenderSystem.sceneOffsetX = originalX;
+      RenderSystem.sceneOffsetY = originalY;
+      RenderSystem.sceneW = originalW;
+      RenderSystem.sceneH = originalH;
+    }
+  });
+
+  it('弩箭飞出真实棋盘边缘后销毁', () => {
+    const originalX = RenderSystem.sceneOffsetX;
+    const originalY = RenderSystem.sceneOffsetY;
+    const originalW = RenderSystem.sceneW;
+    const originalH = RenderSystem.sceneH;
+    RenderSystem.sceneOffsetX = 300;
+    RenderSystem.sceneOffsetY = 120;
+    RenderSystem.sceneW = MAP_01.cols * MAP_01.tileSize;
+    RenderSystem.sceneH = MAP_01.rows * MAP_01.tileSize;
+
+    try {
+      const world = new TowerWorld();
+      const sys = new ProjectileSystem(MAP_01);
+      const tower = makeAlliedTower(world, RenderSystem.sceneOffsetX + 20, RenderSystem.sceneOffsetY + 160);
+      const enemy = makeEnemy(world, RenderSystem.sceneOffsetX + 220, RenderSystem.sceneOffsetY + 160);
+      const projectile = makeBallistaProjectile(
+        world,
+        RenderSystem.sceneOffsetX + RenderSystem.sceneW + 55,
+        RenderSystem.sceneOffsetY + 160,
+        enemy,
+        tower,
+        600,
+      );
+
+      sys.update(world, 1 / 60);
+      world.cleanupDeadEntities();
+
+      expect(hasComponent(world.world, Projectile, projectile)).toBe(false);
+    } finally {
+      RenderSystem.sceneOffsetX = originalX;
+      RenderSystem.sceneOffsetY = originalY;
+      RenderSystem.sceneW = originalW;
+      RenderSystem.sceneH = originalH;
+    }
   });
 });
 

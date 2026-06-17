@@ -30,6 +30,7 @@ import { DamageNumberStyle } from '../core/components.js';
 import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
 import { AttackSystem } from './AttackSystem.js';
 import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
+import { RenderSystem } from './RenderSystem.js';
 
 // ============================================================
 // Queries
@@ -196,10 +197,12 @@ export class ProjectileSystem implements System {
         Position.x[eid] = newX;
         Position.y[eid] = newY;
 
-        // Check map edge bounds (with generous margin)
-        const mapW = this.map.cols * this.map.tileSize;
-        const mapH = this.map.rows * this.map.tileSize;
-        if (newX < -60 || newX > mapW + 60 || newY < -60 || newY > mapH + 60) {
+        // Check board edge bounds in the same screen-space coordinates used by entities.
+        const boardX = RenderSystem.sceneOffsetX;
+        const boardY = RenderSystem.sceneOffsetY;
+        const boardW = RenderSystem.sceneW || this.map.cols * this.map.tileSize;
+        const boardH = RenderSystem.sceneH || this.map.rows * this.map.tileSize;
+        if (newX < boardX - 60 || newX > boardX + boardW + 60 || newY < boardY - 60 || newY > boardY + boardH + 60) {
           this.ballistaHits.delete(eid);
           world.destroyEntity(eid);
           continue;
