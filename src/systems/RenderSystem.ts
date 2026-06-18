@@ -2473,14 +2473,6 @@ export class RenderSystem implements System {
         }
         break;
       }
-      // ── Ballista (9): slow metallic gear particles rotating ──
-      case 9: {
-        for (let i = 0; i < 2; i++) {
-          const angle = t * 1.2 + i * Math.PI;
-          this.renderer.push({ shape: 'circle', x: posX + Math.cos(angle) * 18, y: posY + Math.sin(angle) * 14, size: 3, color: '#90a4ae', alpha: 0.45, z: renderZ + 1 });
-        }
-        break;
-      }
       // ── Cannon (1): smoke puffs from barrel ──
       case 1: {
         for (let i = 0; i < 3; i++) {
