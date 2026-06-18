@@ -129,6 +129,12 @@ const CD_BAR_GAP = 1;
 const CD_BAR_COLOR = '#2196f3';
 const ARROW_PROJECTILE_FX_PATH = '/art/fx/fx_arrow_projectile.png';
 const BALLISTA_BOLT_FX_PATH = '/art/fx/fx_ballista_bolt.png';
+const TOWER_PROJECTILE_FX_PATHS: Partial<Record<number, string>> = {
+  1: '/art/fx/fx_cannonball_projectile.png',
+  2: '/art/fx/fx_ice_crystal_projectile.png',
+  7: '/art/fx/fx_fireball_projectile.png',
+  8: '/art/fx/fx_poison_projectile.png',
+};
 const MISSILE_PROJECTILE_FX_PATH = '/art/fx/fx_missile_projectile.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
@@ -156,6 +162,26 @@ export function applyArrowProjectileArt(
   extras.imageSource = arrowFx.source ?? undefined;
   extras.size = Math.max(drawSize * 1.7, 36);
   extras.h = (extras.size as number) * (arrowFx.height / arrowFx.width);
+}
+
+export function applyTowerProjectileArt(
+  sourceTowerType: number,
+  shape: ShapeType,
+  drawSize: number,
+  extras: Partial<Parameters<Renderer['push']>[0]>,
+  loadFrame: (path: string) => LoadedArtFrame | null = getLoadedImageFrame,
+): ShapeType {
+  const fxPath = TOWER_PROJECTILE_FX_PATHS[sourceTowerType];
+  if (!fxPath) return shape;
+
+  const fx = loadFrame(fxPath);
+  if (!fx) return shape;
+
+  extras.image = fx.image;
+  extras.imageSource = fx.source ?? undefined;
+  extras.size = Math.max(drawSize * 1.8, 32);
+  extras.h = (extras.size as number) * (fx.height / fx.width);
+  return 'rect';
 }
 
 export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
@@ -1489,6 +1515,7 @@ export class RenderSystem implements System {
           }
           // 箭塔箭矢：AI 贴图主体；贴图未加载时回退到几何箭矢。
           applyArrowProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
+          shape = applyTowerProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
           // 弩箭：AI 贴图主体；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
             const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);

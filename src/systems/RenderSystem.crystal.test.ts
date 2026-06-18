@@ -21,7 +21,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { applyArrowProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
+import { applyArrowProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
@@ -282,6 +282,47 @@ describe('RenderSystem — 水晶显示', () => {
     }));
 
     expect(extras).toEqual({});
+  });
+
+  it('普通塔弹体优先使用对应图片资源绘制', () => {
+    const image = {} as HTMLImageElement;
+    const cases = [
+      { sourceTowerType: 1, path: '/art/fx/fx_cannonball_projectile.png', shape: 'circle' as const },
+      { sourceTowerType: 2, path: '/art/fx/fx_ice_crystal_projectile.png', shape: 'diamond' as const },
+      { sourceTowerType: 7, path: '/art/fx/fx_fireball_projectile.png', shape: 'circle' as const },
+      { sourceTowerType: 8, path: '/art/fx/fx_poison_projectile.png', shape: 'circle' as const },
+    ];
+
+    for (const c of cases) {
+      const extras: Partial<RenderCommand> = {};
+      const shape = applyTowerProjectileArt(c.sourceTowerType, c.shape, 18, extras, (path) => {
+        expect(path).toBe(c.path);
+        return {
+          image,
+          source: null,
+          width: 256,
+          height: 256,
+          path,
+        };
+      });
+
+      expect(shape).toBe('rect');
+      expect(extras).toEqual(expect.objectContaining({
+        image,
+        imageSource: undefined,
+        size: 32.4,
+        h: 32.4,
+      }));
+    }
+  });
+
+  it('普通塔弹体图片缺失时保留原几何形状回退', () => {
+    const extras: Partial<RenderCommand> = {};
+
+    const shape = applyTowerProjectileArt(7, 'circle', 18, extras, () => null);
+
+    expect(shape).toBe('circle');
+    expect(extras.image).toBeUndefined();
   });
 
   it('炮塔图片缺失时不回退绘制程序化主体和炮管', () => {
