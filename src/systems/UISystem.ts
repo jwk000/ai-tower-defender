@@ -12,7 +12,7 @@ import { TowerWorld, type System, defineQuery, hasComponent } from '../core/Worl
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS } from '../data/gameData.js';
-import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type UnitVisualParts } from '../types/index.js';
+import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type TowerConfig, type UnitVisualParts } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { FONTS, getFont } from '../config/fonts.js';
 import { formatNumber } from '../utils/formatNumber.js';
@@ -276,6 +276,87 @@ function resolveSpellPreviewMeta(spellCardId: string): {
   const fallback = SPELL_DRAG_PREVIEW_FALLBACKS[normalizeSpellPreviewId(spellCardId)];
   if (fallback) return fallback;
   return { name: '法术', subtype: undefined, radius: undefined };
+}
+
+function readTowerLevelValue(values: readonly number[] | undefined, level: number, fallback: number): number {
+  return values?.[level - 1] ?? fallback;
+}
+
+function pushNumericChange(lines: string[], label: string, current: number, next: number, digits = 0): void {
+  if (Math.abs(next - current) < 0.0001) return;
+  const format = (value: number) => digits > 0 ? value.toFixed(digits) : String(Math.round(value));
+  const delta = next - current;
+  const deltaText = `${delta > 0 ? '+' : ''}${format(delta)}`;
+  lines.push(`${label} ${format(current)}→${format(next)} (${deltaText})`);
+}
+
+function buildNextTowerUpgradeDescriptions(
+  config: TowerConfig,
+  level: number,
+  currentAtk: number,
+  currentRange: number,
+  currentAtkSpeed: number,
+): string[] {
+  if (level >= config.upgradeCosts.length + 1) return ['已满级'];
+
+  const costIdx = level - 1;
+  const nextLevel = level + 1;
+  const lines: string[] = [];
+
+  pushNumericChange(lines, '攻击', currentAtk, currentAtk + (config.upgradeAtkBonus[costIdx] ?? 0));
+  pushNumericChange(lines, '范围', currentRange, currentRange + (config.upgradeRangeBonus[costIdx] ?? 0));
+
+  if (config.type === TowerType.Bat) {
+    pushNumericChange(
+      lines,
+      '蝙蝠数',
+      readTowerLevelValue(config.batCountByLevel, level, config.batCount ?? 0),
+      readTowerLevelValue(config.batCountByLevel, nextLevel, config.batCount ?? 0),
+    );
+    pushNumericChange(
+      lines,
+      '蝙蝠ATK',
+      readTowerLevelValue(config.batDamageByLevel, level, config.batDamage ?? currentAtk),
+      readTowerLevelValue(config.batDamageByLevel, nextLevel, config.batDamage ?? currentAtk),
+    );
+    pushNumericChange(
+      lines,
+      '蝙蝠射程',
+      readTowerLevelValue(config.batAttackRangeByLevel, level, config.batAttackRange ?? currentRange),
+      readTowerLevelValue(config.batAttackRangeByLevel, nextLevel, config.batAttackRange ?? currentRange),
+    );
+    pushNumericChange(
+      lines,
+      '蝙蝠攻速',
+      readTowerLevelValue(config.batAttackSpeedByLevel, level, config.batAttackSpeed ?? currentAtkSpeed),
+      readTowerLevelValue(config.batAttackSpeedByLevel, nextLevel, config.batAttackSpeed ?? currentAtkSpeed),
+      1,
+    );
+  }
+
+  if (config.projectileCount) {
+    pushNumericChange(
+      lines,
+      '弹体数',
+      readTowerLevelValue(config.projectileCount, level, config.projectileCount[0] ?? 1),
+      readTowerLevelValue(config.projectileCount, nextLevel, config.projectileCount[0] ?? 1),
+    );
+  }
+
+  if (config.chainCountByLevel) {
+    pushNumericChange(
+      lines,
+      '弹跳数',
+      readTowerLevelValue(config.chainCountByLevel, level, config.chainCount ?? 0),
+      readTowerLevelValue(config.chainCountByLevel, nextLevel, config.chainCount ?? 0),
+    );
+  }
+
+  if (config.type === TowerType.Lightning && nextLevel >= 5 && config.lightningStormCooldown && config.lightningStormDamage) {
+    lines.push(`解锁天罚落雷 ${config.lightningStormDamage}/${config.lightningStormCooldown}s`);
+  }
+
+  return lines.length > 0 ? lines : ['基础属性提升'];
 }
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
@@ -615,12 +696,14 @@ export class UISystem implements System {
     const gold = this.getGold();
     const canAfford = gold >= upgradeCost;
 
+    const nextUpgradeDescriptions = buildNextTowerUpgradeDescriptions(config, level, atk, range, atkSpeed).slice(0, 3);
+
     // Refund info
     const refund = this.getRefundQuote?.(id);
 
     // Panel layout — above the tower
-    const panelW = 200;
-    const panelH = 180;
+    const panelW = 240;
+    const panelH = 220;
     const towerX = Position.x[id] ?? 0;
     const towerY = Position.y[id] ?? 0;
 
@@ -674,9 +757,27 @@ export class UISystem implements System {
       size: 13,
       layer: 'board',
     });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 114,
+      text: '下级变化:',
+      color: '#ffd54f',
+      size: 13,
+      layer: 'board',
+    });
+    nextUpgradeDescriptions.forEach((text, index) => {
+      this.infos.push({
+        x: panelLeft + 15,
+        y: panelY + 134 + index * 16,
+        text,
+        color: canUpgrade ? '#cfd8dc' : '#9e9e9e',
+        size: 12,
+        layer: 'board',
+      });
+    });
 
     // Upgrade button — green
-    const btnW = 85;
+    const btnW = 105;
     const btnH = 32;
     const btnY = panelY + panelH - 50;
 

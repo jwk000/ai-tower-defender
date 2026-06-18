@@ -320,6 +320,41 @@ describe('UISystem UI 层级', () => {
     expect((titleInfo as { layer?: string }).layer).toBe('board');
   });
 
+  it('塔升级面板显示下一级属性和机制变化', () => {
+    const ui = makeUISystem(new RendererStub(), 0);
+    const world = new TowerWorld();
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 1 });
+    world.addComponent(towerId, Attack, { damage: 10, range: 200, attackSpeed: 1 });
+
+    ui.selectedTowerEntityId = towerId;
+    ui.update(world, 1 / 60);
+
+    const texts = infosOf(ui).map((info) => info.text);
+    expect(texts).toContain('下级变化:');
+    expect(texts).toContain('攻击 10→15 (+5)');
+    expect(texts).toContain('范围 200→220 (+20)');
+    expect(texts).toContain('弹体数 1→2 (+1)');
+  });
+
+  it('满级塔升级面板显示已满级，不再显示下级变化数值', () => {
+    const ui = makeUISystem(new RendererStub(), 0);
+    const world = new TowerWorld();
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 3 });
+    world.addComponent(towerId, Attack, { damage: 33, range: 260, attackSpeed: 1 });
+
+    ui.selectedTowerEntityId = towerId;
+    ui.update(world, 1 / 60);
+
+    const texts = infosOf(ui).map((info) => info.text);
+    expect(texts).toContain('下级变化:');
+    expect(texts).toContain('已满级');
+    expect(texts).not.toContain('弹体数 3→3 (+0)');
+  });
+
   it('抽卡面板作为全屏 UI 重绘在普通 UI 与塔升级面板之上', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
