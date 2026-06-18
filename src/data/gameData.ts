@@ -152,11 +152,11 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     attackSpeed: 1.0,
     range: 200,
     damageType: 'physical',
-    // L2: 低成本稳定成长；L3: 双箭质变。
+    // L1/L2/L3: 逐级提升为 1/2/3 箭，可锁不同目标。
     upgradeCosts: [40, 360],
     upgradeAtkBonus: [5, 18],
     upgradeRangeBonus: [20, 40],
-    projectileCount: [1, 1, 2],
+    projectileCount: [1, 2, 3],
     color: '#4fc3f7',
     buildTime: 1.5,
     canTargetLowAir: true,

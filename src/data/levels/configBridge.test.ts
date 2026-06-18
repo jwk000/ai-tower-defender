@@ -114,7 +114,7 @@ describe('unit config bridge', () => {
         targetSelection: 'nearest',
         attackMode: 'single_target',
         movementMode: 'hold_position',
-        special: { projectileCount: [1, 1, 2] },
+        special: { projectileCount: [1, 2, 3] },
       },
     });
     registerConfig({
@@ -138,7 +138,7 @@ describe('unit config bridge', () => {
 
     expect(TOWER_CONFIGS[TowerType.Arrow].upgradeCosts).toEqual([40, 360]);
     expect(TOWER_CONFIGS[TowerType.Arrow].upgradeAtkBonus).toEqual([5, 18]);
-    expect(TOWER_CONFIGS[TowerType.Arrow].projectileCount).toEqual([1, 1, 2]);
+    expect(TOWER_CONFIGS[TowerType.Arrow].projectileCount).toEqual([1, 2, 3]);
     expect(TOWER_CONFIGS[TowerType.Arrow].upgradeCosts).toHaveLength(2);
 
     expect(TOWER_CONFIGS[TowerType.Missile].damageType).toBe('true');

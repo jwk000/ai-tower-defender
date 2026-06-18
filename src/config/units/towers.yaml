@@ -39,7 +39,7 @@ arrow_tower:
     attackMode: single_target
     movementMode: hold_position
     special:
-      projectileCount: [1, 1, 2]
+      projectileCount: [1, 2, 3]
 
   lifecycle:
     onDeath:

@@ -734,18 +734,22 @@ describe('AttackSystem — 配置驱动攻击音效', () => {
     ruleEngine.reset();
   });
 
-  it('箭塔 L3 按 projectileCount 同时射向两个不同敌人', () => {
+  it.each([
+    { level: 1, damage: 10, range: 200, expectedTargets: 1 },
+    { level: 2, damage: 15, range: 220, expectedTargets: 2 },
+    { level: 3, damage: 33, range: 260, expectedTargets: 3 },
+  ])('箭塔 L$level 按 projectileCount 同时射向 $expectedTargets 个目标', ({ level, damage, range, expectedTargets }) => {
     vi.spyOn(Sound, 'play').mockImplementation(() => {});
     const towerId = world.createEntity();
     world.addComponent(towerId, Position, { x: 0, y: 0 });
     world.addComponent(towerId, Faction, { value: FactionVal.Justice });
     world.addComponent(towerId, Layer, { value: LayerVal.Ground });
-    world.addComponent(towerId, Tower, { towerType: 0, level: 3, totalInvested: 470 });
+    world.addComponent(towerId, Tower, { towerType: 0, level, totalInvested: 70 });
     world.addComponent(towerId, Attack, {
-      damage: 33,
+      damage,
       attackSpeed: 1,
-      range: 260,
-      alertRange: 520,
+      range,
+      alertRange: range * 2,
       damageType: DamageTypeVal.Physical,
       cooldownTimer: 0,
       targetId: 0,
@@ -760,14 +764,17 @@ describe('AttackSystem — 配置驱动攻击音效', () => {
     });
     world.addComponent(towerId, Health, { current: 1800, max: 1800, armor: 0, magicResist: 0 });
 
-    const near = makeAttackable(world, 80, 0, FactionVal.Evil, 100);
-    const far = makeAttackable(world, 120, 0, FactionVal.Evil, 100);
+    const targets = [
+      makeAttackable(world, 80, 0, FactionVal.Evil, 100),
+      makeAttackable(world, 120, 0, FactionVal.Evil, 100),
+      makeAttackable(world, 160, 0, FactionVal.Evil, 100),
+    ];
 
     new AttackSystem().update(world, 1 / 60);
 
     const projectiles = projectileQuery(world.world);
-    expect(projectiles).toHaveLength(2);
-    expect(projectiles.map((eid) => Projectile.targetId[eid])).toEqual([near, far]);
+    expect(projectiles).toHaveLength(expectedTargets);
+    expect(projectiles.map((eid) => Projectile.targetId[eid])).toEqual(targets.slice(0, expectedTargets));
   });
 
   it('塔成功开火时派发 onAttack 并播放 YAML 配置的音效', () => {
