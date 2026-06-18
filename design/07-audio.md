@@ -155,11 +155,11 @@
 | `skill_whirlwind` | 旋风斩 | 旋转扫掠 + 风声 | OGG + Synth |
 | `skill_fireball` | 火球术 | 火焰爆发 | OGG + Synth |
 | `skill_arrow_rain` | 剑雨 | 箭矢齐发呼啸 | OGG + Synth |
-| `skill_blizzard` | 暴风雪 | 寒风呼啸 | OGG + Synth |
+| `skill_blizzard` | 暴风雪 | 持续过程的大风呼啸，与冷雾覆盖同步 | OGG + Synth |
 | `skill_bomb` | 炸弹 | 计时滴答 + 爆炸 | OGG + Synth |
 | `skill_earthquake` | 大地裂变 | 持续低频地震隆隆声 + 地面开裂 | OGG + Synth |
 
-剑雨分两波落剑结算伤害，每一波箭矢扎地并造成伤害的同帧播放一次 `skill_arrow_rain`，让两次伤害飘字与音频反馈同步。
+剑雨分两波落剑结算伤害，每一波箭矢扎地并造成伤害的同帧播放一次 `skill_arrow_rain`，让两次伤害飘字与音频反馈同步。暴风雪全局持续效果创建时播放一次 `skill_blizzard`，作为 5 秒冷雾覆盖期间的大风底音，不再使用短促的 `ice_hit` 替代。
 
 ### 2.10 自施法技能音效
 

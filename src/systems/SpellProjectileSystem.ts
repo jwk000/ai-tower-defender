@@ -909,7 +909,7 @@ export class SpellProjectileSystem implements System {
       elapsed: 0,
       frequency: spellType === SPELL_BLIZZARD ? 26 : 20,
     });
-    Sound.play(spellType === SPELL_BLIZZARD ? 'ice_hit' : 'skill_earthquake');
+    Sound.play(spellType === SPELL_BLIZZARD ? 'skill_blizzard' : 'skill_earthquake');
   }
 
   private updateEarthquakeDamage(world: TowerWorld, effectId: number, x: number, y: number, radius: number): void {

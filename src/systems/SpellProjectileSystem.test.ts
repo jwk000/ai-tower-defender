@@ -306,6 +306,7 @@ describe('SpellProjectileSystem', () => {
     const { renderer, commands } = makeRenderer();
     const world = new TowerWorld();
     const system = new SpellProjectileSystem(renderer);
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
     reserveEntityZero(world);
     RenderSystem.sceneOffsetX = 100;
     RenderSystem.sceneOffsetY = 80;
@@ -321,6 +322,8 @@ describe('SpellProjectileSystem', () => {
     const allyStartX = Position.x[allySoldier]!;
 
     system.spawnGlobalEffect(world, 2, 45, 5);
+    expect(playSpy).toHaveBeenCalledOnce();
+    expect(playSpy).toHaveBeenCalledWith('skill_blizzard');
 
     system.update(world, 0.1);
     expect(Health.current[enemyA]).toBe(255);
