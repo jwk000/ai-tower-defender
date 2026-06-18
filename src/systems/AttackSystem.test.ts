@@ -734,6 +734,42 @@ describe('AttackSystem — 配置驱动攻击音效', () => {
     ruleEngine.reset();
   });
 
+  it('箭塔 L3 按 projectileCount 同时射向两个不同敌人', () => {
+    vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 0, y: 0 });
+    world.addComponent(towerId, Faction, { value: FactionVal.Justice });
+    world.addComponent(towerId, Layer, { value: LayerVal.Ground });
+    world.addComponent(towerId, Tower, { towerType: 0, level: 3, totalInvested: 470 });
+    world.addComponent(towerId, Attack, {
+      damage: 33,
+      attackSpeed: 1,
+      range: 260,
+      alertRange: 520,
+      damageType: DamageTypeVal.Physical,
+      cooldownTimer: 0,
+      targetId: 0,
+      targetSelection: 0,
+      attackMode: 0,
+      isRanged: 1,
+      canTargetLowAir: 1,
+      splashRadius: 0,
+      chainCount: 0,
+      chainRange: 0,
+      chainDecay: 0,
+    });
+    world.addComponent(towerId, Health, { current: 1800, max: 1800, armor: 0, magicResist: 0 });
+
+    const near = makeAttackable(world, 80, 0, FactionVal.Evil, 100);
+    const far = makeAttackable(world, 120, 0, FactionVal.Evil, 100);
+
+    new AttackSystem().update(world, 1 / 60);
+
+    const projectiles = projectileQuery(world.world);
+    expect(projectiles).toHaveLength(2);
+    expect(projectiles.map((eid) => Projectile.targetId[eid])).toEqual([near, far]);
+  });
+
   it('塔成功开火时派发 onAttack 并播放 YAML 配置的音效', () => {
     const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
     const towerId = world.createEntity();
