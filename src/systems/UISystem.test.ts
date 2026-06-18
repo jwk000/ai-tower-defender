@@ -482,6 +482,29 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(true);
   });
 
+  it('手牌 registry 返回旧形态半截配置时不因缺少 id 崩溃', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    world.attachRunContext({
+      registry: {
+        get: () => ({
+          name: '箭塔',
+          type: 'unit',
+          energyCost: 0,
+          goldCost: 70,
+          rarity: 'common',
+          description: '基础单体物理输出',
+          placement: { targetType: 'tile' },
+        }),
+      },
+      hand: { state: { hand: [{ cardId: 'card_arrow_tower' }] } },
+    });
+
+    expect(() => ui.update(world, 1 / 60)).not.toThrow();
+    expect(cardIconDrawsOf(ui).some((draw) => draw.cardId === 'card_arrow_tower')).toBe(true);
+  });
+
   it('单位卡拖动 ghost 在美术资源可用时使用场景单位图片而不是卡牌外观', () => {
     vi.stubGlobal('Image', LoadedImage);
     vi.stubGlobal('fetch', undefined);

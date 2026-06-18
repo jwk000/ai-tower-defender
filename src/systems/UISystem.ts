@@ -134,7 +134,7 @@ function getHandCardCategory(card: CardConfig): HandCardCategory {
   if (card.type === 'spell') return 'spell';
   if (card.type === 'trap') return 'trap';
   const id = card.unitConfigId ?? card.id;
-  if (id.includes('_tower')) return 'tower';
+  if (typeof id === 'string' && id.includes('_tower')) return 'tower';
   return 'soldier';
 }
 

@@ -73,11 +73,12 @@ import { Sound } from './utils/Sound.js';
 import { normalizeSfxKey } from './utils/Sound.js';
 import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
 import { resolveCardConfig } from './utils/cardConfigResolver.js';
+import { systemCrashed } from './utils/debugLog.js';
 import { preloadArtAtlasIndex, preloadArtAtlases } from './utils/imageCache.js';
 import { preloadLevelAssets } from './utils/levelAssetPreloader.js';
 import { hexToRgb } from './utils/visualHelpers.js';
 import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
-import type { CardRarity } from './config/cardRegistry.js';
+import type { CardConfig, CardType } from './config/cardRegistry.js';
 
 // ---- bitecs component stores ----
 import {
@@ -692,16 +693,18 @@ class TowerDefenderGame extends Game {
 
     // ---- Create RunContext for UISystem ----
     // UISystem expects runContext with hand, energy, registry, deck
-    const cardRegistry = new Map<string, { type: string; rarity: CardRarity; energyCost: number; goldCost: number; name: string; description: string }>();
-    const toUiCardConfig = (card: { id: string; type: string; goldCost: number; name: string; description: string }) => {
+    const cardRegistry = new Map<string, CardConfig>();
+    const toUiCardConfig = (card: { id: string; type: CardType; goldCost: number; name: string; description: string }): CardConfig => {
       const staticConfig = resolveCardConfig(card.id);
-      return {
+      return staticConfig ?? {
+        id: card.id,
         type: card.type,
-        rarity: staticConfig?.rarity ?? 'common',
-        energyCost: staticConfig?.energyCost ?? 0,
+        rarity: 'common',
+        energyCost: 0,
         goldCost: card.goldCost,
         name: card.name,
         description: card.description,
+        placement: { targetType: 'tile' },
       };
     };
     for (const card of initialPool) {
@@ -1194,7 +1197,12 @@ class TowerDefenderGame extends Game {
       }
       this.debugManager.update();
       for (const sys of this.world.systems) {
-        sys.update(this.world, dt);
+        try {
+          sys.update(this.world, dt);
+        } catch (err) {
+          systemCrashed(sys.name, err);
+          throw new Error(`System "${sys.name}" crashed: ${String(err)}`);
+        }
       }
       this.world.cleanupDeadEntities();
     };
