@@ -14,6 +14,7 @@ import {
 import type { Renderer } from '../render/Renderer.js';
 import type { RenderCommand } from '../types/index.js';
 import { clearDamageObservers, registerDamageObserver } from '../utils/damageUtils.js';
+import { clearArtAtlasRegistryForTests, registerArtAtlasManifest } from '../utils/imageCache.js';
 import { Sound } from '../utils/Sound.js';
 import { RenderSystem } from './RenderSystem.js';
 import { SpellProjectileSystem } from './SpellProjectileSystem.js';
@@ -90,6 +91,8 @@ function makeProjectile(world: TowerWorld, spellType: number, duration: number):
 describe('SpellProjectileSystem', () => {
   beforeEach(() => {
     clearDamageObservers();
+    clearArtAtlasRegistryForTests();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -174,7 +177,7 @@ describe('SpellProjectileSystem', () => {
     expect(playSpy).toHaveBeenLastCalledWith('skill_arrow_rain');
   });
 
-  it('renders arrow rain and blizzard with particle commands only', () => {
+  it('renders blizzard with particle commands only while arrow rain keeps art fallback-safe arrows', () => {
     const { renderer, commands } = makeRenderer();
     const world = new TowerWorld();
     const system = new SpellProjectileSystem(renderer);
@@ -187,6 +190,30 @@ describe('SpellProjectileSystem', () => {
     expect(commands.some((cmd) => cmd.image)).toBe(false);
     expect(commands.some((cmd) => cmd.shape === 'arrow')).toBe(true);
     expect(commands.some((cmd) => cmd.shape === 'diamond')).toBe(true);
+  });
+
+  it('renders arrow rain arrows with AI art when the sprite is loaded', () => {
+    const { renderer, commands } = makeRenderer();
+    const world = new TowerWorld();
+    const system = new SpellProjectileSystem(renderer);
+    const image = { complete: true, naturalWidth: 256, naturalHeight: 42 } as unknown as HTMLImageElement;
+    vi.stubGlobal('Image', vi.fn(() => image));
+    registerArtAtlasManifest({
+      id: 'fx_objectives',
+      image: '/art/atlases/global/fx_objectives.png',
+      frames: {
+        '/art/fx/fx_arrow_rain_arrow.png': { x: 0, y: 0, w: 256, h: 42 },
+      },
+    });
+    makeProjectile(world, 1, 0.5);
+
+    system.update(world, 0.4);
+
+    const artArrows = commands.filter((cmd) => cmd.shape === 'arrow' && cmd.image);
+    expect(artArrows.length).toBeGreaterThan(0);
+    expect(artArrows.every((cmd) => cmd.imageSource?.w === 256 && cmd.imageSource?.h === 42)).toBe(true);
+    expect(artArrows.every((cmd) => cmd.h !== undefined && cmd.h < cmd.size)).toBe(true);
+    expect(artArrows.every((cmd) => (cmd.targetX ?? cmd.x) > cmd.x && (cmd.targetY ?? cmd.y) > cmd.y)).toBe(true);
   });
 
   it('renders arrow rain as slim red diagonal arrows with trails in both waves', () => {

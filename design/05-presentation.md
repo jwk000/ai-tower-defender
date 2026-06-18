@@ -557,6 +557,7 @@ Abyss（深渊层）    — 最低，预留
 | ballista bolt | 弩塔专用 arrow 外观：优先使用 AI 生成贴图 `public/art/fx/fx_ballista_bolt.png` 作为 60px 弩矢主体，不叠加程序化发光或破空线；贴图未加载时才回退为纯程序化几何弩矢；贴图素材默认箭头朝左，运行时旋转时额外翻转 180°，方向锁定为发射方向，不随命中目标反转 |
 | 普通 projectile | 按 `Projectile` 组件位置绘制基础几何体，颜色/尺寸来自塔类型配置 |
 | missile | 导弹塔专用 AI 贴图主体 `public/art/fx/fx_missile_projectile.png`，按 `Visual.idlePhase` 旋转并叠加橙红脉冲光晕、蓝色尾焰；贴图未加载时回退为原程序化黑色机身+红色菱形弹头 |
+| arrow rain arrow | 剑雨每支下落箭矢主体使用 AI 生成透明贴图 `public/art/fx/fx_arrow_rain_arrow.png`，按落点方向旋转；贴图未加载时回退为程序 arrow 几何形状，浅红拖尾、落地尘圈和区域冲击环保持程序绘制 |
 | beam/laser | `LaserBeamSystem` 在 post-render 中补绘持续光束 |
 | lightning | `LightningBoltSystem` 在 post-render 中补绘闪电线 |
 | spell projectile | `SpellProjectileSystem` 管理法术弹道表现 |

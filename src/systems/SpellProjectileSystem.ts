@@ -18,7 +18,9 @@ import {
   Tower,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
+import { arrowRainArrowArtPath } from '../utils/artAssets.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
+import { getLoadedImageFrame } from '../utils/imageCache.js';
 import { Sound } from '../utils/Sound.js';
 import { RenderSystem } from './RenderSystem.js';
 
@@ -34,6 +36,8 @@ const ARROW_RAIN_WAVE_FALL_TIME = 0.24;
 const ARROW_RAIN_ARROW_COLOR = '#d32f2f';
 const ARROW_RAIN_ARROW_TAIL = 'rgba(211, 47, 47, 0)';
 const ARROW_RAIN_TRAIL_COLOR = '#ffcdd2';
+const ARROW_RAIN_ARROW_ART_PATH = arrowRainArrowArtPath();
+const ARROW_RAIN_ARROW_ART_ASPECT = 42 / 256;
 
 const projectileQuery = defineQuery([SpellProjectile, Position]);
 const effectQuery = defineQuery([SpellEffect, Position]);
@@ -801,6 +805,26 @@ export class SpellProjectileSystem implements System {
       rotation: angle + Math.PI / 2,
       z: z - 1,
     });
+
+    const arrowArt = getLoadedImageFrame(ARROW_RAIN_ARROW_ART_PATH);
+    if (arrowArt) {
+      this.renderer.push({
+        shape: 'arrow',
+        x,
+        y,
+        targetX,
+        targetY,
+        size: size * 2.25,
+        h: size * 2.25 * ARROW_RAIN_ARROW_ART_ASPECT,
+        color: ARROW_RAIN_ARROW_COLOR,
+        image: arrowArt.image,
+        imageSource: arrowArt.source ?? undefined,
+        alpha,
+        z,
+      });
+      return;
+    }
+
     this.renderer.push({
       shape: 'arrow',
       x,

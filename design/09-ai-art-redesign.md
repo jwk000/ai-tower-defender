@@ -303,6 +303,7 @@ dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}
 |------|------|------------|
 | 火焰爆发 | 火球术、火塔、灼烧 | `orange red fire explosion ring, ember particles, transparent background` |
 | 箭雨落点 | 剑雨、箭塔强化 | `multiple arrow impact streaks, sharp white motion trails, transparent background` |
+| 剑雨单箭 | 剑雨每支下落箭矢 | `single slim red fantasy arrow, metallic arrowhead, thin shaft, side-on sprite, transparent background` |
 | 冰霜爆发 | 冰塔、暴风雪、冻结 | `blue white frost burst, ice shard circle, snow mist, transparent background` |
 | 黑铁爆炸 | 炮塔、炸弹、导弹 | `dark smoke and orange blast, chunky stylized explosion, transparent background` |
 | 毒雾 | 毒塔、中毒、腐蚀 | `sickly green poison cloud, bubbling droplets, soft edge transparent background` |

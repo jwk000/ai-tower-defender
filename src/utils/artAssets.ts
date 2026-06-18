@@ -43,6 +43,10 @@ export function objectiveFxArtPath(assetId: 'crystal_aura' | 'spawn_portal'): st
   return `/art/fx/fx_${assetId}_loop_0.png`;
 }
 
+export function arrowRainArrowArtPath(): string {
+  return '/art/fx/fx_arrow_rain_arrow.png';
+}
+
 export function backgroundArtPath(theme: string | TileArtTheme | undefined): string {
   const normalized = (theme ?? 'meadow').toLowerCase();
   const artTheme = normalized === 'plains' ? 'meadow' : normalized;
