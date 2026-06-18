@@ -58,7 +58,7 @@ import type {
   ResolvedCardEntity,
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
-import { cardArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
+import { cardArtPath, cardFrameArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
 import { resolveCardConfig } from '../utils/cardConfigResolver.js';
 import { drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
 
@@ -1126,7 +1126,7 @@ export class UISystem implements System {
       y: cardDraw.top,
       w: cardDraw.width,
       h: cardDraw.height,
-      path: uiArtPath(`ui_card_frame_${config.rarity}`),
+      path: cardFrameArtPath(),
       layer: 'normal',
       alpha: 1,
       z: cardDraw.z + 6,
@@ -1962,7 +1962,7 @@ export class UISystem implements System {
           y: cardTop,
           w: cardW,
           h: cardH,
-          path: uiArtPath(`ui_card_frame_${config.rarity}`),
+          path: cardFrameArtPath(),
           layer: 'fullscreen',
           alpha: 1,
           z: UI_Z.FULLSCREEN_UI + 6,

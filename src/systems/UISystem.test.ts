@@ -432,7 +432,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('按卡牌稀有度绘制对应美术卡框', () => {
+  it('所有卡牌统一绘制普通美术卡框', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
@@ -456,14 +456,14 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     expect(imageDrawsOf(ui).some((draw) => (
       draw.layer === 'normal' &&
-      draw.path === '/art/ui/ui_card_frame_rare.png'
+      draw.path === '/art/ui/ui_card_frame_common.png'
     ))).toBe(true);
     expect(imageDrawsOf(ui).some((draw) => (
       draw.layer === 'normal' &&
-      draw.path === '/art/ui/ui_card_frame_common.png'
+      draw.path === '/art/ui/ui_card_frame_rare.png'
     ))).toBe(false);
 
-    const frameDraw = imageDrawsOf(ui).find((draw) => draw.path === '/art/ui/ui_card_frame_rare.png');
+    const frameDraw = imageDrawsOf(ui).find((draw) => draw.path === '/art/ui/ui_card_frame_common.png');
     const contentRect = renderer.commands.find((cmd) => (
       cmd.shape === 'rect' &&
       cmd.color === '#0d1b2a' &&
