@@ -38,6 +38,7 @@ class AtlasPlan:
     image_path: str
     files: list[Path]
     resize_to: tuple[int, int] | None = None
+    preserve_aspect: bool = False
     max_width: int = MAX_SIZE
 
 
@@ -213,6 +214,7 @@ def build_plans() -> list[AtlasPlan]:
         image_path="/art/atlases/global/fx_objectives.png",
         files=combat_files,
         resize_to=(256, 256),
+        preserve_aspect=True,
     ))
 
     icon_files = image_files("buffs") + image_files("card-icon")
@@ -234,10 +236,13 @@ def build_plans() -> list[AtlasPlan]:
     return [plan for plan in plans if plan.files]
 
 
-def load_frame(path: Path, resize_to: tuple[int, int] | None) -> tuple[Image.Image, int, int]:
+def load_frame(path: Path, resize_to: tuple[int, int] | None, preserve_aspect: bool) -> tuple[Image.Image, int, int]:
     image = Image.open(path).convert("RGBA")
     if resize_to is not None and image.size != resize_to:
-        image = image.resize(resize_to, Image.Resampling.LANCZOS)
+        if preserve_aspect:
+            image.thumbnail(resize_to, Image.Resampling.LANCZOS)
+        else:
+            image = image.resize(resize_to, Image.Resampling.LANCZOS)
     return image, image.width, image.height
 
 
@@ -250,7 +255,7 @@ def pack_rows(plan: AtlasPlan) -> tuple[int, int, list[PackedFrame]]:
     atlas_h = 0
 
     for file in plan.files:
-        image, w, h = load_frame(file, plan.resize_to)
+        image, w, h = load_frame(file, plan.resize_to, plan.preserve_aspect)
         if w + PADDING * 2 > MAX_SIZE or h + PADDING * 2 > MAX_SIZE:
             raise ValueError(f"{file} is too large for {MAX_SIZE}px atlas after resize: {w}x{h}")
 

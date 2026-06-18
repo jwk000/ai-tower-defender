@@ -52,4 +52,14 @@ describe('art atlas build output', () => {
     expect(frames).toContain('/art/units/unit_enemy_skeleton_attack_1.png');
     expect(existsSync(join(process.cwd(), 'public/art/enemies/enemy_skeleton.png'))).toBe(true);
   });
+
+  it('keeps non-square projectile FX aspect ratios in the atlas', () => {
+    const index = readAtlasIndex();
+    const fxAtlas = index.atlases.find((atlas) => atlas.id === 'fx_objectives');
+
+    expect(fxAtlas?.frames['/art/fx/fx_missile_projectile.png']).toEqual(expect.objectContaining({
+      w: 256,
+      h: 84,
+    }));
+  });
 });
