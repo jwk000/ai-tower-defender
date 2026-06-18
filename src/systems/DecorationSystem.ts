@@ -765,10 +765,6 @@ export class DecorationSystem implements System {
     const placements = this.map.obstaclePlacements;
     if (!placements || placements.length === 0) return;
 
-    const weather = this.getWeather();
-    const isWind = DecorationSystem.WIND_WEATHERS.has(weather);
-    const isStrongWind = DecorationSystem.STRONG_WIND_WEATHERS.has(weather);
-
     for (const obs of placements) {
       const decorType = normalizeDecorType(obs.type);
       if (!decorType) continue;
@@ -777,92 +773,9 @@ export class DecorationSystem implements System {
       const baseX = obs.col * this.ts + this.ts / 2 + this.ox;
       const baseY = obs.row * this.ts + this.ts / 2 + this.oy;
 
-      // 图片装饰可用时只叠加粒子，跳过 COMPOSITE_VISUALS 程序化集合图形。
+      // 图片装饰可用时叠加粒子；缺图时不再绘制程序化集合图形。
       if (this.drawDecorArt(decorType, obs.row, obs.col, baseX, baseY)) {
         this.drawDecorParticles(decorType, obs.row, obs.col, baseX, baseY);
-        continue;
-      }
-
-      const parts = DecorationSystem.COMPOSITE_VISUALS[decorType];
-      if (!parts || parts.length === 0) continue;
-
-      // 植物微动偏移
-      const swayParams = DecorationSystem.SWAY_PARAMS[decorType];
-      let swayX = 0;
-      let swayY = 0;
-
-      if (swayParams) {
-        // 基于位置生成确定性相位偏移（每个装饰物不同）
-        const phaseOffset = (obs.row * 13 + obs.col * 7) * 0.618;
-        const windFactor = isWind
-          ? (isStrongWind ? swayParams.windMultiplier : 1 + (swayParams.windMultiplier - 1) * 0.6)
-          : 1;
-
-        swayX = Math.sin(this.currentTime * swayParams.frequency * Math.PI * 2 + phaseOffset)
-          * swayParams.amplitudeX * windFactor;
-        swayY = Math.cos(this.currentTime * swayParams.frequency * 1.3 * Math.PI * 2 + phaseOffset)
-          * swayParams.amplitudeY * 0.7;
-      }
-
-      // 火炬火焰脉动（Brazier 特殊处理）
-      if (decorType === ObstacleType.Brazier) {
-        const flicker = Math.sin(this.currentTime * 4.5 + obs.col * 1.2) * 0.5 +
-          Math.sin(this.currentTime * 7.3 + obs.row * 0.8) * 0.3 +
-          Math.sin(this.currentTime * 11.1 + obs.col + obs.row) * 0.2;
-        // 火焰和焰心部分的缩放
-        const flameScale = 1 + flicker * 0.25;
-        const brazierParts = DecorationSystem.COMPOSITE_VISUALS[decorType]!;
-        for (let i = 0; i < brazierParts.length; i++) {
-          const part = brazierParts[i]!;
-          const scaledSize = (i === 1 || i === 2) ? part.size * flameScale : part.size;
-          this.renderer.push({
-            shape: part.shape,
-            x: baseX + part.offsetX,
-            y: baseY + part.offsetY,
-            size: scaledSize,
-            h: part.h,
-            color: part.color,
-            alpha: part.alpha ?? 1,
-            z: 1,  // decoration layer
-          });
-        }
-        continue;
-      }
-
-      // 岩浆脉动（LavaVent 特殊处理）
-      if (decorType === ObstacleType.LavaVent) {
-        const pulse = Math.sin(this.currentTime * 1.5 + obs.col * 0.7) * 0.5;
-        const lavaParts = DecorationSystem.COMPOSITE_VISUALS[decorType]!;
-        for (let i = 0; i < lavaParts.length; i++) {
-          const part = lavaParts[i]!;
-          const size = (i === 2) ? part.size * (1 + pulse * 0.5) : part.size;  // 火星大小变化
-          const alpha = (i === 2) ? (part.alpha ?? 1) * (0.5 + pulse * 0.5) : (part.alpha ?? 1);
-          this.renderer.push({
-            shape: part.shape,
-            x: baseX + part.offsetX,
-            y: baseY + part.offsetY + (i === 2 ? -pulse * 4 : 0),
-            size,
-            h: part.h,
-            color: part.color,
-            alpha,
-            z: 1,  // decoration layer
-          });
-        }
-        continue;
-      }
-
-      // 普通装饰物：绘制所有部件 + 微动偏移
-      for (const part of parts) {
-        this.renderer.push({
-          shape: part.shape,
-          x: baseX + part.offsetX + swayX,
-          y: baseY + part.offsetY + swayY,
-          size: part.size,
-          h: part.h,
-          color: part.color,
-          alpha: part.alpha ?? 1,
-          z: 1,  // decoration layer
-        });
       }
     }
   }

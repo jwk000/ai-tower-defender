@@ -1693,42 +1693,6 @@ export class RenderSystem implements System {
           },
         );
         bodySpriteDrawn = spriteDrawn;
-        if (spriteDrawn) {
-          // Keep procedural rendering as fallback only; state overlays still render below.
-        } else if (unitPartsId !== 0) {
-          const parts = world.getUnitVisualParts(unitPartsId);
-          if (parts) {
-            this.drawUnitComposite(eid, attackAnimPosX, attackAnimPosY, attackAnimSize, displayColor, displayAlpha, strokeColor, strokeW, renderZ, parts);
-          } else {
-            // Use attack-animated position/size for simple-shape enemies
-            this.renderer.push({
-              shape: shapeValToString(Visual.shape[eid]!),
-              x: attackAnimPosX, y: attackAnimPosY,
-              size: attackAnimSize,
-              color: displayColor,
-              alpha: displayAlpha,
-              stroke: strokeColor,
-              strokeWidth: strokeW,
-              z: renderZ,
-            });
-          }
-        } else {
-          // Use attack-animated position/size for simple-shape enemies/non-unit entities
-          if (isEnemy) {
-            this.renderer.push({
-              shape: shapeValToString(Visual.shape[eid]!),
-              x: attackAnimPosX, y: attackAnimPosY,
-              size: attackAnimSize,
-              color: displayColor,
-              alpha: displayAlpha,
-              stroke: strokeColor,
-              strokeWidth: strokeW,
-              z: renderZ,
-            });
-          } else {
-            pushCmd();
-          }
-        }
       }
 
       // ========================================
@@ -1767,7 +1731,7 @@ export class RenderSystem implements System {
       // ========================================
       // 2. Composite geometry extra parts (L3-L5 towers)
       // ========================================
-      if (upgradeVisual && upgradeVisual.extraParts.length > 0) {
+      if (bodySpriteDrawn && upgradeVisual && upgradeVisual.extraParts.length > 0) {
         for (const part of upgradeVisual.extraParts) {
           this.renderer.push({
             shape: part.shape,
@@ -1782,31 +1746,6 @@ export class RenderSystem implements System {
             z: renderZ,
           });
         }
-      }
-
-      // ========================================
-      // Barrel rendering — 炮管（塔上方，可旋转追踪目标）
-      // ========================================
-      if (isTower && !bodySpriteDrawn && hasComponent(world.world, Barrel, eid)) {
-        const barrelAngle = Barrel.angle[eid]!;
-        const barrelLen = Barrel.length[eid]!;
-        const barrelW = Barrel.width[eid]!;
-        const midX = posX + Math.cos(barrelAngle) * (barrelLen * 0.5);
-        const midY = posY + Math.sin(barrelAngle) * (barrelLen * 0.5);
-
-        this.renderer.push({
-          shape: 'rect',
-          x: midX,
-          y: midY,
-          size: barrelLen,
-          h: barrelW,
-          color: '#2a2a2a',
-          alpha: 1,
-          stroke: '#444444',
-          strokeWidth: 1,
-          rotation: barrelAngle,
-          z: renderZ + 1,
-        });
       }
 
       // ========================================

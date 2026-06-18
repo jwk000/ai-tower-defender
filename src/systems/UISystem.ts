@@ -58,7 +58,6 @@ import type {
   ResolvedCardEntity,
   CardTooltipLine,
 } from '../ui/LayoutConstants.js';
-import { drawCardIcon } from '../ui/CardEncyclopediaUI.js';
 import { cardArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
 import { resolveCardConfig } from '../utils/cardConfigResolver.js';
 import { drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
@@ -785,16 +784,14 @@ export class UISystem implements System {
       ctx.restore();
     }
 
-    // Draw vector card icons only while generated art is still loading.
+    // Draw card art only; missing images are left empty so resource issues are visible.
     for (const icon of this.cardIconDraws) {
       if (icon.layer !== layer) continue;
       ctx.save();
       ctx.globalAlpha = icon.alpha ?? 1;
       const x = icon.cx - icon.w / 2;
       const y = icon.cy - icon.h / 2;
-      if (!drawLoadedImage(ctx, cardArtPath(icon.cardId), x, y, icon.w, icon.h)) {
-        drawCardIcon(ctx, icon.cx, icon.cy, icon.w, icon.h, icon.cardId, icon.color);
-      }
+      drawLoadedImage(ctx, cardArtPath(icon.cardId), x, y, icon.w, icon.h);
       ctx.restore();
     }
 
@@ -1566,104 +1563,22 @@ export class UISystem implements System {
       }
     }
 
-    if (sceneArtId && this.drawDragGhostSprite(sceneArtId, ptr.x, ptr.y, size, ghostAlpha, z)) {
+    if (sceneArtId) {
+      this.drawDragGhostSprite(sceneArtId, ptr.x, ptr.y, size, ghostAlpha, z);
       return;
     }
 
-    // 2. 复合外观渲染（主体 + bodyParts + 武器 + 眼睛）
-    if (visualParts) {
-      // 主体形状
-      this.renderer.push({
-        shape,
-        x: ptr.x, y: ptr.y,
-        size,
-        color,
-        alpha: ghostAlpha,
-        z,
-      });
-
-      // 身体部件
-      if (visualParts.bodyParts) {
-        for (const part of visualParts.bodyParts) {
-          this.renderer.push({
-            shape: part.shape,
-            x: ptr.x + part.offsetX,
-            y: ptr.y + part.offsetY,
-            size: part.size,
-            h: part.h,
-            color: part.color,
-            alpha: (part.alpha ?? 1) * ghostAlpha,
-            stroke: part.stroke,
-            strokeWidth: part.strokeWidth,
-            rotation: part.rotation,
-            z,
-          });
-        }
-      }
-
-      // 武器（静态，无挥砍动画）
-      if (visualParts.weapon) {
-        const w = visualParts.weapon;
-        const ax = ptr.x + w.anchorX;
-        const ay = ptr.y + w.anchorY;
-        const angle = w.restAngle;
-        const midX = ax + Math.cos(angle) * (w.length * 0.5);
-        const midY = ay + Math.sin(angle) * (w.length * 0.5);
-
-        if (w.glowColor !== undefined && w.glowRadius !== undefined && w.glowRadius > 0) {
-          this.renderer.push({
-            shape: 'circle',
-            x: ax + (w.length * 0.5),
-            y: ay,
-            size: w.glowRadius * 2,
-            color: w.glowColor,
-            alpha: (w.glowAlpha ?? 0.4) * ghostAlpha,
-            z: z - 1,
-          });
-        }
-
-        this.renderer.push({
-          shape: 'rect',
-          x: midX, y: midY,
-          size: w.length, h: w.width,
-          color: w.color,
-          alpha: ghostAlpha,
-          stroke: w.stroke,
-          strokeWidth: w.strokeWidth,
-          rotation: angle,
-          z: z + 1,
-        });
-      }
-
-      // 眼睛
-      if (visualParts.eyes) {
-        const e = visualParts.eyes;
-        const eyeOffsetX = e.offsetX ?? size * 0.18;
-        const eyeOffsetY = e.offsetY ?? -size * 0.12;
-        const eyeY = ptr.y + eyeOffsetY;
-        const leftX = ptr.x - eyeOffsetX;
-        const rightX = ptr.x + eyeOffsetX;
-
-        if (e.scleraRadius && e.scleraRadius > 0) {
-          this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: ghostAlpha, z: z + 2 });
-          this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.scleraRadius * 2, color: e.scleraColor ?? '#ffffff', alpha: ghostAlpha, z: z + 2 });
-        }
-        this.renderer.push({ shape: 'circle', x: leftX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: ghostAlpha, z: z + 3 });
-        this.renderer.push({ shape: 'circle', x: rightX, y: eyeY, size: e.pupilRadius * 2, color: e.pupilColor, alpha: ghostAlpha, z: z + 3 });
-      }
-    } else {
-      // 无复合外观时回退到简单形状 + 名称标签
-      this.renderer.push({
-        shape,
-        x: ptr.x, y: ptr.y,
-        size,
-        color,
-        alpha: ghostAlpha,
-        label,
-        labelColor: '#ffffff',
-        labelSize: 14,
-      });
-    }
+    this.renderer.push({
+      shape,
+      x: ptr.x, y: ptr.y,
+      size,
+      color,
+      alpha: ghostAlpha,
+      label,
+      labelColor: '#ffffff',
+      labelSize: 14,
+      z,
+    });
   }
 
   private resolveDragGhostVisual(ds: DragState): DragGhostVisual {

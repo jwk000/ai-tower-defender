@@ -537,10 +537,9 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('单位卡拖动 ghost 在美术资源关闭时回退到程序绘制场景外观', () => {
-    vi.stubGlobal('Image', LoadedImage);
+  it('单位卡拖动 ghost 缺少场景单位图片时不回退程序绘制外观', () => {
+    vi.unstubAllGlobals();
     vi.stubGlobal('fetch', undefined);
-    setArtResourcesEnabled(false);
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0, {
       pointer: { x: 960, y: 540 },
@@ -579,9 +578,8 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.x === 960 &&
       cmd.y === 540 &&
       cmd.size === 32 &&
-      cmd.color === '#4fc3f7' &&
-      cmd.alpha === 0.5
-    ))).toBe(true);
+      cmd.color === '#4fc3f7'
+    ))).toBe(false);
   });
 
   it('法术卡拖动 ghost 同时显示释放点和释放半径', () => {

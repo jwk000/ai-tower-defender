@@ -13,7 +13,6 @@ import type { CardInstance, HandSystem } from '../systems/HandSystem.js';
 import { ALL_CARDS } from '../data/cards.js';
 import { SaveManager } from '../utils/SaveManager.js';
 import { LEVELS } from '../data/levels/index.js';
-import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 
 export interface DebugManagerHooks {
   getEconomy?: () => EconomySystem | null;
@@ -41,9 +40,6 @@ export class DebugManager {
 
   /** 调试开关：是否显示关卡背景图（替代天气天空渐变）。默认开启。 */
   showBackgroundImage: boolean = true;
-  /** 调试开关：是否启用图片美术资源。默认开启，关闭时回退程序化视觉。 */
-  useArtResources: boolean = true;
-
   /** 调试卡牌试用替换的下一个手牌槽位，从左到右循环。 */
   private nextDebugCardReplaceIndex = 0;
 
@@ -103,20 +99,6 @@ export class DebugManager {
     return this.showBackgroundImage;
   }
 
-  toggleArtResources(): void {
-    this.useArtResources = !this.useArtResources;
-    setArtResourcesEnabled(this.useArtResources);
-    this.debugPanel.flashButton(
-      'toggle_art_resources',
-      this.useArtResources ? '🎨 美术资源：开' : '🎨 美术资源：关',
-      1500,
-    );
-  }
-
-  isArtResourcesEnabled(): boolean {
-    return this.useArtResources;
-  }
-
   private buildActions(): DebugAction[] {
     const actions: DebugAction[] = [
       {
@@ -125,13 +107,6 @@ export class DebugManager {
         icon: '🖼️',
         isEnabled: () => true,
         onClick: () => this.toggleBackgroundImage(),
-      },
-      {
-        id: 'toggle_art_resources',
-        label: '美术资源切换',
-        icon: '🎨',
-        isEnabled: () => true,
-        onClick: () => this.toggleArtResources(),
       },
       {
         id: 'complete_all_levels',

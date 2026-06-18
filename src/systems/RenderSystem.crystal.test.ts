@@ -225,9 +225,7 @@ describe('RenderSystem — 水晶显示', () => {
     expect(hasProceduralBarrel(renderer.commands)).toBe(false);
   });
 
-  it('炮塔回退到程序化主体时，保留程序绘制的炮管', () => {
-    setArtResourcesEnabled(false);
-
+  it('炮塔图片缺失时不回退绘制程序化主体和炮管', () => {
     const world = new TowerWorld();
     makeCannonTower(world);
 
@@ -237,7 +235,7 @@ describe('RenderSystem — 水晶显示', () => {
     system.update(world, 0);
 
     expect(renderer.commands.some((cmd) => cmd.image)).toBe(false);
-    expect(hasProceduralBarrel(renderer.commands)).toBe(true);
+    expect(hasProceduralBarrel(renderer.commands)).toBe(false);
   });
 
   it('敌人受击时在当前精灵上叠色，不回退成程序化敌人主体', () => {
@@ -346,7 +344,7 @@ describe('RenderSystem — 水晶显示', () => {
     expect(renderer.commands).not.toContainEqual(expect.objectContaining({ label: '箭塔' }));
   });
 
-  it('精英怪与未选中我方士兵不显示被动边框，选中士兵才显示边框', () => {
+  it('精英怪与士兵缺图时不回退绘制可选中程序化主体', () => {
     setArtResourcesEnabled(false);
 
     const world = new TowerWorld();
@@ -358,11 +356,11 @@ describe('RenderSystem — 水晶显示', () => {
 
     system.update(world, 0);
 
-    const eliteBody = renderer.commands.find((cmd) => cmd.x === 48 && cmd.y === 32 && cmd.size > 32 && !cmd.label);
+    const eliteBody = renderer.commands.find((cmd) => cmd.x === 48 && cmd.y === 32 && cmd.size === 32 && !cmd.label);
     const soldierBody = renderer.commands.find((cmd) => cmd.x === 144 && cmd.y === 32 && cmd.size === 32 && !cmd.label);
 
-    expect(eliteBody).toEqual(expect.objectContaining({ stroke: undefined, strokeWidth: undefined }));
-    expect(soldierBody).toEqual(expect.objectContaining({ stroke: '#ffffff', strokeWidth: 3 }));
+    expect(eliteBody).toBeUndefined();
+    expect(soldierBody).toBeUndefined();
   });
 
   it('死亡灰飞烟灭特效首帧必须先渲染，再进入生命周期清理', () => {

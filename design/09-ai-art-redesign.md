@@ -195,9 +195,9 @@ animation frame {frame}/2 for {state}, same character design and same camera, on
 
 ### 5.2.1 场景单位运行时接入规则
 
-场景单位渲染必须优先加载 `public/art/units/unit_<unit_id>_<state>_<frame>.png`。图片未加载、缺失或后续美术资源回滚时，必须保留并回退到原有程序化几何渲染，不允许删除 `visualParts` / `drawUnitComposite` 这套代码生成表现。
+场景单位渲染必须优先加载 `public/art/units/unit_<unit_id>_<state>_<frame>.png`。图片未加载或缺失时，不得回退到原有程序化几何主体；运行时只保留血条、名称、选中框、状态粒子、攻击范围等非主体反馈，让缺失资源问题直接暴露。
 
-调试面板必须提供“美术资源”总开关，默认开启。关闭后运行时所有图片资源加载入口都必须视为资源不可用：关卡背景回退到天空渐变，地格贴图回退到纯色地格，场景单位、机关、法术特效、卡牌图标和 UI 皮肤回退到现有程序化/Canvas 绘制逻辑。该开关只影响视觉资源选择，不改变 ECS、战斗数值、碰撞、寻路或输入逻辑。
+调试面板不再提供“美术资源”总开关，避免误触后把正式资源替换为程序化占位外观。关卡背景、地格、UI 皮肤等仍可在对应调试项或资源加载层单独验证，但场景单位、机关、卡牌图标和装饰物主体不得因调试开关回退到程序化表现。
 
 当前单位图片接入基线为普通可移动/可攻击场景单位至少交付 `idle_0` / `idle_1`、`move_0` / `move_1`、`attack_0` / `attack_1`、`death_0` / `death_1` 四个状态共 8 帧。塔和生产建筑属于建筑类单位，不生成也不打包 `move_0` / `move_1`；塔只交付 `idle_0` / `idle_1`、`attack_0` / `attack_1`、`death_0` / `death_1` 三个状态共 6 帧。`idle` 可通过轻量缩放/呼吸辅助表现；`move`、`attack`、`death` 必须使用重新绘制的动作帧，不允许只用缩放、拉伸、旋转基准图替代。塔和生产建筑的 `attack` 帧不得改变底座、主体锚点或整体重心，只允许追加/强化塔自身的炮口火光、弓弦蓄光、晶体亮度、线圈电光、毒囊气泡、火焰亮度、发射管热光等细节；子弹、箭矢、导弹、飞出毒液、激光束等投射物由运行时投射物系统绘制，不允许烘焙进塔攻击帧。
 
@@ -261,7 +261,7 @@ dark fantasy casual tower defense boss sprite, {boss_subject}, oversized readabl
 
 ## 5.5 场景装饰美术需求
 
-场景装饰必须使用图片资产替换程序化几何体。`DecorationSystem.COMPOSITE_VISUALS` 只作为美术资源关闭、图片缺失或加载失败时的程序化兜底，不再作为默认表现。
+场景装饰必须使用图片资产替换程序化几何体。图片缺失或加载失败时跳过装饰主体，不再绘制 `DecorationSystem.COMPOSITE_VISUALS` 程序化兜底。
 
 装饰物按 `public/art/decor/decor_<theme>_<decor_id>_idle_<variant>.png` 命名。`theme` 使用运行时 `map.artTheme`，与地格主题一致；`decor_id` 使用关卡配置中的 `ObstacleType` 小写 snake_case。`idle_<variant>` 是静态外观变体，不是运行时动画帧；运行时按装饰物位置确定性选择一张显示，不随时间切换。图片资产可用时绘制静态图并保留 `DecorationSystem` 的粒子效果，但不叠加 `COMPOSITE_VISUALS` 的程序化集合图形；植物、火焰、裂隙、蒸汽、菌孢、传送/能量类动态表现由运行时粒子特效实现。
 
@@ -282,7 +282,7 @@ dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}
 
 1. 装饰物图片只画物件本体，不画完整地格底图，不烘焙运行时投影。
 2. 装饰物图集必须与同主题地格共用主题图集，保证关卡进入时按主题一次预热。
-3. 美术资源总开关关闭时，装饰物必须回退到程序化几何体和微动表现。
+3. 装饰物图片缺失时不得回退到程序化几何体；只允许保留与已绘制图片绑定的低密度粒子。
 4. 装饰物粒子只影响视觉，不参与碰撞、寻路、建造或攻击逻辑。
 5. 粒子必须由运行时按装饰物类型确定性生成，不能要求额外逐帧美术图。
 6. 已生成的 `idle_1/2/3` 图片保留为静态变体；禁止把它们按时间连续播放成动画。
@@ -568,7 +568,7 @@ dark fantasy casual level select node, {theme} miniature portal marker, black ir
 
 ## 11. 运行时接入状态
 
-当前运行时已接入首批 AI 图片资产，图片加载失败或尚未完成时保留程序化几何兜底，避免战斗画面空白。
+当前运行时已接入首批 AI 图片资产。图片加载失败或尚未完成时不再显示程序化主体，避免占位外观被误认为正式资源。
 
 | 资产类型 | 接入状态 | 运行时路径 |
 |----------|----------|------------|
@@ -578,9 +578,9 @@ dark fantasy casual level select node, {theme} miniature portal marker, black ir
 | Buff 图标 | 已接入，局外 Buff 选择卡显示 AI 图标 | `UISystem` |
 | UI 基础件 | 已接入，HUD、按钮、面板、卡框使用 AI UI 资产 | `UISystem` |
 | 技能特效 | 已接入，技能投射物和命中特效叠加 AI FX 资产 | `SpellProjectileSystem` |
-| 单位状态帧 | 已接入，优先通过图集帧加载，缺失时回退独立 PNG 或程序化外观 | `RenderSystem` + `imageCache` |
+| 单位状态帧 | 已接入，优先通过图集帧加载，缺失时保持主体空缺并保留非主体反馈 | `RenderSystem` + `imageCache` |
 
-单位、塔、敌人本体已支持 `unit_<unit_id>_<state>_<frame>.png` 状态帧。运行时业务层仍使用原资源路径，加载层会先查找图集 manifest；若图集或单图未加载成功，继续保留程序化复合外观作为兜底。图集分包与 manifest 规范详见 `design/10-art-atlas-pipeline.md`。
+单位、塔、敌人本体已支持 `unit_<unit_id>_<state>_<frame>.png` 状态帧。运行时业务层仍使用原资源路径，加载层会先查找图集 manifest；若图集或单图未加载成功，不再绘制程序化复合外观。图集分包与 manifest 规范详见 `design/10-art-atlas-pipeline.md`。
 
 ---
 

@@ -1220,11 +1220,9 @@ export class CardEncyclopediaUI {
       fillAndStrokeRoundedRect(ctx, cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H, 4);
       ctx.restore();
 
-      // 图标
+      // 图标：缺图时保持空美术框，避免程序化占位误导为正式资源。
       ctx.save();
-      if (!drawLoadedImage(ctx, cardArtPath(card.id), cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H)) {
-        drawCardIcon(ctx, cardCenterX, artCY, ART_W, ART_H, card.id, borderColor);
-      }
+      drawLoadedImage(ctx, cardArtPath(card.id), cardCenterX - ART_W / 2, artCY - ART_H / 2, ART_W, ART_H);
       ctx.restore();
 
       // 名称
