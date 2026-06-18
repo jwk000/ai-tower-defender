@@ -12,7 +12,7 @@ import { addEntity, addComponent, hasComponent } from 'bitecs';
 import type { World as BitecsWorld } from 'bitecs';
 import { TowerWorld } from '../core/World.js';
 import {
-  Position, Projectile, Health, UnitTag, Layer, LayerVal,
+  Position, Projectile, Health, UnitTag, Layer, LayerVal, Faction, FactionVal,
   TargetingMark, Visual, DamageTypeVal, Attack, Poisoned,
 } from '../core/components.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
@@ -178,6 +178,7 @@ function makeEnemy(world: TowerWorld, x: number, y: number, hp: number = 200, la
   addComp(w, id, Position, { x, y });
   addComp(w, id, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   addComp(w, id, UnitTag, { isEnemy: 1, isBoss: 0, isRanged: 0 });
+  addComp(w, id, Faction, { value: FactionVal.Evil });
   addComp(w, id, Layer, { value: layer });
   return id;
 }
@@ -188,6 +189,7 @@ function makeAlliedTower(world: TowerWorld, x: number, y: number, hp: number = 5
   addComp(w, id, Position, { x, y });
   addComp(w, id, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   addComp(w, id, UnitTag, { isEnemy: 0, isBoss: 0, isRanged: 1 });
+  addComp(w, id, Faction, { value: FactionVal.Justice });
   addComp(w, id, Layer, { value: LayerVal.Ground });
   addComp(w, id, Attack, {
     damage: 10,
@@ -329,6 +331,28 @@ describe('ProjectileSystem — Splash friendly-fire guard', () => {
 });
 
 describe('ProjectileSystem — Ballista board-edge lifetime', () => {
+  it('弩箭穿透只伤害敌对单位，不伤害源塔和友方塔', () => {
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+
+    const sourceTower = makeAlliedTower(world, 100, 100, 500);
+    Attack.canTargetLowAir[sourceTower] = 1;
+    const alliedTower = makeAlliedTower(world, 140, 100, 500);
+    const enemy = makeEnemy(world, 180, 100, 200);
+
+    const sourceHpBefore = Health.current[sourceTower]!;
+    const alliedHpBefore = Health.current[alliedTower]!;
+    const enemyHpBefore = Health.current[enemy]!;
+
+    makeBallistaProjectile(world, 90, 100, enemy, sourceTower, 600);
+
+    sys.update(world, 0.2);
+
+    expect(Health.current[sourceTower]).toBe(sourceHpBefore);
+    expect(Health.current[alliedTower]).toBe(alliedHpBefore);
+    expect(Health.current[enemy]).toBeLessThan(enemyHpBefore);
+  });
+
   it('弩箭使用屏幕棋盘边界，经过局部地图宽度后仍未到真实右边缘时不销毁', () => {
     const originalX = RenderSystem.sceneOffsetX;
     const originalY = RenderSystem.sceneOffsetY;

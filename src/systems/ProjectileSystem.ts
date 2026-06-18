@@ -31,6 +31,7 @@ import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
 import { AttackSystem } from './AttackSystem.js';
 import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 import { RenderSystem } from './RenderSystem.js';
+import { areHostile } from '../utils/factionUtils.js';
 
 // ============================================================
 // Queries
@@ -90,6 +91,14 @@ function canProjectileSourceAffectLowAir(sourceId: number, isMissile: boolean): 
 }
 
 function canProjectileHitTarget(world: TowerWorld, sourceId: number, targetId: number, isMissile: boolean): boolean {
+  if (sourceId > 0) {
+    const sourceFaction = Faction.value[sourceId];
+    const targetFaction = Faction.value[targetId];
+    if (sourceFaction === undefined || targetFaction === undefined || !areHostile(sourceFaction, targetFaction)) {
+      return false;
+    }
+  }
+
   const sourceLayer = sourceId > 0 ? (Layer.value[sourceId] ?? LayerVal.Ground) : LayerVal.Ground;
   const targetLayer = Layer.value[targetId] ?? LayerVal.Ground;
   const isRanged = true;
