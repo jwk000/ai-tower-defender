@@ -185,6 +185,46 @@ function makeTower(world: TowerWorld, hp: number = 80): number {
   return eid;
 }
 
+function makeSoldier(world: TowerWorld, x: number, y: number, hp: number = 80): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Movement, {
+    speed: 0,
+    currentSpeed: 0,
+    moveMode: MoveModeVal.HoldPosition,
+    targetX: x,
+    targetY: y,
+  });
+  world.addComponent(eid, UnitTag, { isEnemy: 0, rewardGold: 0, canAttackBuildings: 0, atk: 10 });
+  world.addComponent(eid, Soldier, {
+    role: 1,
+    aggroRadius: 120,
+    leashRadius: 180,
+    attackTarget: 0,
+    state: 0,
+    homeX: x,
+    homeY: y,
+  });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Layer, { value: LayerVal.Ground });
+  return eid;
+}
+
+function makeQueenWorm(world: TowerWorld): number {
+  const queen = makePathEnemy(world, {
+    speed: 20,
+    atk: 30,
+    attackRange: 80,
+    attackSpeed: 0.6,
+    size: 76,
+  });
+  UnitTag.isBoss[queen] = 1;
+  world.addComponent(queen, Boss, { bossType: 1, phase: 1, phase2HpRatio: 0.5, immuneToTowers: 1 });
+  Visual.attackAnimDuration[queen] = 0.9;
+  return queen;
+}
+
 function makeEnemyAtEnd(
   world: TowerWorld,
   opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean; initialAttackAnimDuration?: number },
@@ -703,6 +743,62 @@ describe('MovementSystem — 巨石阻挡', () => {
 
     expect(Attack.targetId[enemy]).toBe(tower);
     expect(Health.current[tower]).toBeLessThan(100);
+  });
+
+  it('虫族女王遇到塔后必须锁定攻击该塔直到杀死', () => {
+    const tower = makeTower(world, 100);
+    Position.x[tower] = 46;
+    Position.y[tower] = TILE / 2;
+    const queen = makeQueenWorm(world);
+
+    system.update(world, 0.1);
+    const firstHp = Health.current[tower];
+
+    const closerSoldier = makeSoldier(world, 20, TILE / 2, 100);
+    Attack.cooldownTimer[queen] = 0;
+    system.update(world, 0.1);
+    const projectiles = projectileQuery(world.world);
+    const latestProjectile = projectiles[projectiles.length - 1]!;
+
+    expect(Attack.targetId[queen]).toBe(tower);
+    expect(Health.current[tower]).toBe(firstHp);
+    expect(Projectile.targetId[latestProjectile]).toBe(tower);
+    expect(Health.current[closerSoldier]).toBe(100);
+
+    Health.current[tower] = 0;
+    Attack.cooldownTimer[queen] = 0;
+    Visual.attackAnimTimer[queen] = 0;
+    system.update(world, 0.1);
+
+    expect(Attack.targetId[queen]).toBe(closerSoldier);
+  });
+
+  it('虫族女王遇到我方士兵后必须锁定攻击该兵直到杀死', () => {
+    const soldier = makeSoldier(world, 46, TILE / 2, 100);
+    const queen = makeQueenWorm(world);
+
+    system.update(world, 0.1);
+    const firstHp = Health.current[soldier];
+
+    const closerTower = makeTower(world, 100);
+    Position.x[closerTower] = 20;
+    Position.y[closerTower] = TILE / 2;
+    Attack.cooldownTimer[queen] = 0;
+    system.update(world, 0.1);
+    const projectiles = projectileQuery(world.world);
+    const latestProjectile = projectiles[projectiles.length - 1]!;
+
+    expect(Attack.targetId[queen]).toBe(soldier);
+    expect(Health.current[soldier]).toBe(firstHp);
+    expect(Projectile.targetId[latestProjectile]).toBe(soldier);
+    expect(Health.current[closerTower]).toBe(100);
+
+    Health.current[soldier] = 0;
+    Attack.cooldownTimer[queen] = 0;
+    Visual.attackAnimTimer[queen] = 0;
+    system.update(world, 0.1);
+
+    expect(Attack.targetId[queen]).toBe(closerTower);
   });
 
   it('巨石被破坏后，地面敌人可以继续前进', () => {

@@ -37,6 +37,7 @@ const FLOCK_OFFSET_WEIGHT = 1.1;
 const FLOCK_WANDER_STRENGTH = 50;
 const FLOCK_PATH_ADVANCE_RADIUS = 18;
 const SPELL_BLIZZARD = 2;
+const BOSS_TYPE_QUEENWORM = 1;
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
@@ -633,12 +634,13 @@ export class MovementSystem implements System {
     const posX = Position.x[eid]!;
     const posY = Position.y[eid]!;
     const forcedTarget = this.getTauntTarget(world, eid, posX, posY, attackRange);
+    const lockedTarget = forcedTarget ?? this.getQueenWormLockedTarget(world, eid);
 
-    // Tick cooldown. 被嘲讽敌人即使冷却中也要停在原地盯住盾卫。
+    // Tick cooldown. 被嘲讽敌人和虫族女王锁定目标时，即使冷却中也要停在原地盯住目标。
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
-      const heldTarget = forcedTarget ?? contactTarget;
+      const heldTarget = lockedTarget ?? contactTarget;
       if (heldTarget !== null) {
         Attack.targetId[eid] = heldTarget;
         this.faceTarget(eid, heldTarget, posX);
@@ -648,13 +650,14 @@ export class MovementSystem implements System {
     }
 
     // Find nearest player unit (soldier or tower) within range
-    let nearestTarget: number | null = forcedTarget ?? contactTarget;
+    let nearestTarget: number | null = lockedTarget ?? contactTarget;
     let nearestDist = attackRange;
 
     // Check soldiers
     if (nearestTarget === null) {
       const soldiers = this.soldierQuery(world.world);
       for (const sid of soldiers) {
+        if ((Health.current[sid] ?? 0) <= 0) continue;
         const sx = Position.x[sid];
         const sy = Position.y[sid];
         if (sx === undefined || sy === undefined) continue;
@@ -674,6 +677,7 @@ export class MovementSystem implements System {
     if (nearestTarget === null) {
       const towers = this.towerQuery(world.world);
       for (const tid of towers) {
+        if ((Health.current[tid] ?? 0) <= 0) continue;
         const tx = Position.x[tid];
         const ty = Position.y[tid];
         if (tx === undefined || ty === undefined) continue;
@@ -730,6 +734,20 @@ export class MovementSystem implements System {
       return true;
     }
     return false;
+  }
+
+  private getQueenWormLockedTarget(world: TowerWorld, eid: number): number | null {
+    if (!hasComponent(world.world, Boss, eid)) return null;
+    if ((Boss.bossType[eid] ?? 0xff) !== BOSS_TYPE_QUEENWORM) return null;
+
+    const targetId = Attack.targetId[eid] ?? 0;
+    if (targetId === 0 || !entityExists(world.world, targetId)) return null;
+    if ((Health.current[targetId] ?? 0) <= 0) return null;
+
+    if (hasComponent(world.world, Tower, targetId) || hasComponent(world.world, Soldier, targetId)) {
+      return targetId;
+    }
+    return null;
   }
 
   private findBlockingBoulder(
