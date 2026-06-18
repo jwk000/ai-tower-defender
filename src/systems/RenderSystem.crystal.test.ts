@@ -21,7 +21,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
+import { applyArrowProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
@@ -223,6 +223,41 @@ describe('RenderSystem — 水晶显示', () => {
 
     expect(renderer.commands).toContainEqual(expect.objectContaining({ image: expect.any(LoadedImage) }));
     expect(hasProceduralBarrel(renderer.commands)).toBe(false);
+  });
+
+  it('箭塔普通箭矢优先使用 AI 贴图主体', () => {
+    const image = {} as HTMLImageElement;
+    const extras: Partial<RenderCommand> = {};
+
+    applyArrowProjectileArt(0, 'arrow', 22, extras, () => ({
+      image,
+      source: null,
+      width: 128,
+      height: 32,
+      path: '/art/fx/fx_arrow_projectile.png',
+    }));
+
+    expect(extras).toEqual(expect.objectContaining({
+      image,
+      imageSource: undefined,
+      size: 29.700000000000003,
+      h: 7.425000000000001,
+    }));
+  });
+
+  it('非箭塔 arrow 投射物不套用普通箭矢贴图', () => {
+    const image = {} as HTMLImageElement;
+    const extras: Partial<RenderCommand> = {};
+
+    applyArrowProjectileArt(255, 'arrow', 22, extras, () => ({
+      image,
+      source: null,
+      width: 128,
+      height: 32,
+      path: '/art/fx/fx_arrow_projectile.png',
+    }));
+
+    expect(extras).toEqual({});
   });
 
   it('炮塔图片缺失时不回退绘制程序化主体和炮管', () => {

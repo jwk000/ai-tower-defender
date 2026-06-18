@@ -127,11 +127,28 @@ const CD_BAR_HEIGHT = 3;
 const CD_BAR_HALF_H = CD_BAR_HEIGHT / 2;
 const CD_BAR_GAP = 1;
 const CD_BAR_COLOR = '#2196f3';
+const ARROW_PROJECTILE_FX_PATH = '/art/fx/fx_arrow_projectile.png';
 const BALLISTA_BOLT_FX_PATH = '/art/fx/fx_ballista_bolt.png';
 const MISSILE_PROJECTILE_FX_PATH = '/art/fx/fx_missile_projectile.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
 const TOWER_LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+
+export function applyArrowProjectileArt(
+  sourceTowerType: number,
+  shape: ShapeType,
+  drawSize: number,
+  extras: Partial<Parameters<Renderer['push']>[0]>,
+  loadFrame: (path: string) => LoadedArtFrame | null = getLoadedImageFrame,
+): void {
+  if (sourceTowerType !== 0 || shape !== 'arrow') return;
+  const arrowFx = loadFrame(ARROW_PROJECTILE_FX_PATH);
+  if (!arrowFx) return;
+  extras.image = arrowFx.image;
+  extras.imageSource = arrowFx.source ?? undefined;
+  extras.size = Math.max(drawSize * 1.35, 28);
+  extras.h = (extras.size as number) * (arrowFx.height / arrowFx.width);
+}
 
 export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
   if (!active) return 1;
@@ -1462,6 +1479,8 @@ export class RenderSystem implements System {
               }
             }
           }
+          // 箭塔箭矢：AI 贴图主体；贴图未加载时回退到几何箭矢。
+          applyArrowProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
           // 弩箭：AI 贴图主体；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
             const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);

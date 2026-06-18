@@ -553,7 +553,7 @@ Abyss（深渊层）    — 最低，预留
 
 | 弹道类型 | 表现 |
 |---------|------|
-| arrow | `Renderer` 的 arrow 形状：矩形箭杆 + 三角箭头，按目标点旋转 |
+| arrow | 箭塔普通箭矢优先使用 AI 生成贴图 `public/art/fx/fx_arrow_projectile.png` 作为飞行主体，按目标点旋转；贴图未加载时回退为 `Renderer` 的 arrow 几何形状（矩形箭杆 + 三角箭头） |
 | ballista bolt | 弩塔专用 arrow 外观：优先使用 AI 生成贴图 `public/art/fx/fx_ballista_bolt.png` 作为 60px 弩矢主体，不叠加程序化发光或破空线；贴图未加载时才回退为纯程序化几何弩矢；贴图素材默认箭头朝左，运行时旋转时额外翻转 180°，方向锁定为发射方向，不随命中目标反转 |
 | 普通 projectile | 按 `Projectile` 组件位置绘制基础几何体，颜色/尺寸来自塔类型配置 |
 | missile | 导弹塔专用 AI 贴图主体 `public/art/fx/fx_missile_projectile.png`，按 `Visual.idlePhase` 旋转并叠加橙红脉冲光晕、蓝色尾焰；贴图未加载时回退为原程序化黑色机身+红色菱形弹头 |
