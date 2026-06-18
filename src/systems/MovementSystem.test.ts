@@ -38,13 +38,17 @@ import {
   TrapTypeVal,
   Soldier,
   Projectile,
+  EnemySkillParticleEffect,
+  EnemySkillParticleEffectVal,
 } from '../core/components.js';
 import { MovementSystem } from './MovementSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
-import { GamePhase, TileType } from '../types/index.js';
+import { EnemyType, GamePhase, TileType } from '../types/index.js';
+import { ENEMY_ID_BY_TYPE } from '../data/gameData.js';
 
 const projectileQuery = defineQuery([Projectile]);
+const skillParticleQuery = defineQuery([Position, EnemySkillParticleEffect]);
 
 const TILE = 32;
 
@@ -130,7 +134,7 @@ function makeBoulderAt(world: TowerWorld, x: number, hp: number = 200): number {
 
 function makePathEnemy(
   world: TowerWorld,
-  opts: { speed?: number; atk?: number; attackRange?: number; layer?: number; size?: number; attackSpeed?: number } = {},
+  opts: { speed?: number; atk?: number; attackRange?: number; layer?: number; size?: number; attackSpeed?: number; unitTypeNum?: number } = {},
 ): number {
   const eid = world.createEntity();
   world.addComponent(eid, Position, { x: TILE / 2, y: TILE / 2 });
@@ -143,7 +147,13 @@ function makePathEnemy(
     progress: 0,
     spawnIdx: 0,
   });
-  world.addComponent(eid, UnitTag, { isEnemy: 1, rewardGold: 0, canAttackBuildings: 1, atk: opts.atk ?? 12 });
+  world.addComponent(eid, UnitTag, {
+    isEnemy: 1,
+    rewardGold: 0,
+    canAttackBuildings: 1,
+    atk: opts.atk ?? 12,
+    unitTypeNum: opts.unitTypeNum ?? 0,
+  });
   world.addComponent(eid, Visual, {
     shape: 1,
     colorR: 200,
@@ -821,6 +831,33 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Position.x[enemy]).toBe((1 * TILE) + TILE / 2);
     expect(Movement.pathIndex[enemy]).toBe(1);
     expect(Movement.currentSpeed[enemy]).toBeGreaterThan(0);
+  });
+
+  it('疯狂野猪沿路径移动时生成冲刺拖尾粒子', () => {
+    const enemy = makePathEnemy(world, {
+      speed: TILE,
+      unitTypeNum: ENEMY_ID_BY_TYPE[EnemyType.Boar],
+    });
+
+    system.update(world, 0.25);
+
+    const particles = skillParticleQuery(world.world);
+    expect(particles.length).toBe(1);
+    const particle = particles[0]!;
+    expect(EnemySkillParticleEffect.effectType[particle]).toBe(EnemySkillParticleEffectVal.Charge);
+    expect(EnemySkillParticleEffect.targetX[particle]).toBeCloseTo(Position.x[enemy]!, 4);
+    expect(EnemySkillParticleEffect.targetY[particle]).toBeCloseTo(Position.y[enemy]!, 4);
+  });
+
+  it('非野猪地面敌人移动时不生成冲刺拖尾粒子', () => {
+    makePathEnemy(world, {
+      speed: TILE,
+      unitTypeNum: ENEMY_ID_BY_TYPE[EnemyType.Goblin],
+    });
+
+    system.update(world, 0.25);
+
+    expect(skillParticleQuery(world.world).length).toBe(0);
   });
 });
 

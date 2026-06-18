@@ -8,6 +8,8 @@ import {
 } from '../core/components.js';
 import { createSkillParticles } from './EnemySkillSystem.js';
 import type { MapConfig, GridPos } from '../types/index.js';
+import { EnemyType } from '../types/index.js';
+import { ENEMY_ID_BY_TYPE } from '../data/gameData.js';
 import { RenderSystem } from './RenderSystem.js';
 import { getEffectiveValue } from './BuffSystem.js';
 import { resolveGraphFromMap } from '../level/graph/loaderAdapter.js';
@@ -38,6 +40,8 @@ const FLOCK_WANDER_STRENGTH = 50;
 const FLOCK_PATH_ADVANCE_RADIUS = 18;
 const SPELL_BLIZZARD = 2;
 const BOSS_TYPE_QUEENWORM = 1;
+const BOAR_ENEMY_TYPE_NUM = ENEMY_ID_BY_TYPE[EnemyType.Boar];
+const BOAR_DASH_TRAIL_INTERVAL = 0.18;
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem';
@@ -251,6 +255,7 @@ export class MovementSystem implements System {
       const stepDy = Position.y[eid]! - posY;
       const stepDist = Math.sqrt(stepDx * stepDx + stepDy * stepDy);
       this.updateBurrowTravel(world, eid, stepDist, ts, dt);
+      this.updateBoarDashTrail(world, eid, posX, posY, stepDist, dt);
       Movement.currentSpeed[eid] = dt > 0 ? stepDist / dt : 0;
       if (stepDist > 0.05) {
         Visual.bobPhase[eid] = ((Visual.bobPhase[eid] ?? 0) + speed * dt * 0.08) % (Math.PI * 2);
@@ -304,6 +309,26 @@ export class MovementSystem implements System {
         0.35,
       );
     }
+  }
+
+  private updateBoarDashTrail(world: TowerWorld, eid: number, prevX: number, prevY: number, stepDist: number, dt: number): void {
+    if (UnitTag.unitTypeNum[eid] !== BOAR_ENEMY_TYPE_NUM || stepDist <= 0.05) return;
+
+    Movement.trailEmitTimer[eid] = (Movement.trailEmitTimer[eid] ?? 0) - dt;
+    if ((Movement.trailEmitTimer[eid] ?? 0) > 0) return;
+
+    Movement.trailEmitTimer[eid] = BOAR_DASH_TRAIL_INTERVAL;
+    createSkillParticles(
+      world,
+      prevX,
+      prevY,
+      EnemySkillParticleEffectVal.Charge,
+      { r: 210, g: 150, b: 90 },
+      36,
+      0.28,
+      Position.x[eid] ?? prevX,
+      Position.y[eid] ?? prevY,
+    );
   }
 
   private processFlockEnemy(

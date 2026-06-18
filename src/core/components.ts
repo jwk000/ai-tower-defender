@@ -293,6 +293,7 @@ export const Movement = defineComponent({
   spawnIdx: Types.ui16,
   currentNodeIdx: Types.ui16,
   targetNodeIdx: Types.ui16,
+  trailEmitTimer: Types.f32,
 });
 
 /** 潜地状态：单位仍沿路径移动，但不可被选中/攻击，地面只显示翻土轨迹。 */
