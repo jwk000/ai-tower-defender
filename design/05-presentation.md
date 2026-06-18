@@ -565,6 +565,9 @@ Abyss（深渊层）    — 最低，预留
 | beam/laser | `LaserBeamSystem` 在 post-render 中补绘持续光束 |
 | lightning | `LightningBoltSystem` 在 post-render 中补绘闪电线 |
 | spell projectile | `SpellProjectileSystem` 管理法术弹道表现 |
+| soldier archer arrow | 弓手远程弹体优先使用透明贴图 `public/art/fx/fx_soldier_archer_arrow.png`，按目标点旋转；贴图未加载时回退为原三角形弹体 |
+| soldier mage bolt | 法师远程弹体优先使用透明贴图 `public/art/fx/fx_soldier_mage_bolt.png`；贴图未加载时回退为原三角形弹体 |
+| soldier priest bolt | 牧师神圣辅助攻击弹体优先使用透明贴图 `public/art/fx/fx_soldier_priest_bolt.png`；贴图未加载时回退为原三角形弹体 |
 
 ### 8.3 粒子与屏幕效果
 

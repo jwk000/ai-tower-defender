@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
-import { TileType } from '../types/index.js';
+import { TileType, UnitType } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
 import {
   Barrel,
@@ -21,7 +21,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { applyArrowProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
+import { applyArrowProjectileArt, applySoldierProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
@@ -322,6 +322,46 @@ describe('RenderSystem — 水晶显示', () => {
     const shape = applyTowerProjectileArt(7, 'circle', 18, extras, () => null);
 
     expect(shape).toBe('circle');
+    expect(extras.image).toBeUndefined();
+  });
+
+  it('远程士兵弹体优先使用对应图片资源绘制', () => {
+    const image = {} as HTMLImageElement;
+    const cases = [
+      { unitType: UnitType.Archer, path: '/art/fx/fx_soldier_archer_arrow.png', expectedShape: 'arrow' as const, minSize: 38.4 },
+      { unitType: UnitType.Mage, path: '/art/fx/fx_soldier_mage_bolt.png', expectedShape: 'rect' as const, minSize: 38.4 },
+      { unitType: UnitType.Priest, path: '/art/fx/fx_soldier_priest_bolt.png', expectedShape: 'rect' as const, minSize: 38.4 },
+    ];
+
+    for (const c of cases) {
+      const extras: Partial<RenderCommand> = {};
+      const shape = applySoldierProjectileArt(c.unitType, 'triangle', 8, extras, (path) => {
+        expect(path).toBe(c.path);
+        return {
+          image,
+          source: null,
+          width: 256,
+          height: 256,
+          path,
+        };
+      });
+
+      expect(shape).toBe(c.expectedShape);
+      expect(extras).toEqual(expect.objectContaining({
+        image,
+        imageSource: undefined,
+        size: c.minSize,
+        h: c.minSize,
+      }));
+    }
+  });
+
+  it('远程士兵弹体图片缺失时保留原几何形状回退', () => {
+    const extras: Partial<RenderCommand> = {};
+
+    const shape = applySoldierProjectileArt(UnitType.Mage, 'triangle', 8, extras, () => null);
+
+    expect(shape).toBe('triangle');
     expect(extras.image).toBeUndefined();
   });
 

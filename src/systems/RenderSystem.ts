@@ -135,6 +135,11 @@ const TOWER_PROJECTILE_FX_PATHS: Partial<Record<number, string>> = {
   7: '/art/fx/fx_fireball_projectile.png',
   8: '/art/fx/fx_poison_projectile.png',
 };
+const SOLDIER_PROJECTILE_FX_PATHS: Partial<Record<UnitType, string>> = {
+  [UnitType.Archer]: '/art/fx/fx_soldier_archer_arrow.png',
+  [UnitType.Mage]: '/art/fx/fx_soldier_mage_bolt.png',
+  [UnitType.Priest]: '/art/fx/fx_soldier_priest_bolt.png',
+};
 const MISSILE_PROJECTILE_FX_PATH = '/art/fx/fx_missile_projectile.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
@@ -182,6 +187,35 @@ export function applyTowerProjectileArt(
   extras.size = Math.max(drawSize * 1.8, 32);
   extras.h = (extras.size as number) * (fx.height / fx.width);
   return 'rect';
+}
+
+export function applySoldierProjectileArt(
+  unitType: UnitType | undefined,
+  shape: ShapeType,
+  drawSize: number,
+  extras: Partial<Parameters<Renderer['push']>[0]>,
+  loadFrame: (path: string) => LoadedArtFrame | null = getLoadedImageFrame,
+): ShapeType {
+  if (!unitType) return shape;
+  const fxPath = SOLDIER_PROJECTILE_FX_PATHS[unitType];
+  if (!fxPath) return shape;
+
+  const fx = loadFrame(fxPath);
+  if (!fx) return shape;
+
+  extras.image = fx.image;
+  extras.imageSource = fx.source ?? undefined;
+  extras.size = Math.max(drawSize * 4.8, unitType === UnitType.Archer ? 38 : 34);
+  extras.h = (extras.size as number) * (fx.height / fx.width);
+  return unitType === UnitType.Archer ? 'arrow' : 'rect';
+}
+
+function getProjectileSourceUnitType(eid: number): UnitType | undefined {
+  const sourceId = Projectile.sourceId[eid];
+  if (sourceId === undefined || sourceId <= 0) return undefined;
+  const unitTypeNum = UnitTag.unitTypeNum[sourceId];
+  if (unitTypeNum === undefined) return undefined;
+  return UNIT_TYPE_BY_ID[unitTypeNum];
 }
 
 export function getMovingEnemyBreathScale(phase: number, active: boolean): number {
@@ -1516,6 +1550,7 @@ export class RenderSystem implements System {
           // 箭塔箭矢：AI 贴图主体；贴图未加载时回退到几何箭矢。
           applyArrowProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
           shape = applyTowerProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
+          shape = applySoldierProjectileArt(getProjectileSourceUnitType(eid), shape, drawSize, extras);
           // 弩箭：AI 贴图主体；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
             const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);
