@@ -851,9 +851,6 @@ export class SpellProjectileSystem implements System {
       case SPELL_FIREBALL:
         Sound.play('exploder_boom');
         break;
-      case SPELL_ARROW_RAIN:
-        Sound.play('arrow_hit');
-        break;
       case SPELL_BLIZZARD:
         Sound.play('ice_hit');
         break;
@@ -910,6 +907,7 @@ export class SpellProjectileSystem implements System {
       const damageTime = ARROW_RAIN_WAVE_STARTS[i]! + ARROW_RAIN_WAVE_FALL_TIME;
       if (elapsed >= damageTime) {
         this.dealAreaDamage(world, effectId, x, y, radius, SPELL_ARROW_RAIN);
+        Sound.play('skill_arrow_rain');
         dueTicks = i + 1;
       }
     }

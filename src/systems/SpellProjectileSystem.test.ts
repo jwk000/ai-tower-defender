@@ -130,6 +130,7 @@ describe('SpellProjectileSystem', () => {
     const world = new TowerWorld();
     const { renderer } = makeRenderer();
     const system = new SpellProjectileSystem(renderer);
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
     reserveEntityZero(world);
     const vampireBat = makeEnemy(world, 100, 100, 40);
     const drone = makeEnemy(world, 130, 100, 30);
@@ -144,18 +145,22 @@ describe('SpellProjectileSystem', () => {
     system.update(world, 0.49);
     expect(Health.current[vampireBat]).toBe(40);
     expect(Health.current[drone]).toBe(30);
+    expect(playSpy).not.toHaveBeenCalledWith('skill_arrow_rain');
 
     system.update(world, 0.01);
     world.cleanupDeadEntities();
     expect(Health.current[vampireBat]).toBe(40);
     expect(Health.current[drone]).toBe(30);
     expect(damageEvents).toHaveLength(0);
+    expect(playSpy).not.toHaveBeenCalledWith('skill_arrow_rain');
 
     system.update(world, 0.24);
     expect(Health.current[vampireBat]).toBe(15);
     expect(Health.current[drone]).toBe(5);
     expect(Health.current[sturdyEnemy]).toBe(55);
     expect(damageEvents.filter((event) => event.targetId === vampireBat)).toHaveLength(1);
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(playSpy).toHaveBeenLastCalledWith('skill_arrow_rain');
 
     system.update(world, 0.45);
     world.cleanupDeadEntities();
@@ -165,6 +170,8 @@ describe('SpellProjectileSystem', () => {
     expect(damageEvents.filter((event) => event.targetId === vampireBat)).toHaveLength(2);
     expect(damageEvents.filter((event) => event.targetId === drone)).toHaveLength(2);
     expect(damageEvents.filter((event) => event.targetId === sturdyEnemy)).toHaveLength(2);
+    expect(playSpy).toHaveBeenCalledTimes(2);
+    expect(playSpy).toHaveBeenLastCalledWith('skill_arrow_rain');
   });
 
   it('renders arrow rain and blizzard with particle commands only', () => {
