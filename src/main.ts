@@ -49,6 +49,7 @@ import { WaveSystem } from './systems/WaveSystem.js';
 import { WeatherSystem } from './systems/WeatherSystem.js';
 import { LevelIntroSystem } from './systems/LevelIntroSystem.js';
 import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig, type VictoryConfig } from './types/index.js';
+import { getFont } from './config/fonts.js';
 import { hitTestHandCard, resolveCardToEntityType, type ResolvedCardEntity } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
@@ -73,6 +74,7 @@ import { normalizeSfxKey } from './utils/Sound.js';
 import { areArtResourcesEnabled } from './utils/artResourceSwitch.js';
 import { resolveCardConfig } from './utils/cardConfigResolver.js';
 import { preloadArtAtlasIndex, preloadArtAtlases } from './utils/imageCache.js';
+import { preloadLevelAssets } from './utils/levelAssetPreloader.js';
 import { hexToRgb } from './utils/visualHelpers.js';
 import { DEFAULT_VICTORY_CONFIG } from './config/defaults.js';
 import type { CardRarity } from './config/cardRegistry.js';
@@ -153,6 +155,9 @@ class TowerDefenderGame extends Game {
 
   private currentLevelId: number = 1;
   private currentMap: MapConfig | null = null;
+  private loadingLevelName = '';
+  private loadingLevelProgress = 0;
+  private loadingLevelToken = 0;
 
   private economy!: EconomySystem;
   private waveSystem!: WaveSystem;
@@ -227,7 +232,7 @@ class TowerDefenderGame extends Game {
     // LevelSelectUI — renders level selection menu
     this.levelSelectUI = new LevelSelectUI(
       this.renderer,
-      (levelId) => this.startLevel(levelId),
+      (levelId) => { void this.startLevel(levelId); },
       () => { this.encyclopedia.open(); },
     );
 
@@ -310,15 +315,73 @@ class TowerDefenderGame extends Game {
     };
   }
 
-  startLevel(levelId: number): void {
+  private enterLoadingScreen(levelName: string): void {
+    this.currentScreen = GameScreen.Loading;
+    this.loadingLevelName = levelName;
+    this.loadingLevelProgress = 0;
+    this.paused = false;
+    this.onAfterUpdate = null;
+    this.onUpdate = (dt) => {
+      this.loadingLevelProgress = Math.min(0.92, this.loadingLevelProgress + dt * 0.55);
+      this.renderLoadingScreen();
+    };
+    this.onPostRender = null;
+    this.input.onPointerDown = () => {};
+    this.input.onPointerMove = () => {};
+    this.input.onPointerUp = () => {};
+  }
+
+  private renderLoadingScreen(): void {
+    const ctx = this.renderer.context;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#101820';
+    ctx.fillRect(0, 0, LayoutManager.viewportW, LayoutManager.viewportH);
+    this.renderer.applyDesignTransform();
+
+    const centerX = LayoutManager.DESIGN_W / 2;
+    const centerY = LayoutManager.DESIGN_H / 2;
+    const barW = 420;
+    const barH = 16;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = getFont(28, true);
+    ctx.fillText(`正在加载 ${this.loadingLevelName}`, centerX, centerY - 50);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.roundRect(centerX - barW / 2, centerY, barW, barH, 8);
+    ctx.fill();
+    ctx.fillStyle = '#58c4dd';
+    ctx.beginPath();
+    ctx.roundRect(centerX - barW / 2, centerY, barW * this.loadingLevelProgress, barH, 8);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.font = getFont(16);
+    ctx.fillText('首次打开会下载本关图集，完成后再开始战斗', centerX, centerY + 46);
+    ctx.restore();
+  }
+
+  async startLevel(levelId: number): Promise<void> {
     const config = LEVELS[levelId - 1];
     if (!config) return;
 
+    const token = ++this.loadingLevelToken;
     this.currentLevelId = levelId;
+    this.enterLoadingScreen(config.name);
+    try {
+      const report = await preloadLevelAssets(config);
+      if (report.failed.length > 0) {
+        console.warn('[Assets] Some level assets failed to preload:', report.failed);
+      }
+    } catch (err) {
+      console.warn('[Assets] Level asset preload failed, continuing with lazy loading:', err);
+    }
+    if (token !== this.loadingLevelToken) return;
+
+    this.loadingLevelProgress = 1;
     this.currentScreen = GameScreen.Battle;
     this.phase = GamePhase.Deployment;
-    void preloadArtAtlases();
-
     this.world.reset();
     this.initBattle(config);
   }

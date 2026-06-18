@@ -849,6 +849,7 @@ export type ComponentType = (typeof CType)[keyof typeof CType];
 
 export enum GameScreen {
   LevelSelect = 'level_select',
+  Loading = 'loading',
   Battle = 'battle',
 }
 

@@ -5,6 +5,7 @@ import {
   getLoadedImageFrame,
   isArtAtlasIndexLoaded,
   preloadArtAtlasIndex,
+  preloadArtAtlasesById,
   registerArtAtlasManifest,
 } from './imageCache.js';
 import { setArtResourcesEnabled } from './artResourceSwitch.js';
@@ -137,5 +138,23 @@ describe('imageCache atlas loading', () => {
       atlasId: 'generated_units',
       source: { x: 256, y: 512, w: 256, h: 256 },
     }));
+  });
+
+  it('preloads only requested atlas images by id', async () => {
+    vi.stubGlobal('Image', LoadedImage);
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        atlases: [
+          { id: 'level_01_enemies', image: '/art/atlases/levels/level_01_enemies.png', frames: {} },
+          { id: 'level_02_enemies', image: '/art/atlases/levels/level_02_enemies.png', frames: {} },
+        ],
+      }),
+    }));
+    vi.stubGlobal('fetch', fetch);
+
+    const results = await preloadArtAtlasesById(['level_02_enemies']);
+
+    expect(results).toEqual([{ path: '/art/atlases/levels/level_02_enemies.png', ok: true }]);
   });
 });

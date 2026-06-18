@@ -36,6 +36,11 @@ export interface ArtAtlasIndex {
   atlases: ArtAtlasManifest[];
 }
 
+export interface ImagePreloadResult {
+  path: string;
+  ok: boolean;
+}
+
 const imageCache = new Map<string, HTMLImageElement>();
 const failedImages = new Set<string>();
 const atlasImageCache = new Map<string, HTMLImageElement>();
@@ -69,6 +74,46 @@ function loadImage(cache: Map<string, HTMLImageElement>, failures: Set<string>, 
   image.src = url;
   cache.set(url, image);
   return null;
+}
+
+function preloadImage(cache: Map<string, HTMLImageElement>, failures: Set<string>, path: string): Promise<ImagePreloadResult> {
+  if (typeof Image === 'undefined') return Promise.resolve({ path, ok: false });
+
+  const url = assetUrl(path);
+  if (failures.has(url)) return Promise.resolve({ path, ok: false });
+
+  const cached = cache.get(url);
+  if (cached?.complete) {
+    return Promise.resolve({ path, ok: cached.naturalWidth > 0 });
+  }
+
+  const image = cached ?? new Image();
+  if (!cached) {
+    cache.set(url, image);
+  }
+
+  return new Promise<ImagePreloadResult>((resolve) => {
+    image.onload = (): void => resolve({ path, ok: image.naturalWidth > 0 });
+    image.onerror = (): void => {
+      failures.add(url);
+      resolve({ path, ok: false });
+    };
+    if (!cached) {
+      image.src = url;
+    }
+    if (image.complete) {
+      resolve({ path, ok: image.naturalWidth > 0 });
+    }
+  }).then(async (result) => {
+    if (!result.ok) return result;
+    if (typeof image.decode !== 'function') return result;
+    try {
+      await image.decode();
+      return result;
+    } catch {
+      return result;
+    }
+  });
 }
 
 function loadAtlasIndex(): Promise<ArtAtlasIndex | null> {
@@ -136,6 +181,22 @@ export async function preloadArtAtlases(): Promise<void> {
   for (const imagePath of atlasImagePaths.values()) {
     loadImage(atlasImageCache, failedAtlasImages, imagePath);
   }
+}
+
+export async function preloadArtAtlasesById(atlasIds: readonly string[]): Promise<ImagePreloadResult[]> {
+  if (!areArtResourcesEnabled()) return [];
+  await loadAtlasIndex();
+  if (typeof Image === 'undefined') return [];
+
+  const uniquePaths = new Set<string>();
+  for (const atlasId of atlasIds) {
+    const path = atlasImagePaths.get(atlasId);
+    if (path) uniquePaths.add(path);
+  }
+
+  return Promise.all(
+    [...uniquePaths].map((imagePath) => preloadImage(atlasImageCache, failedAtlasImages, imagePath)),
+  );
 }
 
 export async function preloadArtAtlasIndex(): Promise<void> {
