@@ -231,8 +231,8 @@ export function getLoadedImageFrame(path: string): LoadedArtFrame | null {
           w: atlasRef.frame.w,
           h: atlasRef.frame.h,
         },
-        width: atlasRef.frame.w,
-        height: atlasRef.frame.h,
+        width: atlasRef.frame.sourceW ?? atlasRef.frame.w,
+        height: atlasRef.frame.sourceH ?? atlasRef.frame.h,
         path: normalizedPath,
         atlasId: atlasRef.atlasId,
       };

@@ -154,7 +154,7 @@ public/art/atlases/index.json
 | `image` | 图集 PNG 路径，必须以 `/art/atlases/` 开头 |
 | `frames` | key 必须是旧单图资源路径，保证业务层无需改路径 |
 | `x/y/w/h` | 帧在图集 PNG 内的像素源矩形 |
-| `sourceW/sourceH` | 预留字段；当前运行时不做 trim offset 重建，逻辑尺寸按 `w/h` 计算 |
+| `sourceW/sourceH` | 原始资源逻辑尺寸；当帧被装入更大的透明占位槽时，运行时按该尺寸计算显示宽高比，裁剪仍使用 `w/h` |
 
 ---
 
@@ -188,7 +188,7 @@ public/art/atlases/index.json
 2. 帧间 padding 至少 2px，使用透明像素扩边，避免线性采样串色。
 3. 同一图集内尽量保持资源尺寸接近，禁止把 1920×1080 背景和 64×64 图标混包。
 4. 透明 PNG 使用 premultiplied alpha 兼容输出，禁止带黑边。
-5. 本阶段禁止启用 trim 透明裁剪；帧矩形必须保留原图逻辑尺寸，避免单位锚点、9-slice 和宽高比失真。
+5. 本阶段禁止启用会改变锚点的 trim 透明裁剪；如果资源因图集统一槽位被放入更大的透明占位矩形，manifest 必须写入 `sourceW/sourceH` 保留原图逻辑尺寸，避免单位锚点、9-slice 和宽高比失真。
 6. 输出 manifest key 必须保留原路径，不能改成短名。
 7. 图集产物允许重复帧去重，但 manifest key 仍要完整保留。
 8. 每次新增、删除、重命名美术资源后必须重新生成 `index.json`。
@@ -205,7 +205,7 @@ public/art/atlases/index.json
 3. 加载态根据关卡 ID 预热当前关卡敌人图集、主题地格图集、可用塔图集和全局战斗图集，并等待图集图片完成解码后再进入关卡。
 4. 单个图集加载失败时打印警告并继续进关；渲染层仍按懒加载尝试原单图，但不回退程序化主体。
 5. 渲染时上层仍请求原资源路径。
-6. `imageCache` 若命中 manifest，则返回图集图片和源矩形。
+6. `imageCache` 若命中 manifest，则返回图集图片、源矩形以及 `sourceW/sourceH` 覆盖后的逻辑尺寸。
 7. 未命中 manifest 时回退到原单 PNG。
 8. 图片主体资源缺失时保持主体空缺，只保留血条、名称、范围圈、粒子等非资源反馈。
 

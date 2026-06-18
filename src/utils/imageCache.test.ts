@@ -50,6 +50,28 @@ describe('imageCache atlas loading', () => {
     expect(frame?.image).toBeInstanceOf(LoadedImage);
   });
 
+  it('preserves source dimensions for tightly-cropped frames stored in padded atlas slots', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    vi.stubGlobal('fetch', undefined);
+    registerArtAtlasManifest({
+      id: 'fx_objectives',
+      image: '/art/atlases/global/fx_objectives.png',
+      frames: {
+        '/art/fx/fx_missile_projectile.png': { x: 1292, y: 260, w: 256, h: 256, sourceW: 256, sourceH: 84 },
+      },
+    });
+
+    expect(getLoadedImageFrame('/art/fx/fx_missile_projectile.png')).toBeNull();
+    const frame = getLoadedImageFrame('/art/fx/fx_missile_projectile.png');
+
+    expect(frame).toEqual(expect.objectContaining({
+      atlasId: 'fx_objectives',
+      source: { x: 1292, y: 260, w: 256, h: 256 },
+      width: 256,
+      height: 84,
+    }));
+  });
+
   it('falls back to a standalone image when no atlas frame matches', () => {
     vi.stubGlobal('Image', LoadedImage);
     vi.stubGlobal('fetch', undefined);

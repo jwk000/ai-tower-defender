@@ -3932,7 +3932,9 @@
           "x": 1292,
           "y": 260,
           "w": 256,
-          "h": 256
+          "h": 256,
+          "sourceW": 256,
+          "sourceH": 84
         },
         "/art/fx/fx_missile_projectile_source.png": {
           "x": 1550,
