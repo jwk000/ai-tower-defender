@@ -114,6 +114,30 @@ interface HandCardDrawData {
   z: number;
 }
 
+type HandCardCategory = 'tower' | 'soldier' | 'trap' | 'spell';
+
+const HAND_CARD_CATEGORY_COLORS: Record<HandCardCategory, string> = {
+  tower: '#42a5f5',
+  soldier: '#66bb6a',
+  trap: '#ef5350',
+  spell: '#ab47bc',
+};
+
+const HAND_CARD_CATEGORY_LABELS: Record<HandCardCategory, string> = {
+  tower: '塔',
+  soldier: '兵',
+  trap: '机关',
+  spell: '技能',
+};
+
+function getHandCardCategory(card: CardConfig): HandCardCategory {
+  if (card.type === 'spell') return 'spell';
+  if (card.type === 'trap') return 'trap';
+  const id = card.unitConfigId ?? card.id;
+  if (id.includes('_tower')) return 'tower';
+  return 'soldier';
+}
+
 // ============================================================
 // TowerType numeric ID → enum mapping (matches BuildSystem)
 // ============================================================
@@ -1107,7 +1131,8 @@ export class UISystem implements System {
   private drawHandCard(cardDraw: HandCardDrawData): void {
     const { config } = cardDraw;
     const cardAlpha = 1;
-    const borderColor = rarityBorderColor(config.rarity);
+    const category = getHandCardCategory(config);
+    const borderColor = HAND_CARD_CATEGORY_COLORS[category];
     const artW = 96 * cardDraw.scale;
     const artH = 80 * cardDraw.scale;
     const artCenterY = cardDraw.top + 12 * cardDraw.scale + artH / 2;
@@ -1120,16 +1145,6 @@ export class UISystem implements System {
       alpha: cardAlpha * 0.35,
       stroke: borderColor, strokeWidth: cardDraw.progress > 0 ? 3 : 2,
       z: cardDraw.z,
-    });
-    this.imageDraws.push({
-      x: cardDraw.left,
-      y: cardDraw.top,
-      w: cardDraw.width,
-      h: cardDraw.height,
-      path: cardFrameArtPath(),
-      layer: 'normal',
-      alpha: 1,
-      z: cardDraw.z + 6,
     });
 
     this.renderer.push({
@@ -1154,18 +1169,27 @@ export class UISystem implements System {
       size: 12, align: 'center',
     });
 
+    this.infos.push({
+      x: cardDraw.centerX,
+      y: cardDraw.top + 12 * cardDraw.scale + artH + 32 * cardDraw.scale,
+      text: HAND_CARD_CATEGORY_LABELS[category],
+      color: borderColor,
+      size: 10,
+      align: 'center',
+    });
+
     const goldCost = config.goldCost;
     if (goldCost !== undefined && goldCost > 0) {
       const goldColor = goldCost <= 40 ? '#ffc107' : goldCost <= 70 ? '#ff9800' : '#ff5722';
       this.infos.push({
-        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 30 * cardDraw.scale,
+        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 46 * cardDraw.scale,
         text: `💰${goldCost}`,
         color: goldColor,
         size: 11, align: 'center',
       });
     } else if (goldCost === 0) {
       this.infos.push({
-        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 30 * cardDraw.scale,
+        x: cardDraw.centerX, y: cardDraw.top + 12 * cardDraw.scale + artH + 46 * cardDraw.scale,
         text: '免费',
         color: '#66bb6a',
         size: 11, align: 'center',
@@ -1177,7 +1201,7 @@ export class UISystem implements System {
       for (let li = 0; li < descLines.length && li < 2; li++) {
         this.infos.push({
           x: cardDraw.centerX,
-          y: cardDraw.top + 12 * cardDraw.scale + artH + 46 * cardDraw.scale + li * 11,
+          y: cardDraw.top + 12 * cardDraw.scale + artH + 62 * cardDraw.scale + li * 11,
           text: descLines[li]!,
           color: '#90a4ae',
           size: 9, align: 'center',

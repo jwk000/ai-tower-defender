@@ -133,8 +133,8 @@ function buttonsOf(ui: UISystem): Array<{ x: number; y: number; w: number; h: nu
   return (ui as unknown as { buttons: Array<{ x: number; y: number; w: number; h: number; label: string; color: string }> }).buttons;
 }
 
-function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> {
-  return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; align?: CanvasTextAlign }> }).infos;
+function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; color?: string; align?: CanvasTextAlign }> {
+  return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; color?: string; align?: CanvasTextAlign }> }).infos;
 }
 
 function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number }> {
@@ -418,7 +418,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     const cardRect = renderer.commands.find((cmd) => (
       cmd.shape === 'rect' &&
-      cmd.stroke === '#ffffff' &&
+      cmd.stroke === '#42a5f5' &&
       cmd.size > HAND_ZONE_CARD_WIDTH &&
       (cmd.h ?? 0) > HAND_ZONE_CARD_HEIGHT
     ));
@@ -432,7 +432,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('所有卡牌统一绘制普通美术卡框', () => {
+  it('手牌使用卡牌图鉴式绘制，不加载整卡美术底框', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
@@ -457,21 +457,29 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     expect(imageDrawsOf(ui).some((draw) => (
       draw.layer === 'normal' &&
       draw.path === '/art/ui/ui_card_frame_common.png'
-    ))).toBe(true);
+    ))).toBe(false);
     expect(imageDrawsOf(ui).some((draw) => (
       draw.layer === 'normal' &&
       draw.path === '/art/ui/ui_card_frame_rare.png'
     ))).toBe(false);
 
-    const frameDraw = imageDrawsOf(ui).find((draw) => draw.path === '/art/ui/ui_card_frame_common.png');
     const contentRect = renderer.commands.find((cmd) => (
       cmd.shape === 'rect' &&
       cmd.color === '#0d1b2a' &&
       cmd.size === 96 &&
       cmd.h === 80
     ));
-    expect(frameDraw?.alpha).toBe(1);
-    expect(frameDraw?.z).toBeGreaterThan(contentRect?.z ?? 0);
+    const cardRect = renderer.commands.find((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.color === '#1a2332' &&
+      cmd.stroke === '#42a5f5'
+    ));
+    expect(contentRect).toBeTruthy();
+    expect(cardRect).toBeTruthy();
+    expect(infosOf(ui).some((info) => (
+      info.text === '塔' &&
+      info.color === '#42a5f5'
+    ))).toBe(true);
   });
 
   it('单位卡拖动 ghost 在美术资源可用时使用场景单位图片而不是卡牌外观', () => {
