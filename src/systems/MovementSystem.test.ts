@@ -235,6 +235,20 @@ function makeQueenWorm(world: TowerWorld): number {
   return queen;
 }
 
+function makeGenericBoss(world: TowerWorld): number {
+  const boss = makePathEnemy(world, {
+    speed: 20,
+    atk: 30,
+    attackRange: 80,
+    attackSpeed: 0.6,
+    size: 92,
+  });
+  UnitTag.isBoss[boss] = 1;
+  world.addComponent(boss, Boss, { bossType: 2, phase: 1, phase2HpRatio: 0.5, immuneToTowers: 0 });
+  Visual.attackAnimDuration[boss] = 0.9;
+  return boss;
+}
+
 function makeEnemyAtEnd(
   world: TowerWorld,
   opts: { atk: number; withAttackComponent?: boolean; isBoss?: boolean; initialAttackAnimDuration?: number },
@@ -809,6 +823,37 @@ describe('MovementSystem — 巨石阻挡', () => {
     system.update(world, 0.1);
 
     expect(Attack.targetId[queen]).toBe(closerTower);
+  });
+
+  it('所有Boss遇到我方单位后必须锁定攻击，且机关不抢占该锁定目标', () => {
+    const soldier = makeSoldier(world, 46, TILE / 2, 100);
+    const boss = makeGenericBoss(world);
+
+    system.update(world, 0.1);
+    const firstProjectile = projectileQuery(world.world).at(-1)!;
+
+    expect(Attack.targetId[boss]).toBe(soldier);
+    expect(Projectile.targetId[firstProjectile]).toBe(soldier);
+    expect(Movement.currentSpeed[boss]).toBe(0);
+
+    const closerBoulder = makeBoulder(world, 1, 200);
+    Position.x[closerBoulder] = 20;
+    Position.y[closerBoulder] = TILE / 2;
+    Attack.cooldownTimer[boss] = 0;
+    Visual.attackAnimTimer[boss] = 0;
+    system.update(world, 0.1);
+    const secondProjectile = projectileQuery(world.world).at(-1)!;
+
+    expect(Attack.targetId[boss]).toBe(soldier);
+    expect(Projectile.targetId[secondProjectile]).toBe(soldier);
+    expect(Health.current[closerBoulder]).toBe(200);
+
+    Health.current[soldier] = 0;
+    Attack.cooldownTimer[boss] = 0;
+    Visual.attackAnimTimer[boss] = 0;
+    system.update(world, 0.1);
+
+    expect(Attack.targetId[boss]).toBe(closerBoulder);
   });
 
   it('巨石被破坏后，地面敌人可以继续前进', () => {

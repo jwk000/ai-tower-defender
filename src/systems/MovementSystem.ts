@@ -39,7 +39,6 @@ const FLOCK_OFFSET_WEIGHT = 1.1;
 const FLOCK_WANDER_STRENGTH = 50;
 const FLOCK_PATH_ADVANCE_RADIUS = 18;
 const SPELL_BLIZZARD = 2;
-const BOSS_TYPE_QUEENWORM = 1;
 const BOAR_ENEMY_TYPE_NUM = ENEMY_ID_BY_TYPE[EnemyType.Boar];
 const BOAR_DASH_TRAIL_INTERVAL = 0.18;
 
@@ -659,9 +658,9 @@ export class MovementSystem implements System {
     const posX = Position.x[eid]!;
     const posY = Position.y[eid]!;
     const forcedTarget = this.getTauntTarget(world, eid, posX, posY, attackRange);
-    const lockedTarget = forcedTarget ?? this.getQueenWormLockedTarget(world, eid);
+    const lockedTarget = forcedTarget ?? this.getBossLockedDefenderTarget(world, eid);
 
-    // Tick cooldown. 被嘲讽敌人和虫族女王锁定目标时，即使冷却中也要停在原地盯住目标。
+    // Tick cooldown. 被嘲讽敌人和 Boss 锁定塔/士兵时，即使冷却中也要停在原地盯住目标。
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
@@ -761,9 +760,8 @@ export class MovementSystem implements System {
     return false;
   }
 
-  private getQueenWormLockedTarget(world: TowerWorld, eid: number): number | null {
+  private getBossLockedDefenderTarget(world: TowerWorld, eid: number): number | null {
     if (!hasComponent(world.world, Boss, eid)) return null;
-    if ((Boss.bossType[eid] ?? 0xff) !== BOSS_TYPE_QUEENWORM) return null;
 
     const targetId = Attack.targetId[eid] ?? 0;
     if (targetId === 0 || !entityExists(world.world, targetId)) return null;
