@@ -8,86 +8,104 @@
       "w": 256,
       "h": 256
     },
-    "/art/fx/fx_bomb_explosion_impact_1.png": {
+    "/art/fx/fx_ballista_bolt.png": {
       "x": 260,
+      "y": 2,
+      "w": 256,
+      "h": 256
+    },
+    "/art/fx/fx_bomb_explosion_impact_1.png": {
+      "x": 518,
       "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/fx/fx_crystal_aura_loop_0.png": {
-      "x": 518,
+      "x": 776,
       "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/fx/fx_fire_explosion_charge_0.png": {
-      "x": 776,
+      "x": 1034,
       "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/fx/fx_fire_explosion_impact_1.png": {
-      "x": 1034,
+      "x": 1292,
       "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/fx/fx_heal_aura_loop_0.png": {
-      "x": 1292,
+      "x": 1550,
       "y": 2,
       "w": 256,
       "h": 256
     },
     "/art/fx/fx_ice_burst_impact_1.png": {
-      "x": 1550,
-      "y": 2,
-      "w": 256,
-      "h": 256
-    },
-    "/art/fx/fx_laser_beam_loop_0.png": {
       "x": 2,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/fx/fx_lightning_chain_loop_0.png": {
+    "/art/fx/fx_laser_beam_loop_0.png": {
       "x": 260,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/fx/fx_magic_shield_loop_0.png": {
+    "/art/fx/fx_lightning_chain_loop_0.png": {
       "x": 518,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/fx/fx_poison_cloud_loop_0.png": {
+    "/art/fx/fx_magic_shield_loop_0.png": {
       "x": 776,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/fx/fx_spawn_portal_loop_0.png": {
+    "/art/fx/fx_missile_projectile.png": {
       "x": 1034,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/objectives/objective_crystal.png": {
+    "/art/fx/fx_missile_projectile_source.png": {
       "x": 1292,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/objectives/objective_crystal_low_hp.png": {
+    "/art/fx/fx_poison_cloud_loop_0.png": {
       "x": 1550,
       "y": 260,
       "w": 256,
       "h": 256
     },
-    "/art/objectives/objective_spawn_portal.png": {
+    "/art/fx/fx_spawn_portal_loop_0.png": {
       "x": 2,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_crystal.png": {
+      "x": 260,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_crystal_low_hp.png": {
+      "x": 518,
+      "y": 518,
+      "w": 256,
+      "h": 256
+    },
+    "/art/objectives/objective_spawn_portal.png": {
+      "x": 776,
       "y": 518,
       "w": 256,
       "h": 256

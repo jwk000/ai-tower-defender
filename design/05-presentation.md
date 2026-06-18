@@ -256,7 +256,7 @@ Abyss（深渊层）    — 最低，预留
 | 端点 | 主体资源 | 循环 FX 资源 | 层级 | 说明 |
 |------|----------|--------------|------|------|
 | 敌人出生口 | `public/art/objectives/objective_spawn_portal.png` | `public/art/fx/fx_spawn_portal_loop_0.png` | z=0，路径瓦片之上、单位之下 | 黑红传送门主体 + 脉冲外环 + 漂浮粒子；不改变敌人出生坐标和路径连通性 |
-| 水晶 | `public/art/objectives/objective_crystal.png` / `objective_crystal_low_hp.png` | `public/art/fx/fx_crystal_aura_loop_0.png` | 实体 Ground 层 | 正常血量使用紫红水晶，低血量自动切换红色水晶；FX 与程序化闪光叠加 |
+| 水晶 | `public/art/objectives/objective_crystal.png` / `objective_crystal_low_hp.png` | `public/art/fx/fx_crystal_aura_loop_0.png` | 实体 Ground 层 | 正常血量使用蓝色立体水晶，低血量自动切换红色水晶；FX 与程序化闪光叠加 |
 
 端点资源必须是透明 PNG，不允许包含文字、水印、整格硬边框或不可平铺底色。资源缺失或加载中时，运行时可回退到 Canvas 程序化水晶和出生口漩涡，保证战斗画面不空白。
 
@@ -272,8 +272,8 @@ Abyss（深渊层）    — 最低，预留
 | 低血量资源 | `public/art/objectives/objective_crystal_low_hp.png` |
 | 循环 FX | `public/art/fx/fx_crystal_aura_loop_0.png` |
 | 形状 | 悬浮菱形魔法水晶，带金色节点点缀 |
-| 主体色 | 正常为紫红/紫罗兰，低血量(<30%)切换为红色警戒 |
-| 辉光色 | 正常为紫色+金色环光；低血量增强红色脉冲 |
+| 主体色 | 正常为蓝色/青蓝色立体切面，低血量(<30%)切换为红色警戒 |
+| 辉光色 | 正常为蓝色+金色环光；低血量增强红色脉冲 |
 | 大小 | 主体约66px，FX约86-96px，保持在单格附近可读 |
 | 动画 | 上下浮动（±6px）+ 轻微水平摇曳 |
 | 辉光呼吸 | FX 资源随呼吸缩放和透明度变化，并叠加程序化星光 |
