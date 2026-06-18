@@ -142,11 +142,19 @@ export function applyArrowProjectileArt(
   loadFrame: (path: string) => LoadedArtFrame | null = getLoadedImageFrame,
 ): void {
   if (sourceTowerType !== 0 || shape !== 'arrow') return;
+  extras.arrowGradientTail = '#e3f2fd';
+  extras.arrowGlowColor = '#4fc3f7';
+  extras.arrowGlowAlpha = 0.42;
+  extras.arrowAirStreaks = true;
+  extras.arrowLengthScale = 1.45;
+  extras.arrowShaftWidthRatio = 0.12;
+  extras.arrowHeadWidthRatio = 0.36;
+
   const arrowFx = loadFrame(ARROW_PROJECTILE_FX_PATH);
   if (!arrowFx) return;
   extras.image = arrowFx.image;
   extras.imageSource = arrowFx.source ?? undefined;
-  extras.size = Math.max(drawSize * 1.35, 28);
+  extras.size = Math.max(drawSize * 1.7, 36);
   extras.h = (extras.size as number) * (arrowFx.height / arrowFx.width);
 }
 

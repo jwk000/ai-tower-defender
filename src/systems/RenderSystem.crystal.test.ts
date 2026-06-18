@@ -240,9 +240,33 @@ describe('RenderSystem — 水晶显示', () => {
     expect(extras).toEqual(expect.objectContaining({
       image,
       imageSource: undefined,
-      size: 29.700000000000003,
-      h: 7.425000000000001,
+      size: 37.4,
+      h: 9.35,
+      arrowGradientTail: '#e3f2fd',
+      arrowGlowColor: '#4fc3f7',
+      arrowGlowAlpha: 0.42,
+      arrowAirStreaks: true,
+      arrowLengthScale: 1.45,
+      arrowShaftWidthRatio: 0.12,
+      arrowHeadWidthRatio: 0.36,
     }));
+  });
+
+  it('箭塔普通箭矢贴图未加载时使用高可见度程序化回退', () => {
+    const extras: Partial<RenderCommand> = {};
+
+    applyArrowProjectileArt(0, 'arrow', 22, extras, () => null);
+
+    expect(extras).toEqual(expect.objectContaining({
+      arrowGradientTail: '#e3f2fd',
+      arrowGlowColor: '#4fc3f7',
+      arrowGlowAlpha: 0.42,
+      arrowAirStreaks: true,
+      arrowLengthScale: 1.45,
+      arrowShaftWidthRatio: 0.12,
+      arrowHeadWidthRatio: 0.36,
+    }));
+    expect(extras.image).toBeUndefined();
   });
 
   it('非箭塔 arrow 投射物不套用普通箭矢贴图', () => {
