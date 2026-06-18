@@ -21,6 +21,9 @@ interface RawLevelConfig {
 
 interface RawUnitConfig {
   category?: string;
+  lifecycle?: {
+    onAttack?: Array<Record<string, unknown>>;
+  };
   trap?: { type?: string };
 }
 
@@ -153,5 +156,11 @@ describe('运行时单位类型映射一致性', () => {
         if (sceneArtId) expectUnitSprite(sceneArtId, context);
       }
     }
+  });
+
+  it('电塔攻击配置使用电流命中音效', () => {
+    const lightningRules = loadRawUnits().lightning_tower?.lifecycle?.onAttack ?? [];
+    expect(lightningRules).toContainEqual({ type: 'play_sound', sound: 'lightning_hit' });
+    expect(lightningRules).not.toContainEqual({ type: 'play_sound', sound: 'tower_lightning' });
   });
 });

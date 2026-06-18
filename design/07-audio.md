@@ -44,7 +44,7 @@
 | `tower_arrow` | 箭塔 | 弓弦声 + 箭矢破空 | OGG + Synth |
 | `tower_cannon` | 炮塔 | 低音炮击 + 混响 | OGG + Synth |
 | `tower_ice` | 冰塔 | 晶体高音扫掠 + 闪光混响 | OGG + Synth |
-| `tower_lightning` | 电塔 | 带通噪声电弧 + 低频轰鸣 | OGG + Synth |
+| `lightning_hit` | 电塔 | 电击滋啦 + 电流爆鸣，普通攻击与连锁命中共用 | OGG + Synth |
 | `tower_laser` | 激光塔 | 持续能量束扫掠 | OGG + Synth |
 | `tower_bat` | 蝙蝠塔 | 低频扑翼扫掠 | OGG + Synth |
 | `tower_missile` | 导弹塔 | 重型发射轰鸣 + 低频拖尾 | OGG + Synth |

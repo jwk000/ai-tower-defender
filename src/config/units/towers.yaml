@@ -245,7 +245,7 @@ lightning_tower:
     onAttack:
       - type: spawn_lightning_bolt
       - type: play_sound
-        sound: tower_lightning
+        sound: lightning_hit
 
   passives:
     l3:
