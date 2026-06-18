@@ -175,7 +175,7 @@ export class HandSystem implements System {
    * 从卡牌库中随机抽一张牌补充手牌。
    * @returns true 若抽牌成功，false 若手牌已满或卡牌库为空
    */
-  drawRandomCard(): boolean {
+  drawRandomCard(excludedCardId: string | null = null): boolean {
     if (this.isFull()) return false;
     if (this.cardLibrary.size === 0) return false;
 
@@ -183,7 +183,7 @@ export class HandSystem implements System {
     if (slot === -1) return false;
 
     // 从卡牌库中按当前随机权重选择一张
-    const cards = this.getRandomDrawCandidates();
+    const cards = this.getRandomDrawCandidates(excludedCardId);
     if (cards.length === 0) return false;
 
     const card = this.pickWeightedCard(cards);
@@ -218,7 +218,7 @@ export class HandSystem implements System {
     this.onCardPlayed?.(cardId);
 
     // v5.0: 出牌后自动补牌
-    this.drawRandomCard();
+    this.drawRandomCard(cardId);
 
     return cardId;
   }
@@ -341,12 +341,17 @@ export class HandSystem implements System {
     this.lastDrawnCardId = cardId;
   }
 
-  private getRandomDrawCandidates(): CardInstance[] {
+  private getRandomDrawCandidates(excludedCardId: string | null = null): CardInstance[] {
     const candidates = Array.from(this.cardLibrary.values()).filter((card) => this.canAddCardToHand(card.id));
-    if (this.lastDrawnCardId === null || candidates.length <= 1) return candidates;
+    let filteredCandidates = this.filterCandidateCardId(candidates, excludedCardId);
+    filteredCandidates = this.filterCandidateCardId(filteredCandidates, this.lastDrawnCardId);
+    return filteredCandidates;
+  }
 
-    const nonRepeatingCandidates = candidates.filter((card) => card.id !== this.lastDrawnCardId);
-    return nonRepeatingCandidates.length > 0 ? nonRepeatingCandidates : candidates;
+  private filterCandidateCardId(candidates: CardInstance[], cardId: string | null): CardInstance[] {
+    if (cardId === null || candidates.length <= 1) return candidates;
+    const filtered = candidates.filter((card) => card.id !== cardId);
+    return filtered.length > 0 ? filtered : candidates;
   }
 
   private pickWeightedCard(cards: readonly CardInstance[]): CardInstance | null {

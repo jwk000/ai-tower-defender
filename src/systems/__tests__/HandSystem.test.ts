@@ -111,7 +111,7 @@ describe('HandSystem — 手牌管理', () => {
         { id: 'card_missile_tower', name: '导弹塔', type: 'unit', description: '地面爆炸', goldCost: 0 },
         { id: 'card_fireball', name: '火球术', type: 'spell', description: '地面范围法术', goldCost: 0 },
         { id: 'card_bomb', name: '炸弹', type: 'spell', description: '地面爆炸', goldCost: 0 },
-        { id: 'card_mage', name: '法师', type: 'unit', description: '地面AOE', goldCost: 0 },
+        { id: 'card_swordsman', name: '剑士', type: 'unit', description: '地面近战', goldCost: 0 },
         { id: 'card_archer', name: '弓手', type: 'unit', description: '防空士兵', goldCost: 0 },
       ];
 
@@ -120,7 +120,7 @@ describe('HandSystem — 手牌管理', () => {
 
       expect(ids).toContain('card_archer');
       expect(ids).toHaveLength(5);
-      expect(ids.some((id) => id === 'card_cannon_tower' || id === 'card_missile_tower' || id === 'card_fireball' || id === 'card_bomb' || id === 'card_mage')).toBe(true);
+      expect(ids.some((id) => id === 'card_cannon_tower' || id === 'card_missile_tower' || id === 'card_fireball' || id === 'card_bomb' || id === 'card_swordsman')).toBe(true);
     });
 
     it('初始抽牌时同一张卡最多出现 2 张', () => {
@@ -378,6 +378,21 @@ describe('HandSystem — 手牌管理', () => {
       }
       // slot 1 被新牌填充（不同于旧牌）
       expect(handAfter[1]!.id).not.toBe(oldCard.id);
+    });
+
+    it('出牌后自动补牌不会立刻补回刚打出的同一张卡', () => {
+      handSystem.initialize([
+        makeTrapCard('card_spike_trap', '地刺'),
+        makeTrapCard('card_bear_trap', '捕兽夹'),
+      ]);
+      handSystem.reset();
+      handSystem.drawCard('card_spike_trap');
+      handSystem.drawCard('card_bear_trap');
+
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      expect(handSystem.playCard(0)).toBe('card_spike_trap');
+
+      expect(handSystem.getHand()[0]?.id).toBe('card_bear_trap');
     });
 
     it('出牌后自动补牌不会让同一卡超过 2 张', () => {
