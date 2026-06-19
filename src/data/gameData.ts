@@ -38,13 +38,7 @@ export const TOWER_BASE_VISUAL_PARTS: Record<TowerType, UnitVisualParts> = {
   // ── 弩塔：横弩臂+弩弦+弩头 ──
   [TowerType.Ballista]: {
     bobStyle: 'static',
-    bodyParts: [
-      { shape: 'rect', offsetX: 0, offsetY: -2, size: 30, h: 5, color: '#455a64', alpha: 1, stroke: '#546e7a', strokeWidth: 1 },
-      { shape: 'rect', offsetX: 0, offsetY: -8, size: 12, h: 1, color: '#cfd8dc', alpha: 0.8 },
-      { shape: 'triangle', offsetX: 18, offsetY: -2, size: 10, color: '#37474f', alpha: 0.9 },
-      { shape: 'rect', offsetX: -14, offsetY: 2, size: 6, h: 10, color: '#546e7a', alpha: 0.8 },
-      { shape: 'rect', offsetX: 14, offsetY: 2, size: 6, h: 10, color: '#546e7a', alpha: 0.8 },
-    ],
+    bodyParts: [],
   },
   // ── 炮塔：炮管+炮口+轮子 ──
   [TowerType.Cannon]: {
@@ -587,16 +581,8 @@ export const UPGRADE_VISUALS: UpgradeVisualRegistry = {
   // ── 弩塔（L1=L1, L2=L2, L3=L3）──
   ballista_tower: [
     { level: 1, scaleMultiplier: 1.0, extraParts: [] },
-    { level: 2, scaleMultiplier: 1.08, extraParts: [
-      { shape: 'rect', offsetX: 0, offsetY: -4, size: 16, h: 1, color: '#90a4ae', alpha: 0.7 },
-      { shape: 'triangle', offsetX: 20, offsetY: -2, size: 12, color: '#455a64', alpha: 0.9 },
-    ] },
-    { level: 3, scaleMultiplier: 1.17, extraParts: [
-      { shape: 'rect', offsetX: 0, offsetY: -4, size: 20, h: 2, color: '#b0bec5', alpha: 0.8 },
-      { shape: 'triangle', offsetX: 22, offsetY: -3, size: 14, color: '#37474f', alpha: 1 },
-      { shape: 'circle', offsetX: -16, offsetY: 2, size: 4, color: '#78909c', alpha: 0.7 },
-      { shape: 'circle', offsetX: 16, offsetY: 2, size: 4, color: '#78909c', alpha: 0.7 },
-    ], glow: { radius: 22, color: '#78909c', alpha: 0.15 }, passiveVisual: { type: 'crit_flash', description: 'pierce damage no decay, 50% bonus on 3+ hits' } },
+    { level: 2, scaleMultiplier: 1.08, extraParts: [] },
+    { level: 3, scaleMultiplier: 1.17, extraParts: [], passiveVisual: { type: 'crit_flash', description: 'pierce damage no decay, 50% bonus on 3+ hits' } },
   ],
 };
 

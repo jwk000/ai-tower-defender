@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { unitConfigRegistry, type UnitConfig as RegistryUnitConfig } from '../../config/registry.js';
 import { DamageTypeVal, Health, Visual } from '../../core/components.js';
 import { TowerType, UnitType } from '../../types/index.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS } from '../gameData.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS, UPGRADE_VISUALS } from '../gameData.js';
 import { injectTowerConfigsFromRegistry } from './towerBridge.js';
 import { injectSoldierConfigsFromRegistry } from './soldierBridge.js';
 import { injectEnemyConfigsFromRegistry } from './enemyBridge.js';
@@ -160,6 +160,13 @@ describe('unit config bridge', () => {
     const eid = factory.createTower(TowerType.Arrow, 0, 0, { row: 0, col: 0 }, { tileSize: 64, towerTypeNum: 0 })!;
 
     expect(Visual.outline[eid]).toBe(0);
+  });
+
+  it('弩塔所有等级不叠加程序绘制装饰物', () => {
+    expect(TOWER_CONFIGS[TowerType.Ballista].visualParts?.bodyParts ?? []).toEqual([]);
+    const ballistaVisuals = UPGRADE_VISUALS.ballista_tower;
+    expect(ballistaVisuals).toBeDefined();
+    expect(ballistaVisuals?.map((level) => level.extraParts)).toEqual([[], [], []]);
   });
 
   it('机关默认不显示白色描边，并从配置读取低伤害高频率节奏', () => {
