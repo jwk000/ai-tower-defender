@@ -14,6 +14,7 @@ import {
   LayerVal,
   Movement,
   Position,
+  Projectile,
   ShapeVal,
   Tower,
   Trap,
@@ -157,6 +158,45 @@ function hasProceduralBarrel(commands: RenderCommand[]): boolean {
     cmd.h === 6 &&
     !cmd.image,
   );
+}
+
+function makeProjectile(
+  world: TowerWorld,
+  opts: {
+    sourceTowerType: number;
+    shape: ShapeVal;
+    size: number;
+    colorR: number;
+    colorG: number;
+    colorB: number;
+  },
+): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: 64, y: 32 });
+  world.addComponent(eid, Projectile, {
+    speed: 350,
+    damage: 10,
+    damageType: 0,
+    targetId: 0,
+    sourceId: 0,
+    fromX: 32,
+    fromY: 32,
+    shape: opts.shape,
+    colorR: opts.colorR,
+    colorG: opts.colorG,
+    colorB: opts.colorB,
+    size: opts.size,
+    sourceTowerType: opts.sourceTowerType,
+  });
+  world.addComponent(eid, Visual, {
+    shape: opts.shape,
+    colorR: opts.colorR,
+    colorG: opts.colorG,
+    colorB: opts.colorB,
+    size: opts.size,
+    alpha: 1,
+  });
+  return eid;
 }
 
 describe('RenderSystem — 水晶显示', () => {
@@ -363,6 +403,36 @@ describe('RenderSystem — 水晶显示', () => {
 
     expect(shape).toBe('triangle');
     expect(extras.image).toBeUndefined();
+  });
+
+  it('普通 projectile 实体必须调用通用主体绘制，避免冰塔和火塔子弹消失', () => {
+    const world = new TowerWorld();
+    makeProjectile(world, {
+      sourceTowerType: 2,
+      shape: ShapeVal.Diamond,
+      size: 12,
+      colorR: 0x81,
+      colorG: 0xd4,
+      colorB: 0xfa,
+    });
+    makeProjectile(world, {
+      sourceTowerType: 7,
+      shape: ShapeVal.Circle,
+      size: 10,
+      colorR: 0xff,
+      colorG: 0x57,
+      colorB: 0x22,
+    });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+
+    system.update(world, 0);
+
+    expect(renderer.commands).toEqual(expect.arrayContaining([
+      expect.objectContaining({ shape: 'diamond', color: 'rgb(129,212,250)', size: 12 }),
+      expect.objectContaining({ shape: 'circle', color: 'rgb(255,87,34)', size: 10 }),
+    ]));
   });
 
   it('炮塔图片缺失时不回退绘制程序化主体和炮管', () => {

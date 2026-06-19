@@ -1611,6 +1611,11 @@ export class RenderSystem implements System {
       const layerVal = Layer.value[eid] ?? LayerVal.Ground;
       const renderZ = LAYER_TO_Z[layerVal] ?? 5;
 
+      if (isProjectile) {
+        pushCmd();
+        continue;
+      }
+
       // ========================================
       // Glow rendering (L3+ towers)
       // ========================================
