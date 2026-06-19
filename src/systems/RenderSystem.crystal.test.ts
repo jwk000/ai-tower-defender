@@ -170,6 +170,8 @@ function makeProjectile(
     colorG: number;
     colorB: number;
     targetId?: number;
+    dirX?: number;
+    dirY?: number;
   },
 ): number {
   const eid = world.createEntity();
@@ -188,6 +190,8 @@ function makeProjectile(
     colorB: opts.colorB,
     size: opts.size,
     sourceTowerType: opts.sourceTowerType,
+    dirX: opts.dirX ?? 0,
+    dirY: opts.dirY ?? 0,
   });
   world.addComponent(eid, Visual, {
     shape: opts.shape,
@@ -483,6 +487,44 @@ describe('RenderSystem — 水晶显示', () => {
       image: expect.any(LoadedImage),
       shape: 'rect',
       rotation: Math.PI / 2,
+    }));
+  });
+
+  it('弩塔弩矢贴图默认朝左，渲染命令必须按飞行方向补偿 180 度', () => {
+    class LoadedImage {
+      complete = true;
+      naturalWidth = 128;
+      naturalHeight = 128;
+      width = 128;
+      height = 128;
+      src = '';
+    }
+    vi.stubGlobal('Image', LoadedImage);
+
+    const world = new TowerWorld();
+    makeProjectile(world, {
+      sourceTowerType: 9,
+      shape: ShapeVal.Arrow,
+      size: 18,
+      colorR: 0x21,
+      colorG: 0x96,
+      colorB: 0xf3,
+      dirX: 1,
+      dirY: 0,
+    });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+    system.update(world, 0);
+    renderer.commands = [];
+    system.update(world, 0);
+
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      image: expect.any(LoadedImage),
+      shape: 'arrow',
+      targetX: 114,
+      targetY: 32,
+      rotation: Math.PI,
     }));
   });
 

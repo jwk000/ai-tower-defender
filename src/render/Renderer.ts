@@ -296,7 +296,7 @@ export class Renderer {
         // Arrow: triangle head + rectangular shaft, rotated toward (targetX,targetY)
         const tx = cmd.targetX ?? cx + s;
         const ty = cmd.targetY ?? cy;
-        const angle = Math.atan2(ty - cy, tx - cx);
+        const angle = Math.atan2(ty - cy, tx - cx) + (cmd.rotation ?? 0);
         const lengthScale = cmd.arrowLengthScale ?? 1;
         const headLen = s * 0.55 * lengthScale;
         const headWidth = headLen * (cmd.arrowHeadWidthRatio ?? 0.4);
