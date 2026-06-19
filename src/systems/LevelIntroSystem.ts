@@ -25,6 +25,7 @@ import type { PathNode } from '../level/graph/types.js';
 import { drawImageFrame, getLoadedImageFrame } from '../utils/imageCache.js';
 import { objectiveArtPath, objectiveFxArtPath } from '../utils/artAssets.js';
 import { getTileTexturePathForType } from '../utils/pathTileTexture.js';
+import { Sound } from '../utils/Sound.js';
 
 // ---- 阶段枚举 ----
 
@@ -147,6 +148,7 @@ export class LevelIntroSystem implements System {
     this.pathRevealDone = false;
     this.revealedPathTiles.clear();
     this.tileBreakEffects = [];
+    Sound.play('intro_tile_drop');
     if (this.baseEntityId !== null) {
       Visual.alpha[this.baseEntityId] = 0;
     }
@@ -469,6 +471,7 @@ export class LevelIntroSystem implements System {
   private spawnBreakEffect(row: number, col: number): void {
     const tile = this.tiles.find(candidate => candidate.row === row && candidate.col === col);
     if (!tile) return;
+    Sound.play('intro_path_break');
     this.tileBreakEffects.push({
       row,
       col,

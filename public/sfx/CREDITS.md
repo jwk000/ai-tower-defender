@@ -61,6 +61,18 @@ All files listed here are audio assets used by the game runtime under `public/sf
 |--------------|---------------|
 | `skill_earthquake.ogg` | `sfx100v2_thunder_01.ogg` |
 
+### 75 CC0 Breaking, Falling and Hit SFX
+
+- Source: OpenGameArt, `sfx_breaking_and_falling.zip`
+- Download URL: `https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip`
+- License: CC0 / Public Domain
+- Used files:
+
+| Runtime file | Original file |
+|--------------|---------------|
+| `intro_tile_drop.ogg` | `bfh1_rock_falling_01.ogg` |
+| `intro_path_break.ogg` | `bfh1_rock_breaking_02.ogg` |
+
 ## Generated Runtime SFX
 
 | Runtime file | Notes |

@@ -898,10 +898,8 @@ intro:
 
 | 阶段 | SFX Key | 描述 |
 |------|---------|------|
-| Phase 1 开始 | `intro_tiles_drop` | 低沉撞击音，多瓦片同时落地时的厚重感 |
-| Phase 2 开始 | `intro_crystal_appear` | 水晶显现：高音音效 + 持续共鸣声 |
-| Phase 3 开始 | `intro_portal_open` | 传送门开启：低频嗡鸣 + 暗红脉冲节奏 |
-| Phase 4 开始 | `intro_path_spread` | 路径铺展：快速连续轻击音（类似多米诺骨牌） |
+| Phase 1 开始 | `intro_tile_drop` | 低沉岩块坠落音，多瓦片同时落地时的厚重感 |
+| Phase 3/4/5 地格替换 | `intro_path_break` | 普通场景地格被水晶、出生口或路径替换时的岩石破碎音；路径铺展期间按 key 节流形成连续碎裂节奏 |
 | 动画完成 | `wave_countdown_start` | ~~已有~~ 倒计时滴答声（复用） |
 
-> 注：以上 SFX key 暂未实现，当前 Phase 1 仅视觉动画，音效为后续迭代留接口。
+> `intro_tile_drop` 和 `intro_path_break` 使用 OpenGameArt CC0 OGG 音效，运行时由 `Sound` 统一预加载、节流和播放。

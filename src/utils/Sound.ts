@@ -111,7 +111,10 @@ export type SfxKey =
   | 'enemy_death_flying'
   | 'enemy_spawn_flying'
   | 'enemy_spawn_machine'
-  | 'enemy_spawn_undead';
+  | 'enemy_spawn_undead'
+  // Level intro
+  | 'intro_tile_drop'
+  | 'intro_path_break';
 
 /** Vite base URL — adapts to deployment path (/, /repo-name/, etc.) */
 const BASE = import.meta.env.BASE_URL;
@@ -216,6 +219,9 @@ const SFX_PATH: Record<SfxKey, string> = {
   enemy_spawn_flying: '/sfx/enemy_spawn_flying.ogg',
   enemy_spawn_machine: '/sfx/enemy_spawn_machine.ogg',
   enemy_spawn_undead: '/sfx/enemy_spawn_undead.ogg',
+  // Level intro
+  intro_tile_drop: '/sfx/intro_tile_drop.ogg',
+  intro_path_break: '/sfx/intro_path_break.ogg',
   // New tower attacks (synth-only, paths for type completeness)
   tower_fire: '/sfx/tower_fire.ogg',
   tower_poison: '/sfx/tower_poison.ogg',
@@ -340,6 +346,8 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   enemy_spawn_flying: 0,
   enemy_spawn_machine: 0,
   enemy_spawn_undead: 0,
+  intro_tile_drop: 0,
+  intro_path_break: 80,
   // New tower attacks — moderate throttle
   tower_fire: 80,
   tower_poison: 80,
