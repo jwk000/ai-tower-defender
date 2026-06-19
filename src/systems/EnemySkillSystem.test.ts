@@ -418,7 +418,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(announcementMock.show).not.toHaveBeenCalled();
   });
 
-  it('飞机路过我方单位上空时必定投弹并只对同一目标投一次', () => {
+  it('飞机攻击范围内有我方单位时必定投弹并只对同一目标投一次', () => {
     registerSkillConfig({
       id: 'test_plane_bomber',
       name: '测试飞机',
@@ -433,10 +433,10 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
           id: 'plane_bombing_run',
           name: '低空投弹',
           cooldown: 0.12,
-          range: 56,
+          range: 60,
           value: 45,
           duration: 58,
-          description: '飞机路过我方单位上空时必定投放炸弹',
+          description: '飞机攻击范围内有我方单位时必定投放炸弹',
         },
       ],
     } as unknown as UnitConfig);
@@ -445,7 +445,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     Layer.value[plane] = LayerVal.LowAir;
     Position.x[plane] = 100;
     Position.y[plane] = 100;
-    const tower = makeTower(world, 120, 108);
+    const tower = makeTower(world, 158, 100);
 
     system.update(world, 0.1);
     const afterFirstHit = Health.current[tower];

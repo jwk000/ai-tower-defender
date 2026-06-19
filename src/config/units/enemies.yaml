@@ -3455,10 +3455,10 @@ plane:
     - id: plane_bombing_run
       name: "低空投弹"
       cooldown: 0.12
-      range: 56
+      range: 60
       value: 45
       duration: 58
-      description: "飞机路过我方单位上空时必定投放炸弹；炸弹落点半径58px内对我方单位造成45物理伤害，爆炸使用粒子特效和投弹爆炸音效"
+      description: "飞机攻击范围60px内存在我方单位时必定投放炸弹；炸弹落点半径58px内对我方单位造成45物理伤害，爆炸使用粒子特效和投弹爆炸音效"
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

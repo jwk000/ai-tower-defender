@@ -340,7 +340,7 @@ type SkillHandler = (
   bossEid: number,
   skill: BossSkillConfig,
   phase: number,
-) => void;
+) => boolean | void;
 
 /** Summon units around the boss */
 const handleSummon: SkillHandler = (world, bossEid, skill, _phase) => {
@@ -752,9 +752,9 @@ function findPlaneBombTarget(world: TowerWorld, planeEid: number, radius: number
 }
 
 const handlePlaneBombingRun: SkillHandler = (world, planeEid, skill, _phase) => {
-  const triggerRadius = Math.max(1, skill.range || 56);
+  const triggerRadius = Math.max(1, skill.range || 60);
   const target = findPlaneBombTarget(world, planeEid, triggerRadius);
-  if (target === null) return;
+  if (target === null) return false;
 
   const tx = Position.x[target] ?? Position.x[planeEid] ?? 0;
   const ty = Position.y[target] ?? Position.y[planeEid] ?? 0;
@@ -812,6 +812,7 @@ const handlePlaneBombingRun: SkillHandler = (world, planeEid, skill, _phase) => 
 
   Sound.play('plane_bomb_explosion');
   triggerScreenShake(world, 4, 0.25, 14);
+  return true;
 };
 
 const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
@@ -1131,7 +1132,8 @@ export class EnemySkillSystem implements System {
         if ((timers[si] ?? 0) < 0) continue;
         const handler = SKILL_HANDLERS[skill.id];
         if (!handler) continue;
-        handler(world, eid, skill, phase);
+        const didCast = handler(world, eid, skill, phase);
+        if (didCast === false) continue;
         timers[si] = -this.getGenericCooldown(skill);
         break;
       }
