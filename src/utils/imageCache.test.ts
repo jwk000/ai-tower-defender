@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearArtAtlasRegistryForTests,
+  drawLoadedCardFrameMask,
   drawLoadedImage,
   getLoadedImageFrame,
   isArtAtlasIndexLoaded,
@@ -112,6 +113,61 @@ describe('imageCache atlas loading', () => {
       20,
       100,
       40,
+    );
+  });
+
+  it('drawLoadedCardFrameMask draws an offscreen masked card frame from atlas frames', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    vi.stubGlobal('fetch', undefined);
+    const offscreenDrawImage = vi.fn();
+    const offscreenFill = vi.fn();
+    const offscreenCtx = {
+      drawImage: offscreenDrawImage,
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      closePath: vi.fn(),
+      fill: offscreenFill,
+      globalCompositeOperation: 'source-over',
+      fillStyle: '',
+    };
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => {
+        if (tag !== 'canvas') return {};
+        return { width: 0, height: 0, getContext: () => offscreenCtx };
+      },
+    });
+    registerArtAtlasManifest({
+      id: 'ui_shared',
+      image: '/art/atlases/ui_shared.png',
+      frames: {
+        '/art/ui/ui_card_frame_epic.png': { x: 8, y: 16, w: 1024, h: 1536 },
+      },
+    });
+
+    getLoadedImageFrame('/art/ui/ui_card_frame_epic.png');
+    const ctx = { drawImage: vi.fn() } as unknown as CanvasRenderingContext2D;
+
+    expect(drawLoadedCardFrameMask(ctx, '/art/ui/ui_card_frame_epic.png', 10, 20, 120, 168)).toBe(true);
+    expect(offscreenDrawImage).toHaveBeenCalledWith(
+      expect.any(LoadedImage),
+      8,
+      16,
+      1024,
+      1536,
+      0,
+      0,
+      1024,
+      1536,
+    );
+    expect(offscreenFill).toHaveBeenCalledTimes(3);
+    expect(ctx.drawImage).toHaveBeenCalledWith(
+      expect.objectContaining({ __cardFrameMask: true }),
+      10,
+      20,
+      120,
+      168,
     );
   });
 

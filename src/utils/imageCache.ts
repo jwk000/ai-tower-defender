@@ -47,6 +47,7 @@ const atlasImageCache = new Map<string, HTMLImageElement>();
 const failedAtlasImages = new Set<string>();
 const atlasFrames = new Map<string, { atlasId: string; imagePath: string; frame: ArtAtlasFrameSpec }>();
 const atlasImagePaths = new Map<string, string>();
+const maskedFrameCache = new Map<string, HTMLCanvasElement>();
 let atlasIndexRequested = false;
 let atlasIndexLoaded = false;
 let atlasIndexPromise: Promise<ArtAtlasIndex | null> | null = null;
@@ -291,6 +292,83 @@ export function drawLoadedImage(
   const frame = getLoadedImageFrame(path);
   if (!frame) return false;
   drawImageFrame(ctx, frame, x, y, w, h);
+  return true;
+}
+
+function sourceKey(frame: LoadedArtFrame): string {
+  const source = frame.source
+    ? `${frame.source.x},${frame.source.y},${frame.source.w},${frame.source.h}`
+    : 'full';
+  return `${frame.path}:${frame.width}x${frame.height}:${source}`;
+}
+
+function drawRoundedClearPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function getMaskedCardFrameCanvas(frame: LoadedArtFrame): HTMLCanvasElement | null {
+  if (typeof document === 'undefined') return null;
+  const width = Math.max(1, Math.round(frame.width));
+  const height = Math.max(1, Math.round(frame.height));
+  const key = sourceKey(frame);
+  const cached = maskedFrameCache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  (canvas as HTMLCanvasElement & { __cardFrameMask?: boolean }).__cardFrameMask = true;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  drawImageFrame(ctx, frame, 0, 0, width, height);
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = '#000';
+
+  drawRoundedClearPath(ctx, width * 0.18, height * 0.15, width * 0.64, height * 0.48, width * 0.05);
+  drawRoundedClearPath(ctx, width * 0.34, height * 0.63, width * 0.52, height * 0.09, width * 0.025);
+  drawRoundedClearPath(ctx, width * 0.18, height * 0.74, width * 0.64, height * 0.18, width * 0.025);
+  ctx.globalCompositeOperation = 'source-over';
+
+  maskedFrameCache.set(key, canvas);
+  return canvas;
+}
+
+export function drawLoadedCardFrameMask(
+  ctx: CanvasRenderingContext2D,
+  path: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): boolean {
+  const frame = getLoadedImageFrame(path);
+  if (!frame) return false;
+  const masked = getMaskedCardFrameCanvas(frame);
+  if (!masked) {
+    drawImageFrame(ctx, frame, x, y, w, h);
+    return true;
+  }
+  ctx.drawImage(masked, x, y, w, h);
   return true;
 }
 

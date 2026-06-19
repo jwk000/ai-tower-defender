@@ -64,7 +64,11 @@ class RendererStub {
     translate: () => {},
     rotate: () => {},
     scale: () => {},
-    drawImage: vi.fn(() => {
+    drawImage: vi.fn((source?: unknown) => {
+      if (source && typeof source === 'object' && '__cardFrameMask' in source) {
+        this.events.push('drawCardFrameMask');
+        return;
+      }
       this.events.push('drawImage');
     }),
     fillStyle: '',
@@ -142,8 +146,8 @@ function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; colo
   return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; color?: string; align?: CanvasTextAlign }> }).infos;
 }
 
-function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number; mode?: string; slice?: unknown }> {
-  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number; z?: number; mode?: string; slice?: unknown }> }).imageDraws;
+function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number; phase?: string; mode?: string; slice?: unknown }> {
+  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number; z?: number; phase?: string; mode?: string; slice?: unknown }> }).imageDraws;
 }
 
 function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; alpha?: number }> {
@@ -580,6 +584,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
 
     ui.renderUI();
+    ui.renderUI();
     renderer.events = [];
     ui.renderUI();
     const firstImageDraw = renderer.events.indexOf('drawImage');
@@ -630,7 +635,28 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('手牌使用卡牌框图片作为不透明背景', () => {
+  it('手牌卡牌图绘制在卡牌框下方，卡牌框使用遮罩透出内容区', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => {
+        if (tag !== 'canvas') return {};
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            drawImage: () => {},
+            beginPath: () => {},
+            moveTo: () => {},
+            lineTo: () => {},
+            quadraticCurveTo: () => {},
+            closePath: () => {},
+            fill: () => {},
+            globalCompositeOperation: 'source-over',
+            fillStyle: '',
+          }),
+        };
+      },
+    });
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
@@ -652,10 +678,18 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     ui.update(world, 1 / 60);
 
-    expect(imageDrawsOf(ui).some((draw) => (
+    const frameDraw = imageDrawsOf(ui).find((draw) => (
       draw.layer === 'normal' &&
       draw.path === '/art/ui/ui_card_frame_rare.png' &&
       draw.alpha === 1
+    ));
+    expect(frameDraw).toMatchObject({
+      phase: 'front',
+      mode: 'card-frame-mask',
+    });
+    expect(cardIconDrawsOf(ui).some((draw) => (
+      draw.layer === 'normal' &&
+      draw.cardId === 'card_ice_tower'
     ))).toBe(true);
 
     const contentRect = renderer.commands.find((cmd) => (
@@ -676,6 +710,16 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       info.text === '塔' &&
       info.color === '#42a5f5'
     ))).toBe(true);
+
+    renderer.events = [];
+    ui.renderUI();
+    renderer.events = [];
+    ui.renderUI();
+    const firstCardArtDraw = renderer.events.indexOf('drawImage');
+    const cardFrameMaskDraw = renderer.events.indexOf('drawCardFrameMask');
+    expect(firstCardArtDraw).toBeGreaterThanOrEqual(0);
+    expect(cardFrameMaskDraw).toBeGreaterThanOrEqual(0);
+    expect(firstCardArtDraw).toBeLessThan(cardFrameMaskDraw);
   });
 
   it('手牌 registry 返回旧形态半截配置时不因缺少 id 崩溃', () => {

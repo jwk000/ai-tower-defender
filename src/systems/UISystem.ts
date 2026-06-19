@@ -59,7 +59,7 @@ import type {
 } from '../ui/LayoutConstants.js';
 import { cardArtPath, cardFrameArtPath, buffArtPath, uiArtPath, unitArtPath } from '../utils/artAssets.js';
 import { resolveCardConfig } from '../utils/cardConfigResolver.js';
-import { drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
+import { drawLoadedCardFrameMask, drawLoadedImage, drawLoadedImage9Slice, getLoadedImageFrame, type NineSliceInsets } from '../utils/imageCache.js';
 
 // Re-export for backward compatibility
 export {
@@ -95,7 +95,7 @@ interface CardIconDraw {
 }
 
 interface UIImageDraw {
-  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice'; slice?: NineSliceInsets; z?: number;
+  x: number; y: number; w: number; h: number; path: string; layer: UILayer; alpha?: number; phase?: 'back' | 'front'; mode?: 'stretch' | 'nine-slice' | 'card-frame-mask'; slice?: NineSliceInsets; z?: number;
 }
 
 interface HandCardDrawData {
@@ -949,14 +949,6 @@ export class UISystem implements System {
       }
     }
 
-    for (const image of layerImages) {
-      if (image.layer !== layer || image.phase === 'back') continue;
-      ctx.save();
-      ctx.globalAlpha = image.alpha ?? 1;
-      this.drawUIImage(ctx, image);
-      ctx.restore();
-    }
-
     // Draw card art only; missing images are left empty so resource issues are visible.
     for (const icon of this.cardIconDraws) {
       if (icon.layer !== layer) continue;
@@ -965,6 +957,14 @@ export class UISystem implements System {
       const x = icon.cx - icon.w / 2;
       const y = icon.cy - icon.h / 2;
       drawLoadedImage(ctx, cardArtPath(icon.cardId), x, y, icon.w, icon.h);
+      ctx.restore();
+    }
+
+    for (const image of layerImages) {
+      if (image.layer !== layer || image.phase === 'back') continue;
+      ctx.save();
+      ctx.globalAlpha = image.alpha ?? 1;
+      this.drawUIImage(ctx, image);
       ctx.restore();
     }
 
@@ -1022,6 +1022,9 @@ export class UISystem implements System {
   private drawUIImage(ctx: CanvasRenderingContext2D, image: UIImageDraw): boolean {
     if (image.mode === 'nine-slice' && image.slice) {
       return drawLoadedImage9Slice(ctx, image.path, image.x, image.y, image.w, image.h, image.slice);
+    }
+    if (image.mode === 'card-frame-mask') {
+      return drawLoadedCardFrameMask(ctx, image.path, image.x, image.y, image.w, image.h);
     }
     return drawLoadedImage(ctx, image.path, image.x, image.y, image.w, image.h);
   }
@@ -1277,8 +1280,9 @@ export class UISystem implements System {
       path: cardFrameArtPath(config.rarity),
       layer: 'normal',
       alpha: cardAlpha,
-      phase: 'back',
-      z: cardDraw.z,
+      phase: 'front',
+      mode: 'card-frame-mask',
+      z: cardDraw.z + 3,
     });
 
     this.renderer.push({
