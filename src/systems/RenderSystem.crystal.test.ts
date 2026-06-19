@@ -169,6 +169,7 @@ function makeProjectile(
     colorR: number;
     colorG: number;
     colorB: number;
+    targetId?: number;
   },
 ): number {
   const eid = world.createEntity();
@@ -177,7 +178,7 @@ function makeProjectile(
     speed: 350,
     damage: 10,
     damageType: 0,
-    targetId: 0,
+    targetId: opts.targetId ?? 0,
     sourceId: 0,
     fromX: 32,
     fromY: 32,
@@ -194,6 +195,20 @@ function makeProjectile(
     colorG: opts.colorG,
     colorB: opts.colorB,
     size: opts.size,
+    alpha: 1,
+  });
+  return eid;
+}
+
+function makeTarget(world: TowerWorld, x: number, y: number): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: 120,
+    colorG: 120,
+    colorB: 120,
+    size: 10,
     alpha: 1,
   });
   return eid;
@@ -433,6 +448,42 @@ describe('RenderSystem — 水晶显示', () => {
       expect.objectContaining({ shape: 'diamond', color: 'rgb(129,212,250)', size: 12 }),
       expect.objectContaining({ shape: 'circle', color: 'rgb(255,87,34)', size: 10 }),
     ]));
+  });
+
+  it('冰塔贴图弹体按目标方向旋转，避免素材朝向和轨迹不一致', () => {
+    class LoadedImage {
+      complete = true;
+      naturalWidth = 128;
+      naturalHeight = 128;
+      width = 128;
+      height = 128;
+      src = '';
+    }
+    vi.stubGlobal('Image', LoadedImage);
+
+    const world = new TowerWorld();
+    const target = makeTarget(world, 164, 32);
+    makeProjectile(world, {
+      sourceTowerType: 2,
+      shape: ShapeVal.Diamond,
+      size: 12,
+      colorR: 0x81,
+      colorG: 0xd4,
+      colorB: 0xfa,
+      targetId: target,
+    });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap());
+    system.update(world, 0);
+    renderer.commands = [];
+    system.update(world, 0);
+
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      image: expect.any(LoadedImage),
+      shape: 'rect',
+      rotation: Math.PI / 2,
+    }));
   });
 
   it('炮塔图片缺失时不回退绘制程序化主体和炮管', () => {

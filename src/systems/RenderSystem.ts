@@ -1532,25 +1532,25 @@ export class RenderSystem implements System {
         let targetY: number | undefined;
 
         if (isProjectile) {
-          // 箭头形状的投射物需要 targetX/targetY 来确定朝向
-          if (shape === 'arrow') {
-            const isBallista = Projectile.sourceTowerType[eid] === 9;
-            if (isBallista && (Projectile.dirX[eid] !== 0 || Projectile.dirY[eid] !== 0)) {
-              // 弩箭使用锁定方向，避免击中目标后箭头反转
-              targetX = posX + (Projectile.dirX[eid] ?? 0) * 50;
-              targetY = posY + (Projectile.dirY[eid] ?? 0) * 50;
-            } else {
-              const projTargetId = Projectile.targetId[eid]!;
-              if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
-                targetX = Position.x[projTargetId];
-                targetY = Position.y[projTargetId];
-              }
+          const isBallista = Projectile.sourceTowerType[eid] === 9;
+          if (isBallista && (Projectile.dirX[eid] !== 0 || Projectile.dirY[eid] !== 0)) {
+            // 弩箭使用锁定方向，避免击中目标后箭头反转
+            targetX = posX + (Projectile.dirX[eid] ?? 0) * 50;
+            targetY = posY + (Projectile.dirY[eid] ?? 0) * 50;
+          } else {
+            const projTargetId = Projectile.targetId[eid]!;
+            if (projTargetId > 0 && typeof Position.x[projTargetId] === 'number') {
+              targetX = Position.x[projTargetId];
+              targetY = Position.y[projTargetId];
             }
           }
           // 箭塔箭矢：AI 贴图主体；贴图未加载时回退到几何箭矢。
           applyArrowProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
           shape = applyTowerProjectileArt(Projectile.sourceTowerType[eid] ?? 0, shape, drawSize, extras);
           shape = applySoldierProjectileArt(getProjectileSourceUnitType(eid), shape, drawSize, extras);
+          if (Projectile.sourceTowerType[eid] === 2 && extras.image && targetX !== undefined && targetY !== undefined) {
+            extras.rotation = Math.atan2(targetY - posY, targetX - posX) + Math.PI / 2;
+          }
           // 弩箭：AI 贴图主体；贴图未加载时回退到几何弩矢。
           if (isProjectile && Projectile.sourceTowerType[eid] === 9 && shape === 'arrow') {
             const boltFx = getLoadedImageFrame(BALLISTA_BOLT_FX_PATH);
