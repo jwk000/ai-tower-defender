@@ -11,8 +11,8 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
-import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type TowerConfig, type UnitVisualParts } from '../types/index.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS, UNIT_TYPE_BY_ID, SKILL_CONFIGS } from '../data/gameData.js';
+import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type TowerConfig, type UnitConfig, type UnitVisualParts } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { FONTS, getFont } from '../config/fonts.js';
 import { formatNumber } from '../utils/formatNumber.js';
@@ -277,85 +277,82 @@ function resolveSpellPreviewMeta(spellCardId: string): {
   return { name: '法术', subtype: undefined, radius: undefined };
 }
 
-function readTowerLevelValue(values: readonly number[] | undefined, level: number, fallback: number): number {
-  return values?.[level - 1] ?? fallback;
+function sumLevelBonuses(values: readonly number[] | undefined, level: number): number {
+  if (!values || level <= 1) return 0;
+  return values.slice(0, level - 1).reduce((sum, value) => sum + value, 0);
 }
 
-function pushNumericChange(lines: string[], label: string, current: number, next: number, digits = 0): void {
-  if (Math.abs(next - current) < 0.0001) return;
-  const format = (value: number) => digits > 0 ? value.toFixed(digits) : String(Math.round(value));
-  const delta = next - current;
-  const deltaText = `${delta > 0 ? '+' : ''}${format(delta)}`;
-  lines.push(`${label} ${format(current)}→${format(next)} (${deltaText})`);
+function formatPanelNumber(value: number, digits = 0): string {
+  return digits > 0 ? value.toFixed(digits) : String(Math.round(value));
 }
 
-function buildNextTowerUpgradeDescriptions(
+function formatSkillDescription(skillId: string | undefined): string | null {
+  if (!skillId) return null;
+  const skill = SKILL_CONFIGS[skillId];
+  if (!skill?.description) return null;
+  return `${skill.name}: ${skill.description}`;
+}
+
+function splitPanelText(text: string, maxLen = 17): string[] {
+  if (text.length <= maxLen) return [text];
+  const lines: string[] = [];
+  for (let index = 0; index < text.length; index += maxLen) {
+    lines.push(text.slice(index, index + maxLen));
+  }
+  return lines;
+}
+
+interface LevelStatSnapshot {
+  atk: number;
+  defense: number;
+  hp: number;
+  skill: string | null;
+}
+
+function buildTowerLevelSnapshot(
   config: TowerConfig,
   level: number,
   currentAtk: number,
-  currentRange: number,
-  currentAtkSpeed: number,
-): string[] {
-  if (level >= config.upgradeCosts.length + 1) return ['已满级'];
+  currentHp: number,
+): LevelStatSnapshot {
+  const baseAtk = currentAtk - sumLevelBonuses(config.upgradeAtkBonus, level);
+  const skill = config.type === TowerType.Lightning && level >= 5 && config.lightningStormCooldown && config.lightningStormDamage
+    ? `天罚落雷: 每${formatPanelNumber(config.lightningStormCooldown)}秒全屏优先打击Boss/精英，造成${formatPanelNumber(config.lightningStormDamage)}伤害`
+    : null;
+  return {
+    atk: baseAtk + sumLevelBonuses(config.upgradeAtkBonus, level),
+    defense: 0,
+    hp: currentHp > 0 ? currentHp : config.hp,
+    skill,
+  };
+}
 
-  const costIdx = level - 1;
-  const nextLevel = level + 1;
-  const lines: string[] = [];
+function buildRuntimeUnitLevelSnapshot(config: UnitConfig, id: number): LevelStatSnapshot {
+  return {
+    atk: Attack.damage[id] ?? config.atk,
+    defense: Health.armor[id] ?? config.defense,
+    hp: Health.max[id] ?? config.hp,
+    skill: formatSkillDescription(config.skillId),
+  };
+}
 
-  pushNumericChange(lines, '攻击', currentAtk, currentAtk + (config.upgradeAtkBonus[costIdx] ?? 0));
-  pushNumericChange(lines, '范围', currentRange, currentRange + (config.upgradeRangeBonus[costIdx] ?? 0));
+function buildNextRuntimeUnitLevelSnapshot(config: UnitConfig, id: number, level: number): LevelStatSnapshot {
+  return {
+    atk: (Attack.damage[id] ?? config.atk) + (config.upgradeAtkBonus?.[level - 1] ?? 0),
+    defense: Health.armor[id] ?? config.defense,
+    hp: (Health.max[id] ?? config.hp) + (config.upgradeHpBonus?.[level - 1] ?? 0),
+    skill: formatSkillDescription(config.skillId),
+  };
+}
 
-  if (config.type === TowerType.Bat) {
-    pushNumericChange(
-      lines,
-      '蝙蝠数',
-      readTowerLevelValue(config.batCountByLevel, level, config.batCount ?? 0),
-      readTowerLevelValue(config.batCountByLevel, nextLevel, config.batCount ?? 0),
-    );
-    pushNumericChange(
-      lines,
-      '蝙蝠ATK',
-      readTowerLevelValue(config.batDamageByLevel, level, config.batDamage ?? currentAtk),
-      readTowerLevelValue(config.batDamageByLevel, nextLevel, config.batDamage ?? currentAtk),
-    );
-    pushNumericChange(
-      lines,
-      '蝙蝠射程',
-      readTowerLevelValue(config.batAttackRangeByLevel, level, config.batAttackRange ?? currentRange),
-      readTowerLevelValue(config.batAttackRangeByLevel, nextLevel, config.batAttackRange ?? currentRange),
-    );
-    pushNumericChange(
-      lines,
-      '蝙蝠攻速',
-      readTowerLevelValue(config.batAttackSpeedByLevel, level, config.batAttackSpeed ?? currentAtkSpeed),
-      readTowerLevelValue(config.batAttackSpeedByLevel, nextLevel, config.batAttackSpeed ?? currentAtkSpeed),
-      1,
-    );
+function pushLevelSnapshotLines(lines: string[], title: string, stats: LevelStatSnapshot): void {
+  lines.push(title);
+  lines.push(`攻/防/血: ${formatPanelNumber(stats.atk)}/${formatPanelNumber(stats.defense)}/${formatPanelNumber(stats.hp)}`);
+  if (stats.skill) {
+    for (const line of splitPanelText(`技能 ${stats.skill}`)) {
+      lines.push(line);
+    }
   }
-
-  if (config.projectileCount) {
-    pushNumericChange(
-      lines,
-      '弹体数',
-      readTowerLevelValue(config.projectileCount, level, config.projectileCount[0] ?? 1),
-      readTowerLevelValue(config.projectileCount, nextLevel, config.projectileCount[0] ?? 1),
-    );
-  }
-
-  if (config.chainCountByLevel) {
-    pushNumericChange(
-      lines,
-      '弹跳数',
-      readTowerLevelValue(config.chainCountByLevel, level, config.chainCount ?? 0),
-      readTowerLevelValue(config.chainCountByLevel, nextLevel, config.chainCount ?? 0),
-    );
-  }
-
-  if (config.type === TowerType.Lightning && nextLevel >= 5 && config.lightningStormCooldown && config.lightningStormDamage) {
-    lines.push(`解锁天罚落雷 ${config.lightningStormDamage}/${config.lightningStormCooldown}s`);
-  }
-
-  return lines.length > 0 ? lines : ['基础属性提升'];
 }
 
 type UILayer = 'board' | 'normal' | 'fullscreen';
@@ -682,8 +679,7 @@ export class UISystem implements System {
 
     // Stats
     const atk = isBat ? (BatTower.batDamage[id] ?? 0) : (Attack.damage[id] ?? 0);
-    const range = isBat ? (BatTower.batAttackRange[id] ?? 0) : (Attack.range[id] ?? 0);
-    const atkSpeed = isBat ? (BatTower.batAttackSpeed[id] ?? 0) : (Attack.attackSpeed[id] ?? 0);
+    const hp = Health.max[id] ?? config.hp;
 
     // Upgrade info
     const maxLevel = config.upgradeCosts.length + 1;
@@ -692,7 +688,17 @@ export class UISystem implements System {
     const gold = this.getGold();
     const canAfford = gold >= upgradeCost;
 
-    const nextUpgradeDescriptions = buildNextTowerUpgradeDescriptions(config, level, atk, range, atkSpeed).slice(0, 4);
+    const currentStats = buildTowerLevelSnapshot(config, level, atk, hp);
+    const nextStats = canUpgrade
+      ? buildTowerLevelSnapshot(config, level + 1, atk + (config.upgradeAtkBonus[level - 1] ?? 0), hp)
+      : null;
+    const infoLines: string[] = [];
+    pushLevelSnapshotLines(infoLines, '当前等级:', currentStats);
+    if (nextStats) {
+      pushLevelSnapshotLines(infoLines, '下一级:', nextStats);
+    } else {
+      infoLines.push('下一级: 已满级');
+    }
 
     // Refund info
     const refund = this.getRefundQuote?.(id);
@@ -728,46 +734,14 @@ export class UISystem implements System {
       layer: 'board',
     });
 
-    // Stats
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 52,
-      text: `攻击: ${Math.round(atk)}`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 72,
-      text: `范围: ${Math.round(range)}`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 92,
-      text: `攻速: ${atkSpeed.toFixed(1)}/s`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 122,
-      text: '下级变化:',
-      color: '#ffd54f',
-      size: 13,
-      layer: 'board',
-    });
-    nextUpgradeDescriptions.forEach((text, index) => {
+    infoLines.slice(0, 8).forEach((text, index) => {
+      const isTitle = text.endsWith(':') || text.includes('已满级');
       this.infos.push({
         x: panelLeft + 15,
-        y: panelY + 144 + index * 18,
+        y: panelY + 52 + index * 18,
         text,
-        color: canUpgrade ? '#cfd8dc' : '#9e9e9e',
-        size: 12,
+        color: isTitle ? '#ffd54f' : '#e0e0e0',
+        size: isTitle ? 13 : 12,
         layer: 'board',
       });
     });
@@ -826,14 +800,19 @@ export class UISystem implements System {
     if (!config) return;
 
     const level = UnitTag.level[id] ?? 1;
-    const hp = Health.current[id] ?? 0;
-    const maxHp = Health.max[id] ?? 0;
-    const atk = Attack.damage[id] ?? 0;
-    const range = Attack.range[id] ?? 0;
-    const atkSpeed = Attack.attackSpeed[id] ?? 0;
+    const maxLevel = UnitTag.maxLevel[id] ?? config.maxLevel ?? 3;
+    const currentStats = buildRuntimeUnitLevelSnapshot(config, id);
+    const nextStats = level < maxLevel ? buildNextRuntimeUnitLevelSnapshot(config, id, level) : null;
+    const infoLines: string[] = [];
+    pushLevelSnapshotLines(infoLines, '当前等级:', currentStats);
+    if (nextStats) {
+      pushLevelSnapshotLines(infoLines, '下一级:', nextStats);
+    } else {
+      infoLines.push('下一级: 已满级');
+    }
 
     const panelW = 300;
-    const panelH = 180;
+    const panelH = 230;
     const unitX = Position.x[id] ?? 0;
     const unitY = Position.y[id] ?? 0;
     const panelX = Math.max(panelW / 2 + 10, Math.min(unitX, LayoutManager.DESIGN_W - panelW / 2 - 10));
@@ -857,37 +836,16 @@ export class UISystem implements System {
       align: 'center',
       layer: 'board',
     });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 52,
-      text: `生命: ${Math.round(hp)}/${Math.round(maxHp)}`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 72,
-      text: `攻击: ${Math.round(atk)}`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 92,
-      text: `范围: ${Math.round(range)}`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
-    });
-    this.infos.push({
-      x: panelLeft + 15,
-      y: panelY + 112,
-      text: `攻速: ${atkSpeed.toFixed(1)}/s`,
-      color: '#e0e0e0',
-      size: 13,
-      layer: 'board',
+    infoLines.slice(0, 9).forEach((text, index) => {
+      const isTitle = text.endsWith(':') || text.includes('已满级');
+      this.infos.push({
+        x: panelLeft + 15,
+        y: panelY + 52 + index * 18,
+        text,
+        color: isTitle ? '#ffd54f' : '#e0e0e0',
+        size: isTitle ? 13 : 12,
+        layer: 'board',
+      });
     });
 
   }

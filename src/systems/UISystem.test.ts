@@ -324,11 +324,12 @@ describe('UISystem UI 层级', () => {
     expect((titleInfo as { layer?: string }).layer).toBe('board');
   });
 
-  it('塔升级面板显示下一级属性和机制变化', () => {
+  it('塔 tips 显示当前等级和下一级攻防血', () => {
     const ui = makeUISystem(new RendererStub(), 0);
     const world = new TowerWorld();
     const towerId = world.createEntity();
     world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Health, { current: 900, max: 900, armor: 0, magicResist: 0 });
     world.addComponent(towerId, Tower, { towerType: 0, level: 1 });
     world.addComponent(towerId, Attack, { damage: 10, range: 200, attackSpeed: 1 });
 
@@ -338,17 +339,18 @@ describe('UISystem UI 层级', () => {
     expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 260 });
 
     const texts = infosOf(ui).map((info) => info.text);
-    expect(texts).toContain('下级变化:');
-    expect(texts).toContain('攻击 10→15 (+5)');
-    expect(texts).toContain('范围 200→220 (+20)');
-    expect(texts).toContain('弹体数 1→2 (+1)');
+    expect(texts).toContain('当前等级:');
+    expect(texts).toContain('攻/防/血: 10/0/900');
+    expect(texts).toContain('下一级:');
+    expect(texts).toContain('攻/防/血: 15/0/900');
   });
 
-  it('满级塔升级面板显示已满级，不再显示下级变化数值', () => {
+  it('满级塔 tips 显示已满级，不再显示下一级数值', () => {
     const ui = makeUISystem(new RendererStub(), 0);
     const world = new TowerWorld();
     const towerId = world.createEntity();
     world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Health, { current: 900, max: 900, armor: 0, magicResist: 0 });
     world.addComponent(towerId, Tower, { towerType: 0, level: 3 });
     world.addComponent(towerId, Attack, { damage: 33, range: 260, attackSpeed: 1 });
 
@@ -356,18 +358,34 @@ describe('UISystem UI 层级', () => {
     ui.update(world, 1 / 60);
 
     const texts = infosOf(ui).map((info) => info.text);
-    expect(texts).toContain('下级变化:');
-    expect(texts).toContain('已满级');
-    expect(texts).not.toContain('弹体数 3→3 (+0)');
+    expect(texts).toContain('下一级: 已满级');
+    expect(texts).not.toContain('攻/防/血: 38/0/900');
   });
 
-  it('兵类单位选中后只显示属性 tips，不提供升级和回收按钮', () => {
+  it('电塔 tips 只在当前或下一级达到战略技能等级时显示技能描述', () => {
+    const ui = makeUISystem(new RendererStub(), 0);
+    const world = new TowerWorld();
+    const towerId = world.createEntity();
+    world.addComponent(towerId, Position, { x: 960, y: 540 });
+    world.addComponent(towerId, Health, { current: 900, max: 900, armor: 0, magicResist: 0 });
+    world.addComponent(towerId, Tower, { towerType: 3, level: 4 });
+    world.addComponent(towerId, Attack, { damage: 47.5, range: 230, attackSpeed: 0.9 });
+
+    ui.selectedTowerEntityId = towerId;
+    ui.update(world, 1 / 60);
+
+    const texts = infosOf(ui).map((info) => info.text);
+    expect(texts).toContain('攻/防/血: 68/0/900');
+    expect(texts.some((text) => text.includes('技能 天罚落雷'))).toBe(true);
+  });
+
+  it('兵类单位 tips 显示当前和下一级攻防血与技能描述，不提供升级和回收按钮', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
     const unitId = world.createEntity();
     world.addComponent(unitId, Position, { x: 960, y: 540 });
-    world.addComponent(unitId, Health, { current: 520, max: 520 });
+    world.addComponent(unitId, Health, { current: 520, max: 520, armor: 70, magicResist: 0 });
     world.addComponent(unitId, Attack, { damage: 4, range: 50, attackSpeed: 0.55 });
     world.addComponent(unitId, UnitTag, {
       unitTypeNum: 0,
@@ -382,12 +400,14 @@ describe('UISystem UI 层级', () => {
     ui.selectedUnitEntityId = unitId;
     ui.update(world, 1 / 60);
 
-    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 180 });
+    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 230 });
     const texts = infosOf(ui).map((info) => info.text);
     expect(texts).toContain('盾卫 Lv.2');
-    expect(texts).toContain('生命: 520/520');
-    expect(texts).toContain('攻击: 4');
-    expect(texts).toContain('范围: 50');
+    expect(texts).toContain('当前等级:');
+    expect(texts).toContain('攻/防/血: 4/70/520');
+    expect(texts.some((text) => text.includes('技能 嘲讽'))).toBe(true);
+    expect(texts).toContain('下一级:');
+    expect(texts).toContain('攻/防/血: 7/70/700');
 
     const labels = buttonsOf(ui).map((button) => button.label);
     expect(labels.some((label) => label.startsWith('升级') || label === '满级')).toBe(false);
