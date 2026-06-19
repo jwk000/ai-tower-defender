@@ -17,6 +17,7 @@ import {
   Stunned,
   Trap,
   TrapTypeVal,
+  UnitTag,
 } from '../core/components.js';
 import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
@@ -76,9 +77,26 @@ function makeEnemy(
   world.addComponent(eid, Position, { x: ox + col * TILE + TILE / 2, y: oy + row * TILE + TILE / 2 });
   world.addComponent(eid, Health, { current: overrides.hp ?? 100, max: 100, armor: 0, magicResist: 0 });
   world.addComponent(eid, Layer, { value: overrides.layer ?? LayerVal.Ground });
+  world.addComponent(eid, UnitTag, { isEnemy: 1, isBoss: overrides.isBoss ? 1 : 0, atk: 10 });
   if (overrides.isBoss) {
     world.addComponent(eid, Boss, { phase: 1, phase2HpRatio: 0.5, transitionTimer: 0 });
   }
+  return eid;
+}
+
+function makeSoldier(
+  world: TowerWorld,
+  row: number,
+  col: number,
+  overrides: { layer?: number; hp?: number } = {},
+): number {
+  const eid = world.createEntity();
+  const ox = RenderSystem.sceneOffsetX;
+  const oy = RenderSystem.sceneOffsetY;
+  world.addComponent(eid, Position, { x: ox + col * TILE + TILE / 2, y: oy + row * TILE + TILE / 2 });
+  world.addComponent(eid, Health, { current: overrides.hp ?? 100, max: 100, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Layer, { value: overrides.layer ?? LayerVal.Ground });
+  world.addComponent(eid, UnitTag, { isEnemy: 0, atk: 0 });
   return eid;
 }
 
@@ -186,6 +204,20 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
     // 陷阱不应扣自己的血
     expect(Health.current[trap]).toBe(trapHp0);
     // 敌人应该受到伤害
+    expect(Health.current[enemy]).toBeLessThan(enemyHp0!);
+    expect(Trap.animTimer[trap]).toBeGreaterThan(0);
+  });
+
+  it('不会攻击同格我方士兵，但仍会攻击同格敌人', () => {
+    const trap = makeTrap(world, 5, 5, { layer: LayerVal.AboveGrid, trapType: TrapTypeVal.SpikeTrap });
+    const soldier = makeSoldier(world, 5, 5, { layer: LayerVal.Ground });
+    const enemy = makeEnemy(world, 5, 5, { layer: LayerVal.Ground });
+    const soldierHp0 = Health.current[soldier];
+    const enemyHp0 = Health.current[enemy];
+
+    system.update(world, 1.0);
+
+    expect(Health.current[soldier]).toBe(soldierHp0);
     expect(Health.current[enemy]).toBeLessThan(enemyHp0!);
     expect(Trap.animTimer[trap]).toBeGreaterThan(0);
   });

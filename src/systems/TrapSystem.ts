@@ -1,7 +1,7 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
   Position, Health, Trap, GridOccupant, Layer, LayerVal, DamageTypeVal,
-  Boss, Stunned, Slowed, TrapTypeVal,
+  Boss, Stunned, Slowed, TrapTypeVal, UnitTag,
 } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { RenderSystem } from './RenderSystem.js';
@@ -47,7 +47,7 @@ export class TrapSystem implements System {
 
   update(world: TowerWorld, dt: number): void {
     const traps = trapQuery(world.world);
-    const enemies = damageableQuery(world.world);
+    const damageableEntities = damageableQuery(world.world);
     const ox = RenderSystem.sceneOffsetX;
     const oy = RenderSystem.sceneOffsetY;
 
@@ -67,15 +67,15 @@ export class TrapSystem implements System {
       const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
       switch (trapType) {
         case TrapTypeVal.SpikeTrap:
-          this.tickSpikeTrap(world, trapId, enemies, ox, oy, dt);
+          this.tickSpikeTrap(world, trapId, damageableEntities, ox, oy, dt);
           break;
 
         case TrapTypeVal.BearTrap:
-          this.tickBearTrap(world, trapId, enemies, ox, oy);
+          this.tickBearTrap(world, trapId, damageableEntities, ox, oy);
           break;
 
         case TrapTypeVal.TarPit:
-          this.tickTarPit(world, trapId, enemies, ox, oy);
+          this.tickTarPit(world, trapId, damageableEntities, ox, oy);
           break;
 
         case TrapTypeVal.Boulder:
@@ -94,7 +94,7 @@ export class TrapSystem implements System {
   private tickSpikeTrap(
     world: TowerWorld,
     trapId: number,
-    enemies: readonly number[],
+    damageableEntities: readonly number[],
     ox: number,
     oy: number,
     dt: number,
@@ -107,9 +107,8 @@ export class TrapSystem implements System {
 
     let damaging = false;
 
-    for (const enemyId of enemies) {
-      // Skip traps (including self) — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
+    for (const enemyId of damageableEntities) {
+      if (!TrapSystem.isTrapTarget(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
@@ -141,7 +140,7 @@ export class TrapSystem implements System {
   private tickBearTrap(
     world: TowerWorld,
     trapId: number,
-    enemies: readonly number[],
+    damageableEntities: readonly number[],
     ox: number,
     oy: number,
   ): void {
@@ -162,9 +161,8 @@ export class TrapSystem implements System {
       return;
     }
 
-    for (const enemyId of enemies) {
-      // Skip traps (including self) — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
+    for (const enemyId of damageableEntities) {
+      if (!TrapSystem.isTrapTarget(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
@@ -199,7 +197,7 @@ export class TrapSystem implements System {
   private tickTarPit(
     world: TowerWorld,
     trapId: number,
-    enemies: readonly number[],
+    damageableEntities: readonly number[],
     ox: number,
     oy: number,
   ): void {
@@ -208,9 +206,8 @@ export class TrapSystem implements System {
     const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
     let anyTriggered = false;
 
-    for (const enemyId of enemies) {
-      // Skip traps (including self) — damageableQuery includes all Position+Health entities
-      if (hasComponent(world.world, Trap, enemyId)) continue;
+    for (const enemyId of damageableEntities) {
+      if (!TrapSystem.isTrapTarget(world, enemyId)) continue;
 
       const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
       if (pos.row !== trapRow || pos.col !== trapCol) continue;
@@ -255,6 +252,11 @@ export class TrapSystem implements System {
     const cols = tiles[row];
     if (!cols || col < 0 || col >= cols.length) return false;
     return cols[col] === TileType.Path;
+  }
+
+  private static isTrapTarget(world: TowerWorld, entityId: number): boolean {
+    if (hasComponent(world.world, Trap, entityId)) return false;
+    return hasComponent(world.world, UnitTag, entityId) && UnitTag.isEnemy[entityId] === 1;
   }
 
   /**
