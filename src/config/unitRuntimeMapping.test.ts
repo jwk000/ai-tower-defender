@@ -21,8 +21,12 @@ interface RawLevelConfig {
 
 interface RawUnitConfig {
   category?: string;
+  isBoss?: boolean;
   stats?: {
     range?: number;
+  };
+  visual?: {
+    size?: number;
   };
   lifecycle?: {
     onAttack?: Array<Record<string, unknown>>;
@@ -170,5 +174,18 @@ describe('运行时单位类型映射一致性', () => {
   it('导弹塔射程为半个标准棋盘宽度', () => {
     const units = loadRawUnits();
     expect(units.missile_tower?.stats?.range).toBe(672);
+  });
+
+  it('敌方视觉尺寸放大排除飞机、坦克和 Boss', () => {
+    const units = loadRawUnits();
+
+    expect(units.goblin?.visual?.size).toBeCloseTo(39.6);
+    expect(units.e_temple_guard?.visual?.size).toBeCloseTo(57.6);
+    expect(units.skeleton?.visual?.size).toBeCloseTo(36);
+    expect(units.e_void_thrall?.visual?.size).toBeCloseTo(36);
+    expect(units.plane?.visual?.size).toBeCloseTo(67.2);
+    expect(units.tank?.visual?.size).toBeCloseTo(57.6);
+    expect(units.giant_slime?.isBoss).toBe(true);
+    expect(units.giant_slime?.visual?.size).toBeCloseTo(126);
   });
 });

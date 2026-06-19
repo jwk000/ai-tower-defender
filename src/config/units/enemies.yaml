@@ -28,7 +28,7 @@ grunt:
   visual:
     shape: circle
     color: "#ef5350"
-    size: 28.8
+    size: 43.2
     outline: true
 
   visualParts:
@@ -84,7 +84,7 @@ runner:
   visual:
     shape: circle
     color: "#ffab91"
-    size: 24
+    size: 36
     outline: true
 
   visualParts:
@@ -143,7 +143,7 @@ heavy:
   visual:
     shape: circle
     color: "#8d6e63"
-    size: 52.8
+    size: 79.2
     outline: true
 
   visualParts:
@@ -207,7 +207,7 @@ mage:
   visual:
     shape: hexagon
     color: "#ce93d8"
-    size: 33.6
+    size: 50.4
     outline: true
 
   visualParts:
@@ -269,7 +269,7 @@ exploder:
   visual:
     shape: circle
     color: "#ff8a65"
-    size: 28.8
+    size: 43.2
     outline: true
 
   visualParts:
@@ -517,7 +517,7 @@ e_burrow_worm:
   visual:
     shape: rectangle
     color: "#8b5a2b"
-    size: 36
+    size: 54
     outline: true
 
   behavior:
@@ -576,7 +576,7 @@ e_locust_swarm:
   visual:
     shape: triangle
     color: "#cdb24b"
-    size: 21.6
+    size: 32.4
     outline: true
 
   behavior:
@@ -627,7 +627,7 @@ e_ground_skitter:
   visual:
     shape: circle
     color: "#bf8e5a"
-    size: 26.4
+    size: 39.6
     outline: true
 
   behavior:
@@ -676,7 +676,7 @@ e_acid_artillery:
   visual:
     shape: hexagon
     color: "#a4c639"
-    size: 33.6
+    size: 50.4
     outline: true
 
   behavior:
@@ -735,7 +735,7 @@ e_giant_beetle:
   visual:
     shape: circle
     color: "#6b4226"
-    size: 60
+    size: 90
     outline: true
 
   behavior:
@@ -869,7 +869,7 @@ e_frost_marauder:
   visual:
     shape: circle
     color: "#dde8f0"
-    size: 48
+    size: 72
     outline: true
 
   behavior:
@@ -929,7 +929,7 @@ e_ice_witch:
   visual:
     shape: hexagon
     color: "#a6d3e0"
-    size: 36
+    size: 54
     outline: true
 
   behavior:
@@ -988,7 +988,7 @@ e_yeti_charger:
   visual:
     shape: circle
     color: "#9eb8c8"
-    size: 45.6
+    size: 68.4
     outline: true
 
   behavior:
@@ -1049,7 +1049,7 @@ e_blizzard_sprite:
   visual:
     shape: triangle
     color: "#b3d9f0"
-    size: 31.2
+    size: 46.8
     outline: true
 
   behavior:
@@ -1182,7 +1182,7 @@ e_temple_guard:
   visual:
     shape: rectangle
     color: "#9c8e5a"
-    size: 38.4
+    size: 57.6
 
   behavior:
     targetSelection: nearest
@@ -1232,7 +1232,7 @@ e_jungle_zealot:
   visual:
     shape: circle
     color: "#7cb342"
-    size: 28.8
+    size: 43.2
 
   behavior:
     targetSelection: nearest
@@ -1280,7 +1280,7 @@ e_temple_priest:
   visual:
     shape: hexagon
     color: "#fbc02d"
-    size: 33.6
+    size: 50.4
 
   behavior:
     targetSelection: weakest
@@ -1336,7 +1336,7 @@ e_revival_idol:
   visual:
     shape: rectangle
     color: "#d6a86b"
-    size: 43.2
+    size: 64.8
 
   behavior:
     targetSelection: nearest
@@ -1392,7 +1392,7 @@ e_petrify_oracle:
   visual:
     shape: hexagon
     color: "#8c8c8c"
-    size: 36
+    size: 54
 
   behavior:
     targetSelection: weakest
@@ -1530,7 +1530,7 @@ e_corsair_pikeman:
   visual:
     shape: rectangle
     color: "#4d6c7f"
-    size: 33.6
+    size: 50.4
 
   behavior:
     targetSelection: nearest
@@ -1578,7 +1578,7 @@ e_dock_brawler:
   visual:
     shape: circle
     color: "#7a98a6"
-    size: 31.2
+    size: 46.8
 
   behavior:
     targetSelection: nearest
@@ -1626,7 +1626,7 @@ e_brine_charger:
   visual:
     shape: circle
     color: "#3a7d8f"
-    size: 43.2
+    size: 64.8
 
   behavior:
     targetSelection: nearest
@@ -1686,7 +1686,7 @@ e_kraken_tendril:
   visual:
     shape: hexagon
     color: "#5b3a7f"
-    size: 52.8
+    size: 79.2
 
   behavior:
     targetSelection: weakest
@@ -1827,7 +1827,7 @@ e_clockwork_grunt:
   visual:
     shape: circle
     color: "#78909c"
-    size: 36
+    size: 54
 
   behavior:
     targetSelection: nearest
@@ -1875,7 +1875,7 @@ e_steam_lancer:
   visual:
     shape: rectangle
     color: "#b0bec5"
-    size: 40.8
+    size: 61.2
 
   behavior:
     targetSelection: weakest
@@ -1935,7 +1935,7 @@ e_hammergrub_drone:
   visual:
     shape: triangle
     color: "#ffa000"
-    size: 31.2
+    size: 46.8
 
   behavior:
     targetSelection: nearest
@@ -1995,7 +1995,7 @@ e_minecart_juggernaut:
   visual:
     shape: rectangle
     color: "#546e7a"
-    size: 62.4
+    size: 93.6
     outline: true
 
   behavior:
@@ -2056,7 +2056,7 @@ e_repair_bot:
   visual:
     shape: hexagon
     color: "#90a4ae"
-    size: 36
+    size: 54
 
   behavior:
     targetSelection: nearest
@@ -2196,7 +2196,7 @@ e_sporeling:
   visual:
     shape: circle
     color: "#a5d6a7"
-    size: 24
+    size: 36
 
   behavior:
     targetSelection: nearest
@@ -2250,7 +2250,7 @@ e_myco_charger:
   visual:
     shape: circle
     color: "#66bb6a"
-    size: 40.8
+    size: 61.2
 
   behavior:
     targetSelection: nearest
@@ -2310,7 +2310,7 @@ e_warped_witch:
   visual:
     shape: circle
     color: "#ce93d8"
-    size: 33.6
+    size: 50.4
 
   behavior:
     targetSelection: nearest
@@ -2375,7 +2375,7 @@ e_brood_mother:
   visual:
     shape: circle
     color: "#8d6e63"
-    size: 52.8
+    size: 79.2
 
   behavior:
     targetSelection: none
@@ -2437,7 +2437,7 @@ e_blight_spitter:
   visual:
     shape: circle
     color: "#9ccc65"
-    size: 36
+    size: 54
 
   behavior:
     targetSelection: nearest
@@ -2595,7 +2595,7 @@ e_void_blinker:
   visual:
     shape: circle
     color: "#7b1fa2"
-    size: 36
+    size: 54
     outline: true
 
   behavior:
@@ -2657,7 +2657,7 @@ e_void_thrall:
   visual:
     shape: circle
     color: "#4a148c"
-    size: 24
+    size: 36
     outline: true
 
   behavior:
@@ -2709,7 +2709,7 @@ e_eye_of_collapse:
   visual:
     shape: hexagon
     color: "#b71c1c"
-    size: 43.2
+    size: 64.8
     outline: true
 
   behavior:
@@ -2770,7 +2770,7 @@ e_cursed_avenger:
   visual:
     shape: circle
     color: "#880e4f"
-    size: 38.4
+    size: 57.6
     outline: true
 
   behavior:
@@ -2958,7 +2958,7 @@ e_kraal_grunt:
   visual:
     shape: circle
     color: "#bf6f3a"
-    size: 28.8
+    size: 43.2
     outline: true
 
   behavior:
@@ -3007,7 +3007,7 @@ e_yeti_runt:
   visual:
     shape: circle
     color: "#e3f2fd"
-    size: 31.2
+    size: 46.8
     outline: true
 
   behavior:
@@ -3056,7 +3056,7 @@ e_frost_lancer:
   visual:
     shape: rectangle
     color: "#90caf9"
-    size: 33.6
+    size: 50.4
     outline: true
 
   behavior:
@@ -3114,7 +3114,7 @@ e_blood_trickster:
   visual:
     shape: circle
     color: "#b71c1c"
-    size: 31.2
+    size: 46.8
     outline: true
 
   behavior:
@@ -3164,7 +3164,7 @@ goblin:
   layer: Ground
   stats: { hp: 18, atk: 8, attackSpeed: 0.4, range: 30, speed: 45, armor: 3, mr: 0, damageType: physical }
   reward: { gold: 4 }
-  visual: { shape: circle, color: "#4caf50", size: 26.4, outline: true }
+  visual: { shape: circle, color: "#4caf50", size: 39.6, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3179,7 +3179,7 @@ boar:
   layer: Ground
   stats: { hp: 60, atk: 12, attackSpeed: 0.6, range: 30, speed: 80, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 8 }
-  visual: { shape: circle, color: "#8d6e63", size: 31.2, outline: true }
+  visual: { shape: circle, color: "#8d6e63", size: 46.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3194,7 +3194,7 @@ elephant:
   layer: Ground
   stats: { hp: 300, atk: 15, attackSpeed: 0.34, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
   reward: { gold: 20 }
-  visual: { shape: circle, color: "#78909c", size: 52.8, outline: true }
+  visual: { shape: circle, color: "#78909c", size: 79.2, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3209,7 +3209,7 @@ giant:
   layer: Ground
   stats: { hp: 400, atk: 30, attackSpeed: 0.34, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
   reward: { gold: 30 }
-  visual: { shape: circle, color: "#558b2f", size: 60, outline: true }
+  visual: { shape: circle, color: "#558b2f", size: 90, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3248,7 +3248,7 @@ desert_beetle:
   layer: Ground
   stats: { hp: 40, atk: 6, attackSpeed: 0.6, range: 20, speed: 35, armor: 2, mr: 0, damageType: physical }
   reward: { gold: 3 }
-  visual: { shape: circle, color: "#5d4037", size: 21.6, outline: true }
+  visual: { shape: circle, color: "#5d4037", size: 32.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3263,7 +3263,7 @@ burrow_beetle:
   layer: Ground
   stats: { hp: 120, atk: 15, attackSpeed: 0.4, range: 30, speed: 40, armor: 10, mr: 0, damageType: physical }
   reward: { gold: 12 }
-  visual: { shape: circle, color: "#795548", size: 36, outline: true }
+  visual: { shape: circle, color: "#795548", size: 54, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canTunnel: true, tunnelInterval: 3.0, tunnelDistanceTiles: 3.0 } }
   skills:
     - { id: burrow_phase, name: "钻地潜行", cooldown: 3, range: 0, value: 3, description: "钻入地下并切换到BelowGrid层，沿路径前进3格，攻击命中遵循棋盘层级限制，地面只显示移动翻土特效，前进完成后钻出" }
@@ -3280,7 +3280,7 @@ locust:
   layer: LowAir
   stats: { hp: 30, atk: 10, attackSpeed: 0.4, range: 30, speed: 25, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 4 }
-  visual: { shape: triangle, color: "#afb42b", size: 19.2, outline: true }
+  visual: { shape: triangle, color: "#afb42b", size: 28.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3295,7 +3295,7 @@ bomb_beetle:
   layer: Ground
   stats: { hp: 50, atk: 80, attackSpeed: 0, range: 60, speed: 50, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 10 }
-  visual: { shape: circle, color: "#ff5722", size: 28.8, outline: true }
+  visual: { shape: circle, color: "#ff5722", size: 43.2, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { targetBuildings: true, ignoreTaunt: true, selfDestruct: true, explosionRadius: 50 } }
   lifecycle:
     onDeath: [{ type: deal_aoe_damage, radius: 50, damage: 80, targets: [Tower] }, { type: play_effect, effect: explosion_red }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3334,7 +3334,7 @@ werewolf:
   layer: Ground
   stats: { hp: 150, atk: 20, attackSpeed: 0.6, range: 40, speed: 55, armor: 8, mr: 5, damageType: physical }
   reward: { gold: 12 }
-  visual: { shape: circle, color: "#5d4037", size: 38.4, outline: true }
+  visual: { shape: circle, color: "#5d4037", size: 57.6, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3349,7 +3349,7 @@ vampire_bat:
   layer: LowAir
   stats: { hp: 40, atk: 8, attackSpeed: 0.5, range: 40, speed: 60, armor: 0, mr: 5, damageType: physical }
   reward: { gold: 5 }
-  visual: { shape: triangle, color: "#4a148c", size: 21.6, outline: true }
+  visual: { shape: triangle, color: "#4a148c", size: 32.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3364,7 +3364,7 @@ wizard:
   layer: Ground
   stats: { hp: 100, atk: 25, attackSpeed: 0.4, range: 180, speed: 30, armor: 5, mr: 20, damageType: magic }
   reward: { gold: 15 }
-  visual: { shape: hexagon, color: "#7b1fa2", size: 33.6, outline: true }
+  visual: { shape: hexagon, color: "#7b1fa2", size: 50.4, outline: true }
   behavior: { targetSelection: weakest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_magic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3379,7 +3379,7 @@ dark_priest:
   layer: Ground
   stats: { hp: 120, atk: 1, attackSpeed: 0, range: 150, speed: 25, armor: 10, mr: 15, damageType: physical }
   reward: { gold: 18 }
-  visual: { shape: hexagon, color: "#311b92", size: 36, outline: true }
+  visual: { shape: hexagon, color: "#311b92", size: 54, outline: true }
   behavior: { targetSelection: nearest, attackMode: none, movementMode: follow_path }
   skills: [{ id: revive, name: "复活", cooldown: 8.0, range: 150, value: 1, description: "每8s复活1个范围内已死亡友军" }]
   lifecycle:
@@ -3395,7 +3395,7 @@ frankenstein:
   layer: Ground
   stats: { hp: 500, atk: 35, attackSpeed: 0.34, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
   reward: { gold: 30 }
-  visual: { shape: circle, color: "#455a64", size: 57.6, outline: true }
+  visual: { shape: circle, color: "#455a64", size: 86.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3428,7 +3428,7 @@ skeleton:
   layer: Ground
   stats: { hp: 60, atk: 8, attackSpeed: 1.0, range: 30, speed: 50, armor: 0, mr: 0, damageType: physical }
   reward: { gold: 5 }
-  visual: { shape: circle, color: "#e0e0e0", size: 24, outline: true }
+  visual: { shape: circle, color: "#e0e0e0", size: 36, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3497,7 +3497,7 @@ oil_truck:
   layer: Ground
   stats: { hp: 150, atk: 5, attackSpeed: 1.0, range: 30, speed: 35, armor: 10, mr: 0, damageType: physical }
   reward: { gold: 18 }
-  visual: { shape: rect, color: "#ff8f00", size: 43.2, outline: true }
+  visual: { shape: rect, color: "#ff8f00", size: 64.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: deal_aoe_damage, radius: 70, damage: 50, targets: [Player] }, { type: drop_gold }, { type: play_effect, effect: explosion_large }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3512,7 +3512,7 @@ robot_dog:
   layer: Ground
   stats: { hp: 50, atk: 10, attackSpeed: 0.8, range: 25, speed: 80, armor: 5, mr: 0, damageType: physical }
   reward: { gold: 6 }
-  visual: { shape: circle, color: "#90a4ae", size: 26.4, outline: true }
+  visual: { shape: circle, color: "#90a4ae", size: 39.6, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3527,7 +3527,7 @@ giant_robot:
   layer: Ground
   stats: { hp: 600, atk: 50, attackSpeed: 0.34, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
   reward: { gold: 40 }
-  visual: { shape: rect, color: "#37474f", size: 67.2, outline: true }
+  visual: { shape: rect, color: "#37474f", size: 100.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
@@ -3542,7 +3542,7 @@ drone:
   layer: LowAir
   stats: { hp: 30, atk: 8, attackSpeed: 0.6, range: 50, speed: 65, armor: 0, mr: 5, damageType: physical }
   reward: { gold: 4 }
-  visual: { shape: triangle, color: "#b0bec5", size: 19.2, outline: true }
+  visual: { shape: triangle, color: "#b0bec5", size: 28.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_basic }, { type: play_sound, sound: SFX_ENEMY_DIE }]
