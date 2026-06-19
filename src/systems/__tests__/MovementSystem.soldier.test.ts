@@ -19,12 +19,20 @@ import {
   CategoryVal,
   Soldier,
   SpellEffect,
+  Attack,
+  DamageTypeVal,
+  Faction,
+  FactionVal,
+  Tower,
+  Projectile,
 } from '../../core/components.js';
 import { MovementSystem } from '../MovementSystem.js';
 import { RenderSystem } from '../RenderSystem.js';
 import type { MapConfig, GridPos } from '../../types/index.js';
-import { TileType } from '../../types/index.js';
+import { EnemyType, TileType } from '../../types/index.js';
 import { migrateEnemyPathToGraph } from '../../level/graph/migration.js';
+import { ENEMY_ID_BY_TYPE } from '../../data/gameData.js';
+import { TANK_PROJECTILE_SOURCE_TYPE } from '../projectileTypes.js';
 
 const TILE = 32;
 
@@ -154,6 +162,52 @@ function spawnBase(world: TowerWorld, hp: number = 100): number {
   world.addComponent(eid, Position, { x: 9999, y: 9999 });
   world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
   world.addComponent(eid, Category, { value: CategoryVal.Objective });
+  return eid;
+}
+
+function spawnTank(world: TowerWorld, x: number, y: number): number {
+  const eid = spawnEnemy(world, x, y, 15, 0);
+  UnitTag.unitTypeNum[eid] = ENEMY_ID_BY_TYPE[EnemyType.Tank];
+  UnitTag.canAttackBuildings[eid] = 1;
+  world.addComponent(eid, Faction, { value: FactionVal.Evil });
+  world.addComponent(eid, Attack, {
+    damage: 40,
+    attackSpeed: 0.25,
+    range: 80,
+    alertRange: 160,
+    damageType: DamageTypeVal.Physical,
+    cooldownTimer: 0,
+    targetId: 0,
+    targetSelection: 0,
+    attackMode: 0,
+    isRanged: 1,
+    canTargetLowAir: 0,
+    splashRadius: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
+    drainPercent: 0,
+    tauntCapacity: 0,
+    attackerCount: 0,
+  });
+  Visual.attackAnimDuration[eid] = 0.7;
+  return eid;
+}
+
+function spawnTowerTarget(world: TowerWorld, x: number, y: number): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x, y });
+  world.addComponent(eid, Health, { current: 1000, max: 1000, armor: 0, magicResist: 0 });
+  world.addComponent(eid, Tower, { towerType: 0, level: 1, totalInvested: 50 });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Visual, {
+    shape: 0,
+    colorR: 80,
+    colorG: 160,
+    colorB: 255,
+    size: 24,
+    alpha: 1,
+  });
   return eid;
 }
 
@@ -334,6 +388,25 @@ describe('MovementSystem — soldier movement', () => {
 
     expect(Position.x[eid]!).toBeCloseTo(targetX, 0);
     expect(Position.y[eid]!).toBeCloseTo(targetY, 0);
+  });
+
+  it('Tank: fires a cannonball projectile and stops moving during attack animation', () => {
+    const tank = spawnTank(world, 16, 16);
+    const tower = spawnTowerTarget(world, 56, 16);
+
+    sys.update(world, 0.1);
+
+    expect(Attack.targetId[tank]).toBe(tower);
+    expect(Movement.currentSpeed[tank]).toBe(0);
+    expect(Visual.attackAnimTimer[tank]).toBeGreaterThan(0);
+
+    const projectiles = world.query(Projectile);
+    expect(projectiles).toHaveLength(1);
+    const projectile = projectiles[0]!;
+    expect(Projectile.sourceId[projectile]).toBe(tank);
+    expect(Projectile.targetId[projectile]).toBe(tower);
+    expect(Projectile.sourceTowerType[projectile]).toBe(TANK_PROJECTILE_SOURCE_TYPE);
+    expect(Projectile.size[projectile]).toBe(18);
   });
 
   // --- Scene bounds clamping ---

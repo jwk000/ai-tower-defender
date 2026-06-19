@@ -54,6 +54,7 @@ import { ENEMY_TYPE_BY_ID, UNIT_CONFIGS, UPGRADE_VISUALS, UNIT_TYPE_BY_ID } from
 import { formatNumber } from '../utils/formatNumber.js';
 import { ScreenShakeSystem } from '../systems/ScreenShakeSystem.js';
 import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
+import { TANK_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 
 // ---- TowerType numeric ID → enum mapping ----
 const TOWER_TYPE_BY_ID: TowerType[] = [
@@ -134,6 +135,7 @@ const TOWER_PROJECTILE_FX_PATHS: Partial<Record<number, string>> = {
   2: '/art/fx/fx_ice_crystal_projectile.png',
   7: '/art/fx/fx_fireball_projectile.png',
   8: '/art/fx/fx_poison_projectile.png',
+  [TANK_PROJECTILE_SOURCE_TYPE]: '/art/fx/fx_cannonball_projectile.png',
 };
 const SOLDIER_PROJECTILE_FX_PATHS: Partial<Record<UnitType, string>> = {
   [UnitType.Archer]: '/art/fx/fx_soldier_archer_arrow.png',

@@ -558,6 +558,7 @@ Abyss（深渊层）    — 最低，预留
 | arrow | 箭塔普通箭矢优先使用 AI 生成贴图 `public/art/fx/fx_arrow_projectile.png` 作为飞行主体，按目标点旋转；贴图未加载时回退为 `Renderer` 的 arrow 几何形状（矩形箭杆 + 三角箭头） |
 | ballista bolt | 弩塔专用 arrow 外观：优先使用 AI 生成贴图 `public/art/fx/fx_ballista_bolt.png` 作为 60px 弩矢主体，不叠加程序化发光或破空线；贴图未加载时才回退为纯程序化几何弩矢；贴图素材默认箭头朝左，运行时旋转时额外翻转 180°，方向锁定为发射方向，不随命中目标反转 |
 | cannonball | 炮塔炮弹优先使用透明贴图 `public/art/fx/fx_cannonball_projectile.png`；贴图未加载时回退为黑色圆形几何炮弹 |
+| tank cannonball | 坦克远程炮击复用 `public/art/fx/fx_cannonball_projectile.png` 作为飞行主体，尺寸略大于普通敌人投射物；开火时坦克本体停止移动并播放攻击动画，贴图缺失时回退为黑色圆形几何炮弹 |
 | ice crystal projectile | 冰塔冰晶弹优先使用透明贴图 `public/art/fx/fx_ice_crystal_projectile.png`；贴图未加载时回退为蓝色菱形几何冰晶 |
 | fireball projectile | 火塔火球优先使用透明贴图 `public/art/fx/fx_fireball_projectile.png`；贴图未加载时回退为橙红圆形几何火球 |
 | poison projectile | 毒塔毒液弹优先使用透明贴图 `public/art/fx/fx_poison_projectile.png`；贴图未加载时回退为绿色圆形几何毒液 |

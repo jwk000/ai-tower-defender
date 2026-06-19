@@ -3465,7 +3465,17 @@ tank:
   stats: { hp: 350, atk: 40, attackSpeed: 0.25, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
   reward: { gold: 25 }
   visual: { shape: rect, color: "#546e7a", size: 57.6, outline: true }
-  behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
+  behavior:
+    targetSelection: nearest
+    attackMode: single_target
+    movementMode: follow_path
+    special:
+      canAttackBuildings: true
+      projectile: tank_cannonball
+      projectileAsset: /art/fx/fx_cannonball_projectile.png
+      castSound: tower_cannon
+      impactSound: cannon_hit
+      stopWhileFiring: true
   lifecycle:
     onDeath: [{ type: drop_gold }, { type: play_effect, effect: death_heavy }, { type: play_sound, sound: SFX_ENEMY_DIE }]
     onHit: [{ type: flash_color, color: "#ffffff", duration: 0.1 }]

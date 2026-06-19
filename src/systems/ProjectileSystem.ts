@@ -30,6 +30,7 @@ import { DamageNumberStyle } from '../core/components.js';
 import { SoldierProjectileDebuffBySlot } from './SoldierAISystem.js';
 import { AttackSystem } from './AttackSystem.js';
 import { SUPERROBOT_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
+import { TANK_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
 import { RenderSystem } from './RenderSystem.js';
 import { areHostile } from '../utils/factionUtils.js';
 
@@ -385,6 +386,9 @@ export class ProjectileSystem implements System {
     // -- Cannon / Missile: AOE splash + stun --
     if (splashRadius > 0) {
       this.applySplash(world, targetId, hitX, hitY, splashRadius, stunDuration, damage, damageType, sourceId, isMissile);
+      Sound.play('cannon_hit');
+    }
+    if (sourceTowerType === TANK_PROJECTILE_SOURCE_TYPE) {
       Sound.play('cannon_hit');
     }
 

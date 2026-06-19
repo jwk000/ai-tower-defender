@@ -18,6 +18,8 @@ import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { ScreenShakeSystem } from './ScreenShakeSystem.js';
 import { GamePhase } from '../types/index.js';
 import { clampAttackRangeToTile } from '../utils/combatRange.js';
+import { TANK_PROJECTILE_SOURCE_TYPE } from './projectileTypes.js';
+import { Sound } from '../utils/Sound.js';
 
 /** Distance threshold multiplier: enemy is "off-path" when perpendicular distance > ts * this */
 const PATH_RECOVERY_MULT = 1.5;
@@ -40,6 +42,7 @@ const FLOCK_WANDER_STRENGTH = 50;
 const FLOCK_PATH_ADVANCE_RADIUS = 18;
 const SPELL_BLIZZARD = 2;
 const BOAR_ENEMY_TYPE_NUM = ENEMY_ID_BY_TYPE[EnemyType.Boar];
+const TANK_ENEMY_TYPE_NUM = ENEMY_ID_BY_TYPE[EnemyType.Tank];
 const BOAR_DASH_TRAIL_INTERVAL = 0.18;
 
 export class MovementSystem implements System {
@@ -131,8 +134,10 @@ export class MovementSystem implements System {
         continue;
       }
 
-      // 只有需要完整蓄力表现的 Boss 普攻、到达水晶结算会用攻击动画阻断移动。
-      const isBlockingAttackAnimation = hasComponent(world.world, Boss, eid) || this.isAtPathEnd(eid);
+      // 只有需要完整蓄力表现的 Boss 普攻、坦克炮击、到达水晶结算会用攻击动画阻断移动。
+      const isBlockingAttackAnimation = hasComponent(world.world, Boss, eid)
+        || this.isTankEnemy(eid)
+        || this.isAtPathEnd(eid);
       if (Visual.attackAnimTimer[eid]! > 0) {
         Visual.attackAnimTimer[eid] = Math.max(0, Visual.attackAnimTimer[eid]! - dt);
         if (isBlockingAttackAnimation) {
@@ -147,15 +152,15 @@ export class MovementSystem implements System {
         continue;
       }
 
-      // 普通敌人沿路径推进时可以顺手攻击；只有 Boss 普攻保持专用停步蓄力表现。
+      // 普通敌人沿路径推进时可以顺手攻击；Boss 与坦克炮击保持专用停步蓄力表现。
       if (hasComponent(world.world, Attack, eid)) {
-        const shouldStopForAttack = hasComponent(world.world, Boss, eid)
+        const shouldStopForAttack = (hasComponent(world.world, Boss, eid) || this.isTankEnemy(eid))
           && this.processEnemyAttack(world, eid, dt, true);
         if (shouldStopForAttack) {
           Movement.currentSpeed[eid] = 0;
           continue;
         }
-        if (!hasComponent(world.world, Boss, eid) && !hasComponent(world.world, Taunted, eid)) {
+        if (!hasComponent(world.world, Boss, eid) && !this.isTankEnemy(eid) && !hasComponent(world.world, Taunted, eid)) {
           this.processEnemyAttack(world, eid, dt, false);
         }
       }
@@ -760,6 +765,10 @@ export class MovementSystem implements System {
     return false;
   }
 
+  private isTankEnemy(eid: number): boolean {
+    return UnitTag.unitTypeNum[eid] === TANK_ENEMY_TYPE_NUM;
+  }
+
   private getBossLockedDefenderTarget(world: TowerWorld, eid: number): number | null {
     if (!hasComponent(world.world, Boss, eid)) return null;
 
@@ -936,6 +945,7 @@ export class MovementSystem implements System {
     damage: number,
   ): void {
     const projId = world.createEntity();
+    const isTank = this.isTankEnemy(eid);
 
     const visR = Visual.colorR[eid] ?? 0xff;
     const visG = Visual.colorG[eid] ?? 0x44;
@@ -943,7 +953,7 @@ export class MovementSystem implements System {
 
     world.addComponent(projId, Position, { x: fromX, y: fromY });
     world.addComponent(projId, Projectile, {
-      speed: 300,
+      speed: isTank ? 360 : 300,
       damage,
       damageType: Attack.damageType[eid] ?? DamageTypeVal.Physical,
       targetId,
@@ -951,10 +961,10 @@ export class MovementSystem implements System {
       fromX,
       fromY,
       shape: ShapeVal.Circle,
-      colorR: visR,
-      colorG: visG,
-      colorB: visB,
-      size: 10,
+      colorR: isTank ? 32 : visR,
+      colorG: isTank ? 32 : visG,
+      colorB: isTank ? 32 : visB,
+      size: isTank ? 18 : 10,
       splashRadius: 0,
       stunDuration: 0,
       slowPercent: 0,
@@ -966,7 +976,7 @@ export class MovementSystem implements System {
       isChain: 0,
       chainIndex: 0,
       drainAmount: 0,
-      sourceTowerType: 255, // sentinel: enemy projectile (not a tower)
+      sourceTowerType: isTank ? TANK_PROJECTILE_SOURCE_TYPE : 255,
       targetX: 0,
       targetY: 0,
       flightTime: 0,
@@ -975,10 +985,10 @@ export class MovementSystem implements System {
     });
     world.addComponent(projId, Visual, {
       shape: ShapeVal.Circle,
-      colorR: visR,
-      colorG: visG,
-      colorB: visB,
-      size: 10,
+      colorR: isTank ? 32 : visR,
+      colorG: isTank ? 32 : visG,
+      colorB: isTank ? 32 : visB,
+      size: isTank ? 18 : 10,
       alpha: 1,
       outline: 0,
       hitFlashTimer: 0,
@@ -991,6 +1001,7 @@ export class MovementSystem implements System {
       partsId: 0,
     });
     world.addComponent(projId, Layer, { value: LayerVal.Ground });
+    Sound.play(isTank ? 'tower_cannon' : 'enemy_attack');
   }
 
   // ================================================================

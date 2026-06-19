@@ -73,6 +73,7 @@
 | `enemy_death` | 敌人死亡 | 击杀敌人后 | OGG + Synth |
 | `enemy_hit` | 敌人受击 | 弹道命中时 | OGG + Synth |
 | `enemy_attack` | 敌人近战攻击 | 敌人普攻 | OGG + Synth |
+| `tower_cannon` / `cannon_hit` | 坦克炮击 | 坦克停步发射炮弹时复用炮塔发射音，炮弹命中时复用炮击命中音 | OGG + Synth |
 | `mage_attack` | 法师远程攻击 | 法师弹道发射 | OGG + Synth |
 | `exploder_boom` | 自爆爆炸 | 自爆单位/技能 | OGG + Synth |
 | `base_hit` | 水晶受击 | 水晶命中（失败判定前） | OGG + Synth |
