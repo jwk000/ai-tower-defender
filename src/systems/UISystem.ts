@@ -696,14 +696,14 @@ export class UISystem implements System {
     const gold = this.getGold();
     const canAfford = gold >= upgradeCost;
 
-    const nextUpgradeDescriptions = buildNextTowerUpgradeDescriptions(config, level, atk, range, atkSpeed).slice(0, 3);
+    const nextUpgradeDescriptions = buildNextTowerUpgradeDescriptions(config, level, atk, range, atkSpeed).slice(0, 4);
 
     // Refund info
     const refund = this.getRefundQuote?.(id);
 
     // Panel layout — above the tower
-    const panelW = 240;
-    const panelH = 220;
+    const panelW = 300;
+    const panelH = 260;
     const towerX = Position.x[id] ?? 0;
     const towerY = Position.y[id] ?? 0;
 
@@ -724,7 +724,7 @@ export class UISystem implements System {
     const panelLeft = panelX - panelW / 2;
     this.infos.push({
       x: panelX,
-      y: panelY + 20,
+      y: panelY + 22,
       text: `${config.name} Lv.${level}`,
       color: '#ffffff',
       size: 16,
@@ -735,7 +735,7 @@ export class UISystem implements System {
     // Stats
     this.infos.push({
       x: panelLeft + 15,
-      y: panelY + 48,
+      y: panelY + 52,
       text: `攻击: ${Math.round(atk)}`,
       color: '#e0e0e0',
       size: 13,
@@ -743,7 +743,7 @@ export class UISystem implements System {
     });
     this.infos.push({
       x: panelLeft + 15,
-      y: panelY + 68,
+      y: panelY + 72,
       text: `范围: ${Math.round(range)}`,
       color: '#e0e0e0',
       size: 13,
@@ -751,7 +751,7 @@ export class UISystem implements System {
     });
     this.infos.push({
       x: panelLeft + 15,
-      y: panelY + 88,
+      y: panelY + 92,
       text: `攻速: ${atkSpeed.toFixed(1)}/s`,
       color: '#e0e0e0',
       size: 13,
@@ -759,7 +759,7 @@ export class UISystem implements System {
     });
     this.infos.push({
       x: panelLeft + 15,
-      y: panelY + 114,
+      y: panelY + 122,
       text: '下级变化:',
       color: '#ffd54f',
       size: 13,
@@ -768,7 +768,7 @@ export class UISystem implements System {
     nextUpgradeDescriptions.forEach((text, index) => {
       this.infos.push({
         x: panelLeft + 15,
-        y: panelY + 134 + index * 16,
+        y: panelY + 144 + index * 18,
         text,
         color: canUpgrade ? '#cfd8dc' : '#9e9e9e',
         size: 12,
@@ -777,9 +777,9 @@ export class UISystem implements System {
     });
 
     // Upgrade button — green
-    const btnW = 105;
+    const btnW = 132;
     const btnH = 32;
-    const btnY = panelY + panelH - 50;
+    const btnY = panelY + panelH - 46;
 
     this.buttons.push({
       x: panelLeft + 8,

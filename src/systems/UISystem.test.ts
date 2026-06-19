@@ -145,6 +145,10 @@ function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; a
   return (ui as unknown as { cardIconDraws: Array<{ cardId: string; layer: string; alpha?: number }> }).cardIconDraws;
 }
 
+function towerPanelBgOf(ui: UISystem): { w: number; h: number } | null {
+  return (ui as unknown as { towerPanelBg: { w: number; h: number } | null }).towerPanelBg;
+}
+
 describe('UISystem 顶部 HUD 布局', () => {
   beforeEach(() => {
     LayoutManager.update(1920, 1080);
@@ -330,6 +334,8 @@ describe('UISystem UI 层级', () => {
 
     ui.selectedTowerEntityId = towerId;
     ui.update(world, 1 / 60);
+
+    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 260 });
 
     const texts = infosOf(ui).map((info) => info.text);
     expect(texts).toContain('下级变化:');
