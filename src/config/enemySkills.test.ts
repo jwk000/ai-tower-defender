@@ -104,4 +104,14 @@ describe('敌人技能完整性配置', () => {
 
     expect(misplaced).toEqual([]);
   });
+
+  it('超级机器人导弹配置与设计伤害保持为 320', () => {
+    const superRobot = unitConfigRegistry.get('super_robot');
+    const targetedMissile = getSkills(superRobot!)
+      .find((skill) => (skill as Record<string, unknown>).id === 'targeted_missile') as Record<string, unknown> | undefined;
+    const bossConfig = superRobot?.boss as Record<string, unknown> | undefined;
+
+    expect(targetedMissile?.value).toBe(320);
+    expect(bossConfig?.missileDamage).toBe(320);
+  });
 });

@@ -789,15 +789,16 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
     expect(Projectile.sourceId[missile]).toBe(boss);
     expect(Position.x[missile]).toBe(Position.x[boss]);
     expect(Position.y[missile]).toBe(Position.y[boss]);
+    expect(Projectile.damage[missile]).toBe(320);
     expect(Visual.colorR[missile]).toBe(150);
     expect(Visual.colorG[missile]).toBe(72);
     expect(Visual.colorB[missile]).toBe(36);
   });
 
   it('Boss导弹落地后伤害我方单位并冒出黑色烟雾', () => {
-    const tower1 = makeTower(world, 500, 300, 200);
-    const tower2 = makeTower(world, 530, 310, 200);
-    const tower3 = makeTower(world, 800, 300, 200);
+    const tower1 = makeTower(world, 500, 300, 500);
+    const tower2 = makeTower(world, 530, 310, 500);
+    const tower3 = makeTower(world, 800, 300, 500);
     const boss = makeBoss(world, BossType.SuperRobot, {
       hp: 2000, maxHp: 2000, abilityTimer: 9.9, phase: 0, x: 420, y: 300,
     });
@@ -813,9 +814,9 @@ describe('BossSystem — SuperRobot (超级机器人)', () => {
       world.cleanupDeadEntities();
     }
 
-    expect(Health.current[tower1]).toBeLessThan(200);
-    expect(Health.current[tower2]).toBeLessThan(200);
-    expect(Health.current[tower3]).toBe(200);
+    expect(Health.current[tower1]).toBeLessThan(500);
+    expect(Health.current[tower2]).toBeLessThan(500);
+    expect(Health.current[tower3]).toBe(500);
 
     const blackSmoke = allPositionedQuery(world.world).filter((eid) => (
       hasComponent(world.world, Visual, eid)
