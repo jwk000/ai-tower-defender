@@ -490,7 +490,7 @@ describe('RenderSystem — 水晶显示', () => {
     }));
   });
 
-  it('弩塔弩矢贴图默认朝左，渲染命令必须按飞行方向补偿 180 度', () => {
+  it('弩塔弩矢贴图默认朝左，渲染命令只传贴图基准补偿，飞行角由 Renderer 计算', () => {
     class LoadedImage {
       complete = true;
       naturalWidth = 128;
@@ -510,7 +510,7 @@ describe('RenderSystem — 水晶显示', () => {
       colorG: 0x96,
       colorB: 0xf3,
       dirX: 1,
-      dirY: 0,
+      dirY: 1,
     });
 
     const renderer = new RendererStub();
@@ -523,7 +523,7 @@ describe('RenderSystem — 水晶显示', () => {
       image: expect.any(LoadedImage),
       shape: 'arrow',
       targetX: 114,
-      targetY: 32,
+      targetY: 82,
       rotation: Math.PI,
     }));
   });

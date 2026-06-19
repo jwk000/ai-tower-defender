@@ -1559,7 +1559,7 @@ export class RenderSystem implements System {
             if (boltFx) {
               extras.image = boltFx.image;
               extras.imageSource = boltFx.source ?? undefined;
-              extras.rotation = Math.atan2((targetY ?? posY) - posY, (targetX ?? posX + 1) - posX) + Math.PI;
+              extras.rotation = Math.PI;
               extras.size = 60;
               extras.h = 60 * (boltFx.height / boltFx.width);
             } else {
