@@ -261,4 +261,18 @@ describe('技能卡数值配置', () => {
     expect(spellEffect.radius).toBe(9999);
     expect(spellEffect.slowDuration).toBe(5.0);
   });
+
+  it('盾卫升级卡是全局自施法兵种升级技能', () => {
+    const cfg = cardConfigRegistry.get('upgrade_shield_guard_card');
+    expect(cfg).toBeDefined();
+    expect(cfg!.name).toBe('盾卫升级卡');
+    expect(cfg!.type).toBe('spell');
+    expect(cfg!.spellSubtype).toBe('buff_instance');
+    expect(cfg!.placement.targetType).toBe('global');
+
+    const spellEffect = (cfg as Record<string, unknown>).spellEffect as Record<string, unknown>;
+    expect(spellEffect.handler).toBe('upgrade_soldier_type');
+    expect(spellEffect.unitType).toBe('shield_guard');
+    expect(spellEffect.levels).toBe(1);
+  });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
 import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
-import { Position, Tower, Attack } from '../core/components.js';
+import { Health, Position, Tower, Attack, UnitTag } from '../core/components.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import {
   computeHandZoneSlotRects,
@@ -359,6 +359,39 @@ describe('UISystem UI 层级', () => {
     expect(texts).toContain('下级变化:');
     expect(texts).toContain('已满级');
     expect(texts).not.toContain('弹体数 3→3 (+0)');
+  });
+
+  it('兵类单位选中后显示放大的 tips 面板和等级', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    const unitId = world.createEntity();
+    world.addComponent(unitId, Position, { x: 960, y: 540 });
+    world.addComponent(unitId, Health, { current: 520, max: 520 });
+    world.addComponent(unitId, Attack, { damage: 4, range: 50, attackSpeed: 0.55 });
+    world.addComponent(unitId, UnitTag, {
+      unitTypeNum: 0,
+      isEnemy: 0,
+      level: 2,
+      maxLevel: 3,
+      popCost: 2,
+      cost: 35,
+      totalInvested: 75,
+    });
+
+    ui.selectedUnitEntityId = unitId;
+    ui.update(world, 1 / 60);
+
+    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 240 });
+    const texts = infosOf(ui).map((info) => info.text);
+    expect(texts).toContain('盾卫 Lv.2');
+    expect(texts).toContain('生命: 520/520');
+    expect(texts).toContain('攻击: 4');
+    expect(texts).toContain('范围: 50');
+
+    const upgradeButton = buttonsOf(ui).find((button) => button.label === '升级 60G');
+    expect(upgradeButton).toBeDefined();
+    expect((upgradeButton as { layer?: string }).layer).toBe('board');
   });
 
   it('抽卡面板作为全屏 UI 重绘在普通 UI 与塔升级面板之上', () => {

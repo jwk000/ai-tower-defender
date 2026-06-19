@@ -229,7 +229,20 @@ export function resolveCardToEntityType(
   }
 
   // 技能卡（area-target，需要拖拽到场景）
-  const SPELL_IDS = ['fireball', 'arrow_rain', 'blizzard', 'bomb', 'earthquake', 'gold_rush'];
+  const SPELL_IDS = [
+    'fireball',
+    'arrow_rain',
+    'blizzard',
+    'bomb',
+    'earthquake',
+    'gold_rush',
+    'upgrade_shield_guard',
+    'upgrade_swordsman',
+    'upgrade_archer',
+    'upgrade_priest',
+    'upgrade_assassin',
+    'upgrade_mage',
+  ];
   if (SPELL_IDS.includes(unitConfigId)) {
     return { entityType: 'spell', spellCardId: unitConfigId };
   }
@@ -252,7 +265,7 @@ export function resolveCardToEntityType(
 
 
 export function isSelfTargetSpell(spellCardId: string): boolean {
-  return false;
+  return spellCardId === 'gold_rush' || spellCardId.startsWith('upgrade_');
 }
 
 // ============================================================

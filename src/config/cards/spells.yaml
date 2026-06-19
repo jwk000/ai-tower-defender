@@ -111,3 +111,93 @@ gold_rush_card:
   spellEffect:
     handler: gain_gold
     amount: 80
+
+upgrade_shield_guard_card:
+  name: 盾卫升级卡
+  description: 使场上所有盾卫等级+1，已满级盾卫不受影响
+  type: spell
+  rarity: rare
+  energyCost: 3
+  goldCost: 80
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: shield_guard
+    levels: 1
+
+upgrade_swordsman_card:
+  name: 剑士升级卡
+  description: 使场上所有剑士等级+1，已满级剑士不受影响
+  type: spell
+  rarity: rare
+  energyCost: 3
+  goldCost: 80
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: swordsman
+    levels: 1
+
+upgrade_archer_card:
+  name: 弓箭手升级卡
+  description: 使场上所有弓箭手等级+1，已满级弓箭手不受影响
+  type: spell
+  rarity: rare
+  energyCost: 3
+  goldCost: 80
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: archer
+    levels: 1
+
+upgrade_priest_card:
+  name: 牧师升级卡
+  description: 使场上所有牧师等级+1，已满级牧师不受影响
+  type: spell
+  rarity: rare
+  energyCost: 3
+  goldCost: 80
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: priest
+    levels: 1
+
+upgrade_assassin_card:
+  name: 刺客升级卡
+  description: 使场上所有刺客等级+1，已满级刺客不受影响
+  type: spell
+  rarity: epic
+  energyCost: 4
+  goldCost: 95
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: assassin
+    levels: 1
+
+upgrade_mage_card:
+  name: 法师升级卡
+  description: 使场上所有法师等级+1，已满级法师不受影响
+  type: spell
+  rarity: rare
+  energyCost: 3
+  goldCost: 80
+  spellSubtype: buff_instance
+  placement:
+    targetType: global
+  spellEffect:
+    handler: upgrade_soldier_type
+    unitType: mage
+    levels: 1

@@ -226,6 +226,54 @@ const goldRush: CardInstance = {
   goldCost: 20,
 };
 
+const upgradeShieldGuard: CardInstance = {
+  id: 'card_upgrade_shield_guard',
+  name: '盾卫升级卡',
+  type: 'spell',
+  description: '场上所有盾卫等级+1',
+  goldCost: 80,
+};
+
+const upgradeSwordsman: CardInstance = {
+  id: 'card_upgrade_swordsman',
+  name: '剑士升级卡',
+  type: 'spell',
+  description: '场上所有剑士等级+1',
+  goldCost: 80,
+};
+
+const upgradeArcher: CardInstance = {
+  id: 'card_upgrade_archer',
+  name: '弓箭手升级卡',
+  type: 'spell',
+  description: '场上所有弓箭手等级+1',
+  goldCost: 80,
+};
+
+const upgradePriest: CardInstance = {
+  id: 'card_upgrade_priest',
+  name: '牧师升级卡',
+  type: 'spell',
+  description: '场上所有牧师等级+1',
+  goldCost: 80,
+};
+
+const upgradeAssassin: CardInstance = {
+  id: 'card_upgrade_assassin',
+  name: '刺客升级卡',
+  type: 'spell',
+  description: '场上所有刺客等级+1',
+  goldCost: 95,
+};
+
+const upgradeMage: CardInstance = {
+  id: 'card_upgrade_mage',
+  name: '法师升级卡',
+  type: 'spell',
+  description: '场上所有法师等级+1',
+  goldCost: 80,
+};
+
 // ============================================================
 // 已分类导出
 // ============================================================
@@ -255,7 +303,20 @@ export const UNIT_CARDS: CardInstance[] = [
 ];
 
 /** 所有技能卡（含自施法经济卡） */
-export const SPELL_CARDS: CardInstance[] = [fireball, arrowRain, blizzard, bomb, earthquake, goldRush];
+export const SPELL_CARDS: CardInstance[] = [
+  fireball,
+  arrowRain,
+  blizzard,
+  bomb,
+  earthquake,
+  goldRush,
+  upgradeShieldGuard,
+  upgradeSwordsman,
+  upgradeArcher,
+  upgradePriest,
+  upgradeAssassin,
+  upgradeMage,
+];
 
 /** 全部卡牌 */
 export const ALL_CARDS: CardInstance[] = [

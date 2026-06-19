@@ -11,7 +11,7 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import { Renderer } from '../render/Renderer.js';
 import { LayoutManager, AnchorX, AnchorY, type AnchorConfig } from '../ui/LayoutManager.js';
-import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS } from '../data/gameData.js';
+import { TOWER_CONFIGS, UNIT_CONFIGS, PRODUCTION_CONFIGS, TRAP_CONFIGS, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { GamePhase, TowerType, UnitType, ProductionType, type ShapeType, type TowerConfig, type UnitVisualParts } from '../types/index.js';
 import { RenderSystem } from './RenderSystem.js';
 import { FONTS, getFont } from '../config/fonts.js';
@@ -594,6 +594,8 @@ export class UISystem implements System {
     if (this.selectedEntityId !== null && this.selectedEntityType === 'tower') {
       this.drawRangePreview();
       this.buildTowerInfoPanel();
+    } else if (this.selectedEntityId !== null && this.selectedEntityType === 'unit') {
+      this.buildUnitInfoPanel();
     } else {
       this.towerPanelBg = null;
     }
@@ -799,6 +801,127 @@ export class UISystem implements System {
     });
 
     // Recycle button — red
+    const refundText = refund ? `+${refund.amount}G` : '';
+    this.buttons.push({
+      x: panelLeft + panelW - btnW - 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: `回收 ${refundText}`,
+      color: '#e53935',
+      textColor: '#ffffff',
+      enabled: true,
+      solidColor: true,
+      layer: 'board',
+      onClick: () => {
+        this.onRecycleEntity?.(id);
+        this.selectedEntityId = null;
+        this.selectedEntityType = null;
+      },
+    });
+  }
+
+  private buildUnitInfoPanel(): void {
+    const id = this.selectedEntityId;
+    if (id === null || !this._world) return;
+    if (UnitTag.isEnemy[id] !== 0) return;
+
+    const unitTypeVal = UnitTag.unitTypeNum[id];
+    const unitTypeEnum = unitTypeVal !== undefined ? UNIT_TYPE_BY_ID[unitTypeVal] : undefined;
+    const config = unitTypeEnum ? UNIT_CONFIGS[unitTypeEnum] : undefined;
+    if (!config) return;
+
+    const level = UnitTag.level[id] ?? 1;
+    const maxLevel = UnitTag.maxLevel[id] ?? config.maxLevel ?? 1;
+    const hp = Health.current[id] ?? 0;
+    const maxHp = Health.max[id] ?? 0;
+    const atk = Attack.damage[id] ?? 0;
+    const range = Attack.range[id] ?? 0;
+    const atkSpeed = Attack.attackSpeed[id] ?? 0;
+    const canUpgrade = level < maxLevel;
+    const upgradeCost = canUpgrade ? (config.upgradeCosts?.[level - 1] ?? 0) : 0;
+    const gold = this.getGold();
+    const canAfford = gold >= upgradeCost;
+
+    const panelW = 300;
+    const panelH = 240;
+    const unitX = Position.x[id] ?? 0;
+    const unitY = Position.y[id] ?? 0;
+    const panelX = Math.max(panelW / 2 + 10, Math.min(unitX, LayoutManager.DESIGN_W - panelW / 2 - 10));
+    const panelY = Math.max(10, unitY - 92 - panelH);
+    const panelLeft = panelX - panelW / 2;
+
+    this.towerPanelBg = {
+      x: panelX,
+      y: panelY,
+      w: panelW,
+      h: panelH,
+      strokeColor: config.color ?? '#ffffff',
+    };
+
+    this.infos.push({
+      x: panelX,
+      y: panelY + 22,
+      text: `${config.name} Lv.${level}`,
+      color: '#ffffff',
+      size: 16,
+      align: 'center',
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 52,
+      text: `生命: ${Math.round(hp)}/${Math.round(maxHp)}`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 72,
+      text: `攻击: ${Math.round(atk)}`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 92,
+      text: `范围: ${Math.round(range)}`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+    this.infos.push({
+      x: panelLeft + 15,
+      y: panelY + 112,
+      text: `攻速: ${atkSpeed.toFixed(1)}/s`,
+      color: '#e0e0e0',
+      size: 13,
+      layer: 'board',
+    });
+
+    const btnW = 132;
+    const btnH = 32;
+    const btnY = panelY + panelH - 46;
+    this.buttons.push({
+      x: panelLeft + 8,
+      y: btnY,
+      w: btnW,
+      h: btnH,
+      label: canUpgrade ? `升级 ${upgradeCost}G` : '满级',
+      color: '#4caf50',
+      textColor: '#ffffff',
+      enabled: canUpgrade && canAfford,
+      solidColor: true,
+      keepDisabledColor: true,
+      layer: 'board',
+      onClick: () => {
+        this.onUpgradeUnit?.(id);
+      },
+    });
+
+    const refund = this.getRefundQuote?.(id);
     const refundText = refund ? `+${refund.amount}G` : '';
     this.buttons.push({
       x: panelLeft + panelW - btnW - 8,

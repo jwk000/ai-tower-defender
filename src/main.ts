@@ -36,6 +36,7 @@ import { SkillSystem } from './systems/SkillSystem.js';
 import { SlashEffectSystem } from './systems/SlashEffectSystem.js';
 import { SoldierAISystem } from './systems/SoldierAISystem.js';
 import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
+import { applySoldierLevelUp, upgradeAllSoldiersOfType } from './systems/soldierUpgrade.js';
 import { TileDamageSystem } from './systems/TileDamageSystem.js';
 import { TrapSystem } from './systems/TrapSystem.js';
 import { UISystem } from './systems/UISystem.js';
@@ -50,7 +51,7 @@ import { WeatherSystem } from './systems/WeatherSystem.js';
 import { LevelIntroSystem } from './systems/LevelIntroSystem.js';
 import { GamePhase, GameScreen, TileType, TowerType, UnitType, WeatherType, type InputEvent, type LevelConfig, type MapConfig, type VictoryConfig } from './types/index.js';
 import { getFont } from './config/fonts.js';
-import { hitTestHandCard, resolveCardToEntityType, type ResolvedCardEntity } from './ui/LayoutConstants.js';
+import { hitTestHandCard, isSelfTargetSpell, resolveCardToEntityType, type ResolvedCardEntity } from './ui/LayoutConstants.js';
 import { LayoutManager } from './ui/LayoutManager.js';
 import { LevelSelectUI } from './ui/LevelSelectUI.js';
 import { CardEncyclopediaUI } from './ui/CardEncyclopediaUI.js';
@@ -615,21 +616,7 @@ class TowerDefenderGame extends Game {
       if (cost === undefined) return;
       if (!this.economy.spendGold(cost)) return;
 
-      UnitTag.level[entityId] = curLevel + 1;
-      UnitTag.totalInvested[entityId]! += cost;
-
-      const hpBonus = cfg.upgradeHpBonus?.[costIdx] ?? 0;
-      if (hpBonus > 0) {
-        Health.max[entityId]! += hpBonus;
-        Health.current[entityId]! += hpBonus;
-      }
-      const atkBonus = cfg.upgradeAtkBonus?.[costIdx] ?? 0;
-      if (atkBonus > 0 && Attack.damage[entityId] !== undefined) {
-        Attack.damage[entityId]! += atkBonus;
-      }
-      // 嘲讽改为无数量上限的自动光环，旧容量成长字段仅保留配置兼容。
-
-      Visual.hitFlashTimer[entityId] = 0.2;
+      applySoldierLevelUp(entityId, cfg, cost);
       Sound.play('upgrade');
     };
 
@@ -1087,7 +1074,11 @@ class TowerDefenderGame extends Game {
         return;
       }
       if (this.pendingCardDrag && !this.buildSystem.dragState?.active) {
+        const pending = this.pendingCardDrag;
         this.pendingCardDrag = null;
+        if (pending.resolved.entityType === 'spell' && isSelfTargetSpell(pending.resolved.spellCardId)) {
+          this.tryExecuteHandSpell(pending.resolved.spellCardId, pending.cardIndex, e.x, e.y);
+        }
         return;
       }
 
@@ -1142,12 +1133,12 @@ class TowerDefenderGame extends Game {
               this.buildSystem.cancelDrag();
               return;
             }
-            this.executeSpellAt(spellId, e.x, e.y);
-            if (handCard) this.economy.spendGold(handCard.goldCost);
-            if (ds.cardIndex !== undefined) {
+            const executed = this.executeSpellAt(spellId, e.x, e.y);
+            if (executed && handCard) this.economy.spendGold(handCard.goldCost);
+            if (executed && ds.cardIndex !== undefined) {
               this.handSystem.playCard(ds.cardIndex);
             }
-            Sound.play('build_place');
+            if (executed) Sound.play('build_place');
           }
           this.buildSystem.cancelDrag();
         } else {
@@ -1599,6 +1590,41 @@ class TowerDefenderGame extends Game {
     });
   }
 
+  private tryExecuteHandSpell(spellCardId: string, cardIndex: number, x: number, y: number): boolean {
+    const handCard = this.handSystem.getHand()[cardIndex] ?? null;
+    if (!handCard) return false;
+    if (this.economy.gold < handCard.goldCost) {
+      this.floatingTextSystem.show(this.world, x, y, '金币不足');
+      Sound.play('build_deny');
+      return false;
+    }
+
+    const executed = this.executeSpellAt(spellCardId, x, y);
+    if (!executed) {
+      return false;
+    }
+
+    this.economy.spendGold(handCard.goldCost);
+    this.handSystem.playCard(cardIndex);
+    Sound.play('build_place');
+    return true;
+  }
+
+  private upgradeAllSoldiersOfType(unitType: UnitType, x: number, y: number): boolean {
+    const cfg = UNIT_CONFIGS[unitType];
+    const upgraded = upgradeAllSoldiersOfType(this.world, unitType);
+
+    if (upgraded <= 0) {
+      this.floatingTextSystem.show(this.world, x, y, '无可升级单位');
+      Sound.play('build_deny');
+      return false;
+    }
+
+    this.floatingTextSystem.show(this.world, x, y, `${cfg.name}全体升级 +1`);
+    Sound.play('upgrade');
+    return true;
+  }
+
   // ================================================================
   // Map Click (bitecs query-based)
   // ================================================================
@@ -1863,7 +1889,7 @@ class TowerDefenderGame extends Game {
    * 对于全屏法术，x/y 仅用于拖拽释放校验，实际效果覆盖整块棋盘。
    * 对于区域技能卡，创建投射物动画，由 SpellProjectileSystem 处理。
    */
-  private executeSpellAt(spellCardId: string, x: number, y: number): void {
+  private executeSpellAt(spellCardId: string, x: number, y: number): boolean {
     const w = this.world.world;
 
     // 手牌位置（屏幕底部中间）作为投射物起点
@@ -1897,7 +1923,7 @@ class TowerDefenderGame extends Game {
           hitFlashTimer: 0,
           idlePhase: 0,
         });
-        break;
+        return true;
       }
 
       case 'arrow_rain': {
@@ -1925,13 +1951,13 @@ class TowerDefenderGame extends Game {
           hitFlashTimer: 0,
           idlePhase: 0,
         });
-        break;
+        return true;
       }
 
       case 'blizzard': {
         // 暴风雪：全屏持续寒风，每秒造成伤害并停止所有单位移动
         this.spellProjectileSystem.spawnGlobalEffect(this.world, 2, 45, 5.0);
-        break;
+        return true;
       }
 
       case 'bomb': {
@@ -1959,7 +1985,7 @@ class TowerDefenderGame extends Game {
           hitFlashTimer: 0,
           idlePhase: 0,
         });
-        break;
+        return true;
       }
 
       // ---- 自施法技能卡 ----
@@ -1967,18 +1993,24 @@ class TowerDefenderGame extends Game {
         // 淘金热：立即获得 80 金币
         this.economy.addGold(80);
         Sound.play('gold_earn');
-        break;
+        return true;
       }
 
       case 'earthquake': {
         // 大地裂变：全棋盘持续震动，每秒对全部有生命单位造成物理伤害
         this.spellProjectileSystem.spawnGlobalEffect(this.world, 4, 100, 3.0);
-        break;
+        return true;
       }
 
       default:
+        if (spellCardId.startsWith('upgrade_')) {
+          const unitType = spellCardId.slice('upgrade_'.length) as UnitType;
+          if ((Object.values(UnitType) as string[]).includes(unitType)) {
+            return this.upgradeAllSoldiersOfType(unitType, x, y);
+          }
+        }
         console.warn(`[SpellSystem] Unknown spell card: ${spellCardId}`);
-        break;
+        return false;
     }
   }
 }

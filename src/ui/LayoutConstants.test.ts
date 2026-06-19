@@ -24,12 +24,20 @@ describe('resolveCardToEntityType', () => {
     });
   });
 
-  it('keeps full-screen damage spells drag-released on the board instead of click-cast', () => {
+  it('keeps damage/control spells drag-released on the board instead of click-cast', () => {
     expect(isSelfTargetSpell('fireball')).toBe(false);
     expect(isSelfTargetSpell('arrow_rain')).toBe(false);
-    expect(isSelfTargetSpell('gold_rush')).toBe(false);
     expect(isSelfTargetSpell('blizzard')).toBe(false);
     expect(isSelfTargetSpell('bomb')).toBe(false);
     expect(isSelfTargetSpell('earthquake')).toBe(false);
+  });
+
+  it('resolves soldier upgrade spell cards as self-target spells', () => {
+    expect(resolveCardToEntityType('upgrade_shield_guard_card')).toEqual({
+      entityType: 'spell',
+      spellCardId: 'upgrade_shield_guard',
+    });
+    expect(isSelfTargetSpell('gold_rush')).toBe(true);
+    expect(isSelfTargetSpell('upgrade_shield_guard')).toBe(true);
   });
 });
