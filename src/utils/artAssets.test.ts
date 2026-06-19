@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetUrl, cardArtPath, enemyArtPath, objectiveArtPath, objectiveFxArtPath, spellEffectArtPath, spellProjectileArtPath, unitArtPath } from './artAssets.js';
+import { assetUrl, cardArtPath, cardFrameArtPath, enemyArtPath, objectiveArtPath, objectiveFxArtPath, spellEffectArtPath, spellProjectileArtPath, unitArtPath } from './artAssets.js';
 
 describe('artAssets', () => {
   it('resolves public art paths against the Vite base URL', () => {
@@ -18,6 +18,13 @@ describe('artAssets', () => {
     expect(cardArtPath('swordsman_card')).toBe('/art/cards/card_swordsman.png');
     expect(cardArtPath('arrow_tower_card')).toBe('/art/cards/card_arrow_tower.png');
     expect(cardArtPath('card_swordsman')).toBe('/art/cards/card_swordsman.png');
+  });
+
+  it('builds rarity card frame art paths', () => {
+    expect(cardFrameArtPath()).toBe('/art/ui/ui_card_frame_common.png');
+    expect(cardFrameArtPath('rare')).toBe('/art/ui/ui_card_frame_rare.png');
+    expect(cardFrameArtPath('epic')).toBe('/art/ui/ui_card_frame_epic.png');
+    expect(cardFrameArtPath('legendary')).toBe('/art/ui/ui_card_frame_legendary.png');
   });
 
   it('builds enemy codex art paths', () => {

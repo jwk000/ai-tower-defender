@@ -31,8 +31,17 @@ export function uiArtPath(assetId: string): string {
   return `/art/ui/${assetId}.png`;
 }
 
-export function cardFrameArtPath(): string {
-  return uiArtPath('ui_card_frame_common');
+export function cardFrameArtPath(rarity = 'common'): string {
+  switch (rarity) {
+    case 'rare':
+      return uiArtPath('ui_card_frame_rare');
+    case 'epic':
+      return uiArtPath('ui_card_frame_epic');
+    case 'legendary':
+      return uiArtPath('ui_card_frame_legendary');
+    default:
+      return uiArtPath('ui_card_frame_common');
+  }
 }
 
 export function objectiveArtPath(assetId: 'crystal' | 'crystal_low_hp' | 'spawn_portal'): string {

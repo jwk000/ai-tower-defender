@@ -630,7 +630,7 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     ))).toBe(false);
   });
 
-  it('手牌使用卡牌图鉴式绘制，不加载整卡美术底框', () => {
+  it('手牌使用卡牌框图片作为不透明背景', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
@@ -654,12 +654,9 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     expect(imageDrawsOf(ui).some((draw) => (
       draw.layer === 'normal' &&
-      draw.path === '/art/ui/ui_card_frame_common.png'
-    ))).toBe(false);
-    expect(imageDrawsOf(ui).some((draw) => (
-      draw.layer === 'normal' &&
-      draw.path === '/art/ui/ui_card_frame_rare.png'
-    ))).toBe(false);
+      draw.path === '/art/ui/ui_card_frame_rare.png' &&
+      draw.alpha === 1
+    ))).toBe(true);
 
     const contentRect = renderer.commands.find((cmd) => (
       cmd.shape === 'rect' &&
@@ -667,13 +664,14 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.size === 96 &&
       cmd.h === 80
     ));
-    const cardRect = renderer.commands.find((cmd) => (
+    const translucentCardRect = renderer.commands.find((cmd) => (
       cmd.shape === 'rect' &&
       cmd.color === '#1a2332' &&
-      cmd.stroke === '#42a5f5'
+      cmd.alpha !== undefined &&
+      cmd.alpha < 1
     ));
     expect(contentRect).toBeTruthy();
-    expect(cardRect).toBeTruthy();
+    expect(translucentCardRect).toBeUndefined();
     expect(infosOf(ui).some((info) => (
       info.text === '塔' &&
       info.color === '#42a5f5'

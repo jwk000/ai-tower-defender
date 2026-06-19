@@ -1269,13 +1269,15 @@ export class UISystem implements System {
     const artH = 80 * cardDraw.scale;
     const artCenterY = cardDraw.top + 12 * cardDraw.scale + artH / 2;
 
-    this.renderer.push({
-      shape: 'rect',
-      x: cardDraw.centerX, y: cardDraw.centerY,
-      size: cardDraw.width, h: cardDraw.height,
-      color: '#1a2332',
-      alpha: cardAlpha * 0.35,
-      stroke: borderColor, strokeWidth: cardDraw.progress > 0 ? 3 : 2,
+    this.imageDraws.push({
+      x: cardDraw.left,
+      y: cardDraw.top,
+      w: cardDraw.width,
+      h: cardDraw.height,
+      path: cardFrameArtPath(config.rarity),
+      layer: 'normal',
+      alpha: cardAlpha,
+      phase: 'back',
       z: cardDraw.z,
     });
 
@@ -1288,6 +1290,18 @@ export class UISystem implements System {
       stroke: '#37474f', strokeWidth: 1,
       z: cardDraw.z + 1,
     });
+
+    if (cardDraw.progress > 0) {
+      this.renderer.push({
+        shape: 'rect',
+        x: cardDraw.centerX, y: cardDraw.centerY,
+        size: cardDraw.width, h: cardDraw.height,
+        color: '#000000',
+        alpha: 0,
+        stroke: borderColor, strokeWidth: 3,
+        z: cardDraw.z + 4,
+      });
+    }
 
     this.cardIconDraws.push({
       cx: cardDraw.centerX, cy: artCenterY, w: artW, h: artH,
