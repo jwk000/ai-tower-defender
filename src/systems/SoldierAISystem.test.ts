@@ -28,6 +28,7 @@ import { SoldierAISystem } from './SoldierAISystem.js';
 import { UNIT_ID_BY_TYPE } from '../data/gameData.js';
 import { UnitType } from '../types/index.js';
 import { clearAllBuffs, getBuffs } from './BuffSystem.js';
+import { Sound } from '../utils/Sound.js';
 
 // ============================================================
 // Helpers
@@ -798,6 +799,48 @@ describe('SoldierAISystem — differentiated soldier mechanics', () => {
 
     expect(Visual.attackAnimDuration[archer]).toBeGreaterThan(0);
     expect(Visual.attackAnimTimer[archer]).toBe(Visual.attackAnimDuration[archer]);
+  });
+
+  it('士兵实际出手时播放攻击音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const swordsman = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 55,
+      alertRange: 160,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Swordsman],
+      damage: 15,
+    });
+    const enemy = makeEnemy(world, { x: 230, y: 200, hp: 100 });
+
+    SoldierComp.state[swordsman] = STATE_COMBAT;
+    SoldierComp.attackTarget[swordsman] = enemy;
+
+    system.update(world, 0.016);
+
+    expect(playSpy).toHaveBeenCalledWith('soldier_attack');
+  });
+
+  it('法师和牧师实际出手时复用魔法攻击音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const mage = makeSoldier(world, {
+      x: 200, y: 200,
+      homeX: 200, homeY: 200,
+      moveRange: 200,
+      attackRange: 220,
+      alertRange: 320,
+      unitTypeNum: UNIT_ID_BY_TYPE[UnitType.Mage],
+      damage: 16,
+    });
+    const enemy = makeEnemy(world, { x: 260, y: 200, hp: 100 });
+
+    SoldierComp.state[mage] = STATE_COMBAT;
+    SoldierComp.attackTarget[mage] = enemy;
+
+    system.update(world, 0.016);
+
+    expect(playSpy).toHaveBeenCalledWith('mage_attack');
   });
 
   it('牧师每1秒治疗我方士兵，并保留少量攻击能力', () => {

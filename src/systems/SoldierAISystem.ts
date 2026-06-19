@@ -44,6 +44,7 @@ import type { MapConfig, UnitConfig } from '../types/index.js';
 import { addBuff } from './BuffSystem.js';
 import { AttackSystem } from './AttackSystem.js';
 import { clampAttackRangeToTile } from '../utils/combatRange.js';
+import { Sound } from '../utils/Sound.js';
 
 // ============================================================
 // 状态常量
@@ -271,12 +272,14 @@ export class SoldierAISystem implements System {
 
         if (this.tryExecuteTarget(world, eid, attackTarget, config)) {
           this.triggerAttackAnimation(eid);
+          this.playAttackSound(config);
           Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
           return;
         }
 
         // 远程单位（射程>80）发射投射物，近战单位显示扇形刀光
         this.triggerAttackAnimation(eid);
+        this.playAttackSound(config);
         if (attackRange > 80) {
           this.spawnSoldierProjectile(world, eid, attackTarget, damage, config);
         } else {
@@ -375,6 +378,14 @@ export class SoldierAISystem implements System {
       : 0.35;
     Visual.attackAnimDuration[eid] = duration;
     Visual.attackAnimTimer[eid] = duration;
+  }
+
+  private playAttackSound(config?: UnitConfig): void {
+    if (config?.type === 'mage' || config?.type === 'priest') {
+      Sound.play('mage_attack');
+      return;
+    }
+    Sound.play('soldier_attack');
   }
 
   /** 生成近战扇形刀光特效 */

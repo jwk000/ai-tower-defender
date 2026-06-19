@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { defineQuery } from 'bitecs';
 import { TowerWorld } from '../core/World.js';
 import {
@@ -18,6 +18,8 @@ import { BossType } from './BossSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import { LifecycleSystem } from './LifecycleSystem.js';
 import { getDeathSpriteArtId, registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
+import { Sound } from '../utils/Sound.js';
+import { ruleEngine } from '../core/RuleEngine.js';
 
 const deathFxQuery = defineQuery([DeathEffect, DisintegrateEffect]);
 
@@ -39,6 +41,24 @@ function makeEnemy(world: TowerWorld, hp = 100, isBoss = false): number {
   if (isBoss) {
     world.addComponent(eid, Boss, { bossType: 0xff, phase: 1, phase2HpRatio: 0.5, selfDestructTimer: -1 });
   }
+  return eid;
+}
+
+function makeSoldier(world: TowerWorld, hp = 100): number {
+  const eid = world.createEntity();
+  world.addComponent(eid, Position, { x: 100, y: 120 });
+  world.addComponent(eid, Health, { current: hp, max: hp, armor: 0, magicResist: 0 });
+  world.addComponent(eid, UnitTag, { isEnemy: 0, isBoss: 0, atk: 10 });
+  world.addComponent(eid, Category, { value: CategoryVal.Soldier });
+  world.addComponent(eid, Faction, { value: FactionVal.Justice });
+  world.addComponent(eid, Visual, {
+    shape: 1,
+    colorR: 60,
+    colorG: 180,
+    colorB: 180,
+    size: 24,
+    alpha: 1,
+  });
   return eid;
 }
 
@@ -74,6 +94,47 @@ describe('LifecycleSystem — Boss死亡与敌方灰飞烟灭', () => {
     const effects = deathFxQuery(world.world);
     expect(effects.length).toBe(1);
     expect(getDeathSpriteArtId(effects[0]!)).toBe('enemy_goblin');
+  });
+
+  it('普通敌方单位死亡会播放类型化死亡音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const world = new TowerWorld();
+    const system = new LifecycleSystem();
+    makeEnemy(world, 0);
+
+    system.update(world, 0.016);
+
+    expect(playSpy).toHaveBeenCalledWith('enemy_death');
+  });
+
+  it('实体 onDeath 已配置 play_sound 时不额外播放兜底死亡音', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const world = new TowerWorld();
+    const system = new LifecycleSystem();
+    const enemy = makeEnemy(world, 0);
+    ruleEngine.registerHandler('play_sound', (_ruleWorld, _entityId, params) => {
+      if (typeof params['sound'] === 'string') Sound.play(params['sound'] as never);
+    });
+    ruleEngine.registerEntityConfig(enemy, 'enemy_with_sound');
+    ruleEngine.registerLifecycleRules('enemy_with_sound', new Map([
+      ['onDeath', [{ type: 'play_sound', sound: 'enemy_death_magic' }]],
+    ]));
+
+    system.update(world, 0.016);
+
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(playSpy).toHaveBeenCalledWith('enemy_death_magic');
+  });
+
+  it('士兵死亡会播放士兵死亡音效', () => {
+    const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    const world = new TowerWorld();
+    const system = new LifecycleSystem();
+    makeSoldier(world, 0);
+
+    system.update(world, 0.016);
+
+    expect(playSpy).toHaveBeenCalledWith('soldier_death');
   });
 
   it('Boss死亡会立即让场上剩余敌方单位进入死亡状态并生成破碎效果', () => {

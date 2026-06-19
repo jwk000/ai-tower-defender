@@ -26,6 +26,7 @@ All files listed here are audio assets used by the game runtime under `public/sf
 | `enemy_death_machine.ogg` | `metal_03.ogg` |
 | `enemy_spawn_undead.ogg` | `creature_misc_01.ogg` |
 | `tower_ballista.ogg` | `blade_01.ogg` |
+| `soldier_attack.ogg` | `blade_02.ogg` |
 
 ### 50 CC0 Sci-Fi SFX
 

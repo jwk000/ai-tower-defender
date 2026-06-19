@@ -114,6 +114,13 @@ export class RuleEngine {
     this.entityConfigIds.set(entityId, unitConfigId);
   }
 
+  hasLifecycleRuleType(entityId: number, event: LifecycleEvent, type: string): boolean {
+    const configId = this.entityConfigIds.get(entityId) ?? String(UnitRef.configId[entityId] ?? '');
+    if (!configId) return false;
+    const eventRules = this.lifecycleRules.get(configId)?.get(event);
+    return eventRules?.some(rule => rule.type === type) ?? false;
+  }
+
   // ---- 行为规则注册 ----
 
   /**

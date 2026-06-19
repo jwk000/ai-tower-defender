@@ -70,8 +70,9 @@ export type SfxKey =
   | 'stun_apply'
   | 'poison_tick'
   | 'burn_tick'
-  // Soldier events (3 total)
+  // Soldier events (4 total)
   | 'soldier_deploy'
+  | 'soldier_attack'
   | 'soldier_death'
   | 'soldier_heal'
   // Weather
@@ -249,6 +250,7 @@ const SFX_PATH: Record<SfxKey, string> = {
   burn_tick: '/sfx/burn_tick.ogg',
   // Soldier events (synth-only)
   soldier_deploy: '/sfx/soldier_deploy.ogg',
+  soldier_attack: '/sfx/soldier_attack.ogg',
   soldier_death: '/sfx/soldier_death.ogg',
   soldier_heal: '/sfx/soldier_heal.ogg',
 };
@@ -375,6 +377,7 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
   burn_tick: 200,
   // Soldier events — no throttle
   soldier_deploy: 0,
+  soldier_attack: 80,
   soldier_death: 0,
   soldier_heal: 0,
 };

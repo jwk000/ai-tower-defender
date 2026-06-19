@@ -21,6 +21,8 @@ import { EnemyType, TowerType, UnitType } from '../types/index.js';
 import { ENEMY_TYPE_BY_ID, UNIT_TYPE_BY_ID } from '../data/gameData.js';
 import { registerDeathSpriteArtId } from '../utils/deathSpriteRegistry.js';
 import { BossType } from './BossSystem.js';
+import { Sound } from '../utils/Sound.js';
+import { getBossDeathSfx, getEnemyDeathSfx } from '../utils/audioKeys.js';
 
 const healthUnitQuery = defineQuery([Health, UnitTag]);
 
@@ -151,6 +153,16 @@ export class LifecycleSystem implements System {
     return true;
   }
 
+  private playDeathSound(world: TowerWorld, eid: number): void {
+    if (UnitTag.isEnemy[eid] === 1) {
+      Sound.play(hasComponent(world.world, Boss, eid) ? getBossDeathSfx(Boss.bossType[eid]) : getEnemyDeathSfx(eid));
+      return;
+    }
+    if (hasComponent(world.world, Category, eid) && Category.value[eid] === CategoryVal.Soldier) {
+      Sound.play('soldier_death');
+    }
+  }
+
   private killRemainingEnemiesAfterBossDeath(world: TowerWorld, bossEid: number): void {
     if (this.clearingEnemiesAfterBossDeath) return;
     this.clearingEnemiesAfterBossDeath = true;
@@ -174,7 +186,11 @@ export class LifecycleSystem implements System {
         if (this.isPendingSlimeSplit(world, eid)) {
           continue;
         }
+        const hasConfiguredDeathSound = ruleEngine.hasLifecycleRuleType(eid, 'onDeath', 'play_sound');
         ruleEngine.dispatch(world.world, eid, 'onDeath', { time: now });
+        if (!hasConfiguredDeathSound) {
+          this.playDeathSound(world, eid);
+        }
         if (this.shouldClearEnemiesForBossDeath(world, eid)) {
           this.killRemainingEnemiesAfterBossDeath(world, eid);
         }
