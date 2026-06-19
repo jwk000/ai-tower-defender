@@ -319,7 +319,31 @@ dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}
 2D stylized game VFX sprite, {effect_subject}, dark fantasy casual tower defense, clean alpha edges, transparent background, high contrast, readable at small size, no text, no watermark
 ```
 
-### 6.2 状态图标
+### 6.2 子弹美术素材提示词
+
+所有战斗子弹 PNG 必须由 AI 生成源图后本地去底、裁切透明边缘并等比缩放到最大边不超过 60px。禁止用本地程序绘制的 PNG 作为正式素材；程序化几何只允许作为运行时贴图缺失时的容错回退。
+
+通用子弹提示词：
+
+```text
+dark fantasy casual tower defense game FX sprite, clean bold silhouette, readable at 60px, centered single projectile, no text, no watermark, no frame, no cast shadow, no floor plane, pure flat #ff00ff chroma-key background, do not use #ff00ff in the projectile
+```
+
+| 输出文件 | 用途 | AI 提示词主体 |
+|---------|------|---------------|
+| `public/art/fx/fx_arrow_projectile.png` | 箭塔普通箭矢 | `single slim cyan fantasy arrow projectile, metallic arrowhead, thin shaft, side-on sprite, crisp bright rim, readable at 60px` |
+| `public/art/fx/fx_ballista_bolt.png` | 弩塔弩矢 | `single oversized blue energy ballista bolt projectile, heavy arrowhead, glowing white blue shaft, side-on sprite, readable at 60px` |
+| `public/art/fx/fx_missile_projectile.png` | 导弹塔导弹 | `single black iron missile projectile with red warhead and small orange exhaust flame, side-on sprite, readable at 60px` |
+| `public/art/fx/fx_arrow_rain_arrow.png` | 剑雨单箭 | `single slim red fantasy arrow projectile, metallic arrowhead, thin shaft, side-on sprite, readable at 60px` |
+| `public/art/fx/fx_cannonball_projectile.png` | 炮塔炮弹 | `single black iron round cannonball projectile, orange ember rim glow, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_ice_crystal_projectile.png` | 冰塔冰晶弹 | `single blue faceted ice crystal shard projectile, bright white highlight, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_fireball_projectile.png` | 火塔火球 | `single orange red fireball projectile, bright hot core, small ember trail, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_poison_projectile.png` | 毒塔毒液弹 | `single green poison droplet projectile, venom orb with small bubbles, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_soldier_archer_arrow.png` | 弓手长箭 | `single slim natural wooden arrow projectile with green feather fletching, metallic arrowhead, side-on sprite, readable at 60px` |
+| `public/art/fx/fx_soldier_mage_bolt.png` | 法师奥术弹 | `single purple arcane magic bolt projectile, glowing orb with short energy trail, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_soldier_priest_bolt.png` | 牧师神圣弹 | `single golden holy light bolt projectile, bright white cross-shaped core, soft glow, compact game FX sprite, readable at 60px` |
+
+### 6.3 状态图标
 
 | 状态 | 图标元素 |
 |------|----------|
@@ -333,7 +357,7 @@ dark fantasy casual tower defense battlefield decoration sprite, {decor_subject}
 | 精英 | 暗金小皇冠 |
 | Boss | 红黑王冠 + 燃烧核心 |
 
-### 6.3 关间 Buff 图标
+### 6.4 关间 Buff 图标
 
 | Buff | 主视觉 | AI 提示词主体 |
 |------|--------|---------------|

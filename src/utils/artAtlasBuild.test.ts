@@ -58,8 +58,8 @@ describe('art atlas build output', () => {
     const fxAtlas = index.atlases.find((atlas) => atlas.id === 'fx_objectives');
 
     expect(fxAtlas?.frames['/art/fx/fx_missile_projectile.png']).toEqual(expect.objectContaining({
-      w: 256,
-      h: 84,
+      w: 60,
+      h: 20,
     }));
   });
 });

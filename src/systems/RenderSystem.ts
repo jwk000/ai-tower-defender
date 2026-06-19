@@ -165,7 +165,7 @@ export function applyArrowProjectileArt(
   if (!arrowFx) return;
   extras.image = arrowFx.image;
   extras.imageSource = arrowFx.source ?? undefined;
-  extras.size = Math.max(drawSize * 1.7, 36);
+  extras.size = Math.max(drawSize * 2.6, 56);
   extras.h = (extras.size as number) * (arrowFx.height / arrowFx.width);
 }
 

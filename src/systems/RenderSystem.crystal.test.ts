@@ -232,16 +232,15 @@ describe('RenderSystem — 水晶显示', () => {
     applyArrowProjectileArt(0, 'arrow', 22, extras, () => ({
       image,
       source: null,
-      width: 128,
-      height: 32,
+      width: 60,
+      height: 12,
       path: '/art/fx/fx_arrow_projectile.png',
     }));
 
     expect(extras).toEqual(expect.objectContaining({
       image,
       imageSource: undefined,
-      size: 37.4,
-      h: 9.35,
+      size: 57.2,
       arrowGradientTail: '#e3f2fd',
       arrowGlowColor: '#4fc3f7',
       arrowGlowAlpha: 0.42,
@@ -250,6 +249,7 @@ describe('RenderSystem — 水晶显示', () => {
       arrowShaftWidthRatio: 0.12,
       arrowHeadWidthRatio: 0.36,
     }));
+    expect(extras.h).toBeCloseTo(11.44, 2);
   });
 
   it('箭塔普通箭矢贴图未加载时使用高可见度程序化回退', () => {
@@ -300,8 +300,8 @@ describe('RenderSystem — 水晶显示', () => {
         return {
           image,
           source: null,
-          width: 256,
-          height: 256,
+          width: 60,
+          height: 60,
           path,
         };
       });
