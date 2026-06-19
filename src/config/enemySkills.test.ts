@@ -83,9 +83,11 @@ describe('敌人技能完整性配置', () => {
       'summon_skeletons',
       'targeted_missile',
       'dark_devour',
+      'plane_bombing_run',
     ]);
     const allowedNormalEnemySkills = new Set([
       'burrow_beetle.burrow_phase',
+      'plane.plane_bombing_run',
     ]);
     const misplaced: string[] = [];
 

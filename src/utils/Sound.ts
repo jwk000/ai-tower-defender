@@ -112,6 +112,7 @@ export type SfxKey =
   | 'enemy_spawn_flying'
   | 'enemy_spawn_machine'
   | 'enemy_spawn_undead'
+  | 'plane_bomb_explosion'
   // Level intro
   | 'intro_tile_drop'
   | 'intro_path_break';
@@ -219,6 +220,7 @@ const SFX_PATH: Record<SfxKey, string> = {
   enemy_spawn_flying: '/sfx/enemy_spawn_flying.ogg',
   enemy_spawn_machine: '/sfx/enemy_spawn_machine.ogg',
   enemy_spawn_undead: '/sfx/enemy_spawn_undead.ogg',
+  plane_bomb_explosion: '/sfx/plane_bomb_explosion.ogg',
   // Level intro
   intro_tile_drop: '/sfx/intro_tile_drop.ogg',
   intro_path_break: '/sfx/intro_path_break.ogg',

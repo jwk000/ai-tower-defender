@@ -49,6 +49,7 @@ All files listed here are audio assets used by the game runtime under `public/sf
 | `enemy_death_flying.ogg` | `misc_04.ogg` |
 | `enemy_spawn_flying.ogg` | `misc_05.ogg` |
 | `enemy_spawn_machine.ogg` | `terminal_03.ogg` |
+| `plane_bomb_explosion.ogg` | `explosion1.ogg` |
 
 ### 100 CC0 SFX 2
 

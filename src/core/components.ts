@@ -81,6 +81,7 @@ export const EnemySkillParticleEffectVal = {
   FrostAura: 13,
   HealAura: 14,
   BurrowTrail: 15,
+  PlaneBomb: 16,
 } as const;
 export type EnemySkillParticleEffectVal =
   (typeof EnemySkillParticleEffectVal)[keyof typeof EnemySkillParticleEffectVal];

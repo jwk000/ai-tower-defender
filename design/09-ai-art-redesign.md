@@ -336,6 +336,7 @@ dark fantasy casual tower defense game FX sprite, clean bold silhouette, readabl
 | `public/art/fx/fx_missile_projectile.png` | 导弹塔导弹 | `single black iron missile projectile with red warhead and small orange exhaust flame, side-on sprite, readable at 60px` |
 | `public/art/fx/fx_arrow_rain_arrow.png` | 剑雨单箭 | `single slim red fantasy arrow projectile, metallic arrowhead, thin shaft, side-on sprite, readable at 60px` |
 | `public/art/fx/fx_cannonball_projectile.png` | 炮塔炮弹 | `single black iron round cannonball projectile, orange ember rim glow, compact game FX sprite, readable at 60px` |
+| `public/art/fx/fx_plane_bomb_projectile.png` | 飞机低空投弹 | `single black iron aerial bomb projectile dropped from a low flying plane, small red fins, orange warning stripe, compact game FX sprite, readable at 60px` |
 | `public/art/fx/fx_ice_crystal_projectile.png` | 冰塔冰晶弹 | `single blue faceted ice crystal shard projectile, bright white highlight, compact game FX sprite, readable at 60px` |
 | `public/art/fx/fx_fireball_projectile.png` | 火塔火球 | `single orange red fireball projectile, bright hot core, small ember trail, compact game FX sprite, readable at 60px` |
 | `public/art/fx/fx_poison_projectile.png` | 毒塔毒液弹 | `single green poison droplet projectile, venom orb with small bubbles, compact game FX sprite, readable at 60px` |

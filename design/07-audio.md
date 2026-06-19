@@ -159,6 +159,7 @@
 | `skill_blizzard` | 暴风雪 | 持续过程的大风呼啸，与冷雾覆盖同步 | WAV + Synth |
 | `skill_bomb` | 炸弹 | 计时滴答 + 爆炸 | OGG + Synth |
 | `skill_earthquake` | 大地裂变 | 持续低频地震隆隆声 + 地面开裂 | OGG + Synth |
+| `plane_bomb_explosion` | 飞机投弹 | 低空炸弹落地爆炸 | OpenGameArt CC0 OGG |
 
 剑雨分两波落剑结算伤害，每一波箭矢扎地并造成伤害的同帧播放一次 `skill_arrow_rain`，让两次伤害飘字与音频反馈同步。暴风雪全局持续效果创建时播放一次 `skill_blizzard`，作为 5 秒冷雾覆盖期间的大风底音，不再使用短促的 `ice_hit` 替代。
 
@@ -338,7 +339,7 @@ Sound.play('your_sfx_key');
 
 ### 7.2 SFX 来源
 
-SFX 版权与原始文件对应关系维护在 `public/sfx/CREDITS.md`。弩塔飞行音效 `tower_ballista.ogg` 使用 OpenGameArt `80-CC0-RPG-SFX_0.zip` 中的 `blade_01.ogg`，地震技能音效 `skill_earthquake.ogg` 使用 OpenGameArt `sfx_100_v2.zip` 中的 `sfx100v2_thunder_01.ogg`，许可证均为 CC0 / Public Domain。暴风雪底音 `skill_blizzard.wav` 为项目生成的 RIFF/WAVE 冷风呼啸音效，文件扩展名必须与实际容器一致，避免浏览器按 OGG 路径解码失败。
+SFX 版权与原始文件对应关系维护在 `public/sfx/CREDITS.md`。弩塔飞行音效 `tower_ballista.ogg` 使用 OpenGameArt `80-CC0-RPG-SFX_0.zip` 中的 `blade_01.ogg`，地震技能音效 `skill_earthquake.ogg` 使用 OpenGameArt `sfx_100_v2.zip` 中的 `sfx100v2_thunder_01.ogg`，飞机投弹爆炸音效 `plane_bomb_explosion.ogg` 使用 OpenGameArt `explosion1.ogg`，许可证均为 CC0 / Public Domain。暴风雪底音 `skill_blizzard.wav` 为项目生成的 RIFF/WAVE 冷风呼啸音效，文件扩展名必须与实际容器一致，避免浏览器按 OGG 路径解码失败。
 
 | 来源 | 数量 | 许可 |
 |------|------|------|

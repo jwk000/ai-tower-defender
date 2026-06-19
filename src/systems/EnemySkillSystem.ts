@@ -15,6 +15,7 @@ import {
   Tower, ScreenShake, Elite,
   MoveModeVal, DamageTypeVal, ShapeVal, Layer, LayerVal,
   EnemySkillParticleEffect, EnemySkillParticleEffectVal, Burrowed,
+  ExplosionEffect,
 } from '../core/components.js';
 import { unitConfigRegistry } from '../config/registry.js';
 import { Sound, type SfxKey } from '../utils/Sound.js';
@@ -29,6 +30,7 @@ import type { BossSkillAnnouncementSystem } from './BossSkillAnnouncementSystem.
 const entityConfigId = new Map<number, string>();
 const genericSkillTimers = new Map<number, number[]>();
 const temporaryArmorBonuses = new Map<number, Array<{ amount: number; timer: number }>>();
+const planeBombedTargets = new Map<number, Set<number>>();
 const ABYSS_LORD_BOSS_TYPE = 4; // Keep in sync with BossType.AbyssLord without importing BossSystem.
 
 /** Register an enemy entity with its YAML config ID */
@@ -43,6 +45,7 @@ export const registerBossEntity = registerEnemySkillEntity;
 export function unregisterBossEntity(eid: number): void {
   entityConfigId.delete(eid);
   genericSkillTimers.delete(eid);
+  planeBombedTargets.delete(eid);
 }
 
 /** Get config ID for a boss entity */
@@ -721,6 +724,96 @@ const handleTargetedMissile: SkillHandler = (world, bossEid, skill, _phase) => {
   triggerScreenShake(world, 7, 0.4, 16);
 };
 
+function findPlaneBombTarget(world: TowerWorld, planeEid: number, radius: number): number | null {
+  const px = Position.x[planeEid] ?? 0;
+  const py = Position.y[planeEid] ?? 0;
+  const dropped = planeBombedTargets.get(planeEid) ?? new Set<number>();
+  const all = allPositionedQuery(world.world);
+  let best: number | null = null;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+
+  for (const eid of all) {
+    if (eid === planeEid) continue;
+    if (dropped.has(eid)) continue;
+    if ((Health.current[eid] ?? 0) <= 0) continue;
+    if (Faction.value[eid] !== FactionVal.Justice) continue;
+    if (Category.value[eid] === CategoryVal.Effect) continue;
+
+    const dx = (Position.x[eid] ?? 0) - px;
+    const dy = (Position.y[eid] ?? 0) - py;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= radius * radius && distSq < bestDistSq) {
+      best = eid;
+      bestDistSq = distSq;
+    }
+  }
+
+  return best;
+}
+
+const handlePlaneBombingRun: SkillHandler = (world, planeEid, skill, _phase) => {
+  const triggerRadius = Math.max(1, skill.range || 56);
+  const target = findPlaneBombTarget(world, planeEid, triggerRadius);
+  if (target === null) return;
+
+  const tx = Position.x[target] ?? Position.x[planeEid] ?? 0;
+  const ty = Position.y[target] ?? Position.y[planeEid] ?? 0;
+  const blastRadius = Math.max(32, skill.duration ?? 58);
+  const damage = Math.max(0, skill.value);
+
+  let dropped = planeBombedTargets.get(planeEid);
+  if (!dropped) {
+    dropped = new Set<number>();
+    planeBombedTargets.set(planeEid, dropped);
+  }
+  dropped.add(target);
+
+  dealAoeDamage(world, tx, ty, blastRadius, damage, FactionVal.Justice, { falloff: true });
+  createSkillParticles(
+    world,
+    Position.x[planeEid] ?? tx,
+    Position.y[planeEid] ?? ty - 64,
+    EnemySkillParticleEffectVal.PlaneBomb,
+    { r: 255, g: 96, b: 32 },
+    blastRadius,
+    0.75,
+    tx,
+    ty,
+  );
+
+  const ring = world.createEntity();
+  world.addComponent(ring, Position, { x: tx, y: ty });
+  world.addComponent(ring, ExplosionEffect, {
+    duration: 0.38,
+    elapsed: 0,
+    radius: 8,
+    maxRadius: blastRadius,
+    colorR: 255,
+    colorG: 110,
+    colorB: 32,
+  });
+  world.addComponent(ring, Visual, {
+    shape: ShapeVal.Circle,
+    colorR: 255,
+    colorG: 110,
+    colorB: 32,
+    size: 8,
+    alpha: 0.8,
+    outline: 0,
+    facing: 1,
+    hitFlashTimer: 0,
+    idlePhase: 0,
+    bobPhase: 0,
+    breathPhase: 0,
+    attackAnimTimer: 0,
+    attackAnimDuration: 0,
+    partsId: 0,
+  });
+
+  Sound.play('plane_bomb_explosion');
+  triggerScreenShake(world, 4, 0.25, 14);
+};
+
 const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
   const bx = Position.x[bossEid] ?? 0;
   const by = Position.y[bossEid] ?? 0;
@@ -873,6 +966,7 @@ const SKILL_HANDLERS: Record<string, SkillHandler> = {
   void_eruption: handleAoeAttack,
   slime_split_pulse: handleSlimePulse,
   targeted_missile: handleTargetedMissile,
+  plane_bombing_run: handlePlaneBombingRun,
   dark_devour: handleDarkDevour,
   // Buff/debuff skills
   war_cry: handleWarCry,
@@ -1047,6 +1141,8 @@ export class EnemySkillSystem implements System {
   private getGenericCooldown(skill: BossSkillConfig): number {
     if (skill.cooldown > 0) return skill.cooldown;
     switch (skill.id) {
+      case 'plane_bombing_run':
+        return 0.12;
       case 'unstable_countdown':
       case 'spore_burst':
       case 'blood_rebirth':

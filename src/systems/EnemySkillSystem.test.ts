@@ -7,6 +7,7 @@ import {
   CategoryVal,
   Elite,
   EnemySkillParticleEffect,
+  EnemySkillParticleEffectVal,
   Faction,
   FactionVal,
   Health,
@@ -27,6 +28,7 @@ import { findEnemiesInRange } from './AttackSystem.js';
 import type { Renderer } from '../render/Renderer.js';
 import type { RenderCommand } from '../types/index.js';
 import { BossType } from './BossSystem.js';
+import { clearArtAtlasRegistryForTests, getLoadedImageFrame } from '../utils/imageCache.js';
 
 const skillParticleQuery = defineQuery([Position, EnemySkillParticleEffect]);
 
@@ -414,6 +416,87 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     system.update(world, 0.1);
 
     expect(announcementMock.show).not.toHaveBeenCalled();
+  });
+
+  it('飞机路过我方单位上空时必定投弹并只对同一目标投一次', () => {
+    registerSkillConfig({
+      id: 'test_plane_bomber',
+      name: '测试飞机',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'LowAir',
+      stats: { hp: 80, atk: 15 },
+      visual: { shape: 'triangle', color: '#78909c', size: 67.2 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+      skills: [
+        {
+          id: 'plane_bombing_run',
+          name: '低空投弹',
+          cooldown: 0.12,
+          range: 56,
+          value: 45,
+          duration: 58,
+          description: '飞机路过我方单位上空时必定投放炸弹',
+        },
+      ],
+    } as unknown as UnitConfig);
+
+    const plane = makeElite(world, 'test_plane_bomber');
+    Layer.value[plane] = LayerVal.LowAir;
+    Position.x[plane] = 100;
+    Position.y[plane] = 100;
+    const tower = makeTower(world, 120, 108);
+
+    system.update(world, 0.1);
+    const afterFirstHit = Health.current[tower];
+    system.update(world, 0.2);
+
+    expect(afterFirstHit).toBeLessThan(100);
+    expect(Health.current[tower]).toBe(afterFirstHit);
+    expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
+  });
+
+  it('飞机投弹粒子系统优先绘制投弹贴图并在后段绘制爆炸粒子', () => {
+    clearArtAtlasRegistryForTests();
+    class LoadedImage {
+      complete = true;
+      naturalWidth = 128;
+      naturalHeight = 128;
+      width = 128;
+      height = 128;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        this.complete = true;
+        this.onload?.();
+      }
+    }
+    vi.stubGlobal('Image', LoadedImage);
+    getLoadedImageFrame('/art/fx/fx_plane_bomb_projectile.png');
+    const effect = world.createEntity();
+    world.addComponent(effect, Position, { x: 100, y: 80 });
+    world.addComponent(effect, EnemySkillParticleEffect, {
+      effectType: EnemySkillParticleEffectVal.PlaneBomb,
+      duration: 0.75,
+      elapsed: 0,
+      radius: 58,
+      targetX: 120,
+      targetY: 130,
+      colorR: 255,
+      colorG: 96,
+      colorB: 32,
+      seed: 1,
+    });
+
+    const { renderer, commands } = makeRenderer();
+    const particleSystem = new EnemySkillParticleSystem(renderer);
+    particleSystem.update(world, 0.1);
+    particleSystem.update(world, 0.3);
+
+    expect(commands.some((cmd) => cmd.image)).toBe(true);
+    expect(commands.filter((cmd) => cmd.shape === 'circle').length).toBeGreaterThan(10);
+    vi.unstubAllGlobals();
+    clearArtAtlasRegistryForTests();
   });
 
   it('钻地潜行会隐藏本体、挂载潜地状态并生成翻土粒子', () => {

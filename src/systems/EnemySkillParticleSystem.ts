@@ -5,6 +5,7 @@ import {
   Position,
 } from '../core/components.js';
 import { Renderer } from '../render/Renderer.js';
+import { getLoadedImageFrame } from '../utils/imageCache.js';
 
 const effectQuery = defineQuery([EnemySkillParticleEffect, Position]);
 
@@ -136,6 +137,9 @@ export class EnemySkillParticleSystem implements System {
         break;
       case EnemySkillParticleEffectVal.BurrowTrail:
         this.renderBurrowTrail(x, y, radius, progress, seed, base);
+        break;
+      case EnemySkillParticleEffectVal.PlaneBomb:
+        this.renderPlaneBombDrop(x, y, tx, ty, radius, progress, seed);
         break;
     }
   }
@@ -318,6 +322,45 @@ export class EnemySkillParticleSystem implements System {
       const r = radius * (0.1 + progress * rand01(seed, i + 3));
       pushStreak(this.renderer, x + Math.cos(a) * r, y + Math.sin(a) * r, 28, 4, '#ffcc80', (1 - progress) * 0.55, a, 11);
     }
+  }
+
+  private renderPlaneBombDrop(
+    sx: number,
+    sy: number,
+    tx: number,
+    ty: number,
+    radius: number,
+    progress: number,
+    seed: number,
+  ): void {
+    if (progress < 0.42) {
+      const fall = progress / 0.42;
+      const bx = sx + (tx - sx) * fall;
+      const by = sy + (ty - sy) * fall;
+      const wobble = Math.sin((fall + seed) * Math.PI * 6) * 5;
+      const art = getLoadedImageFrame('/art/fx/fx_plane_bomb_projectile.png');
+      this.renderer.push({
+        shape: 'rect',
+        x: bx + wobble,
+        y: by,
+        size: 34,
+        h: 44,
+        color: '#2b2b2b',
+        image: art?.image,
+        imageSource: art?.source ?? undefined,
+        alpha: 1,
+        rotation: 0.25 + fall * 0.6,
+        z: 12,
+      });
+      for (let i = 0; i < 8; i++) {
+        const t = i / 8;
+        pushParticle(this.renderer, bx - wobble * t, by - 8 - t * 26, 5 - t * 2, '#616161', 0.42 * (1 - t), 11);
+      }
+      return;
+    }
+
+    const blastProgress = (progress - 0.42) / 0.58;
+    this.renderMissileBlast(tx, ty, radius, blastProgress, seed);
   }
 
   private renderDarkDevour(x: number, y: number, radius: number, progress: number, seed: number): void {

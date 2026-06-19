@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { unitConfigRegistry, type UnitConfig as RegistryUnitConfig } from '../../config/registry.js';
 import { DamageTypeVal, Health, Visual } from '../../core/components.js';
-import { TowerType, UnitType } from '../../types/index.js';
+import { EnemyType, TowerType, UnitType } from '../../types/index.js';
 import { TOWER_CONFIGS, UNIT_CONFIGS, ENEMY_CONFIGS, UPGRADE_VISUALS } from '../gameData.js';
 import { injectTowerConfigsFromRegistry } from './towerBridge.js';
 import { injectSoldierConfigsFromRegistry } from './soldierBridge.js';
@@ -23,6 +23,7 @@ describe('unit config bridge', () => {
   const originalMage = { ...UNIT_CONFIGS[UnitType.Mage] };
   const originalWizard = { ...ENEMY_CONFIGS.wizard! };
   const originalGiantSlime = { ...ENEMY_CONFIGS.giant_slime! };
+  const originalPlane = { ...ENEMY_CONFIGS.plane! };
   const originalSpikeTrap = { ...TRAP_CONFIGS.spike_trap! };
   const originalBoulder = { ...TRAP_CONFIGS.boulder! };
 
@@ -37,6 +38,7 @@ describe('unit config bridge', () => {
     UNIT_CONFIGS[UnitType.Mage] = { ...originalMage };
     ENEMY_CONFIGS.wizard = { ...originalWizard };
     ENEMY_CONFIGS.giant_slime = { ...originalGiantSlime };
+    ENEMY_CONFIGS.plane = { ...originalPlane };
     TRAP_CONFIGS.spike_trap = { ...originalSpikeTrap };
     TRAP_CONFIGS.boulder = { ...originalBoulder };
     unitConfigRegistry.clear();
@@ -222,6 +224,10 @@ describe('unit config bridge', () => {
     expect(Health.max[eid]).toBe(200);
     expect(Health.armor[eid]).toBe(20);
     expect(Health.magicResist[eid]).toBe(5);
+  });
+
+  it('飞机兜底配置保持低空两倍视觉半径', () => {
+    expect(ENEMY_CONFIGS[EnemyType.Plane]!.radius).toBeCloseTo(33.6);
   });
 
   it('士兵升级成长和伤害类型来自 cost/stats 配置', () => {
