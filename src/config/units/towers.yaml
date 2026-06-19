@@ -14,7 +14,7 @@ arrow_tower:
   layer: Ground
 
   stats:
-    hp: 1800
+    hp: 900
     atk: 10
     attackSpeed: 1.0
     range: 200
@@ -75,7 +75,7 @@ cannon_tower:
   layer: Ground
 
   stats:
-    hp: 2200
+    hp: 1100
     atk: 25
     attackSpeed: 0.35
     range: 180
@@ -138,7 +138,7 @@ ice_tower:
   layer: Ground
 
   stats:
-    hp: 1700
+    hp: 850
     atk: 5
     attackSpeed: 1.2
     range: 200
@@ -201,7 +201,7 @@ lightning_tower:
   layer: Ground
 
   stats:
-    hp: 1800
+    hp: 900
     atk: 20
     attackSpeed: 0.9
     range: 170
@@ -273,7 +273,7 @@ laser_tower:
   layer: Ground
 
   stats:
-    hp: 1500
+    hp: 750
     atk: 6
     attackSpeed: 0.5       # CD = 2s；同一座塔只能维持 1 束 5s 激光，初始 50% atk，2s 内递增到上限
     range: 250
@@ -323,7 +323,7 @@ bat_tower:
   layer: LowAir
 
   stats:
-    hp: 1600
+    hp: 800
     atk: 25
     attackSpeed: 0.75
     range: 200
@@ -389,7 +389,7 @@ ballista_tower:
   layer: Ground
 
   stats:
-    hp: 1900
+    hp: 950
     atk: 45
     attackSpeed: 0.8
     range: 220
@@ -450,7 +450,7 @@ missile_tower:
   layer: Ground
 
   stats:
-    hp: 2400
+    hp: 1200
     atk: 80
     attackSpeed: 0.3
     range: 9999
@@ -520,7 +520,7 @@ fire_tower:
   layer: Ground
 
   stats:
-    hp: 1650
+    hp: 825
     atk: 12
     attackSpeed: 1.2
     range: 150
@@ -586,7 +586,7 @@ poison_tower:
   layer: Ground
 
   stats:
-    hp: 1650
+    hp: 825
     atk: 10
     attackSpeed: 1.0
     range: 150

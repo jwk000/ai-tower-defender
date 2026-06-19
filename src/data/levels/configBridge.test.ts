@@ -49,7 +49,7 @@ describe('unit config bridge', () => {
       category: 'Tower',
       faction: 'Player',
       layer: 'Ground',
-      stats: { hp: 1800, atk: 20, attackSpeed: 0.9, range: 170, armor: 0, mr: 0, damageType: 'magic' },
+      stats: { hp: 900, atk: 20, attackSpeed: 0.9, range: 170, armor: 0, mr: 0, damageType: 'magic' },
       cost: { build: 110, upgrade: [65, 580, 780, 1100], atkGrowth: [10, 35, 30, 40], rangeGrowth: [15, 25, 20, 20] },
       visual: { shape: 'rect', color: '#fff176', size: 34 },
       behavior: {
@@ -123,7 +123,7 @@ describe('unit config bridge', () => {
       category: 'Tower',
       faction: 'Player',
       layer: 'Ground',
-      stats: { hp: 240, atk: 80, attackSpeed: 0.3, range: 9999, armor: 0, mr: 0, damageType: 'true' },
+      stats: { hp: 120, atk: 80, attackSpeed: 0.3, range: 9999, armor: 0, mr: 0, damageType: 'true' },
       cost: { build: 220, upgrade: [130, 980, 1400, 1850], atkGrowth: [30, 110, 60, 80], rangeGrowth: [0, 0, 0, 0] },
       visual: { shape: 'rect', color: '#ffffff', size: 42 },
       behavior: {

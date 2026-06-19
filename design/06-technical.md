@@ -227,7 +227,7 @@ faction: Justice
 layer: Ground
 
 stats:
-  hp: 1500
+  hp: 900
   atk: 15
   attackSpeed: 2.5
   range: 180
