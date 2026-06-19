@@ -165,7 +165,7 @@ export function applyArrowProjectileArt(
   if (!arrowFx) return;
   extras.image = arrowFx.image;
   extras.imageSource = arrowFx.source ?? undefined;
-  extras.size = Math.max(drawSize * 2.6, 56);
+  extras.size = Math.max(drawSize * 2.6, 56) / 3;
   extras.h = (extras.size as number) * (arrowFx.height / arrowFx.width);
 }
 
@@ -184,7 +184,7 @@ export function applyTowerProjectileArt(
 
   extras.image = fx.image;
   extras.imageSource = fx.source ?? undefined;
-  extras.size = Math.max(drawSize * 1.8, 32);
+  extras.size = Math.max(drawSize * 1.8, 32) / 3;
   extras.h = (extras.size as number) * (fx.height / fx.width);
   return 'rect';
 }

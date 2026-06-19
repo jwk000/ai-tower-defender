@@ -280,7 +280,7 @@ describe('RenderSystem — 水晶显示', () => {
     expect(extras).toEqual(expect.objectContaining({
       image,
       imageSource: undefined,
-      size: 57.2,
+      size: 57.2 / 3,
       arrowGradientTail: '#e3f2fd',
       arrowGlowColor: '#4fc3f7',
       arrowGlowAlpha: 0.42,
@@ -289,7 +289,7 @@ describe('RenderSystem — 水晶显示', () => {
       arrowShaftWidthRatio: 0.12,
       arrowHeadWidthRatio: 0.36,
     }));
-    expect(extras.h).toBeCloseTo(11.44, 2);
+    expect(extras.h).toBeCloseTo(11.44 / 3, 2);
   });
 
   it('箭塔普通箭矢贴图未加载时使用高可见度程序化回退', () => {
@@ -350,9 +350,9 @@ describe('RenderSystem — 水晶显示', () => {
       expect(extras).toEqual(expect.objectContaining({
         image,
         imageSource: undefined,
-        size: 32.4,
-        h: 32.4,
       }));
+      expect(extras.size).toBeCloseTo(10.8, 2);
+      expect(extras.h).toBeCloseTo(10.8, 2);
     }
   });
 
