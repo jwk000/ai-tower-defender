@@ -380,6 +380,7 @@ const PER_KEY_THROTTLE_MS: Partial<Record<SfxKey, number>> = {
 /** Global concurrent sound cap: sliding-window limit to prevent audio chaos when many units fire simultaneously. */
 const GLOBAL_SOUND_WINDOW_MS = 150;
 const MAX_SOUNDS_IN_WINDOW = 8;
+const MAX_PENDING_UNLOCK_SOUNDS = 6;
 
 export class Sound {
   private static buffers: Partial<Record<SfxKey, HTMLAudioElement>> = {};
@@ -388,6 +389,7 @@ export class Sound {
   private static muted = false;
   private static loaded = false;
   private static unlocked = false;
+  private static pendingUnlockKeys: SfxKey[] = [];
   /** Sliding-window timestamps for global concurrent sound limiting */
   private static recentPlayTimes: number[] = [];
 
@@ -427,6 +429,7 @@ export class Sound {
       canvas.removeEventListener('pointerdown', handler);
       canvas.removeEventListener('touchstart', handler);
       canvas.removeEventListener('click', handler);
+      Sound.flushPendingUnlockSounds();
     };
     canvas.addEventListener('pointerdown', handler);
     canvas.addEventListener('touchstart', handler);
@@ -439,7 +442,32 @@ export class Sound {
     if (!normalizedKey) return;
     // Skip in non-browser environments (e.g. Node.js test runner)
     if (typeof Audio === 'undefined') return;
+    if (!Sound.unlocked) {
+      Sound.queuePendingUnlockSound(normalizedKey);
+      return;
+    }
 
+    Sound.playNow(normalizedKey);
+  }
+
+  private static queuePendingUnlockSound(key: SfxKey): void {
+    Sound.pendingUnlockKeys = Sound.pendingUnlockKeys.filter(existing => existing !== key);
+    Sound.pendingUnlockKeys.push(key);
+    if (Sound.pendingUnlockKeys.length > MAX_PENDING_UNLOCK_SOUNDS) {
+      Sound.pendingUnlockKeys.shift();
+    }
+  }
+
+  private static flushPendingUnlockSounds(): void {
+    if (Sound.pendingUnlockKeys.length === 0) return;
+    const keys = [...Sound.pendingUnlockKeys];
+    Sound.pendingUnlockKeys.length = 0;
+    for (const key of keys) {
+      Sound.playNow(key);
+    }
+  }
+
+  private static playNow(normalizedKey: SfxKey): void {
     const now = performance.now();
 
     // ── Global sliding-window cap: limit total sounds in a short window ──
