@@ -858,6 +858,7 @@ export class UISystem implements System {
     const ctx = this.renderer.context;
 
     this.renderUILayer('board');
+    this.renderUILayerBackImages('normal');
     this.renderer.redrawCommands((cmd) => {
       const z = cmd.z ?? 5;
       return z >= UI_Z.NORMAL_UI && z < UI_Z.FULLSCREEN_UI;
@@ -895,6 +896,20 @@ export class UISystem implements System {
     }
   }
 
+  private renderUILayerBackImages(layer: UILayer): void {
+    const ctx = this.renderer.context;
+    const layerImages = this.imageDraws
+      .filter((image) => image.layer === layer && image.phase === 'back')
+      .sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+
+    for (const image of layerImages) {
+      ctx.save();
+      ctx.globalAlpha = image.alpha ?? 1;
+      this.drawUIImage(ctx, image);
+      ctx.restore();
+    }
+  }
+
   private renderUILayer(layer: UILayer): void {
     const ctx = this.renderer.context;
 
@@ -918,12 +933,14 @@ export class UISystem implements System {
       .filter((image) => image.layer === layer)
       .sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 
-    for (const image of layerImages) {
-      if (image.layer !== layer || image.phase !== 'back') continue;
-      ctx.save();
-      ctx.globalAlpha = image.alpha ?? 1;
-      this.drawUIImage(ctx, image);
-      ctx.restore();
+    if (layer !== 'normal') {
+      for (const image of layerImages) {
+        if (image.layer !== layer || image.phase !== 'back') continue;
+        ctx.save();
+        ctx.globalAlpha = image.alpha ?? 1;
+        this.drawUIImage(ctx, image);
+        ctx.restore();
+      }
     }
 
     for (const btn of this.buttons) {

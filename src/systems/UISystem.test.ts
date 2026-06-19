@@ -20,6 +20,7 @@ import { HandSystem } from './HandSystem.js';
 import { LEVEL_1_CARD_POOL } from '../data/cards.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
 import { cardConfigRegistry } from '../config/cardRegistry.js';
+import { clearArtAtlasRegistryForTests, registerArtAtlasManifest } from '../utils/imageCache.js';
 
 class LoadedImage {
   complete = true;
@@ -34,6 +35,7 @@ class LoadedImage {
 class RendererStub {
   commands: RenderCommand[] = [];
   redrawPredicates: Array<(cmd: RenderCommand) => boolean> = [];
+  events: string[] = [];
   fillRects: Array<{ x: number; y: number; w: number; h: number; color: string }> = [];
   textDraws: Array<{ type: 'fill' | 'stroke'; text: string; x: number; y: number }> = [];
   context = {
@@ -62,7 +64,9 @@ class RendererStub {
     translate: () => {},
     rotate: () => {},
     scale: () => {},
-    drawImage: vi.fn(),
+    drawImage: vi.fn(() => {
+      this.events.push('drawImage');
+    }),
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 1,
@@ -78,6 +82,7 @@ class RendererStub {
 
   redrawCommands(predicate: (cmd: RenderCommand) => boolean): void {
     this.redrawPredicates.push(predicate);
+    this.events.push('redrawCommands');
   }
 
   applyBlur(): void {}
@@ -156,6 +161,7 @@ describe('UISystem 顶部 HUD 布局', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    clearArtAtlasRegistryForTests();
     setArtResourcesEnabled(true);
   });
 
@@ -509,6 +515,11 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     LayoutManager.update(1920, 1080);
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearArtAtlasRegistryForTests();
+  });
+
   it('手牌区固定在棋盘下方，不与当前棋盘矩形重叠', () => {
     RenderSystem.sceneOffsetX = 288;
     RenderSystem.sceneOffsetY = 234;
@@ -539,6 +550,14 @@ describe('UISystem 手牌区底板与空槽布局', () => {
   });
 
   it('手牌底板九宫格保留窄边角，整体接近矩形', () => {
+    vi.stubGlobal('Image', LoadedImage);
+    registerArtAtlasManifest({
+      id: 'ui_test',
+      image: '/art/ui/ui_hand_panel.png',
+      frames: {
+        '/art/ui/ui_hand_panel.png': { x: 0, y: 0, w: 1024, h: 320 },
+      },
+    });
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
 
@@ -559,6 +578,15 @@ describe('UISystem 手牌区底板与空槽布局', () => {
       cmd.alpha !== undefined &&
       cmd.alpha < 1
     ))).toBe(false);
+
+    ui.renderUI();
+    renderer.events = [];
+    ui.renderUI();
+    const firstImageDraw = renderer.events.indexOf('drawImage');
+    const firstRedraw = renderer.events.indexOf('redrawCommands');
+    expect(firstImageDraw).toBeGreaterThanOrEqual(0);
+    expect(firstRedraw).toBeGreaterThanOrEqual(0);
+    expect(firstImageDraw).toBeLessThan(firstRedraw);
   });
 
   it('鼠标悬停手牌时卡牌上移放大，描述直接显示在卡面且不再绘制 tooltip', () => {
