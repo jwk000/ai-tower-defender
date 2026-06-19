@@ -167,6 +167,12 @@ dark fantasy casual tower defense card illustration, {subject}, centered heroic 
 
 | 金矿 | 生产 | 暗金矿井 | `small dark gold mine building, glowing ore vein, mine cart silhouette` |
 | 能量塔 | 生产 | 蓝紫能量尖塔 | `arcane energy tower, blue violet crystal battery, pulsing mana ring` |
+| 盾卫升级卡 | 士兵升级 | 巨盾升阶、青色光环 | `large cyan tower shield rising upward, short sword behind it, bright upgrade arrow glow, defensive aura` |
+| 剑士升级卡 | 士兵升级 | 长剑升阶、红色锋芒 | `raised long sword gaining power, red steel highlights, upward upgrade arrow glow, heroic melee aura` |
+| 弓箭手升级卡 | 士兵升级 | 强化弓箭、绿色速度线 | `green hooded archer bow and arrow empowered, upward upgrade arrow glow, agile speed trails` |
+| 牧师升级卡 | 士兵升级 | 治疗法杖升阶、金色圣光 | `golden healing staff and white priest hood empowered, upward upgrade arrow glow, soft holy aura` |
+| 刺客升级卡 | 士兵升级 | 双匕首升阶、紫色暗影 | `twin purple daggers empowered in shadow smoke, upward upgrade arrow glow, stealth aura` |
+| 法师升级卡 | 士兵升级 | 法杖水晶升阶、紫色奥术 | `purple mage staff crystal empowered, upward upgrade arrow glow, swirling arcane orb` |
 
 ---
 
