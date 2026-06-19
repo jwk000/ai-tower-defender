@@ -71,14 +71,26 @@ const rawLevelModules = import.meta.glob('./levels/*.yaml', {
 }) as Record<string, string>;
 
 const FRONTLINE_CARDS = new Set(['card_shield_guard', 'card_boulder', 'card_bear_trap']);
-const SOLDIER_UPGRADE_CARDS = [
-  'card_upgrade_shield_guard',
-  'card_upgrade_swordsman',
-  'card_upgrade_archer',
-  'card_upgrade_priest',
-  'card_upgrade_assassin',
-  'card_upgrade_mage',
-] as const;
+const SOLDIER_UPGRADE_BY_SOLDIER_CARD = {
+  card_shield_guard: 'card_upgrade_shield_guard',
+  card_swordsman: 'card_upgrade_swordsman',
+  card_archer: 'card_upgrade_archer',
+  card_priest: 'card_upgrade_priest',
+  card_assassin: 'card_upgrade_assassin',
+  card_mage: 'card_upgrade_mage',
+} as const;
+
+const EXPECTED_SOLDIER_UPGRADE_CARDS_BY_LEVEL: Record<string, string[]> = {
+  level_03: [
+    'card_upgrade_shield_guard',
+    'card_upgrade_swordsman',
+    'card_upgrade_archer',
+    'card_upgrade_priest',
+    'card_upgrade_mage',
+  ],
+  level_04: Object.values(SOLDIER_UPGRADE_BY_SOLDIER_CARD),
+  level_05: Object.values(SOLDIER_UPGRADE_BY_SOLDIER_CARD),
+};
 const OUTPUT_CARDS = new Set([
   'card_arrow_tower',
   'card_ballista_tower',
@@ -272,11 +284,40 @@ describe('关卡 YAML 配置', () => {
     }
   });
 
-  it('第3-5关卡池混入全部士兵升级卡', () => {
-    for (const level of loadRawLevels().filter((rawLevel) => ['level_03', 'level_04', 'level_05'].includes(rawLevel.id))) {
-      for (const cardId of SOLDIER_UPGRADE_CARDS) {
-        expect(level.cardPool, `${level.id} cardPool 缺少士兵升级卡 ${cardId}`).toContain(cardId);
-        expect(level.draftPool, `${level.id} draftPool 缺少士兵升级卡 ${cardId}`).toContain(cardId);
+  it('士兵升级卡只在对应士兵卡之后出现', () => {
+    for (const level of loadRawLevels()) {
+      for (const poolName of ['cardPool', 'draftPool'] as const) {
+        const pool = level[poolName];
+
+        for (const [soldierCardId, upgradeCardId] of Object.entries(SOLDIER_UPGRADE_BY_SOLDIER_CARD)) {
+          const upgradeIndex = pool.indexOf(upgradeCardId);
+          if (upgradeIndex === -1) {
+            continue;
+          }
+
+          const soldierIndex = pool.indexOf(soldierCardId);
+          expect(soldierIndex, `${level.id} ${poolName} 有 ${upgradeCardId} 但缺少前置士兵卡 ${soldierCardId}`).toBeGreaterThanOrEqual(0);
+          expect(soldierIndex, `${level.id} ${poolName} 中 ${soldierCardId} 必须早于 ${upgradeCardId}`).toBeLessThan(upgradeIndex);
+        }
+      }
+    }
+  });
+
+  it('第3-5关卡池只混入已解锁士兵对应的升级卡', () => {
+    for (const level of loadRawLevels()) {
+      const expectedUpgradeCards = EXPECTED_SOLDIER_UPGRADE_CARDS_BY_LEVEL[level.id];
+      if (!expectedUpgradeCards) {
+        continue;
+      }
+      const forbiddenUpgradeCards = Object.values(SOLDIER_UPGRADE_BY_SOLDIER_CARD).filter((cardId) => !expectedUpgradeCards.includes(cardId));
+
+      for (const poolName of ['cardPool', 'draftPool'] as const) {
+        for (const cardId of expectedUpgradeCards) {
+          expect(level[poolName], `${level.id} ${poolName} 缺少士兵升级卡 ${cardId}`).toContain(cardId);
+        }
+        for (const cardId of forbiddenUpgradeCards) {
+          expect(level[poolName], `${level.id} ${poolName} 不应包含未解锁士兵升级卡 ${cardId}`).not.toContain(cardId);
+        }
       }
     }
   });

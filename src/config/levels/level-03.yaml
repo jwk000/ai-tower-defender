@@ -195,7 +195,6 @@ cardPool:
   - card_upgrade_swordsman
   - card_upgrade_archer
   - card_upgrade_priest
-  - card_upgrade_assassin
   - card_upgrade_mage
   - card_spike_trap
   - card_bear_trap
@@ -225,7 +224,6 @@ draftPool:
   - card_upgrade_swordsman
   - card_upgrade_archer
   - card_upgrade_priest
-  - card_upgrade_assassin
   - card_upgrade_mage
   - card_spike_trap
   - card_bear_trap
