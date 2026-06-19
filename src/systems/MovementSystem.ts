@@ -648,6 +648,12 @@ export class MovementSystem implements System {
   /** 近战 vs 远程判定阈值（像素） */
   private static readonly MELEE_RANGE_THRESHOLD = 60;
 
+  private getEffectiveAttackDistance(attackerId: number, targetId: number, centerDistance: number): number {
+    const attackerRadius = Math.max(0, (Visual.size[attackerId] ?? 0) / 2);
+    const targetRadius = Math.max(0, (Visual.size[targetId] ?? 0) / 2);
+    return Math.max(0, centerDistance - attackerRadius - targetRadius);
+  }
+
   private processEnemyAttack(
     world: TowerWorld,
     eid: number,
@@ -695,7 +701,7 @@ export class MovementSystem implements System {
 
         const dx = sx - posX;
         const dy = sy - posY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const dist = this.getEffectiveAttackDistance(eid, sid, Math.sqrt(dx * dx + dy * dy));
 
         if (dist < nearestDist) {
           nearestDist = dist;
@@ -715,7 +721,7 @@ export class MovementSystem implements System {
 
         const dx = tx - posX;
         const dy = ty - posY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const dist = this.getEffectiveAttackDistance(eid, tid, Math.sqrt(dx * dx + dy * dy));
 
         if (dist < nearestDist) {
           nearestDist = dist;
@@ -884,7 +890,7 @@ export class MovementSystem implements System {
 
     const dx = tx - posX;
     const dy = ty - posY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = this.getEffectiveAttackDistance(eid, sourceId, Math.sqrt(dx * dx + dy * dy));
     return dist <= attackRange ? sourceId : null;
   }
 

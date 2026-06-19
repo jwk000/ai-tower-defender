@@ -38,6 +38,7 @@ import {
   TrapTypeVal,
   Soldier,
   Projectile,
+  Taunted,
   EnemySkillParticleEffect,
   EnemySkillParticleEffectVal,
 } from '../core/components.js';
@@ -767,6 +768,33 @@ describe('MovementSystem — 巨石阻挡', () => {
 
     expect(Attack.targetId[enemy]).toBe(tower);
     expect(Health.current[tower]).toBeLessThan(100);
+  });
+
+  it('被盾卫嘲讽时按双方体型边缘判定攻击距离，路边盾卫不会只嘲讽不挨打', () => {
+    const shield = makeSoldier(world, 66, TILE / 2, 100);
+    world.addComponent(shield, Visual, {
+      shape: 1,
+      colorR: 0,
+      colorG: 160,
+      colorB: 220,
+      size: 34,
+      alpha: 1,
+      attackAnimTimer: 0,
+      attackAnimDuration: 0.4,
+    });
+    const enemy = makePathEnemy(world, {
+      speed: TILE,
+      atk: 12,
+      attackRange: 32,
+      size: 28,
+    });
+    world.addComponent(enemy, Taunted, { sourceId: shield, timer: 3 });
+
+    system.update(world, 0.1);
+
+    expect(Attack.targetId[enemy]).toBe(shield);
+    expect(Health.current[shield]).toBeLessThan(100);
+    expect(Movement.currentSpeed[enemy]).toBe(0);
   });
 
   it('敌人普攻冷却最长不超过3秒', () => {
