@@ -44,7 +44,7 @@ describe('unit config bridge', () => {
     unitConfigRegistry.clear();
   });
 
-  it('电塔从 YAML 注入线性弹跳次数与提高后的伤害成长', () => {
+  it('电塔从 YAML 注入线性弹跳次数与减半后的高等级伤害', () => {
     registerConfig({
       id: 'lightning_tower',
       name: '测试电塔',
@@ -52,7 +52,7 @@ describe('unit config bridge', () => {
       faction: 'Player',
       layer: 'Ground',
       stats: { hp: 900, atk: 20, attackSpeed: 0.9, range: 170, armor: 0, mr: 0, damageType: 'magic' },
-      cost: { build: 110, upgrade: [65, 580, 780, 1100], atkGrowth: [10, 35, 30, 40], rangeGrowth: [15, 25, 20, 20] },
+      cost: { build: 110, upgrade: [65, 580, 780, 1100], atkGrowth: [10, 2.5, 15, 20], rangeGrowth: [15, 25, 20, 20] },
       visual: { shape: 'rect', color: '#fff176', size: 34 },
       behavior: {
         targetSelection: 'nearest',
@@ -64,7 +64,7 @@ describe('unit config bridge', () => {
           chainRange: 120,
           chainDecay: 0.2,
           lightningStormCooldown: 10,
-          lightningStormDamage: 900,
+          lightningStormDamage: 200,
         },
       },
     });
@@ -72,11 +72,11 @@ describe('unit config bridge', () => {
     injectTowerConfigsFromRegistry();
 
     expect(TOWER_CONFIGS[TowerType.Lightning].atk).toBe(20);
-    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 35, 30, 40]);
+    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 2.5, 15, 20]);
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCount).toBe(3);
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCountByLevel).toEqual([3, 4, 5, 6, 7]);
     expect(TOWER_CONFIGS[TowerType.Lightning].lightningStormCooldown).toBe(10);
-    expect(TOWER_CONFIGS[TowerType.Lightning].lightningStormDamage).toBe(900);
+    expect(TOWER_CONFIGS[TowerType.Lightning].lightningStormDamage).toBe(200);
   });
 
   it('塔从 stats.damageType 读取伤害类型，支持 true 伤害', () => {

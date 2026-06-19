@@ -316,7 +316,7 @@ describe('doLightningAttack — 电塔线性弹跳成长', () => {
   it('配置为 L1 跳跃 3 次，每次升级跳跃次数 +1', () => {
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCount).toBe(3);
     expect(TOWER_CONFIGS[TowerType.Lightning].chainCountByLevel).toEqual([3, 4, 5, 6, 7]);
-    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 35, 30, 40]);
+    expect(TOWER_CONFIGS[TowerType.Lightning].upgradeAtkBonus).toEqual([10, 2.5, 15, 20]);
   });
 
   it('L1 连锁最多命中 3 个目标', () => {
@@ -336,7 +336,7 @@ describe('doLightningAttack — 电塔线性弹跳成长', () => {
 
   it('L5 连锁最多命中 7 个目标', () => {
     vi.spyOn(Sound, 'play').mockImplementation(() => {});
-    const towerId = makeLightningTower(135);
+    const towerId = makeLightningTower(67.5);
     const enemies = makeEnemyLine(8);
 
     doLightningAttack(world, towerId, enemies[0]!, 5);
@@ -427,14 +427,14 @@ describe('LightningStorm — 电塔5级全屏落雷战略技能', () => {
     expect(findLightningStormTarget(world, tower, makeMap())).toBe(nearCrystal);
   });
 
-  it('5级电塔冷却满后造成900魔法伤害并创建落雷和屏幕震动表现', () => {
+  it('5级电塔冷却满后造成200魔法伤害并创建落雷和屏幕震动表现', () => {
     vi.spyOn(Sound, 'play').mockImplementation(() => {});
     const tower = makeStormTower(5);
     const elite = makeStormEnemy(160, 160, 900, { elite: true });
 
     updateLightningStormSkill(world, tower, 10, makeMap());
 
-    expect(Health.current[elite]).toBeLessThanOrEqual(0);
+    expect(Health.current[elite]).toBe(700);
     expect(lightningStormQuery(world.world)).toHaveLength(1);
     expect(screenShakeQuery(world.world)).toHaveLength(1);
     expect(Sound.play).toHaveBeenCalledWith('lightning_hit');
@@ -460,7 +460,7 @@ describe('LightningStorm — 电塔5级全屏落雷战略技能', () => {
     expect(LightningStorm.targetId[stormId]).toBe(target);
     expect(LightningStorm.targetX[stormId]).toBe(192);
     expect(LightningStorm.targetY[stormId]).toBe(224);
-    expect(LightningStorm.damage[stormId]).toBe(900);
+    expect(LightningStorm.damage[stormId]).toBe(200);
   });
 });
 

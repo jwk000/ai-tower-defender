@@ -212,7 +212,7 @@ lightning_tower:
   cost:
     build: 110
     upgrade: [65, 580, 780, 1100]
-    atkGrowth: [10, 35, 30, 40]
+    atkGrowth: [10, 2.5, 15, 20]
     chainGrowth: [1, 1, 1, 1]
     rangeGrowth: [15, 25, 20, 20]
 
@@ -232,7 +232,7 @@ lightning_tower:
       chainRange: 120
       chainDecay: 0.2
       lightningStormCooldown: 10
-      lightningStormDamage: 900
+      lightningStormDamage: 200
 
   lifecycle:
     onDeath:
@@ -251,17 +251,17 @@ lightning_tower:
     l3:
       id: overcharge
       name: 过载
-      description: 伤害成长提高，连锁弹跳继续随等级+1；L5解锁10秒一次全屏落雷
+      description: 伤害成长放缓，连锁弹跳继续随等级+1；L5解锁10秒一次全屏落雷
       params:
         damageBonus: 35
         chainBonus: 1
     l5:
       id: heavenly_thunder
       name: 天罚落雷
-      description: 每10秒全屏优先轰击Boss/精英，否则攻击离水晶最近的敌人，造成900魔法伤害
+      description: 每10秒全屏优先轰击Boss/精英，否则攻击离水晶最近的敌人，造成200魔法伤害
       params:
         cooldown: 10
-        damage: 900
+        damage: 200
 
 ---
 # 激光塔 — 贯穿光束攻击塔

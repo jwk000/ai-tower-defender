@@ -26,9 +26,9 @@
 | 冰塔 (ice_tower) | L3 | 1700 | 19 | 1.2 | 22.8 | 0 | 0 | 260 | magic | 380 |
 | 电塔 (lightning_tower) | L1 | 1800 | 20 | 0.9 | 18 | 0 | 0 | 170 | magic | 110 |
 | 电塔 (lightning_tower) | L2 | 1800 | 30 | 0.9 | 27 | 0 | 0 | 185 | magic | 65 |
-| 电塔 (lightning_tower) | L3 | 1800 | 65 | 0.9 | 58.5 | 0 | 0 | 210 | magic | 580 |
-| 电塔 (lightning_tower) | L4 | 1800 | 95 | 0.9 | 85.5 | 0 | 0 | 230 | magic | 780 |
-| 电塔 (lightning_tower) | L5 | 1800 | 135 | 0.9 | 121.5 | 0 | 0 | 250 | magic | 1100 |
+| 电塔 (lightning_tower) | L3 | 1800 | 32.5 | 0.9 | 29.25 | 0 | 0 | 210 | magic | 580 |
+| 电塔 (lightning_tower) | L4 | 1800 | 47.5 | 0.9 | 42.75 | 0 | 0 | 230 | magic | 780 |
+| 电塔 (lightning_tower) | L5 | 1800 | 67.5 | 0.9 | 60.75 | 0 | 0 | 250 | magic | 1100 |
 | 激光塔 (laser_tower) | L1 | 1500 | 6 | 0.5 | 3 | 0 | 0 | 250 | magic | 125 |
 | 激光塔 (laser_tower) | L2 | 1500 | 9 | 0.5 | 4.5 | 0 | 0 | 265 | magic | 75 |
 | 激光塔 (laser_tower) | L3 | 1500 | 19 | 0.5 | 9.5 | 0 | 0 | 285 | magic | 520 |

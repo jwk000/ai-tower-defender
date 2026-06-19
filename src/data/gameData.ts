@@ -359,10 +359,10 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     chainCountByLevel: [3, 4, 5, 6, 7],
     chainDecay: 0.2,
     lightningStormCooldown: 10,
-    lightningStormDamage: 900,
-    // 后期战略塔：L1 起步 3 次弹跳，每次升级弹跳 +1，并通过更高伤害成长维持后期压制。
+    lightningStormDamage: 200,
+    // 后期战略塔：L1 起步 3 次弹跳，每次升级弹跳 +1，高等级伤害控制为长线压制。
     upgradeCosts: [65, 580, 780, 1100],
-    upgradeAtkBonus: [10, 35, 30, 40],
+    upgradeAtkBonus: [10, 2.5, 15, 20],
     upgradeRangeBonus: [15, 25, 20, 20],
     color: '#fff176',
     buildTime: 2.0,
