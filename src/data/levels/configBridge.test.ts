@@ -219,7 +219,8 @@ describe('unit config bridge', () => {
     expect(Health.magicResist[eid]).toBe(5);
   });
 
-  it('飞机兜底配置保持低空两倍视觉半径', () => {
+  it('飞机兜底配置保持三倍血量和低空两倍视觉半径', () => {
+    expect(ENEMY_CONFIGS[EnemyType.Plane]!.hp).toBe(240);
     expect(ENEMY_CONFIGS[EnemyType.Plane]!.radius).toBeCloseTo(33.6);
   });
 

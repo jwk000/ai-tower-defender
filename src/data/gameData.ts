@@ -680,7 +680,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
 
   // ===== §5.4 末日废土（机械族）=====
   [EnemyType.Plane]: {
-    type: EnemyType.Plane, name: '飞机', hp: 80, speed: 70, atk: 15,
+    type: EnemyType.Plane, name: '飞机', hp: 240, speed: 70, atk: 15,
     defense: 5, magicResist: 5, attackRange: 60, attackSpeed: 1.0,
     canAttackBuildings: true, rewardGold: 10, color: '#78909c', radius: 33.6, attackAnimDuration: 0.25,
   },

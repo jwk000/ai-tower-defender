@@ -3447,7 +3447,7 @@ plane:
   category: Enemy
   faction: Evil
   layer: LowAir
-  stats: { hp: 80, atk: 15, attackSpeed: 0.4, range: 60, speed: 70, armor: 5, mr: 5, damageType: physical }
+  stats: { hp: 240, atk: 15, attackSpeed: 0.4, range: 60, speed: 70, armor: 5, mr: 5, damageType: physical }
   reward: { gold: 10 }
   visual: { shape: triangle, color: "#78909c", size: 67.2, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path }
