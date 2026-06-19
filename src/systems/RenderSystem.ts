@@ -145,7 +145,7 @@ const SOLDIER_PROJECTILE_FX_PATHS: Partial<Record<UnitType, string>> = {
 const MISSILE_PROJECTILE_FX_PATH = '/art/fx/fx_missile_projectile.png';
 
 const MOVING_ENEMY_BREATH_SCALE = 1.04;
-const TOWER_LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+const LEVEL_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 export function applyArrowProjectileArt(
   sourceTowerType: number,
@@ -226,9 +226,17 @@ export function getMovingEnemyBreathScale(phase: number, active: boolean): numbe
 }
 
 export function formatTowerLevelDisplayName(name: string | undefined, level: number | undefined): string | undefined {
+  return formatUnitLevelDisplayName(name, level);
+}
+
+export function formatSoldierLevelDisplayName(name: string | undefined, level: number | undefined): string | undefined {
+  return formatUnitLevelDisplayName(name, level);
+}
+
+function formatUnitLevelDisplayName(name: string | undefined, level: number | undefined): string | undefined {
   if (!name) return name;
-  const normalizedLevel = Math.max(1, Math.min(TOWER_LEVEL_ROMAN.length - 1, Math.floor(level ?? 1)));
-  return `${name}[${TOWER_LEVEL_ROMAN[normalizedLevel]}]`;
+  const normalizedLevel = Math.max(1, Math.min(LEVEL_ROMAN.length - 1, Math.floor(level ?? 1)));
+  return `${name}[${LEVEL_ROMAN[normalizedLevel]}]`;
 }
 
 export function getTrapAttackFrame(animTimer: number, animDuration: number): 0 | 1 {
@@ -1989,12 +1997,14 @@ export class RenderSystem implements System {
 
       // ========================================
       // 3. Display name
-      //    Towers append Roman level suffix, e.g. 箭塔[III].
+      //    Towers and soldiers append Roman level suffix, e.g. 箭塔[III], 盾卫[II].
       // ========================================
       const baseDisplayName = world.getDisplayName(eid);
       const displayName = isTower
         ? formatTowerLevelDisplayName(baseDisplayName, Tower.level[eid])
-        : baseDisplayName;
+        : isUnit
+          ? formatSoldierLevelDisplayName(baseDisplayName, UnitTag.level[eid])
+          : baseDisplayName;
       if (isFinite(healthBarY)) {
         const nameY = healthBarY - 10;
         const nameLabelSize = 12;

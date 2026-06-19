@@ -7,6 +7,7 @@ import {
   Boss,
   Category,
   CategoryVal,
+  Attack,
   DeathEffect,
   DisintegrateEffect,
   Health,
@@ -22,7 +23,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { applyArrowProjectileArt, applySoldierProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, getTrapAttackFrame, RenderSystem } from './RenderSystem.js';
+import { applyArrowProjectileArt, applySoldierProjectileArt, applyTowerProjectileArt, formatSoldierLevelDisplayName, formatTowerLevelDisplayName, getTrapAttackFrame, RenderSystem } from './RenderSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
@@ -107,6 +108,13 @@ function makeNamedEntity(
   }
   if (opts.category === CategoryVal.Soldier) {
     world.addComponent(eid, Movement, { moveRange: 96 });
+    world.addComponent(eid, UnitTag, {
+      isEnemy: 0,
+      isBoss: 0,
+      isElite: 0,
+      level: 1,
+      maxLevel: 3,
+    });
   }
   if (opts.isBoss) {
     world.addComponent(eid, Boss, {
@@ -622,7 +630,7 @@ describe('RenderSystem — 水晶显示', () => {
 
     expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '精英怪', labelColor: '#FFD700' }));
     expect(renderer.commands).toContainEqual(expect.objectContaining({ label: 'Boss', labelColor: '#ff1744' }));
-    expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '士兵', labelColor: '#4ade80' }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({ label: '士兵[I]', labelColor: '#4ade80' }));
   });
 
   it('塔名称后追加罗马数字等级后缀，不再绘制等级徽章', () => {
@@ -645,6 +653,32 @@ describe('RenderSystem — 水晶显示', () => {
       labelColor: '#ffffff',
     }));
     expect(renderer.commands).not.toContainEqual(expect.objectContaining({ label: '箭塔' }));
+  });
+
+  it('士兵名称后追加罗马数字等级后缀，并同步到选中信息面板', () => {
+    setArtResourcesEnabled(false);
+
+    const world = new TowerWorld();
+    const soldierId = makeNamedEntity(world, { name: '盾卫', category: CategoryVal.Soldier, x: 96 });
+    UnitTag.level[soldierId] = 2;
+    world.addComponent(soldierId, Attack, { damage: 8, range: 48, attackSpeed: 1 });
+
+    const renderer = new RendererStub();
+    const system = new RenderSystem(renderer as never, makeMap(), undefined, () => soldierId);
+
+    system.update(world, 0);
+
+    expect(formatSoldierLevelDisplayName('盾卫', 2)).toBe('盾卫[II]');
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      label: '盾卫[II]',
+      labelColor: '#4ade80',
+    }));
+    expect(renderer.commands).toContainEqual(expect.objectContaining({
+      label: '盾卫[II]',
+      labelColor: '#ffffff',
+      labelSize: 14,
+    }));
+    expect(renderer.commands).not.toContainEqual(expect.objectContaining({ label: '盾卫' }));
   });
 
   it('地刺触发动画开始时使用尖刺突出帧，结束前回到收起帧', () => {
