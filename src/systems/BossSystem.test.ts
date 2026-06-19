@@ -471,7 +471,7 @@ describe('BossSystem — QueenWorm (虫族女王)', () => {
     }
   });
 
-  it('召唤单位写入真实敌人类型，避免渲染退回哥布林形象', () => {
+  it('召唤单位写入真实敌人类型且不显示被动白色描边', () => {
     const boss = makeBoss(world, BossType.QueenWorm, {
       hp: 1000, spawnTimer: 10,
     });
@@ -491,6 +491,7 @@ describe('BossSystem — QueenWorm (虫族女王)', () => {
       expect(allowedTypeNums.has(UnitTag.unitTypeNum[eid]!)).toBe(true);
       expect(UnitTag.unitTypeNum[eid]).not.toBe(goblinTypeNum);
       expect(Visual.attackAnimDuration[eid]).toBeGreaterThan(0);
+      expect(Visual.outline[eid]).toBe(0);
     }
   });
 

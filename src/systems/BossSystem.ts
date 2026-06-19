@@ -509,7 +509,7 @@ export class BossSystem implements System {
         colorB: template.color.b,
         size: template.size,
         alpha: 1,
-        outline: 1,
+        outline: 0,
         facing: 1,
         hitFlashTimer: 0,
         idlePhase: 0,
