@@ -36,6 +36,14 @@ interface RawLevelConfig {
   id: string;
   cardPool: string[];
   draftPool: string[];
+  map: {
+    tiles: string[][];
+    obstacles: Array<{
+      type: string;
+      row: number;
+      col: number;
+    }>;
+  };
   starting: {
     gold: number;
   };
@@ -114,6 +122,20 @@ function loadRawLevels(): RawLevelConfig[] {
     .map(([, content]) => parseYaml(content) as RawLevelConfig);
 }
 
+function isAdjacentToRoute(level: RawLevelConfig, row: number, col: number): boolean {
+  const neighbors: Array<[number, number]> = [
+    [row - 1, col],
+    [row + 1, col],
+    [row, col - 1],
+    [row, col + 1],
+  ];
+
+  return neighbors.some(([r, c]) => {
+    const tile = level.map.tiles[r]?.[c];
+    return tile === 'path' || tile === 'spawn' || tile === 'base';
+  });
+}
+
 function waveDifficultyMultiplier(waveIndex: number, totalWaves: number): number {
   const ratio = waveIndex / totalWaves;
   if (ratio < 0.2) return 0.8;
@@ -183,6 +205,19 @@ describe('关卡 YAML 配置', () => {
     expect(level).toBeDefined();
     expect(level!.weatherPool).toEqual([WeatherType.RedMist]);
     expect(level!.weatherFixed).toBe(WeatherType.RedMist);
+  });
+
+  it('第4关中部主路径上下两侧不放装饰物', () => {
+    const level = loadRawLevels().find((cfg) => cfg.id === 'level_04')!;
+    const obstaclesByCell = new Map(level.map.obstacles.map((obstacle) => [`${obstacle.row},${obstacle.col}`, obstacle]));
+
+    expect(obstaclesByCell.has('3,13')).toBe(false);
+    expect(obstaclesByCell.has('5,13')).toBe(false);
+
+    expect(obstaclesByCell.get('0,10')?.type).toBe('scorched_tree');
+    expect(obstaclesByCell.get('8,14')?.type).toBe('car');
+    expect(isAdjacentToRoute(level, 0, 10)).toBe(false);
+    expect(isAdjacentToRoute(level, 8, 14)).toBe(false);
   });
 
   it('所有运行时敌人配置至少有 1 点攻击力', () => {

@@ -46,10 +46,10 @@ map:
     - { type: pillar, row: 7, col: 15 }
     - { type: car, row: 1, col: 8 }
     - { type: car, row: 2, col: 3 }
-    - { type: car, row: 5, col: 13 }
+    - { type: car, row: 8, col: 14 }
     - { type: car, row: 8, col: 6 }
     - { type: scorched_tree, row: 0, col: 4 }
-    - { type: scorched_tree, row: 3, col: 13 }
+    - { type: scorched_tree, row: 0, col: 10 }
     - { type: scorched_tree, row: 7, col: 9 }
     - { type: scorched_tree, row: 8, col: 17 }
     - { type: volcanic_rock, row: 2, col: 6 }
