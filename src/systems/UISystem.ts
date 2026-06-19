@@ -228,7 +228,7 @@ const UI_Z = {
 } as const;
 
 const UI_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 96, bottom: 96 };
-const UI_HAND_PANEL_SLICE: NineSliceInsets = { left: 96, right: 96, top: 72, bottom: 72 };
+export const UI_HAND_PANEL_SLICE: NineSliceInsets = { left: 40, right: 40, top: 72, bottom: 72 };
 const UI_BUTTON_SLICE: NineSliceInsets = { left: 96, right: 96, top: 32, bottom: 32 };
 const UI_HUD_SLICE: NineSliceInsets = { left: 180, right: 180, top: 42, bottom: 42 };
 const GOLD_CHEAT_BUTTON_W = 32;

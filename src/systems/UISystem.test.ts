@@ -13,7 +13,7 @@ import {
   CARD_TOOLTIP_WIDTH,
   CARD_TOOLTIP_HEIGHT,
 } from '../ui/LayoutConstants.js';
-import { UISystem } from './UISystem.js';
+import { UISystem, UI_HAND_PANEL_SLICE } from './UISystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { CardDraftSystem } from './CardDraftSystem.js';
 import { HandSystem } from './HandSystem.js';
@@ -137,8 +137,8 @@ function infosOf(ui: UISystem): Array<{ x: number; y: number; text: string; colo
   return (ui as unknown as { infos: Array<{ x: number; y: number; text: string; color?: string; align?: CanvasTextAlign }> }).infos;
 }
 
-function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number }> {
-  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number; z?: number }> }).imageDraws;
+function imageDrawsOf(ui: UISystem): Array<{ path: string; layer: string; alpha?: number; z?: number; mode?: string; slice?: unknown }> {
+  return (ui as unknown as { imageDraws: Array<{ path: string; layer: string; alpha?: number; z?: number; mode?: string; slice?: unknown }> }).imageDraws;
 }
 
 function cardIconDrawsOf(ui: UISystem): Array<{ cardId: string; layer: string; alpha?: number }> {
@@ -430,6 +430,21 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     expect(slots.map((slot) => slot.left)).toEqual([628, 764, 900, 1036, 1172]);
     expect(slots.every((slot) => slot.top === 866)).toBe(true);
     expect(slots.every((slot) => slot.width === 120 && slot.height === 168)).toBe(true);
+  });
+
+  it('手牌底板九宫格保留窄边角，整体接近矩形', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+
+    ui.update(new TowerWorld(), 1 / 60);
+
+    const handPanel = imageDrawsOf(ui).find((draw) => draw.path === '/art/ui/ui_hand_panel.png');
+    expect(handPanel).toMatchObject({
+      mode: 'nine-slice',
+      slice: UI_HAND_PANEL_SLICE,
+    });
+    expect(UI_HAND_PANEL_SLICE.left).toBeLessThan(50);
+    expect(UI_HAND_PANEL_SLICE.right).toBeLessThan(50);
   });
 
   it('鼠标悬停手牌时卡牌上移放大，描述直接显示在卡面且不再绘制 tooltip', () => {
