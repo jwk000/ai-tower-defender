@@ -361,7 +361,7 @@ describe('UISystem UI 层级', () => {
     expect(texts).not.toContain('弹体数 3→3 (+0)');
   });
 
-  it('兵类单位选中后显示放大的 tips 面板和等级', () => {
+  it('兵类单位选中后只显示属性 tips，不提供升级和回收按钮', () => {
     const renderer = new RendererStub();
     const ui = makeUISystem(renderer, 0);
     const world = new TowerWorld();
@@ -382,16 +382,16 @@ describe('UISystem UI 层级', () => {
     ui.selectedUnitEntityId = unitId;
     ui.update(world, 1 / 60);
 
-    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 240 });
+    expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 180 });
     const texts = infosOf(ui).map((info) => info.text);
     expect(texts).toContain('盾卫 Lv.2');
     expect(texts).toContain('生命: 520/520');
     expect(texts).toContain('攻击: 4');
     expect(texts).toContain('范围: 50');
 
-    const upgradeButton = buttonsOf(ui).find((button) => button.label === '升级 60G');
-    expect(upgradeButton).toBeDefined();
-    expect((upgradeButton as { layer?: string }).layer).toBe('board');
+    const labels = buttonsOf(ui).map((button) => button.label);
+    expect(labels.some((label) => label.startsWith('升级') || label === '满级')).toBe(false);
+    expect(labels.some((label) => label.startsWith('回收'))).toBe(false);
   });
 
   it('机关选中后不显示 tips 面板、范围圈和升级入口', () => {

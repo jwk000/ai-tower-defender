@@ -826,19 +826,14 @@ export class UISystem implements System {
     if (!config) return;
 
     const level = UnitTag.level[id] ?? 1;
-    const maxLevel = UnitTag.maxLevel[id] ?? config.maxLevel ?? 1;
     const hp = Health.current[id] ?? 0;
     const maxHp = Health.max[id] ?? 0;
     const atk = Attack.damage[id] ?? 0;
     const range = Attack.range[id] ?? 0;
     const atkSpeed = Attack.attackSpeed[id] ?? 0;
-    const canUpgrade = level < maxLevel;
-    const upgradeCost = canUpgrade ? (config.upgradeCosts?.[level - 1] ?? 0) : 0;
-    const gold = this.getGold();
-    const canAfford = gold >= upgradeCost;
 
     const panelW = 300;
-    const panelH = 240;
+    const panelH = 180;
     const unitX = Position.x[id] ?? 0;
     const unitY = Position.y[id] ?? 0;
     const panelX = Math.max(panelW / 2 + 10, Math.min(unitX, LayoutManager.DESIGN_W - panelW / 2 - 10));
@@ -895,45 +890,6 @@ export class UISystem implements System {
       layer: 'board',
     });
 
-    const btnW = 132;
-    const btnH = 32;
-    const btnY = panelY + panelH - 46;
-    this.buttons.push({
-      x: panelLeft + 8,
-      y: btnY,
-      w: btnW,
-      h: btnH,
-      label: canUpgrade ? `升级 ${upgradeCost}G` : '满级',
-      color: '#4caf50',
-      textColor: '#ffffff',
-      enabled: canUpgrade && canAfford,
-      solidColor: true,
-      keepDisabledColor: true,
-      layer: 'board',
-      onClick: () => {
-        this.onUpgradeUnit?.(id);
-      },
-    });
-
-    const refund = this.getRefundQuote?.(id);
-    const refundText = refund ? `+${refund.amount}G` : '';
-    this.buttons.push({
-      x: panelLeft + panelW - btnW - 8,
-      y: btnY,
-      w: btnW,
-      h: btnH,
-      label: `回收 ${refundText}`,
-      color: '#e53935',
-      textColor: '#ffffff',
-      enabled: true,
-      solidColor: true,
-      layer: 'board',
-      onClick: () => {
-        this.onRecycleEntity?.(id);
-        this.selectedEntityId = null;
-        this.selectedEntityType = null;
-      },
-    });
   }
 
   // ============================================================
