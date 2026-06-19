@@ -21,6 +21,9 @@ interface RawLevelConfig {
 
 interface RawUnitConfig {
   category?: string;
+  stats?: {
+    range?: number;
+  };
   lifecycle?: {
     onAttack?: Array<Record<string, unknown>>;
   };
@@ -162,5 +165,10 @@ describe('运行时单位类型映射一致性', () => {
     const lightningRules = loadRawUnits().lightning_tower?.lifecycle?.onAttack ?? [];
     expect(lightningRules).toContainEqual({ type: 'play_sound', sound: 'lightning_hit' });
     expect(lightningRules).not.toContainEqual({ type: 'play_sound', sound: 'tower_lightning' });
+  });
+
+  it('导弹塔射程为半个标准棋盘宽度', () => {
+    const units = loadRawUnits();
+    expect(units.missile_tower?.stats?.range).toBe(672);
   });
 });

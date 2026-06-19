@@ -264,7 +264,7 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     hp: 1200,
     atk: 80,
     attackSpeed: 0.3,
-    range: 9999,
+    range: 672,
     damageType: 'true',
     splashRadius: 80,
     cantTargetFlying: true,

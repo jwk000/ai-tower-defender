@@ -52,7 +52,7 @@ const missileTower: CardInstance = {
   id: 'card_missile_tower',
   name: '导弹塔',
   type: 'unit',
-  description: '全图射程大范围伤害，战略武器',
+  description: '半个棋盘宽度射程的大范围伤害，战略武器',
   goldCost: 220,
 };
 

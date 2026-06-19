@@ -441,7 +441,7 @@ ballista_tower:
         multiHitThreshold: 3
 
 ---
-# 导弹塔 — 全图射程大范围伤害，战略武器
+# 导弹塔 — 半个棋盘宽度射程的大范围伤害，战略武器
 missile_tower:
   id: missile_tower
   name: 导弹塔
@@ -453,7 +453,7 @@ missile_tower:
     hp: 1200
     atk: 80
     attackSpeed: 0.3
-    range: 9999
+    range: 672
     armor: 0
     mr: 0
     damageType: true

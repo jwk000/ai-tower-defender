@@ -87,7 +87,7 @@ ballista_tower_card:
 
 missile_tower_card:
   name: 导弹塔
-  description: 全图射程战略武器，大范围AOE伤害
+  description: 半个棋盘宽度射程的战略武器，大范围AOE伤害
   type: unit
   rarity: epic
   energyCost: 6

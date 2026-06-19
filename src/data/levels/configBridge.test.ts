@@ -123,7 +123,7 @@ describe('unit config bridge', () => {
       category: 'Tower',
       faction: 'Player',
       layer: 'Ground',
-      stats: { hp: 120, atk: 80, attackSpeed: 0.3, range: 9999, armor: 0, mr: 0, damageType: 'true' },
+      stats: { hp: 120, atk: 80, attackSpeed: 0.3, range: 672, armor: 0, mr: 0, damageType: 'true' },
       cost: { build: 220, upgrade: [130, 980, 1400, 1850], atkGrowth: [30, 110, 60, 80], rangeGrowth: [0, 0, 0, 0] },
       visual: { shape: 'rect', color: '#ffffff', size: 42 },
       behavior: {
@@ -142,6 +142,7 @@ describe('unit config bridge', () => {
     expect(TOWER_CONFIGS[TowerType.Arrow].upgradeCosts).toHaveLength(2);
 
     expect(TOWER_CONFIGS[TowerType.Missile].damageType).toBe('true');
+    expect(TOWER_CONFIGS[TowerType.Missile].range).toBe(672);
     expect(TOWER_CONFIGS[TowerType.Missile].upgradeCosts).toHaveLength(4);
     expect(TOWER_CONFIGS[TowerType.Missile].projectileCount).toEqual([1, 1, 2, 2, 3]);
 
