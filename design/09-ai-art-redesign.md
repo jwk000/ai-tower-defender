@@ -207,7 +207,7 @@ animation frame {frame}/2 for {state}, same character design and same camera, on
 
 | 机关 | 必交状态 | 不生成状态 | 运行时触发规则 |
 |------|----------|------------|----------------|
-| 地刺 | `idle_0/1`、`attack_0/1`、`death_0/1` | `move` | `Trap.animTimer > 0` 时播放 `attack`；`attack_0` 为尖刺完全收起/仅露出裂缝，`attack_1` 为尖刺完全刺出 |
+| 地刺 | `idle_0/1`、`attack_0/1`、`death_0/1` | `move` | `idle_0/1` 必须是尖刺收起的待触发地板态；`Trap.animTimer > 0` 时播放 `attack`；`attack_0` 为尖刺完全收起/仅露出裂缝，`attack_1` 为尖刺完全刺出 |
 | 捕兽夹 | `idle_0/1`、`attack_0/1`、`death_0/1` | `move` | `Trap.animTimer > 0` 时播放 `attack`；`attack_0` 为张开待触发，`attack_1` 为夹齿合拢咬合 |
 | 焦油坑 | `idle_0/1`、`attack_0/1`、`death_0/1` | `move` | `Trap.animTimer > 0` 时播放 `attack`；`attack_0` 为平静低伏焦油面，`attack_1` 为黏液柱/触须喷出牵引 |
 | 巨石 | `idle_0/1`、`death_0/1` | `move`、`attack` | 巨石是可被攻击的路障，不主动攻击、不触发攻击动作 |

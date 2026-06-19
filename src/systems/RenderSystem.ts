@@ -231,6 +231,14 @@ export function formatTowerLevelDisplayName(name: string | undefined, level: num
   return `${name}[${TOWER_LEVEL_ROMAN[normalizedLevel]}]`;
 }
 
+export function getTrapAttackFrame(animTimer: number, animDuration: number): 0 | 1 {
+  if (animDuration <= 0 || animTimer <= 0) {
+    return 0;
+  }
+
+  return animTimer / animDuration >= 0.5 ? 1 : 0;
+}
+
 export function getUnitSpriteScaleX(facing: number, artFacesLeft = false): number {
   const normalizedFacing = facing >= 0 ? 1 : -1;
   return artFacesLeft ? -normalizedFacing : normalizedFacing;
@@ -954,10 +962,7 @@ export class RenderSystem implements System {
   }
 
   private getTrapSpriteFrame(animTimer: number, animDuration: number): 0 | 1 {
-    if (animDuration <= 0 || animTimer <= 0) {
-      return 0;
-    }
-    return 1 - animTimer / animDuration >= 0.5 ? 1 : 0;
+    return getTrapAttackFrame(animTimer, animDuration);
   }
 
   private getSceneUnitArtId(world: TowerWorld, eid: number): string | null {

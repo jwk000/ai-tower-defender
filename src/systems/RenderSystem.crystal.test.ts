@@ -22,7 +22,7 @@ import {
   UnitTag,
   Visual,
 } from '../core/components.js';
-import { applyArrowProjectileArt, applySoldierProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, RenderSystem } from './RenderSystem.js';
+import { applyArrowProjectileArt, applySoldierProjectileArt, applyTowerProjectileArt, formatTowerLevelDisplayName, getTrapAttackFrame, RenderSystem } from './RenderSystem.js';
 import { DeathEffectSystem } from './DeathEffectSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { setArtResourcesEnabled } from '../utils/artResourceSwitch.js';
@@ -645,6 +645,13 @@ describe('RenderSystem — 水晶显示', () => {
       labelColor: '#ffffff',
     }));
     expect(renderer.commands).not.toContainEqual(expect.objectContaining({ label: '箭塔' }));
+  });
+
+  it('地刺触发动画开始时使用尖刺突出帧，结束前回到收起帧', () => {
+    expect(getTrapAttackFrame(0, 0.4)).toBe(0);
+    expect(getTrapAttackFrame(0.4, 0.4)).toBe(1);
+    expect(getTrapAttackFrame(0.2, 0.4)).toBe(1);
+    expect(getTrapAttackFrame(0.19, 0.4)).toBe(0);
   });
 
   it('精英怪与士兵缺图时不回退绘制可选中程序化主体', () => {
