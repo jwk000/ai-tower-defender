@@ -270,4 +270,36 @@ describe('unit config bridge', () => {
     expect(ENEMY_CONFIGS.wizard!.damageType).toBe('magic');
     expect(ENEMY_CONFIGS.giant_slime!.radius).toBe(48);
   });
+
+  it('敌人普攻攻速注入后限制为1到3秒攻击间隔', () => {
+    registerConfig({
+      id: 'wizard',
+      name: '测试巫师',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      stats: { hp: 90, atk: 20, attackSpeed: 0.2, range: 160, speed: 30, armor: 0, mr: 20, damageType: 'magic' },
+      reward: { gold: 12 },
+      visual: { shape: 'hexagon', color: '#ffffff', size: 28 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+    });
+    registerConfig({
+      id: 'giant_slime',
+      name: '测试巨型史莱姆',
+      category: 'Enemy',
+      faction: 'Enemy',
+      layer: 'Ground',
+      isBoss: true,
+      stats: { hp: 800, atk: 20, attackSpeed: 1.8, range: 50, speed: 15, armor: 10, mr: 5, damageType: 'physical' },
+      reward: { gold: 100 },
+      visual: { shape: 'circle', color: '#66bb6a', size: 96 },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'follow_path' },
+      boss: { bossType: 'GiantSlime', splitCount: 0 },
+    } as RegistryUnitConfig);
+
+    injectEnemyConfigsFromRegistry();
+
+    expect(ENEMY_CONFIGS.wizard!.attackSpeed).toBeCloseTo(1 / 3);
+    expect(ENEMY_CONFIGS.giant_slime!.attackSpeed).toBe(1);
+  });
 });

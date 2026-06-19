@@ -194,7 +194,7 @@ mage:
   stats:
     hp: 80
     atk: 25
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 250
     speed: 55
     armor: 10
@@ -663,7 +663,7 @@ e_acid_artillery:
   stats:
     hp: 100
     atk: 22
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 260
     speed: 50
     armor: 5
@@ -722,7 +722,7 @@ e_giant_beetle:
   stats:
     hp: 320
     atk: 14
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 32
     speed: 35
     armor: 90
@@ -916,7 +916,7 @@ e_ice_witch:
   stats:
     hp: 180
     atk: 24
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 240
     speed: 55
     armor: 10
@@ -975,7 +975,7 @@ e_yeti_charger:
   stats:
     hp: 280
     atk: 30
-    attackSpeed: 0.25
+    attackSpeed: 0.34
     range: 32
     speed: 80
     armor: 60
@@ -1097,7 +1097,7 @@ e_glacier_titan:
   stats:
     hp: 1200
     atk: 35
-    attackSpeed: 0.25
+    attackSpeed: 0.34
     range: 48
     speed: 25
     armor: 100
@@ -1267,7 +1267,7 @@ e_temple_priest:
   stats:
     hp: 100
     atk: 8
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 220
     speed: 50
     armor: 10
@@ -1379,7 +1379,7 @@ e_petrify_oracle:
   stats:
     hp: 130
     atk: 20
-    attackSpeed: 0.25
+    attackSpeed: 0.34
     range: 200
     speed: 45
     armor: 15
@@ -1673,7 +1673,7 @@ e_kraken_tendril:
   stats:
     hp: 280
     atk: 30
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 250
     speed: 30
     armor: 20
@@ -1982,7 +1982,7 @@ e_minecart_juggernaut:
   stats:
     hp: 800
     atk: 60
-    attackSpeed: 0.25
+    attackSpeed: 0.34
     range: 32
     speed: 110
     armor: 100
@@ -2043,7 +2043,7 @@ e_repair_bot:
   stats:
     hp: 180
     atk: 12
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 96
     speed: 50
     armor: 35
@@ -2297,7 +2297,7 @@ e_warped_witch:
   stats:
     hp: 160
     atk: 18
-    attackSpeed: 0.3
+    attackSpeed: 0.34
     range: 220
     speed: 55
     armor: 10
@@ -3192,7 +3192,7 @@ elephant:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 300, atk: 15, attackSpeed: 0.3, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
+  stats: { hp: 300, atk: 15, attackSpeed: 0.34, range: 40, speed: 20, armor: 25, mr: 5, damageType: physical }
   reward: { gold: 20 }
   visual: { shape: circle, color: "#78909c", size: 52.8, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3207,7 +3207,7 @@ giant:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 400, atk: 30, attackSpeed: 0.25, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
+  stats: { hp: 400, atk: 30, attackSpeed: 0.34, range: 60, speed: 15, armor: 15, mr: 10, damageType: physical }
   reward: { gold: 30 }
   visual: { shape: circle, color: "#558b2f", size: 60, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3393,7 +3393,7 @@ frankenstein:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 500, atk: 35, attackSpeed: 0.3, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
+  stats: { hp: 500, atk: 35, attackSpeed: 0.34, range: 50, speed: 20, armor: 20, mr: 10, damageType: physical }
   reward: { gold: 30 }
   visual: { shape: circle, color: "#455a64", size: 57.6, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3462,7 +3462,7 @@ tank:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 350, atk: 40, attackSpeed: 0.25, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
+  stats: { hp: 350, atk: 40, attackSpeed: 0.34, range: 80, speed: 15, armor: 35, mr: 5, damageType: physical }
   reward: { gold: 25 }
   visual: { shape: rect, color: "#546e7a", size: 57.6, outline: true }
   behavior:
@@ -3517,7 +3517,7 @@ giant_robot:
   category: Enemy
   faction: Evil
   layer: Ground
-  stats: { hp: 600, atk: 50, attackSpeed: 0.2, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
+  stats: { hp: 600, atk: 50, attackSpeed: 0.34, range: 100, speed: 10, armor: 40, mr: 10, damageType: physical }
   reward: { gold: 40 }
   visual: { shape: rect, color: "#37474f", size: 67.2, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
@@ -3548,7 +3548,7 @@ super_robot:
   faction: Evil
   layer: Ground
   isBoss: true
-  stats: { hp: 2000, atk: 60, attackSpeed: 0.3, range: 100, speed: 10, armor: 40, mr: 15, damageType: physical }
+  stats: { hp: 2000, atk: 60, attackSpeed: 0.34, range: 100, speed: 10, armor: 40, mr: 15, damageType: physical }
   reward: { gold: 250 }
   visual: { shape: rect, color: "#d32f2f", size: 158.4, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }

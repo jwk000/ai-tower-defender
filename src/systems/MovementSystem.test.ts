@@ -769,6 +769,38 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Health.current[tower]).toBeLessThan(100);
   });
 
+  it('敌人普攻冷却最长不超过3秒', () => {
+    const boulder = makeBoulderAt(world, 50, 200);
+    const enemy = makePathEnemy(world, {
+      speed: 80,
+      atk: 10,
+      attackRange: 25,
+      attackSpeed: 0.2,
+      size: 28,
+    });
+
+    system.update(world, 0.25);
+
+    expect(Attack.targetId[enemy]).toBe(boulder);
+    expect(Attack.cooldownTimer[enemy]).toBeCloseTo(3);
+  });
+
+  it('敌人普攻冷却最短不小于1秒', () => {
+    const boulder = makeBoulderAt(world, 50, 200);
+    const enemy = makePathEnemy(world, {
+      speed: 80,
+      atk: 10,
+      attackRange: 25,
+      attackSpeed: 2,
+      size: 28,
+    });
+
+    system.update(world, 0.25);
+
+    expect(Attack.targetId[enemy]).toBe(boulder);
+    expect(Attack.cooldownTimer[enemy]).toBeCloseTo(1);
+  });
+
   it('虫族女王遇到塔后必须锁定攻击该塔直到杀死', () => {
     const tower = makeTower(world, 100);
     Position.x[tower] = 46;

@@ -614,7 +614,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   [EnemyType.Boar]: {
     type: EnemyType.Boar, name: '疯狂野猪', hp: 60, speed: 80, atk: 12,
-    defense: 0, magicResist: 0, attackRange: 30, attackSpeed: 1.5,
+    defense: 0, magicResist: 0, attackRange: 30, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 8, color: '#8d6e63', radius: 18, attackAnimDuration: 0.4,
   },
   [EnemyType.Elephant]: {
@@ -631,7 +631,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   // ===== §5.2 沙漠虫潮（虫族）=====
   [EnemyType.DesertBeetle]: {
     type: EnemyType.DesertBeetle, name: '沙漠黑虫', hp: 40, speed: 35, atk: 6,
-    defense: 2, magicResist: 0, attackRange: 20, attackSpeed: 1.5,
+    defense: 2, magicResist: 0, attackRange: 20, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 3, color: '#c8a96e', radius: 14, attackAnimDuration: 0.35,
   },
   [EnemyType.BurrowBeetle]: {
@@ -654,12 +654,12 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   // ===== §5.3 黑暗古堡（黑暗族）=====
   [EnemyType.Werewolf]: {
     type: EnemyType.Werewolf, name: '狼人', hp: 150, speed: 55, atk: 20,
-    defense: 8, magicResist: 5, attackRange: 40, attackSpeed: 1.5,
+    defense: 8, magicResist: 5, attackRange: 40, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 12, color: '#5d4037', radius: 20, attackAnimDuration: 0.4,
   },
   [EnemyType.VampireBat]: {
     type: EnemyType.VampireBat, name: '吸血蝙蝠', hp: 40, speed: 60, atk: 8,
-    defense: 0, magicResist: 5, attackRange: 40, attackSpeed: 1.2,
+    defense: 0, magicResist: 5, attackRange: 40, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 5, color: '#6a1b9a', radius: 12, attackAnimDuration: 0.3,
   },
   [EnemyType.Wizard]: {
@@ -697,7 +697,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   [EnemyType.RobotDog]: {
     type: EnemyType.RobotDog, name: '机器狗', hp: 50, speed: 80, atk: 10,
-    defense: 5, magicResist: 0, attackRange: 25, attackSpeed: 2.0,
+    defense: 5, magicResist: 0, attackRange: 25, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 6, color: '#90a4ae', radius: 14, attackAnimDuration: 0.3,
   },
   [EnemyType.GiantRobot]: {
@@ -707,7 +707,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   [EnemyType.Drone]: {
     type: EnemyType.Drone, name: '无人机', hp: 30, speed: 65, atk: 8,
-    defense: 0, magicResist: 5, attackRange: 50, attackSpeed: 1.5,
+    defense: 0, magicResist: 5, attackRange: 50, attackSpeed: 1.0,
     canAttackBuildings: false, rewardGold: 4, color: '#4fc3f7', radius: 10, attackAnimDuration: 0.2,
   },
 
@@ -738,7 +738,7 @@ export const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
   },
   [EnemyType.SuperRobot]: {
     type: EnemyType.SuperRobot, name: '超级机器人', hp: 2000, speed: 10, atk: 60,
-    defense: 40, magicResist: 15, attackRange: 100, attackSpeed: 0.3,
+    defense: 40, magicResist: 15, attackRange: 100, attackSpeed: 0.34,
     canAttackBuildings: true, rewardGold: 250, color: '#212121', radius: 44,
     isBoss: true, bossType: 'SuperRobot', bossPhase2HpRatio: 0.5, attackAnimDuration: 1.05,
   },

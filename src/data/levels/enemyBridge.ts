@@ -33,6 +33,14 @@ function mapDamageType(yamlDamageType: string | undefined): 'physical' | 'magic'
   }
 }
 
+const MIN_ENEMY_ATTACK_SPEED = 1 / 3;
+const MAX_ENEMY_ATTACK_SPEED = 1;
+
+function clampEnemyAttackSpeed(value: number): number {
+  if (value <= 0) return 0;
+  return Math.min(MAX_ENEMY_ATTACK_SPEED, Math.max(MIN_ENEMY_ATTACK_SPEED, value));
+}
+
 export function injectEnemyConfigsFromRegistry(): number {
   const enemies = unitConfigRegistry.getByCategory('Enemy');
   let injected = 0;
@@ -57,7 +65,7 @@ export function injectEnemyConfigsFromRegistry(): number {
       magicResist: stats?.mr ?? 0,
       damageType: mapDamageType(stats?.damageType as string),
       attackRange: stats?.range ?? 0,
-      attackSpeed: stats?.attackSpeed ?? 1,
+      attackSpeed: clampEnemyAttackSpeed(stats?.attackSpeed ?? 1),
       canAttackBuildings,
       rewardGold: reward?.gold ?? 10,
       color: visual?.color ?? '#ef5350',

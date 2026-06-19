@@ -29,6 +29,8 @@ const SOLDIER_REACH_THRESHOLD = 5;
 
 /** Moving enemy two-frame breath cadence. RenderSystem maps the phase to 100% / 104% scale. */
 const ENEMY_MOVE_BREATH_RATE = 8;
+const MIN_ENEMY_ATTACK_INTERVAL = 1;
+const MAX_ENEMY_ATTACK_INTERVAL = 3;
 const FLOCK_SEPARATION_RADIUS = 30;
 const FLOCK_ALIGNMENT_RADIUS = 72;
 const FLOCK_COHESION_RADIUS = 92;
@@ -757,7 +759,10 @@ export class MovementSystem implements System {
       }
 
       // Reset cooldown and set attack animation pause
-      Attack.cooldownTimer[eid] = 1.0 / attackSpeed;
+      Attack.cooldownTimer[eid] = Math.min(
+        MAX_ENEMY_ATTACK_INTERVAL,
+        Math.max(MIN_ENEMY_ATTACK_INTERVAL, 1.0 / attackSpeed),
+      );
       const attackAnimDuration = Visual.attackAnimDuration[eid] ?? 0.4;
       Visual.attackAnimTimer[eid] = attackAnimDuration > 0 ? attackAnimDuration : 0.4;
       return true;
