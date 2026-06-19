@@ -179,7 +179,7 @@
 
 | SFX Key | 事件 | 设计意图 | 实现来源 |
 |---------|------|---------|---------|
-| `intro_tile_drop` | 棋盘普通地格掉落开始 | 岩块坠落撞击，强化战场落成的重量感 | OpenGameArt CC0 OGG |
+| `intro_tile_drop` | 棋盘普通地格逐个落地 | 岩块坠落撞击，每个 tile 到达目标位置时触发一次，强化战场逐步落成的重量感 | OpenGameArt CC0 OGG |
 | `intro_path_break` | 水晶/出生口/路径铺展替换旧普通地格 | 岩石破碎，路径连续铺开时按 key 节流形成碎裂节奏 | OpenGameArt CC0 OGG |
 
 ### 2.13 胜利/失败音效

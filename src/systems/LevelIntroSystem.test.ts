@@ -55,16 +55,23 @@ describe('LevelIntroSystem audio', () => {
     vi.restoreAllMocks();
   });
 
-  it('plays drop sound at intro start and break sound when route tiles are revealed', () => {
+  it('plays drop sound once for each tile when it lands and break sound when route tiles are revealed', () => {
     const playSpy = vi.spyOn(Sound, 'play').mockImplementation(() => {});
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     const renderer = { context: createMockContext() };
     const system = new LevelIntroSystem(renderer as never, createMap());
 
     system.start();
-    expect(playSpy).toHaveBeenCalledWith('intro_tile_drop');
+    expect(playSpy).not.toHaveBeenCalledWith('intro_tile_drop');
 
     const world = new TowerWorld();
-    system.update(world, 1.91);
+    system.update(world, 1.19);
+    expect(playSpy).not.toHaveBeenCalledWith('intro_tile_drop');
+
+    system.update(world, 0.02);
+    expect(playSpy.mock.calls.filter(([key]) => key === 'intro_tile_drop')).toHaveLength(3);
+
+    system.update(world, 0.7);
     system.update(world, 0.61);
     system.update(world, 0.61);
     system.update(world, 0.51);

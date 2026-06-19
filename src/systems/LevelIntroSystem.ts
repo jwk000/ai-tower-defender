@@ -50,6 +50,7 @@ interface TileAnimData {
   startY: number;
   currentY: number;
   delay: number;
+  dropSoundPlayed: boolean;
 }
 
 // ---- 路径揭示条目 ----
@@ -148,7 +149,6 @@ export class LevelIntroSystem implements System {
     this.pathRevealDone = false;
     this.revealedPathTiles.clear();
     this.tileBreakEffects = [];
-    Sound.play('intro_tile_drop');
     if (this.baseEntityId !== null) {
       Visual.alpha[this.baseEntityId] = 0;
     }
@@ -161,6 +161,7 @@ export class LevelIntroSystem implements System {
     for (const tile of this.tiles) {
       tile.delay = Math.random() * TILE_FALL_STAGGER;
       tile.currentY = tile.startY;
+      tile.dropSoundPlayed = false;
     }
   }
 
@@ -204,9 +205,19 @@ export class LevelIntroSystem implements System {
 
   private updateTilesFalling(): void {
     const totalDuration = TILE_FALL_DURATION + TILE_FALL_STAGGER + 0.2;
+    this.updateTileDropSounds();
     if (this.timer >= totalDuration) {
       this.phase = IntroPhase.DecorAppear;
       this.timer = 0;
+    }
+  }
+
+  private updateTileDropSounds(): void {
+    for (const tile of this.tiles) {
+      if (tile.dropSoundPlayed) continue;
+      if (this.timer < tile.delay + TILE_FALL_DURATION) continue;
+      tile.dropSoundPlayed = true;
+      Sound.play('intro_tile_drop');
     }
   }
 
@@ -617,6 +628,7 @@ export class LevelIntroSystem implements System {
           targetX: x, targetY: y,
           startY, currentY: startY,
           delay: 0,
+          dropSoundPlayed: false,
         });
       }
     }
