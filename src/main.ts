@@ -1158,10 +1158,13 @@ class TowerDefenderGame extends Game {
             // 校验通过后再扣金币
             if (handCard) this.economy.spendGold(handCard.goldCost);
             Sound.play('build_place');
-            this.uiSystem.selectedEntityId = result;
-            this.uiSystem.selectedEntityType = ds.entityType === 'tower' ? 'tower' :
-              ds.entityType === 'trap' ? 'trap' :
-                ds.entityType === 'production' ? 'production' : null;
+            if (ds.entityType === 'tower') {
+              this.uiSystem.selectedEntityId = result;
+              this.uiSystem.selectedEntityType = 'tower';
+            } else {
+              this.uiSystem.selectedEntityId = null;
+              this.uiSystem.selectedEntityType = null;
+            }
             // 从手牌中移除已使用的卡牌
             if (ds.cardIndex !== undefined) {
               console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
@@ -1653,6 +1656,13 @@ class TowerDefenderGame extends Game {
   private handleMapClick(e: InputEvent): void {
     const w = this.world.world;
 
+    const clearSelection = (): void => {
+      this.uiSystem.selectedEntityId = null;
+      this.uiSystem.selectedEntityType = null;
+      this.uiSystem.enemyEntityId = null;
+      this.debugManager.selectEntity(null);
+    };
+
     // Try clicking on an enemy first
     for (let eid = 1; eid < Position.x.length; eid++) {
       const px = Position.x[eid];
@@ -1698,10 +1708,7 @@ class TowerDefenderGame extends Game {
       if (size === undefined) continue;
       const r = size * 0.65;
       if (Math.abs(e.x - px) < r && Math.abs(e.y - py) < r) {
-        this.uiSystem.enemyEntityId = null;
-        this.uiSystem.selectedEntityId = eid;
-        this.uiSystem.selectedEntityType = 'trap';
-        this.debugManager.selectEntity(eid);
+        clearSelection();
         return;
       }
     }
@@ -1744,10 +1751,7 @@ class TowerDefenderGame extends Game {
     }
 
     // Deselect everything
-    this.uiSystem.selectedEntityId = null;
-    this.uiSystem.selectedEntityType = null;
-    this.uiSystem.enemyEntityId = null;
-    this.debugManager.selectEntity(null);
+    clearSelection();
   }
 
   private resolveUnitConfig(entityId: number) {

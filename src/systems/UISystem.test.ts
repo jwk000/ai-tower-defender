@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import type { RenderCommand } from '../types/index.js';
 import { GamePhase } from '../types/index.js';
 import { TowerWorld } from '../core/World.js';
-import { Health, Position, Tower, Attack, UnitTag } from '../core/components.js';
+import { Health, Position, Tower, Attack, UnitTag, Trap, TrapTypeVal } from '../core/components.js';
 import { LayoutManager } from '../ui/LayoutManager.js';
 import {
   computeHandZoneSlotRects,
@@ -392,6 +392,59 @@ describe('UISystem UI 层级', () => {
     const upgradeButton = buttonsOf(ui).find((button) => button.label === '升级 60G');
     expect(upgradeButton).toBeDefined();
     expect((upgradeButton as { layer?: string }).layer).toBe('board');
+  });
+
+  it('机关选中后不显示 tips 面板、范围圈和升级入口', () => {
+    const renderer = new RendererStub();
+    const ui = makeUISystem(renderer, 0);
+    const world = new TowerWorld();
+    const trapId = world.createEntity();
+    world.addComponent(trapId, Position, { x: 960, y: 540 });
+    world.addComponent(trapId, Trap, {
+      trapType: TrapTypeVal.SpikeTrap,
+      damagePerSecond: 3,
+      radius: 32,
+      cooldown: 0.2,
+      cooldownTimer: 0,
+      animTimer: 0,
+      animDuration: 0.4,
+      triggerCount: 0,
+      maxTriggers: 0,
+      direction: 0,
+      stunDuration: 0,
+      damage: 0,
+    });
+
+    ui.selectedTrapEntityId = trapId;
+    ui.update(world, 1 / 60);
+
+    expect(towerPanelBgOf(ui)).toBeNull();
+    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 Lv.1');
+    expect(buttonsOf(ui).some((button) => button.label.startsWith('升级'))).toBe(false);
+    expect(renderer.commands.some((cmd) => cmd.shape === 'circle' && cmd.z === 20)).toBe(false);
+  });
+
+  it('机关即使残留士兵标签也不会显示盾卫 tips 或升级入口', () => {
+    const ui = makeUISystem(new RendererStub(), 0);
+    const world = new TowerWorld();
+    const trapId = world.createEntity();
+    world.addComponent(trapId, Position, { x: 960, y: 540 });
+    world.addComponent(trapId, UnitTag, {
+      unitTypeNum: 0,
+      isEnemy: 0,
+      level: 1,
+      maxLevel: 3,
+      popCost: 0,
+      cost: 40,
+      totalInvested: 40,
+    });
+
+    ui.selectedTrapEntityId = trapId;
+    ui.update(world, 1 / 60);
+
+    expect(towerPanelBgOf(ui)).toBeNull();
+    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 Lv.1');
+    expect(buttonsOf(ui).some((button) => button.label.startsWith('升级'))).toBe(false);
   });
 
   it('抽卡面板作为全屏 UI 重绘在普通 UI 与塔升级面板之上', () => {

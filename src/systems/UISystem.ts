@@ -26,7 +26,6 @@ import {
   Production,
   Category,
   CategoryVal,
-  Trap,
   PlayerOwned,
   BatTower,
 } from '../core/components.js';
@@ -608,7 +607,7 @@ export class UISystem implements System {
   }
 
   // ============================================================
-  // Range Preview (tower / trap)
+  // Range Preview (tower)
   // ============================================================
 
   private drawRangePreview(): void {
@@ -639,11 +638,6 @@ export class UISystem implements System {
       const config = towerTypeEnum ? TOWER_CONFIGS[towerTypeEnum] : undefined;
       diameter = atkRange * 2;
       color = config?.color ?? '#ffffff';
-    } else if (this.selectedEntityType === 'trap') {
-      const trapRadius = Trap.radius[id];
-      if (trapRadius === undefined) return;
-      diameter = trapRadius * 2;
-      color = '#e53935';
     } else {
       return;
     }
