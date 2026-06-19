@@ -5,11 +5,11 @@
     "/art/ui/ui_card_frame_epic.png": {
       "x": 2,
       "y": 2,
-      "w": 876,
-      "h": 1520
+      "w": 1024,
+      "h": 1536
     },
     "/art/ui/ui_card_frame_legendary.png": {
-      "x": 880,
+      "x": 1028,
       "y": 2,
       "w": 776,
       "h": 1508
