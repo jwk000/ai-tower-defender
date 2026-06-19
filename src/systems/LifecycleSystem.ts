@@ -213,11 +213,11 @@ export class LifecycleSystem implements System {
             colorB,
             size,
           });
-          world.addComponent(effectEid, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
+          world.addComponent(effectEid, DeathEffect, { duration: isEnemy ? 0.65 : 0.3, elapsed: 0, renderedFrames: 0 });
           if (isEnemy) {
             world.addComponent(effectEid, DisintegrateEffect, {
-              shardCount: hasComponent(world.world, Boss, eid) ? 18 : 10,
-              radius: hasComponent(world.world, Boss, eid) ? Math.max(size * 1.4, 120) : Math.max(size, 28),
+              shardCount: hasComponent(world.world, Boss, eid) ? 24 : 16,
+              radius: hasComponent(world.world, Boss, eid) ? Math.max(size * 1.8, 140) : Math.max(size * 1.45, 42),
               colorR: 170,
               colorG: 170,
               colorB: 170,

@@ -903,33 +903,45 @@ export class RenderSystem implements System {
     const g = DisintegrateEffect.colorG[eid] ?? 170;
     const b = DisintegrateEffect.colorB[eid] ?? 170;
     const alpha = Math.max(0, 1 - progress);
+    const burst = Math.sin(progress * Math.PI);
 
     this.renderer.push({
       shape: 'circle',
       x,
       y,
-      size: size * (1 + progress * 0.7),
+      size: size * (0.95 + progress * 1.1),
       color: `rgb(${r}, ${g}, ${b})`,
-      alpha: 0.18 * alpha,
+      alpha: Math.max(0.12, 0.32 * alpha),
       stroke: '#d0d0d0',
       strokeWidth: 1,
-      z,
+      z: z + 0.05,
+    });
+
+    this.renderer.push({
+      shape: 'circle',
+      x,
+      y,
+      size: size * (0.72 + progress * 0.18),
+      color: '#f1f1f1',
+      alpha: 0.28 * alpha,
+      z: z + 0.15,
     });
 
     for (let i = 0; i < shardCount; i++) {
       const angle = (i / shardCount) * Math.PI * 2 + i * 0.73;
-      const dist = radius * (0.15 + progress * (0.45 + (i % 4) * 0.08));
-      const px = x + Math.cos(angle) * dist;
-      const py = y + Math.sin(angle) * dist * 0.72 - progress * 14;
+      const dist = radius * (0.12 + progress * (0.72 + (i % 4) * 0.1));
+      const jitter = Math.sin(progress * Math.PI * 3 + i) * size * 0.03;
+      const px = x + Math.cos(angle) * (dist + jitter);
+      const py = y + Math.sin(angle) * (dist + jitter) * 0.72 - progress * 20;
       this.renderer.push({
         shape: i % 3 === 0 ? 'triangle' : 'diamond',
         x: px,
         y: py,
-        size: Math.max(3, size * 0.08 + (i % 3) * 2),
+        size: Math.max(4, size * (0.1 + burst * 0.06) + (i % 3) * 2),
         color: `rgb(${r}, ${g}, ${b})`,
-        alpha: 0.75 * alpha,
-        rotation: angle + progress * Math.PI,
-        z: z + 0.1,
+        alpha: Math.min(0.95, (0.86 + burst * 0.12) * alpha),
+        rotation: angle + progress * Math.PI * 1.6,
+        z: z + 0.25,
       });
     }
   }

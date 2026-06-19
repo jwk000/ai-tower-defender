@@ -59,7 +59,9 @@ describe('LifecycleSystem — Boss死亡与敌方灰飞烟灭', () => {
 
     const effects = deathFxQuery(world.world);
     expect(effects.length).toBe(1);
-    expect(DisintegrateEffect.shardCount[effects[0]!]).toBe(10);
+    expect(DeathEffect.duration[effects[0]!]).toBeCloseTo(0.65);
+    expect(DisintegrateEffect.shardCount[effects[0]!]).toBe(16);
+    expect(DisintegrateEffect.radius[effects[0]!]).toBeGreaterThanOrEqual(42);
   });
 
   it('普通敌方单位死亡效果继承原单位death动作资源', () => {

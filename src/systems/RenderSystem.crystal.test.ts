@@ -680,10 +680,10 @@ describe('RenderSystem — 水晶显示', () => {
       size: 32,
       alpha: 1,
     });
-    world.addComponent(effectId, DeathEffect, { duration: 0.3, elapsed: 0, renderedFrames: 0 });
+    world.addComponent(effectId, DeathEffect, { duration: 0.65, elapsed: 0, renderedFrames: 0 });
     world.addComponent(effectId, DisintegrateEffect, {
-      shardCount: 10,
-      radius: 32,
+      shardCount: 16,
+      radius: 42,
       colorR: 170,
       colorG: 170,
       colorB: 170,
@@ -702,7 +702,7 @@ describe('RenderSystem — 水晶显示', () => {
       (cmd.shape === 'triangle' || cmd.shape === 'diamond'),
     );
 
-    expect(ashShards.length).toBe(10);
+    expect(ashShards.length).toBe(16);
     expect(DeathEffect.renderedFrames[effectId]).toBe(1);
   });
 });
