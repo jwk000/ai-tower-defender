@@ -2,7 +2,7 @@
   "version": 1,
   "modelLock": "azure/gpt-image-2",
   "createdAt": "2026-06-09T00:00:00.000Z",
-  "updatedAt": "2026-06-15T06:29:52.824Z",
+  "updatedAt": "2026-06-19T15:37:00.000Z",
   "totals": {
     "done": 315
   },
@@ -3498,7 +3498,13 @@
       "type": "ui",
       "model": "azure/gpt-image-2",
       "status": "done",
-      "attempts": 0
+      "attempts": 1,
+      "startedAt": "2026-06-19T15:36:00.000Z",
+      "finishedAt": "2026-06-19T15:37:00.000Z",
+      "prompt": "dark fantasy casual tower defense game art, stylized 2D hand-painted game UI asset, clean bold readable silhouette, high contrast rim light, dark navy mood, mobile game friendly, no text, no watermark, no logo. Asset id: ui_hand_panel. Primary request: wide horizontal hand cards tray base panel for bottom HUD, low-saturation dark grey-blue iron and stone material, subtle hand-painted texture, thin antique silver edge with faint cyan highlights, close to rectangular shape, only very narrow corner ornaments, no large bevels or diagonal chamfer intruding into card slots, 9-slice source panel, center area intentionally plain and stretchable for card slots, transparent outside the panel, no card slots, no icons, no text. Composition: panel centered, fills about 90 percent of the canvas width and 36 percent of canvas height, generous transparent padding, perfectly front-facing orthographic UI asset. Constraints: must work as nine-slice stretched to 800x180; corners and borders should be decorative but compact; middle must be clean and low contrast. Avoid: photorealistic, cinematic poster, complex background, large angled corners, oversized decorations, bright saturated colors, beige parchment, purple gradients, text, letters, numbers, watermark, logo, cards, characters.",
+      "lastStdout": "✅ generate.image\n   输出: tmp/imagegen/ui_hand_panel_ai_raw.png\n   width: 1536\n   height: 1024\n   format: PNG\n   mode: RGB\n   file_size_bytes: 969353\n   model: azure/gpt-image-2\n   trace: 51f3b1d5f2abd543e9912ecf85c2b06e\n   postprocess: remove generated checkerboard background, crop panel, resize/composite to public/art/ui/ui_hand_panel.png 1024x320 RGBA",
+      "lastStderr": "",
+      "postprocess": "AI output used a checkerboard-style background; local flood-fill alpha extraction removed outside background, then the panel was resized into a 1024x320 transparent nine-slice source."
     },
     {
       "id": "decor_meadow_tree_idle_0",
