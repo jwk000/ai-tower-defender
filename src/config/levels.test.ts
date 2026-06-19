@@ -71,6 +71,14 @@ const rawLevelModules = import.meta.glob('./levels/*.yaml', {
 }) as Record<string, string>;
 
 const FRONTLINE_CARDS = new Set(['card_shield_guard', 'card_boulder', 'card_bear_trap']);
+const SOLDIER_UPGRADE_CARDS = [
+  'card_upgrade_shield_guard',
+  'card_upgrade_swordsman',
+  'card_upgrade_archer',
+  'card_upgrade_priest',
+  'card_upgrade_assassin',
+  'card_upgrade_mage',
+] as const;
 const OUTPUT_CARDS = new Set([
   'card_arrow_tower',
   'card_ballista_tower',
@@ -260,6 +268,15 @@ describe('关卡 YAML 配置', () => {
 
       for (const cardId of [...level.cardPool, ...level.draftPool]) {
         seenCards.add(cardId);
+      }
+    }
+  });
+
+  it('第3-5关卡池混入全部士兵升级卡', () => {
+    for (const level of loadRawLevels().filter((rawLevel) => ['level_03', 'level_04', 'level_05'].includes(rawLevel.id))) {
+      for (const cardId of SOLDIER_UPGRADE_CARDS) {
+        expect(level.cardPool, `${level.id} cardPool 缺少士兵升级卡 ${cardId}`).toContain(cardId);
+        expect(level.draftPool, `${level.id} draftPool 缺少士兵升级卡 ${cardId}`).toContain(cardId);
       }
     }
   });

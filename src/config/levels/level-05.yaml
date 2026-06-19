@@ -384,6 +384,12 @@ cardPool:
   - card_mage
   - card_priest
   - card_assassin
+  - card_upgrade_shield_guard
+  - card_upgrade_swordsman
+  - card_upgrade_archer
+  - card_upgrade_priest
+  - card_upgrade_assassin
+  - card_upgrade_mage
   - card_spike_trap
   - card_bear_trap
   - card_tar_pit
@@ -412,6 +418,12 @@ draftPool:
   - card_mage
   - card_priest
   - card_assassin
+  - card_upgrade_shield_guard
+  - card_upgrade_swordsman
+  - card_upgrade_archer
+  - card_upgrade_priest
+  - card_upgrade_assassin
+  - card_upgrade_mage
   - card_spike_trap
   - card_bear_trap
   - card_tar_pit
