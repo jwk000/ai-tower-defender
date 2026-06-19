@@ -83,4 +83,16 @@ describe('audio assets', () => {
 
     expect(failures).toEqual([]);
   });
+
+  it('keeps skill_blizzard extension aligned with its actual container', () => {
+    const soundSource = readText('src/utils/Sound.ts');
+    const match = soundSource.match(/skill_blizzard:\s*['"]\/sfx\/([^'"]+)['"]/);
+    expect(match?.[1]).toBe('skill_blizzard.wav');
+
+    const header = fs.readFileSync(path.join(ROOT, 'public/sfx/skill_blizzard.wav'), { encoding: null, flag: 'r' })
+      .subarray(0, 12)
+      .toString('ascii');
+    expect(header.startsWith('RIFF')).toBe(true);
+    expect(header.slice(8, 12)).toBe('WAVE');
+  });
 });

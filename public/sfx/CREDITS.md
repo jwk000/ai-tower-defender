@@ -60,3 +60,9 @@ All files listed here are audio assets used by the game runtime under `public/sf
 | Runtime file | Original file |
 |--------------|---------------|
 | `skill_earthquake.ogg` | `sfx100v2_thunder_01.ogg` |
+
+## Generated Runtime SFX
+
+| Runtime file | Notes |
+|--------------|-------|
+| `skill_blizzard.wav` | Generated cold wind howl used by the Blizzard spell; stored as WAV to match the actual RIFF/WAVE container. |

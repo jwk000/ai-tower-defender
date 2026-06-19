@@ -227,7 +227,7 @@ const SFX_PATH: Record<SfxKey, string> = {
   // Skill cards (synth-only)
   skill_fireball: '/sfx/skill_fireball.ogg',
   skill_arrow_rain: '/sfx/skill_arrow_rain.ogg',
-  skill_blizzard: '/sfx/skill_blizzard.ogg',
+  skill_blizzard: '/sfx/skill_blizzard.wav',
   skill_bomb: '/sfx/skill_bomb.ogg',
   skill_earthquake: '/sfx/skill_earthquake.ogg',
   // Arcane cards (synth-only)
