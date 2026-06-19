@@ -433,7 +433,7 @@ export class EnemyCodexUI {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(
-        `HP:${card.hp} ATK:${card.atk} 速度:${card.speed}`,
+        `生命:${card.hp} 攻击:${card.atk} 速度:${card.speed}`,
         cardCenterX, cardTop + 14 + ART_H + 50,
       );
       ctx.restore();

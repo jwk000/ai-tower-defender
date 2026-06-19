@@ -209,7 +209,7 @@ export class LevelSelectUI {
     ctx.font = FONTS.title;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Tower Defender', LayoutManager.DESIGN_W / 2, 118);
+    ctx.fillText('暗黑塔防', LayoutManager.DESIGN_W / 2, 118);
     ctx.restore();
 
     // Subtitle
@@ -588,7 +588,7 @@ export class LevelSelectUI {
 
     ctx.fillStyle = 'rgba(255,255,255,0.86)';
     ctx.font = getFont(18, true);
-    const detailParts = [`${btn.theme.toUpperCase()} · ${btn.waves} WAVES`];
+    const detailParts = [`${theme.subtitle} · ${btn.waves} 波`];
     if (btn.timesCleared > 0) {
       detailParts.push(`已通关 ×${btn.timesCleared}`);
     }
@@ -596,13 +596,13 @@ export class LevelSelectUI {
 
     ctx.fillStyle = btn.locked ? '#ff8a80' : theme.accent;
     ctx.font = getFont(24, true);
-    const actionText = btn.locked ? 'LOCKED' : btn.timesCleared > 0 ? 'REPLAY' : 'CLICK TO START';
+    const actionText = btn.locked ? '未解锁' : btn.timesCleared > 0 ? '再次挑战' : '点击开始';
     ctx.fillText(actionText, panelX + 68, panelY + 272);
 
     ctx.textAlign = 'right';
     ctx.font = getFont(20, true);
     ctx.fillStyle = 'rgba(255,255,255,0.70)';
-    ctx.fillText(`LEVEL ${btn.levelId}`, panelX + panelW - 64, panelY + 64);
+    ctx.fillText(`第 ${btn.levelId} 关`, panelX + panelW - 64, panelY + 64);
     ctx.restore();
   }
 

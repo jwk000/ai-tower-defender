@@ -317,7 +317,7 @@ function buildTowerLevelSnapshot(
 ): LevelStatSnapshot {
   const baseAtk = currentAtk - sumLevelBonuses(config.upgradeAtkBonus, level);
   const skill = config.type === TowerType.Lightning && level >= 5 && config.lightningStormCooldown && config.lightningStormDamage
-    ? `天罚落雷: 每${formatPanelNumber(config.lightningStormCooldown)}秒全屏优先打击Boss/精英，造成${formatPanelNumber(config.lightningStormDamage)}伤害`
+    ? `天罚落雷: 每${formatPanelNumber(config.lightningStormCooldown)}秒全屏优先打击BOSS/精英，造成${formatPanelNumber(config.lightningStormDamage)}伤害`
     : null;
   return {
     atk: baseAtk + sumLevelBonuses(config.upgradeAtkBonus, level),
@@ -727,7 +727,7 @@ export class UISystem implements System {
     this.infos.push({
       x: panelX,
       y: panelY + 22,
-      text: `${config.name} Lv.${level}`,
+      text: `${config.name} 等级${level}`,
       color: '#ffffff',
       size: 16,
       align: 'center',
@@ -830,7 +830,7 @@ export class UISystem implements System {
     this.infos.push({
       x: panelX,
       y: panelY + 22,
-      text: `${config.name} Lv.${level}`,
+      text: `${config.name} 等级${level}`,
       color: '#ffffff',
       size: 16,
       align: 'center',
@@ -2293,7 +2293,7 @@ export class UISystem implements System {
         layer: 'fullscreen',
       });
 
-      const rarityLabel = opt.rarity.charAt(0).toUpperCase() + opt.rarity.slice(1);
+      const rarityLabel = this.formatBuffRarity(opt.rarity);
       this.infos.push({
         x: cx, y: cardY - cardH / 2 + 52,
         text: rarityLabel, color: borderColor, size: 13, align: 'center',
@@ -2309,7 +2309,7 @@ export class UISystem implements System {
 
       this.infos.push({
         x: cx, y: cardY + 78,
-        text: `${opt.effect.type}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
+        text: `${this.formatBuffEffectType(opt.effect.type)}: ${opt.effect.value > 0 ? '+' : ''}${opt.effect.value}${opt.effect.type.includes('speed') || opt.effect.type === 'hp' ? '%' : ''}`,
         color: '#ffcc80', size: 14, align: 'center',
         layer: 'fullscreen',
       });
@@ -2326,6 +2326,32 @@ export class UISystem implements System {
           sys.selectBuff(i);
         },
       });
+    }
+  }
+
+  private formatBuffRarity(rarity: string): string {
+    switch (rarity) {
+      case 'common': return '普通';
+      case 'rare': return '稀有';
+      case 'epic': return '史诗';
+      default: return rarity;
+    }
+  }
+
+  private formatBuffEffectType(type: string): string {
+    switch (type) {
+      case 'attack_speed': return '攻击速度';
+      case 'move_speed': return '移动速度';
+      case 'gold_multiplier': return '金币收益';
+      case 'hand_size': return '手牌上限';
+      case 'draft_options': return '抽卡选项';
+      case 'atk': return '攻击';
+      case 'hp': return '生命';
+      case 'range': return '射程';
+      case 'slow': return '减速';
+      case 'dot': return '持续伤害';
+      case 'gold': return '金币';
+      default: return type;
     }
   }
 

@@ -319,7 +319,7 @@ describe('UISystem UI 层级', () => {
       ]),
     );
 
-    const titleInfo = infosOf(ui).find((info) => info.text.includes('Lv.1'));
+    const titleInfo = infosOf(ui).find((info) => info.text.includes('等级1'));
     expect(titleInfo).toBeDefined();
     expect((titleInfo as { layer?: string }).layer).toBe('board');
   });
@@ -402,7 +402,7 @@ describe('UISystem UI 层级', () => {
 
     expect(towerPanelBgOf(ui)).toMatchObject({ w: 300, h: 230 });
     const texts = infosOf(ui).map((info) => info.text);
-    expect(texts).toContain('盾卫 Lv.2');
+    expect(texts).toContain('盾卫 等级2');
     expect(texts).toContain('当前等级:');
     expect(texts).toContain('攻/防/血: 4/70/520');
     expect(texts.some((text) => text.includes('技能 嘲讽'))).toBe(true);
@@ -439,7 +439,7 @@ describe('UISystem UI 层级', () => {
     ui.update(world, 1 / 60);
 
     expect(towerPanelBgOf(ui)).toBeNull();
-    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 Lv.1');
+    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 等级1');
     expect(buttonsOf(ui).some((button) => button.label.startsWith('升级'))).toBe(false);
     expect(renderer.commands.some((cmd) => cmd.shape === 'circle' && cmd.z === 20)).toBe(false);
   });
@@ -463,7 +463,7 @@ describe('UISystem UI 层级', () => {
     ui.update(world, 1 / 60);
 
     expect(towerPanelBgOf(ui)).toBeNull();
-    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 Lv.1');
+    expect(infosOf(ui).map((info) => info.text)).not.toContain('盾卫 等级1');
     expect(buttonsOf(ui).some((button) => button.label.startsWith('升级'))).toBe(false);
   });
 

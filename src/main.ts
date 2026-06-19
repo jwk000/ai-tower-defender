@@ -1326,7 +1326,7 @@ class TowerDefenderGame extends Game {
         entries.push({
           id: group.enemyType,
           name: enemy.name,
-          description: enemy.description ?? `${enemy.name} — HP:${enemy.hp} ATK:${enemy.atk} 护甲:${enemy.defense}`,
+          description: enemy.description ?? `${enemy.name} — 生命:${enemy.hp} 攻击:${enemy.atk} 护甲:${enemy.defense}`,
           type,
           color: enemy.color,
           hp: enemy.hp,
