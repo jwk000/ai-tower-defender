@@ -124,7 +124,7 @@ export function rarityBorderColor(rarity: string): string {
 
 /**
  * v3.0 roguelike — 手牌区几何边界（design space），renderHandZone 与命中判定共用。
- * 与 design/20 §4.5.2 一致：bottom-center offset(0,-130), size 800×180。
+ * 与 design/05 §7.3 一致：bottom-center offset(0,-130), size 800×220。
  */
 export function getHandZoneBounds(): {
   width: number;
@@ -135,7 +135,7 @@ export function getHandZoneBounds(): {
   top: number;
 } {
   const width = 800;
-  const height = 180;
+  const height = 220;
   const centerX = 1920 / 2;
   const centerY = 1080 - 130;
   return {

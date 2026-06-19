@@ -517,9 +517,9 @@ describe('UISystem 手牌区底板与空槽布局', () => {
 
     expect(getHandZoneBounds()).toMatchObject({
       left: 560,
-      top: 860,
+      top: 840,
       width: 800,
-      height: 180,
+      height: 220,
     });
     expect(handZoneOverlapsBoard({
       left: RenderSystem.sceneOffsetX,
@@ -548,9 +548,17 @@ describe('UISystem 手牌区底板与空槽布局', () => {
     expect(handPanel).toMatchObject({
       mode: 'nine-slice',
       slice: UI_HAND_PANEL_SLICE,
+      alpha: 1,
     });
     expect(UI_HAND_PANEL_SLICE.left).toBeLessThan(50);
     expect(UI_HAND_PANEL_SLICE.right).toBeLessThan(50);
+    expect(renderer.commands.some((cmd) => (
+      cmd.shape === 'rect' &&
+      cmd.size === getHandZoneBounds().width &&
+      cmd.h === getHandZoneBounds().height &&
+      cmd.alpha !== undefined &&
+      cmd.alpha < 1
+    ))).toBe(false);
   });
 
   it('鼠标悬停手牌时卡牌上移放大，描述直接显示在卡面且不再绘制 tooltip', () => {

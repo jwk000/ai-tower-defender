@@ -1116,28 +1116,11 @@ export class UISystem implements System {
       h: bounds.height,
       path: uiArtPath('ui_hand_panel'),
       layer: 'normal',
-      alpha: 0.48,
+      alpha: 1,
       phase: 'back',
       mode: 'nine-slice',
       slice: UI_HAND_PANEL_SLICE,
       z: UI_Z.NORMAL_UI - 3,
-    });
-    this.renderer.push({
-      shape: 'rect',
-      x: bounds.centerX, y: bounds.centerY,
-      size: bounds.width, h: bounds.height,
-      color: '#2b3038',
-      alpha: 0.16,
-      stroke: '#8793a3', strokeWidth: 0.5,
-      z: UI_Z.NORMAL_UI - 2,
-    });
-    this.renderer.push({
-      shape: 'rect',
-      x: bounds.centerX, y: bounds.centerY + bounds.height / 2 - 6,
-      size: bounds.width - 24, h: 2,
-      color: '#9aa0a8',
-      alpha: 0.08,
-      z: UI_Z.NORMAL_UI - 1,
     });
     for (const slot of slotRects) {
       this.renderer.push({
