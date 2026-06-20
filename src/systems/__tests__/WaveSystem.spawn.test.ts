@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { defineQuery } from 'bitecs';
 import { WaveSystem, type SpawnEnemyOptions } from '../WaveSystem.js';
-import { TowerWorld } from '../../core/World.js';
+import { TowerWorld, hasComponent } from '../../core/World.js';
 import { GamePhase, EnemyType, type WaveConfig, type MapConfig } from '../../types/index.js';
 import { Position, UnitTag, Health, Elite, Visual, Boss, ExplosionEffect, Attack, DamageTypeVal, EnemyFlockMember, Layer, LayerVal, Movement } from '../../core/components.js';
 import { RenderSystem } from '../RenderSystem.js';
@@ -535,6 +535,108 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     const bosses = bossQuery(world.world);
     expect(bosses.length).toBe(1);
     expect(world.getDisplayName(bosses[0]!)).toBe('巨型史莱姆');
+  });
+
+  it('Boss 存活且首轮出怪结束后，会按配置定时补充金币敌人', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      bossReinforcements: {
+        interval: 1,
+        maxAliveNonBoss: 10,
+        groups: [{ enemyType: EnemyType.Goblin, count: 2, spawnInterval: 0 }],
+      },
+      enemies: [{ enemyType: EnemyType.Lucifer, count: 1, spawnInterval: 0 }],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.startWave();
+    ws.update(world, 0);
+    ws.update(world, 1);
+
+    const bosses = bossQuery(world.world);
+    const nonBossEnemies = enemyQuery(world.world)
+      .filter((eid) => UnitTag.isEnemy[eid] === 1 && !bosses.includes(eid));
+    expect(bosses.length).toBe(1);
+    expect(nonBossEnemies.length).toBe(2);
+    for (const eid of nonBossEnemies) {
+      expect(world.getDisplayName(eid)).toBe('哥布林');
+      expect(UnitTag.rewardGold[eid]).toBe(ENEMY_CONFIGS[EnemyType.Goblin]!.rewardGold);
+    }
+  });
+
+  it('Boss 补怪未显式配置 groups 时，复用 Boss 波里的非 Boss 敌人', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      bossReinforcements: { interval: 1, maxAliveNonBoss: 1 },
+      enemies: [
+        { enemyType: EnemyType.Lucifer, count: 1, spawnInterval: 0 },
+        { enemyType: EnemyType.Boar, count: 1, spawnInterval: 0 },
+      ],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.startWave();
+    ws.update(world, 0);
+    ws.update(world, 0);
+
+    for (const eid of enemyQuery(world.world)) {
+      if (!hasComponent(world.world, Boss, eid)) Health.current[eid] = 0;
+    }
+
+    ws.update(world, 1);
+
+    const liveNonBossEnemies = enemyQuery(world.world)
+      .filter((eid) => UnitTag.isEnemy[eid] === 1 && Health.current[eid]! > 0 && !hasComponent(world.world, Boss, eid));
+    expect(liveNonBossEnemies.length).toBe(1);
+    expect(world.getDisplayName(liveNonBossEnemies[0]!)).toBe('疯狂野猪');
+  });
+
+  it('Boss 死亡后停止补怪，最后一波仍可进入胜利', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      bossReinforcements: {
+        interval: 1,
+        maxAliveNonBoss: 10,
+        groups: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
+      },
+      enemies: [{ enemyType: EnemyType.Lucifer, count: 1, spawnInterval: 0 }],
+    }];
+
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+    ws.update(world, 0);
+
+    const [boss] = bossQuery(world.world);
+    expect(boss).toBeDefined();
+    Health.current[boss!] = 0;
+    ws.update(world, 1);
+
+    const liveNonBossEnemies = enemyQuery(world.world)
+      .filter((eid) => UnitTag.isEnemy[eid] === 1 && Health.current[eid]! > 0 && !hasComponent(world.world, Boss, eid));
+    expect(liveNonBossEnemies.length).toBe(0);
+    expect(phase).toBe(GamePhase.Victory);
   });
 });
 

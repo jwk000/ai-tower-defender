@@ -605,11 +605,22 @@ export interface WaveEnemyGroup {
   spawnId?: string;
 }
 
+export interface BossReinforcementConfig {
+  /** Boss 存活期间每隔多少秒补充一轮非 Boss 敌人；默认 15 秒 */
+  interval?: number;
+  /** 场上非 Boss 敌人达到该数量时暂缓补充；默认 8 */
+  maxAliveNonBoss?: number;
+  /** 补充波组成；缺省时复用 Boss 波里已配置的非 Boss 敌人组 */
+  groups?: WaveEnemyGroup[];
+}
+
 export interface WaveConfig {
   waveNumber: number;
   enemies: WaveEnemyGroup[];
   spawnDelay: number;
   isBossWave?: boolean;
+  /** Boss 战中循环补充的金币敌人，避免只剩 Boss 单体拖战斗 */
+  bossReinforcements?: BossReinforcementConfig;
   spawnPointIndex?: number;
   /** 波次通关奖励金币 */
   reward?: number;

@@ -8,10 +8,17 @@ export interface WaveEnemyGroup {
   spawnId?: string;
 }
 
+export interface BossReinforcementConfig {
+  interval?: number;
+  maxAliveNonBoss?: number;
+  groups?: WaveEnemyGroup[];
+}
+
 export interface WaveSpec {
   waveNumber: number;
   spawnDelay: number;
   isBossWave?: boolean;
+  bossReinforcements?: BossReinforcementConfig;
   enemies: WaveEnemyGroup[];
   specialRules?: unknown;
   __extras?: Record<string, unknown>;
@@ -194,31 +201,48 @@ const KNOWN_WAVE_KEYS = new Set<string>([
   'waveNumber',
   'spawnDelay',
   'isBossWave',
+  'bossReinforcements',
   'enemies',
   'specialRules',
 ]);
+
+function parseWaveEnemyGroup(raw: unknown): WaveEnemyGroup {
+  const er = asRecord(raw) ?? {};
+  const group: WaveEnemyGroup = {
+    enemyType: typeof er.enemyType === 'string' ? er.enemyType : '',
+    count: typeof er.count === 'number' ? er.count : 0,
+    spawnInterval: typeof er.spawnInterval === 'number' ? er.spawnInterval : 0,
+  };
+  if (typeof er.spawnId === 'string') group.spawnId = er.spawnId;
+  return group;
+}
+
+function parseBossReinforcements(raw: unknown): BossReinforcementConfig | undefined {
+  const rec = asRecord(raw);
+  if (!rec) return undefined;
+  const config: BossReinforcementConfig = {};
+  if (typeof rec.interval === 'number') config.interval = rec.interval;
+  if (typeof rec.maxAliveNonBoss === 'number') config.maxAliveNonBoss = rec.maxAliveNonBoss;
+  if (Array.isArray(rec.groups)) {
+    config.groups = rec.groups.map(parseWaveEnemyGroup);
+  }
+  return config;
+}
 
 function parseWaves(raw: unknown): WaveSpec[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((w) => {
     const rec = asRecord(w) ?? {};
     const enemiesRaw = Array.isArray(rec.enemies) ? rec.enemies : [];
-    const enemies: WaveEnemyGroup[] = enemiesRaw.map((e) => {
-      const er = asRecord(e) ?? {};
-      const group: WaveEnemyGroup = {
-        enemyType: typeof er.enemyType === 'string' ? er.enemyType : '',
-        count: typeof er.count === 'number' ? er.count : 0,
-        spawnInterval: typeof er.spawnInterval === 'number' ? er.spawnInterval : 0,
-      };
-      if (typeof er.spawnId === 'string') group.spawnId = er.spawnId;
-      return group;
-    });
+    const enemies: WaveEnemyGroup[] = enemiesRaw.map(parseWaveEnemyGroup);
     const wave: WaveSpec = {
       waveNumber: typeof rec.waveNumber === 'number' ? rec.waveNumber : 0,
       spawnDelay: typeof rec.spawnDelay === 'number' ? rec.spawnDelay : 0,
       enemies,
     };
     if (rec.isBossWave === true) wave.isBossWave = true;
+    const bossReinforcements = parseBossReinforcements(rec.bossReinforcements);
+    if (bossReinforcements) wave.bossReinforcements = bossReinforcements;
     if (rec.specialRules !== undefined) wave.specialRules = rec.specialRules;
 
     const extras: Record<string, unknown> = {};
@@ -347,6 +371,7 @@ const WAVE_FIELD_ORDER: readonly string[] = [
   'waveNumber',
   'spawnDelay',
   'isBossWave',
+  'bossReinforcements',
   'enemies',
   'specialRules',
 ];

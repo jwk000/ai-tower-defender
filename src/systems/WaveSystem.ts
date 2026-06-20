@@ -21,7 +21,7 @@ import {
   EnemyFlockMember,
 } from '../core/components.js';
 import { ENEMY_CONFIGS, ENEMY_ID_BY_TYPE } from '../data/gameData.js';
-import { EnemyType, GamePhase, type WaveConfig, type MapConfig } from '../types/index.js';
+import { EnemyType, GamePhase, type WaveConfig, type MapConfig, type WaveEnemyGroup } from '../types/index.js';
 import { registerEnemySkillEntity } from './EnemySkillSystem.js';
 import { RenderSystem } from './RenderSystem.js';
 import { Sound } from '../utils/Sound.js';
@@ -33,6 +33,7 @@ import { BossType } from './BossSystem.js';
 // ---- bitecs query for alive enemy check ----
 
 const aliveEnemyQuery = defineQuery([Health, UnitTag]);
+const aliveBossQuery = defineQuery([Health, UnitTag, Boss]);
 
 // ---- hex color → RGB helper ----
 
@@ -76,6 +77,8 @@ const FLOCK_ENEMY_TYPES = new Set<string>([
 const FLOCK_MIN_SIZE = 4;
 const FLOCK_MAX_SIZE = 7;
 const FLOCK_SPAWN_SPREAD = 28;
+const DEFAULT_BOSS_REINFORCEMENT_INTERVAL = 15;
+const DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS = 8;
 
 function resolveBossType(configType?: string, enemyType?: string): number {
   if (!configType && enemyType !== undefined) {
@@ -152,6 +155,10 @@ export class WaveSystem implements System {
   private waveInterval: number = 30;
   /** v5.0: elapsed seconds since current wave started */
   private waveElapsed: number = 0;
+  private bossReinforcementTimer: number = 0;
+  private bossReinforcementGroups: WaveEnemyGroup[] = [];
+  private bossReinforcementInterval: number = DEFAULT_BOSS_REINFORCEMENT_INTERVAL;
+  private bossReinforcementMaxAliveNonBoss: number = DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS;
 
   /** Tracks last integer-second value of countdown for tick sound */
   private lastCountdownInt: number = 0;
@@ -242,6 +249,8 @@ export class WaveSystem implements System {
     this.spawnQueue = [];
     this.waveActive = false;
     this.isBossWave = false;
+    this.bossReinforcementTimer = 0;
+    this.bossReinforcementGroups = [];
   }
 
   /** Start auto-countdown before next wave. Call on phase transitions. */
@@ -274,6 +283,8 @@ export class WaveSystem implements System {
     this.waveActive = false;
     this.isBossWave = false;
     this.waveElapsed = 0;
+    this.bossReinforcementTimer = 0;
+    this.bossReinforcementGroups = [];
     this.eliteSpawned = false;
     this.eliteEid = 0;
     this.eliteEnemyType = null;
@@ -317,6 +328,7 @@ export class WaveSystem implements System {
     this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
     this.waveActive = true;
     this.waveElapsed = 0; // v5.0: reset fixed-interval timer
+    this.setupBossReinforcements(wave);
 
     // v4.0: reset elite tracking & spawn point
     this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
@@ -346,6 +358,7 @@ export class WaveSystem implements System {
     this.totalInWave = wave.enemies.reduce((sum, g) => sum + g.count, 0);
     this.waveActive = true;
     this.waveElapsed = 0; // v5.0: reset fixed-interval timer
+    this.setupBossReinforcements(wave);
 
     // v4.0: reset elite tracking & spawn point
     this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
@@ -366,6 +379,31 @@ export class WaveSystem implements System {
     } else {
       this.eliteEnemyType = null;
     }
+  }
+
+  private setupBossReinforcements(wave: WaveConfig): void {
+    this.bossReinforcementTimer = 0;
+    this.bossReinforcementGroups = [];
+    this.bossReinforcementInterval = DEFAULT_BOSS_REINFORCEMENT_INTERVAL;
+    this.bossReinforcementMaxAliveNonBoss = DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS;
+
+    if (!wave.isBossWave) return;
+
+    const configuredGroups = wave.bossReinforcements?.groups;
+    const fallbackGroups = wave.enemies.filter((group) => ENEMY_CONFIGS[group.enemyType]?.isBoss !== true);
+    const groups = configuredGroups && configuredGroups.length > 0 ? configuredGroups : fallbackGroups;
+
+    this.bossReinforcementGroups = groups
+      .filter((group) => group.count > 0 && ENEMY_CONFIGS[group.enemyType]?.isBoss !== true)
+      .map((group) => ({ ...group }));
+    this.bossReinforcementInterval = Math.max(
+      1,
+      wave.bossReinforcements?.interval ?? DEFAULT_BOSS_REINFORCEMENT_INTERVAL,
+    );
+    this.bossReinforcementMaxAliveNonBoss = Math.max(
+      0,
+      wave.bossReinforcements?.maxAliveNonBoss ?? DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS,
+    );
   }
 
   update(world: TowerWorld, dt: number): void {
@@ -445,6 +483,27 @@ export class WaveSystem implements System {
     // v4.0: elite death → card draft is now handled in HealthSystem's onEnemyKilled
     // callback (see main.ts) which checks UnitTag.isElite, avoiding pipeline
     // ordering issues (damage sources after WaveSystem were missed).
+    this.updateBossReinforcements(dt);
+  }
+
+  private updateBossReinforcements(dt: number): void {
+    if (!this.isBossWave || this.bossReinforcementGroups.length === 0) return;
+    if (this.spawnQueue.length > 0) return;
+    if (!this.hasAliveBosses()) return;
+    if (this.countAliveNonBossEnemies() >= this.bossReinforcementMaxAliveNonBoss) {
+      this.bossReinforcementTimer = 0;
+      return;
+    }
+
+    this.bossReinforcementTimer += dt;
+    if (this.bossReinforcementTimer < this.bossReinforcementInterval) return;
+
+    this.bossReinforcementTimer = 0;
+    for (const group of this.bossReinforcementGroups) {
+      for (let i = 0; i < group.count; i++) {
+        this.spawnEnemyGroup(group.enemyType, { spawnId: group.spawnId });
+      }
+    }
   }
 
   private spawnEnemyGroup(type: string, options?: SpawnEnemyOptions): number[] {
@@ -481,6 +540,8 @@ export class WaveSystem implements System {
     this.waveActive = false;
     Sound.play('wave_clear');
     this.isBossWave = false;
+    this.bossReinforcementTimer = 0;
+    this.bossReinforcementGroups = [];
 
     // v4.0: fire wave reward callback
     const wave = this.isEndless
@@ -535,6 +596,29 @@ export class WaveSystem implements System {
     return hasComponent(this.world.world, Boss, eid)
       && Boss.bossType[eid] === BossType.GiantSlime
       && (Boss.splitCount[eid] ?? 0) < 2;
+  }
+
+  private hasAliveBosses(): boolean {
+    const bosses = aliveBossQuery(this.world.world);
+    for (const eid of bosses) {
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if (Health.current[eid]! > 0 || this.isPendingGiantSlimeSplit(eid)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private countAliveNonBossEnemies(): number {
+    let count = 0;
+    const enemies = aliveEnemyQuery(this.world.world);
+    for (const eid of enemies) {
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if (Health.current[eid]! <= 0) continue;
+      if (hasComponent(this.world.world, Boss, eid)) continue;
+      count++;
+    }
+    return count;
   }
 
   private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {

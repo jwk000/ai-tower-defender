@@ -68,6 +68,16 @@ function adaptWave(w: LevelFormModel['waves'][number]): WaveConfig {
   }));
   const wave: WaveConfig = { waveNumber: w.waveNumber, spawnDelay: w.spawnDelay, enemies };
   if (w.isBossWave) wave.isBossWave = true;
+  if (w.bossReinforcements) wave.bossReinforcements = {
+    interval: w.bossReinforcements.interval,
+    maxAliveNonBoss: w.bossReinforcements.maxAliveNonBoss,
+    groups: w.bossReinforcements.groups?.map((g) => ({
+      enemyType: g.enemyType as EnemyType,
+      count: g.count,
+      spawnInterval: g.spawnInterval,
+      spawnId: g.spawnId,
+    })),
+  };
   if (typeof w.__extras?.reward === 'number') wave.reward = w.__extras.reward;
   if (typeof w.__extras?.spawnPointIndex === 'number') wave.spawnPointIndex = w.__extras.spawnPointIndex;
   return wave;

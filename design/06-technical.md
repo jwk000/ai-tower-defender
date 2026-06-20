@@ -308,6 +308,12 @@ waves:
       - { id: goblin, count: 4, interval: 2 }
       - { id: boar, count: 2, interval: 2 }
     isBossWave: true
+    bossReinforcements:
+      interval: 15
+      maxAliveNonBoss: 8
+      groups:
+        - { id: goblin, count: 3, interval: 2 }
+        - { id: boar, count: 1, interval: 2 }
     reward: 80
 
 cardPool:                         # 初始卡池

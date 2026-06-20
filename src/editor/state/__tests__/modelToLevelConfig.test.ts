@@ -66,6 +66,28 @@ describe('modelToLevelConfig', () => {
     expect(cfg.waves[0]!.enemies[0]!.enemyType).toBe('goblin_grunt');
   });
 
+  it('maps boss reinforcement config to runtime waves', () => {
+    const cfg = modelToLevelConfig(makeModel({
+      waves: [{
+        waveNumber: 1,
+        spawnDelay: 0,
+        isBossWave: true,
+        bossReinforcements: {
+          interval: 12,
+          maxAliveNonBoss: 6,
+          groups: [{ enemyType: 'goblin', count: 3, spawnInterval: 1.5, spawnId: 'spawn_0' }],
+        },
+        enemies: [{ enemyType: 'lucifer', count: 1, spawnInterval: 0, spawnId: 'spawn_0' }],
+      }],
+    }));
+
+    expect(cfg.waves[0]!.bossReinforcements).toEqual({
+      interval: 12,
+      maxAliveNonBoss: 6,
+      groups: [{ enemyType: 'goblin', count: 3, spawnInterval: 1.5, spawnId: 'spawn_0' }],
+    });
+  });
+
   it('uses starting.gold for startingGold', () => {
     const cfg = modelToLevelConfig(makeModel({ starting: { gold: 350 } }));
     expect(cfg.startingGold).toBe(350);

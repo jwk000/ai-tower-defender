@@ -58,6 +58,36 @@ describe('levelModel: parseYamlToModel', () => {
     expect(model.banPool).toBeDefined();
     expect(model.neutralPool).toBeDefined();
   });
+
+  it('parses boss reinforcement config as a known wave field', () => {
+    const model = parseYamlToModel(`
+id: level_test
+name: Boss补怪测试
+map:
+  cols: 1
+  rows: 1
+  tileSize: 64
+  tiles: [[]]
+waves:
+  - waveNumber: 1
+    spawnDelay: 0
+    isBossWave: true
+    bossReinforcements:
+      interval: 12
+      maxAliveNonBoss: 6
+      groups:
+        - { enemyType: goblin, count: 3, spawnInterval: 1.5, spawnId: spawn_0 }
+    enemies:
+      - { enemyType: lucifer, count: 1, spawnInterval: 0, spawnId: spawn_0 }
+`);
+
+    expect(model.waves[0]!.bossReinforcements).toEqual({
+      interval: 12,
+      maxAliveNonBoss: 6,
+      groups: [{ enemyType: 'goblin', count: 3, spawnInterval: 1.5, spawnId: 'spawn_0' }],
+    });
+    expect(model.waves[0]!.__extras?.bossReinforcements).toBeUndefined();
+  });
 });
 
 describe('levelModel: serializeModelToYaml', () => {
