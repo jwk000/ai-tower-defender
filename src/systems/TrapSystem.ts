@@ -34,7 +34,7 @@ function getEnemyGridPos(
  * Each trap type has unique mechanics:
  *   0 SpikeTrap   — persistent damage/sec on same tile (layer gated)
  *   1 BearTrap    — reusable stun + damage, boss immune, cooldown-gated
- *   2 TarPit      — persistent 20% slow on same tile
+ *   2 TarPit      — persistent configured slow on same tile
  *   3 Boulder     — has HP, blocks path, destroyed when HP≤0
  */
 export class TrapSystem implements System {
@@ -192,7 +192,7 @@ export class TrapSystem implements System {
   }
 
   // ============================================================
-  // TarPit (2) — persistent 20% slow on same tile
+  // TarPit (2) — persistent configured slow on same tile
   // ============================================================
   private tickTarPit(
     world: TowerWorld,
@@ -204,6 +204,7 @@ export class TrapSystem implements System {
     const trapRow = GridOccupant.row[trapId]!;
     const trapCol = GridOccupant.col[trapId]!;
     const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
+    const slowPercent = Trap.slowPercent[trapId] ?? 20;
     let anyTriggered = false;
 
     for (const enemyId of damageableEntities) {
@@ -215,9 +216,9 @@ export class TrapSystem implements System {
       const enemyLayer = Layer.value[enemyId] ?? LayerVal.Ground;
       if (!TrapSystem.canTriggerOnEnemy(trapLayer, enemyLayer)) continue;
 
-      // Apply 20% slow — refresh each frame while on tile
+      // Refresh each frame while on tile so the slow expires shortly after leaving.
       world.addComponent(enemyId, Slowed, {
-        percent: 20,
+        percent: slowPercent,
         timer: 0.3,
         stacks: 1,
         maxStacks: 1,

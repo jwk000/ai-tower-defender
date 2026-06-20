@@ -122,6 +122,7 @@ function makeBoulder(world: TowerWorld, col: number, hp: number = 200): number {
     direction: 0,
     stunDuration: 0,
     damage: 0,
+    slowPercent: 0,
   });
   world.addComponent(eid, Layer, { value: LayerVal.Ground });
   return eid;

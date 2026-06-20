@@ -79,7 +79,7 @@ bear_trap:
         duration: 0.1
 
 ---
-# 焦油坑 — 路径减速，经过的地面敌人减速20%
+# 焦油坑 — 路径减速，经过的地面敌人减速50%
 tar_pit:
   id: tar_pit
   name: 焦油坑
@@ -95,7 +95,7 @@ tar_pit:
 
   trap:
     type: TarPit
-    slowPercent: 20
+    slowPercent: 50
     radius: 32
 
   visual:

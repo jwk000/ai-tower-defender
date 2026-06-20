@@ -1140,7 +1140,7 @@ export const TRAP_CONFIGS: Record<string, TrapConfig> = {
     shape: 'circle',
     outline: false,
     layer: 'AboveGrid',
-    slowPercent: 20,
+    slowPercent: 50,
   },
   boulder: {
     type: 'Boulder',

@@ -145,6 +145,7 @@ function makeBoulderTrap(world: TowerWorld): number {
     direction: 0,
     stunDuration: 0,
     damage: 0,
+    slowPercent: 0,
   });
   world.addComponent(eid, Layer, { value: LayerVal.Ground });
   world.addComponent(eid, Visual, {
