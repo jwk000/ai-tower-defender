@@ -230,7 +230,7 @@ const upgradeShieldGuard: CardInstance = {
   id: 'card_upgrade_shield_guard',
   name: '盾卫升级卡',
   type: 'spell',
-  description: '场上所有盾卫等级+1',
+  description: '本场战斗所有盾卫等级+1，后续部署也生效',
   goldCost: 80,
 };
 
@@ -238,7 +238,7 @@ const upgradeSwordsman: CardInstance = {
   id: 'card_upgrade_swordsman',
   name: '剑士升级卡',
   type: 'spell',
-  description: '场上所有剑士等级+1',
+  description: '本场战斗所有剑士等级+1，后续部署也生效',
   goldCost: 80,
 };
 
@@ -246,7 +246,7 @@ const upgradeArcher: CardInstance = {
   id: 'card_upgrade_archer',
   name: '弓箭手升级卡',
   type: 'spell',
-  description: '场上所有弓箭手等级+1',
+  description: '本场战斗所有弓箭手等级+1，后续部署也生效',
   goldCost: 80,
 };
 
@@ -254,7 +254,7 @@ const upgradePriest: CardInstance = {
   id: 'card_upgrade_priest',
   name: '牧师升级卡',
   type: 'spell',
-  description: '场上所有牧师等级+1',
+  description: '本场战斗所有牧师等级+1，后续部署也生效',
   goldCost: 80,
 };
 
@@ -262,7 +262,7 @@ const upgradeAssassin: CardInstance = {
   id: 'card_upgrade_assassin',
   name: '刺客升级卡',
   type: 'spell',
-  description: '场上所有刺客等级+1',
+  description: '本场战斗所有刺客等级+1，后续部署也生效',
   goldCost: 95,
 };
 
@@ -270,7 +270,7 @@ const upgradeMage: CardInstance = {
   id: 'card_upgrade_mage',
   name: '法师升级卡',
   type: 'spell',
-  description: '场上所有法师等级+1',
+  description: '本场战斗所有法师等级+1，后续部署也生效',
   goldCost: 80,
 };
 

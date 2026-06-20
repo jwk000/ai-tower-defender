@@ -36,7 +36,7 @@ import { SkillSystem } from './systems/SkillSystem.js';
 import { SlashEffectSystem } from './systems/SlashEffectSystem.js';
 import { SoldierAISystem } from './systems/SoldierAISystem.js';
 import { SpellProjectileSystem } from './systems/SpellProjectileSystem.js';
-import { applySoldierLevelUp, upgradeAllSoldiersOfType } from './systems/soldierUpgrade.js';
+import { applyBattleSoldierUpgrade, applySoldierLevelUp, BattleSoldierUpgradeState } from './systems/soldierUpgrade.js';
 import { TileDamageSystem } from './systems/TileDamageSystem.js';
 import { TrapSystem } from './systems/TrapSystem.js';
 import { UISystem } from './systems/UISystem.js';
@@ -211,6 +211,7 @@ class TowerDefenderGame extends Game {
   private previousPhase: GamePhase = GamePhase.Deployment;
   private battleTotalDamage = 0;
   private battleEnemiesDefeated = 0;
+  private readonly soldierUpgradeState = new BattleSoldierUpgradeState();
 
   private editorOnExit: (() => void) | null = null;
 
@@ -539,7 +540,8 @@ class TowerDefenderGame extends Game {
     }
 
     // ---- UnitFactory (统一实体创建) ----
-    this.unitFactory = new UnitFactory(this.world);
+    this.soldierUpgradeState.reset();
+    this.unitFactory = new UnitFactory(this.world, this.soldierUpgradeState);
 
     // ---- Build system ----
     // v3.0 卡牌流：BuildSystem 不再扣金币（关内部署由 RunContext.energy 在 tryPlayHandCard 扣）。
@@ -1615,15 +1617,15 @@ class TowerDefenderGame extends Game {
 
   private upgradeAllSoldiersOfType(unitType: UnitType, x: number, y: number): boolean {
     const cfg = UNIT_CONFIGS[unitType];
-    const upgraded = upgradeAllSoldiersOfType(this.world, unitType);
+    const upgraded = applyBattleSoldierUpgrade(this.world, this.soldierUpgradeState, unitType);
 
-    if (upgraded <= 0) {
-      this.floatingTextSystem.show(this.world, x, y, '无可升级单位');
+    if (upgraded < 0) {
+      this.floatingTextSystem.show(this.world, x, y, `${cfg.name}升级已满`);
       Sound.play('build_deny');
       return false;
     }
 
-    this.floatingTextSystem.show(this.world, x, y, `${cfg.name}全体升级 +1`);
+    this.floatingTextSystem.show(this.world, x, y, upgraded > 0 ? `${cfg.name}全体升级 +1` : `${cfg.name}升级已生效`);
     Sound.play('upgrade');
     return true;
   }

@@ -4,9 +4,30 @@ import { Attack, Health, PlayerOwned, UnitTag, Visual } from '../core/components
 import { UNIT_CONFIGS, UNIT_ID_BY_TYPE } from '../data/gameData.js';
 import type { UnitType } from '../types/index.js';
 
+const MAX_BATTLE_SOLDIER_UPGRADE_LEVELS = 2;
+
 export interface SoldierUpgradeConfig {
   upgradeHpBonus?: readonly number[];
   upgradeAtkBonus?: readonly number[];
+}
+
+export class BattleSoldierUpgradeState {
+  private readonly levelsByType = new Map<UnitType, number>();
+
+  reset(): void {
+    this.levelsByType.clear();
+  }
+
+  getLevelBonus(unitType: UnitType): number {
+    return this.levelsByType.get(unitType) ?? 0;
+  }
+
+  upgrade(unitType: UnitType): boolean {
+    const current = this.getLevelBonus(unitType);
+    if (current >= MAX_BATTLE_SOLDIER_UPGRADE_LEVELS) return false;
+    this.levelsByType.set(unitType, current + 1);
+    return true;
+  }
 }
 
 export function applySoldierLevelUp(
@@ -37,6 +58,18 @@ export function applySoldierLevelUp(
   return true;
 }
 
+export function applySoldierBattleLevelBonus(
+  entityId: number,
+  cfg: SoldierUpgradeConfig,
+  levelBonus: number,
+): number {
+  let applied = 0;
+  while (applied < levelBonus && applySoldierLevelUp(entityId, cfg, 0)) {
+    applied++;
+  }
+  return applied;
+}
+
 export function upgradeAllSoldiersOfType(world: TowerWorld, unitType: UnitType): number {
   const unitTypeNum = UNIT_ID_BY_TYPE[unitType];
   const cfg = UNIT_CONFIGS[unitType];
@@ -53,4 +86,13 @@ export function upgradeAllSoldiersOfType(world: TowerWorld, unitType: UnitType):
   }
 
   return upgraded;
+}
+
+export function applyBattleSoldierUpgrade(
+  world: TowerWorld,
+  state: BattleSoldierUpgradeState,
+  unitType: UnitType,
+): number {
+  if (!state.upgrade(unitType)) return -1;
+  return upgradeAllSoldiersOfType(world, unitType);
 }

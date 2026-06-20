@@ -47,6 +47,9 @@ const INITIAL_CARD_DRAW_WEIGHT = 20;
 /** 卡池随机权重下限 */
 const MIN_CARD_DRAW_WEIGHT = 5;
 
+/** 每种士兵升级卡在本局最多成功抽入手牌次数 */
+const MAX_SOLDIER_UPGRADE_CARD_DRAWS = 2;
+
 // ---- HandSystem ----
 
 /**
@@ -67,6 +70,9 @@ export class HandSystem implements System {
 
   /** 上一次成功抽入手牌的卡牌 ID，用于避免连续两次随机抽到同一张卡 */
   private lastDrawnCardId: string | null = null;
+
+  /** 每张士兵升级卡本局成功抽入手牌次数 */
+  private soldierUpgradeCardDrawCounts: Map<string, number> = new Map();
 
   /** 出牌回调 */
   onCardPlayed?: (cardId: string) => void;
@@ -95,6 +101,7 @@ export class HandSystem implements System {
   initialize(cardPool: CardInstance[]): void {
     this.cardLibrary.clear();
     this.cardDrawWeights.clear();
+    this.soldierUpgradeCardDrawCounts.clear();
     this.lastDrawnCardId = null;
     for (const card of cardPool) {
       this.cardLibrary.set(card.id, card);
@@ -299,6 +306,9 @@ export class HandSystem implements System {
   }
 
   private canAddCardToCards(card: CardInstance, cards: readonly (CardInstance | null)[]): boolean {
+    if (this.isSoldierUpgradeCard(card.id) && this.getSoldierUpgradeCardDrawCount(card.id) >= MAX_SOLDIER_UPGRADE_CARD_DRAWS) {
+      return false;
+    }
     if (this.countCardInCards(card.id, cards) >= MAX_DUPLICATE_CARDS_IN_HAND) return false;
 
     const category = this.getLimitedHandCategory(card);
@@ -338,7 +348,21 @@ export class HandSystem implements System {
 
   private recordCardDrawn(cardId: string): void {
     this.consumeCardDrawWeight(cardId);
+    this.recordSoldierUpgradeCardDrawn(cardId);
     this.lastDrawnCardId = cardId;
+  }
+
+  private isSoldierUpgradeCard(cardId: string): boolean {
+    return cardId.startsWith('card_upgrade_');
+  }
+
+  private getSoldierUpgradeCardDrawCount(cardId: string): number {
+    return this.soldierUpgradeCardDrawCounts.get(cardId) ?? 0;
+  }
+
+  private recordSoldierUpgradeCardDrawn(cardId: string): void {
+    if (!this.isSoldierUpgradeCard(cardId)) return;
+    this.soldierUpgradeCardDrawCounts.set(cardId, this.getSoldierUpgradeCardDrawCount(cardId) + 1);
   }
 
   private getRandomDrawCandidates(excludedCardId: string | null = null): CardInstance[] {

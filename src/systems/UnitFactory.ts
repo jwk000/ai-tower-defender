@@ -46,6 +46,7 @@ import {
 } from '../data/gameData.js';
 import { shapeTypeToVal, hexToRgb, layerStrToVal } from '../utils/visualHelpers.js';
 import { soldierCanTargetLowAir, towerCanTargetLowAir } from '../utils/lowAirTargeting.js';
+import { applySoldierBattleLevelBonus, type BattleSoldierUpgradeState } from './soldierUpgrade.js';
 
 // ============================================================
 // 映射表
@@ -118,9 +119,11 @@ function attackModeStrToVal(mode: string | undefined, splashRadius: number): num
 
 export class UnitFactory {
   private world: TowerWorld;
+  private readonly soldierUpgradeState?: BattleSoldierUpgradeState;
 
-  constructor(world: TowerWorld) {
+  constructor(world: TowerWorld, soldierUpgradeState?: BattleSoldierUpgradeState) {
     this.world = world;
+    this.soldierUpgradeState = soldierUpgradeState;
   }
 
   // ============================================================
@@ -509,6 +512,11 @@ export class UnitFactory {
     this.world.addComponent(eid, Category, { value: CategoryVal.Soldier });
     this.world.addComponent(eid, Faction, { value: FactionVal.Justice });
     this.world.addComponent(eid, Layer, { value: LayerVal.Ground });
+
+    const levelBonus = this.soldierUpgradeState?.getLevelBonus(unitType) ?? 0;
+    if (levelBonus > 0) {
+      applySoldierBattleLevelBonus(eid, UNIT_CONFIGS[unitType], levelBonus);
+    }
 
     return eid;
   }

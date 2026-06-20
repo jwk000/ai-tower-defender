@@ -572,6 +572,25 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.drawCard('card_fireball')).toBe(false);
     });
 
+    it('每种士兵升级卡成功进手两次后不能再次抽入', () => {
+      const upgradeCard: CardInstance = {
+        id: 'card_upgrade_shield_guard',
+        name: '盾卫升级卡',
+        type: 'spell',
+        description: '本场盾卫等级+1',
+        goldCost: 0,
+      };
+      handSystem.initialize(makeSmallPool());
+      handSystem.addCardsToLibrary([upgradeCard]);
+      handSystem.reset();
+
+      expect(handSystem.drawCard('card_upgrade_shield_guard')).toBe(true);
+      handSystem.reset();
+      expect(handSystem.drawCard('card_upgrade_shield_guard')).toBe(true);
+      handSystem.reset();
+      expect(handSystem.drawCard('card_upgrade_shield_guard')).toBe(false);
+    });
+
     it('re-init + 抽牌流程', () => {
       // initialize → cardLibrary 已填充 → reset → 抽牌
       handSystem.initialize(makeTestPool());

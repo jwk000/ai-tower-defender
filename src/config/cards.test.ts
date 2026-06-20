@@ -266,6 +266,8 @@ describe('技能卡数值配置', () => {
     const cfg = cardConfigRegistry.get('upgrade_shield_guard_card');
     expect(cfg).toBeDefined();
     expect(cfg!.name).toBe('盾卫升级卡');
+    expect(cfg!.description).toContain('后续部署也生效');
+    expect(cfg!.description).toContain('最多出现2次');
     expect(cfg!.type).toBe('spell');
     expect(cfg!.spellSubtype).toBe('buff_instance');
     expect(cfg!.placement.targetType).toBe('global');

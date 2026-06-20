@@ -3,7 +3,13 @@ import { TowerWorld } from '../core/World.js';
 import { Attack, Health, PlayerOwned, UnitTag, Visual } from '../core/components.js';
 import { UNIT_ID_BY_TYPE } from '../data/gameData.js';
 import { UnitType } from '../types/index.js';
-import { applySoldierLevelUp, upgradeAllSoldiersOfType } from './soldierUpgrade.js';
+import {
+  applyBattleSoldierUpgrade,
+  applySoldierBattleLevelBonus,
+  applySoldierLevelUp,
+  BattleSoldierUpgradeState,
+  upgradeAllSoldiersOfType,
+} from './soldierUpgrade.js';
 
 function addSoldier(world: TowerWorld, unitType: UnitType, level: number, isEnemy = 0): number {
   const eid = world.createEntity();
@@ -53,5 +59,38 @@ describe('soldierUpgrade', () => {
     expect(UnitTag.level[maxShield]).toBe(3);
     expect(UnitTag.level[enemyShield]).toBe(1);
     expect(UnitTag.level[archer]).toBe(1);
+  });
+
+  it('applyBattleSoldierUpgrade 空场也记录本场永久兵种升级', () => {
+    const world = new TowerWorld();
+    const state = new BattleSoldierUpgradeState();
+
+    expect(applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard)).toBe(0);
+    expect(state.getLevelBonus(UnitType.ShieldGuard)).toBe(1);
+  });
+
+  it('本场永久兵种升级会应用到后续新创建士兵', () => {
+    const world = new TowerWorld();
+    const state = new BattleSoldierUpgradeState();
+    applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard);
+    applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard);
+    const soldier = addSoldier(world, UnitType.ShieldGuard, 1);
+
+    expect(applySoldierBattleLevelBonus(soldier, { upgradeHpBonus: [120, 180], upgradeAtkBonus: [2, 3] }, state.getLevelBonus(UnitType.ShieldGuard))).toBe(2);
+
+    expect(UnitTag.level[soldier]).toBe(3);
+    expect(Health.max[soldier]).toBe(400);
+    expect(Health.current[soldier]).toBe(400);
+    expect(Attack.damage[soldier]).toBe(15);
+  });
+
+  it('每种士兵升级卡本场最多生效两次', () => {
+    const world = new TowerWorld();
+    const state = new BattleSoldierUpgradeState();
+
+    expect(applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard)).toBe(0);
+    expect(applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard)).toBe(0);
+    expect(applyBattleSoldierUpgrade(world, state, UnitType.ShieldGuard)).toBe(-1);
+    expect(state.getLevelBonus(UnitType.ShieldGuard)).toBe(2);
   });
 });
