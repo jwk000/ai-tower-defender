@@ -843,6 +843,47 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     expect(rewardCalled).toBe(false);
   });
 
+  it('非最终波还在等待出怪时，不会丢弃当前波直接进入下一波', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [
+      {
+        waveNumber: 1,
+        spawnDelay: 30,
+        enemies: [
+          { enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 },
+          { enemyType: EnemyType.Boar, count: 1, spawnInterval: 0 },
+        ],
+      },
+      {
+        waveNumber: 2,
+        spawnDelay: 0,
+        enemies: [{ enemyType: EnemyType.GiantSlime, count: 1, spawnInterval: 0 }],
+      },
+    ];
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 12; i++) ws.update(world, 0.1);
+
+    expect(phase).toBe(GamePhase.Battle);
+    expect(ws.currentWave).toBe(1);
+    expect(enemyQuery(world.world).length).toBe(0);
+
+    for (let i = 0; i < 12; i++) ws.update(world, 0.1);
+    expect(ws.currentWave).toBe(1);
+    expect(enemyQuery(world.world).length).toBe(0);
+
+    for (let i = 0; i < 300; i++) ws.update(world, 0.1);
+    expect(ws.currentWave).toBe(2);
+    expect(phase).toBe(GamePhase.WaveBreak);
+    expect(enemyQuery(world.world).length).toBeGreaterThanOrEqual(2);
+  });
+
   it('最后一波出怪结束后，仍有存活敌人时不能直接胜利', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({

@@ -470,12 +470,14 @@ export class WaveSystem implements System {
       }
     }
 
-    // v5.0: fixed-interval wave spawning. Non-final waves advance on interval
-    // so surviving enemies can carry over; final wave must wait for full clear.
+    // v5.0: fixed-interval wave spawning. Non-final waves advance after the
+    // configured interval once all queued enemies are out, so survivors can
+    // carry over without dropping unspawned enemies. Final wave must wait for
+    // both full spawn and full clear.
     // Use epsilon comparison to avoid floating-point imprecision edge cases.
     if (this.waveElapsed >= this.waveInterval - 0.001) {
       const isFinalWave = !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
-      if (!isFinalWave || (this.isCurrentWaveFullySpawned() && !this.hasAliveEnemies())) {
+      if (this.isCurrentWaveFullySpawned() && (!isFinalWave || !this.hasAliveEnemies())) {
         this.finishWave();
       }
     }
