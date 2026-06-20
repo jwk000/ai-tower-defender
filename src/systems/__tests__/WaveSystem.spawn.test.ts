@@ -859,6 +859,28 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     expect(phase).toBe(GamePhase.Battle);
   });
 
+  it('最后一波还在等待出怪时，空场也不能直接胜利', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 30,
+      isBossWave: true,
+      enemies: [{ enemyType: EnemyType.AbyssLord, count: 1, spawnInterval: 0 }],
+    }];
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 12; i++) ws.update(world, 0.1);
+
+    expect(phase).toBe(GamePhase.Battle);
+    expect(bossQuery(world.world).length).toBe(0);
+  });
+
   it('最后一波出怪结束且所有敌人死亡后才判定胜利', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({

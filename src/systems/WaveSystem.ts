@@ -475,7 +475,7 @@ export class WaveSystem implements System {
     // Use epsilon comparison to avoid floating-point imprecision edge cases.
     if (this.waveElapsed >= this.waveInterval - 0.001) {
       const isFinalWave = !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
-      if (!isFinalWave || !this.hasAliveEnemies()) {
+      if (!isFinalWave || (this.isCurrentWaveFullySpawned() && !this.hasAliveEnemies())) {
         this.finishWave();
       }
     }
@@ -619,6 +619,12 @@ export class WaveSystem implements System {
       count++;
     }
     return count;
+  }
+
+  private isCurrentWaveFullySpawned(): boolean {
+    return this.spawnTimer <= 0
+      && this.spawnQueue.length === 0
+      && this.spawnedInWave >= this.totalInWave;
   }
 
   private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {
