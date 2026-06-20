@@ -188,4 +188,12 @@ describe('运行时单位类型映射一致性', () => {
     expect(units.giant_slime?.isBoss).toBe(true);
     expect(units.giant_slime?.visual?.size).toBeCloseTo(126);
   });
+
+  it('所有机关视觉尺寸统一为 60px', () => {
+    const units = loadRawUnits();
+
+    for (const trapId of TRAP_TYPE_BY_ID) {
+      expect(units[trapId]?.visual?.size, `${trapId} visual.size`).toBe(60);
+    }
+  });
 });

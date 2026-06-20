@@ -174,7 +174,7 @@ describe('unit config bridge', () => {
       stats: { hp: 99999, atk: 0 },
       cost: { build: 40 },
       trap: { type: 'SpikeTrap', damagePerSecond: 3, radius: 32, cooldown: 0.2 },
-      visual: { shape: 'triangle', color: '#757575', size: 28, outline: false },
+      visual: { shape: 'triangle', color: '#757575', size: 60, outline: false },
       behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'hold_position' },
     } as RegistryUnitConfig);
 
@@ -185,6 +185,7 @@ describe('unit config bridge', () => {
     const eid = factory.createTrap('spike_trap', 0, 0, { row: 0, col: 0 })!;
 
     expect(Visual.outline[eid]).toBe(0);
+    expect(Visual.size[eid]).toBe(60);
     expect(Trap.damagePerSecond[eid]).toBe(3);
     expect(Trap.cooldown[eid]).toBeCloseTo(0.2);
   });
@@ -199,7 +200,7 @@ describe('unit config bridge', () => {
       stats: { hp: 200, atk: 0, armor: 20, mr: 5 },
       cost: { build: 60 },
       trap: { type: 'Boulder' },
-      visual: { shape: 'circle', color: '#78909c', size: 40, outline: false },
+      visual: { shape: 'circle', color: '#78909c', size: 60, outline: false },
       behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'hold_position' },
     } as RegistryUnitConfig);
 
