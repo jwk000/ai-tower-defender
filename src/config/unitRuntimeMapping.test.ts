@@ -65,7 +65,7 @@ const TOWER_CONFIG_ID_TO_TYPE: Record<string, TowerType> = {
   lightning_tower: TowerType.Lightning,
 };
 
-const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder', 'bomb'] as const;
 
 function parseRecord<T>(content: string): Record<string, T> {
   return (parseYaml(content) ?? {}) as Record<string, T>;

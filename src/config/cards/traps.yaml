@@ -57,3 +57,14 @@ boulder_card:
     targetType: tile
     range: path
 
+bomb_card:
+  name: 炸弹
+  description: 放在路径上的机关，敌人路过后1秒爆炸，对3x3地格内地面敌人造成90点伤害
+  type: trap
+  rarity: rare
+  energyCost: 4
+  goldCost: 60
+  unitConfigId: bomb
+  placement:
+    targetType: tile
+    range: path

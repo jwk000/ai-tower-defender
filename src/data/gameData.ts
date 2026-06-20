@@ -1161,6 +1161,23 @@ export const TRAP_CONFIGS: Record<string, TrapConfig> = {
     outline: false,
     layer: 'Ground',
   },
+  bomb: {
+    type: 'Bomb',
+    name: '炸弹',
+    hp: 99999,
+    damagePerSecond: 0,
+    radius: 96,
+    cooldown: 0,
+    maxTriggers: 1,
+    color: '#212121',
+    size: 60,
+    cost: 60,
+    shape: 'circle',
+    outline: false,
+    layer: 'AboveGrid',
+    damage: 90,
+    delay: 1.0,
+  },
 };
 
 /** 机关 YAML ID → TrapTypeVal 数值映射 */
@@ -1169,6 +1186,7 @@ export const TRAP_TYPE_VAL: Record<string, number> = {
   BearTrap: 1,
   TarPit: 2,
   Boulder: 3,
+  Bomb: 4,
 };
 
 export const UNIT_TYPE_BY_ID: readonly UnitType[] = [

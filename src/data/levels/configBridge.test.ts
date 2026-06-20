@@ -220,6 +220,36 @@ describe('unit config bridge', () => {
     expect(Health.magicResist[eid]).toBe(5);
   });
 
+  it('炸弹机关从配置读取1秒延迟、3x3范围和90点伤害', () => {
+    registerConfig({
+      id: 'bomb',
+      name: '测试炸弹',
+      category: 'Trap',
+      faction: 'Player',
+      layer: 'AboveGrid',
+      stats: { hp: 99999, atk: 0 },
+      cost: { build: 60 },
+      trap: { type: 'Bomb', damage: 90, radius: 96, delay: 1.0, maxTriggers: 1 },
+      visual: { shape: 'circle', color: '#212121', size: 60, outline: false },
+      behavior: { targetSelection: 'nearest', attackMode: 'single_target', movementMode: 'hold_position' },
+    } as RegistryUnitConfig);
+
+    injectTrapConfigsFromRegistry();
+
+    const world = new TowerWorld();
+    const factory = new UnitFactory(world);
+    const eid = factory.createTrap('bomb', 0, 0, { row: 0, col: 0 })!;
+
+    const cfg = TRAP_CONFIGS.bomb!;
+    expect(cfg.damage).toBe(90);
+    expect(cfg.radius).toBe(96);
+    expect(cfg.delay).toBe(1.0);
+    expect(Trap.trapType[eid]).toBe(4);
+    expect(Trap.damage[eid]).toBe(90);
+    expect(Trap.radius[eid]).toBe(96);
+    expect(Trap.slowDuration[eid]).toBe(1.0);
+  });
+
   it('飞机兜底配置保持三倍血量和低空两倍视觉半径', () => {
     expect(ENEMY_CONFIGS[EnemyType.Plane]!.hp).toBe(240);
     expect(ENEMY_CONFIGS[EnemyType.Plane]!.radius).toBeCloseTo(33.6);

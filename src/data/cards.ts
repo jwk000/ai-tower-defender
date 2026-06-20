@@ -203,8 +203,8 @@ const blizzard: CardInstance = {
 const bomb: CardInstance = {
   id: 'card_bomb',
   name: '炸弹',
-  type: 'spell',
-  description: '2×2格范围80点伤害，放置后2秒爆炸',
+  type: 'trap',
+  description: '路径机关，敌人路过后1秒爆炸，对3×3地格内地面敌人造成90点伤害',
   goldCost: 60,
 };
 

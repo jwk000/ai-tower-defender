@@ -185,6 +185,7 @@ describe('A4-YAML loadAllCardConfigsSync 同步装载契约', () => {
 
 const B3_TRAP_PRODUCTION_CARDS = [
   { id: 'spike_trap_card', unit: 'spike_trap', type: 'trap', rarity: 'common', energy: 2 },
+  { id: 'bomb_card', unit: 'bomb', type: 'trap', rarity: 'rare', energy: 4 },
 ] as const;
 
 describe('B3 扩展版 陷阱卡 YAML 配置', () => {

@@ -492,6 +492,7 @@ export interface TrapConfig {
   bossImmune?: boolean;
   slowPercent?: number;
   slowDuration?: number;
+  delay?: number;
   killChance?: number;
   pushDistance?: number;
   pullDistance?: number;

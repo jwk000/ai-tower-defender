@@ -129,6 +129,7 @@ export const TrapTypeVal = {
   BearTrap: 1,
   TarPit: 2,
   Boulder: 3,
+  Bomb: 4,
 } as const;
 export type TrapTypeVal = (typeof TrapTypeVal)[keyof typeof TrapTypeVal];
 

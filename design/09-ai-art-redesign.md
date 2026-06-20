@@ -162,7 +162,7 @@ dark fantasy casual tower defense card illustration, {subject}, centered heroic 
 | 火球术 | 技能 | 飞行火球 | `massive flaming fireball, spiral flames and ember trail, impact energy` |
 | 剑雨 | 技能 | 箭矢雨 | `rain of sharp arrows falling from above, stormy dark sky, bright metal arrowheads` |
 | 暴风雪 | 技能 | 冰晶旋涡 | `blizzard vortex, swirling snow, blue white ice shards, freezing wind spiral` |
-| 炸弹 | 技能 | 黑色圆弹 | `round black bomb with lit fuse, sparks and imminent explosion glow` |
+| 炸弹 | 机关 | 黑色圆弹 | `round black bomb with lit fuse, sparks and imminent explosion glow` |
 | 淘金热 | 技能 | 金币爆发 | `pile of gold coins sparkling, dark fantasy treasure glow, bouncing coin shapes` |
 
 | 金矿 | 生产 | 暗金矿井 | `small dark gold mine building, glowing ore vein, mine cart silhouette` |

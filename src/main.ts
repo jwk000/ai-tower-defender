@@ -1985,34 +1985,6 @@ class TowerDefenderGame extends Game {
         return true;
       }
 
-      case 'bomb': {
-        // 炸弹：创建炸弹投射物抛向目标位置
-        const pid = this.world.createEntity();
-        this.world.addComponent(pid, Position, { x: startX, y: startY });
-        this.world.addComponent(pid, SpellProjectile, {
-          spellType: 3, // SPELL_BOMB
-          targetX: x,
-          targetY: y,
-          startX,
-          startY,
-          duration: 0.7,
-          elapsed: 0,
-          damage: 80,
-          radius: 96,
-          phase: 0,
-        });
-        this.world.addComponent(pid, Visual, {
-          shape: ShapeVal.Circle,
-          colorR: 66, colorG: 66, colorB: 66,
-          size: 16,
-          alpha: 1,
-          outline: 0,
-          hitFlashTimer: 0,
-          idlePhase: 0,
-        });
-        return true;
-      }
-
       // ---- 自施法技能卡 ----
       case 'gold_rush': {
         // 淘金热：立即获得 80 金币

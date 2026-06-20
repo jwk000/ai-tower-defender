@@ -22,7 +22,7 @@ function makeDraftPool(): CardInstance[] {
     { id: 'card_fireball', name: '火球术', type: 'spell', description: '2×2格范围火球伤害', goldCost: 0 },
     { id: 'card_arrow_rain', name: '剑雨', type: 'spell', description: '3×3格范围剑雨', goldCost: 0 },
     { id: 'card_blizzard', name: '暴风雪', type: 'spell', description: '减速AOE区域', goldCost: 0 },
-    { id: 'card_bomb', name: '炸弹', type: 'spell', description: '2秒延时爆炸', goldCost: 0 },
+    { id: 'card_bomb', name: '炸弹', type: 'trap', description: '路径延时爆炸机关', goldCost: 0 },
     { id: 'card_gold_rush', name: '淘金热', type: 'spell', description: '立即获得80金币', goldCost: 0 },
     { id: 'card_spike_trap', name: '地刺', type: 'trap', description: '路径陷阱', goldCost: 0 },
     { id: 'card_bear_trap', name: '捕兽夹', type: 'trap', description: '控制陷阱', goldCost: 0 },

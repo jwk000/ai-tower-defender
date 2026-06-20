@@ -69,7 +69,7 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Ballista,  // 9
 ];
 
-const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder', 'bomb'] as const;
 
 // ---- Query: all entities with position + visual ----
 const renderableQuery = defineQuery([Position, Visual]);
@@ -1390,6 +1390,38 @@ export class RenderSystem implements System {
               h: 2,
               color: '#546e7a',
               alpha: 1,
+            });
+            break;
+          }
+
+          case 4: // Bomb - 炸弹：黑色圆弹，引信点火
+          {
+            const pulse = 1 + animFactor * 0.18;
+            this.renderer.push({
+              shape: 'circle',
+              x: posX,
+              y: posY + 2,
+              size: 28 * pulse,
+              color: '#212121',
+              alpha: 1,
+            });
+            this.renderer.push({
+              shape: 'rect',
+              x: posX + 9,
+              y: posY - 15,
+              size: 12,
+              h: 3,
+              color: '#5d4037',
+              alpha: 1,
+              rotation: -0.6,
+            });
+            this.renderer.push({
+              shape: 'circle',
+              x: posX + 15,
+              y: posY - 20,
+              size: 6 + animFactor * 4,
+              color: animTimer > 0 ? '#ff7043' : '#ffca28',
+              alpha: animTimer > 0 ? 0.95 : 0.7,
             });
             break;
           }

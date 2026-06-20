@@ -11,6 +11,7 @@ import {
   Boss,
   GridOccupant,
   Health,
+  ExplosionEffect,
   Layer, LayerVal,
   Position,
   Slowed,
@@ -454,6 +455,72 @@ describe('TrapSystem — Boulder (巨石)', () => {
     const hp0 = Health.current[enemy]!;
     system.update(world, 1.0);
     expect(Health.current[enemy]).toBe(hp0);
+  });
+});
+
+// ============================================================
+// Bomb (4) — 炸弹: 地面敌人路过后延迟爆炸，3×3地格物理伤害
+// ============================================================
+
+describe('TrapSystem — Bomb (炸弹)', () => {
+  let world: TowerWorld;
+  let system: TrapSystem;
+
+  beforeEach(() => {
+    world = new TowerWorld();
+    system = new TrapSystem(TILE);
+  });
+
+  it('地面敌人路过后进入1秒倒计时，未到时间不造成伤害', () => {
+    const trap = makeTrap(world, 5, 5, {
+      trapType: TrapTypeVal.Bomb,
+      damage: 90,
+      slowDuration: 1.0,
+    });
+    const enemy = makeEnemy(world, 5, 5, { hp: 120, layer: LayerVal.Ground });
+
+    system.update(world, 0.016);
+
+    expect(Trap.triggerCount[trap]).toBe(1);
+    expect(Trap.cooldownTimer[trap]).toBeCloseTo(1.0);
+    expect(Health.current[enemy]).toBe(120);
+  });
+
+  it('倒计时结束后对3x3地格内地面敌人造成90点伤害，并不伤害低空敌人', () => {
+    const trap = makeTrap(world, 5, 5, {
+      trapType: TrapTypeVal.Bomb,
+      damage: 90,
+      slowDuration: 1.0,
+      hp: 99999,
+    });
+    const center = makeEnemy(world, 5, 5, { hp: 120, layer: LayerVal.Ground });
+    const diagonal = makeEnemy(world, 6, 6, { hp: 120, layer: LayerVal.Ground });
+    const outside = makeEnemy(world, 7, 5, { hp: 120, layer: LayerVal.Ground });
+    const lowAir = makeEnemy(world, 5, 6, { hp: 120, layer: LayerVal.LowAir });
+
+    system.update(world, 0.016);
+    system.update(world, 1.0);
+
+    expect(Health.current[center]).toBe(30);
+    expect(Health.current[diagonal]).toBe(30);
+    expect(Health.current[outside]).toBe(120);
+    expect(Health.current[lowAir]).toBe(120);
+    expect(Array.from(ExplosionEffect.duration).some((duration) => (duration ?? 0) > 0)).toBe(true);
+    expect(Health.current[trap]).toBe(99999);
+  });
+
+  it('低空敌人路过不会触发炸弹', () => {
+    const trap = makeTrap(world, 5, 5, {
+      trapType: TrapTypeVal.Bomb,
+      damage: 90,
+      slowDuration: 1.0,
+    });
+    makeEnemy(world, 5, 5, { hp: 120, layer: LayerVal.LowAir });
+
+    system.update(world, 1.0);
+
+    expect(Trap.triggerCount[trap]).toBe(0);
+    expect(Trap.cooldownTimer[trap]).toBe(0);
   });
 });
 

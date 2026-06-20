@@ -154,7 +154,7 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Ballista,  // 9
 ];
 
-const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder', 'bomb'] as const;
 
 // ============================================================
 // Interface types (unchanged from original)
@@ -242,7 +242,6 @@ const SPELL_DRAG_PREVIEW_FALLBACKS: Record<string, { name: string; subtype: Card
   fireball: { name: '火球术', subtype: 'damage', radius: 80 },
   arrow_rain: { name: '剑雨', subtype: 'damage', radius: 128 },
   blizzard: { name: '暴风雪', subtype: 'control', radius: 9999 },
-  bomb: { name: '炸弹', subtype: 'damage', radius: 96 },
   earthquake: { name: '大地裂变', subtype: 'damage', radius: 9999 },
   gold_rush: { name: '淘金热', subtype: 'utility', radius: 0 },
 };

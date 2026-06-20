@@ -362,7 +362,7 @@ export class UnitFactory {
       stunDuration: (cfg.stunDuration as number) ?? 0,
       damage: (cfg.damage as number) ?? 0,
       slowPercent: (cfg.slowPercent as number) ?? 0,
-      slowDuration: (cfg.slowDuration as number) ?? 0,
+      slowDuration: (cfg.slowDuration as number) ?? (cfg.delay as number) ?? 0,
     });
 
     // Attack — 陷阱也需要 Attack 组件让 TrapSystem 检测范围

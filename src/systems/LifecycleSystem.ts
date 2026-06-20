@@ -39,7 +39,7 @@ const TOWER_TYPE_BY_ID: TowerType[] = [
   TowerType.Ballista,
 ];
 
-const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder'] as const;
+const TRAP_TYPE_BY_ID = ['spike_trap', 'bear_trap', 'tar_pit', 'boulder', 'bomb'] as const;
 
 /**
  * 生命周期系统 — 检测单位死亡/创建事件，分发给 RuleEngine

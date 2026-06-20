@@ -62,24 +62,6 @@ blizzard_card:
     slowDuration: 5.0
     affectAlly: false
 
-bomb_card:
-  name: 炸弹
-  description: 放置后2秒爆炸，对范围内敌人造成80点伤害
-  type: spell
-  rarity: rare
-  energyCost: 4
-  goldCost: 60
-  spellSubtype: damage
-  placement:
-    targetType: area
-    range: cursor
-  spellEffect:
-    handler: delayed_aoe
-    damage: 80
-    radius: 96
-    delay: 2.0
-    affectAlly: false
-
 earthquake_card:
   name: 大地裂变
   description: 全棋盘震动，3秒内每秒对所有敌人造成100点物理伤害

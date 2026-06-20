@@ -236,7 +236,7 @@ describe('DebugManager — 调试功能 (design/27-debug-system.md)', () => {
       debug.replaceNextHandCardForDebug({
         id: cardId,
         name: cardId,
-        type: 'spell',
+        type: cardId === 'card_bomb' ? 'trap' : 'spell',
         description: cardId,
         goldCost: 0,
       });

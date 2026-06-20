@@ -110,7 +110,7 @@ describe('HandSystem — 手牌管理', () => {
         { id: 'card_cannon_tower', name: '炮塔', type: 'unit', description: '地面群伤', goldCost: 0 },
         { id: 'card_missile_tower', name: '导弹塔', type: 'unit', description: '地面爆炸', goldCost: 0 },
         { id: 'card_fireball', name: '火球术', type: 'spell', description: '地面范围法术', goldCost: 0 },
-        { id: 'card_bomb', name: '炸弹', type: 'spell', description: '地面爆炸', goldCost: 0 },
+        { id: 'card_bomb', name: '炸弹', type: 'trap', description: '地面爆炸机关', goldCost: 0 },
         { id: 'card_swordsman', name: '剑士', type: 'unit', description: '地面近战', goldCost: 0 },
         { id: 'card_archer', name: '弓手', type: 'unit', description: '防空士兵', goldCost: 0 },
       ];

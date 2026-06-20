@@ -149,3 +149,39 @@ boulder:
         effect: rock_shatter
 
 ---
+bomb:
+  id: bomb
+  name: 炸弹
+  category: Trap
+  faction: Player
+  layer: AboveGrid
+
+  stats:
+    hp: 99999
+
+  cost:
+    build: 60
+
+  trap:
+    type: Bomb
+    damage: 90
+    radius: 96
+    delay: 1.0
+    cooldown: 0
+    maxTriggers: 1
+
+  visual:
+    shape: circle
+    color: "#212121"
+    size: 60
+    outline: false
+
+  behavior:
+    movementMode: hold_position
+
+  lifecycle:
+    onDeath:
+      - type: play_effect
+        effect: bomb_explosion
+
+---

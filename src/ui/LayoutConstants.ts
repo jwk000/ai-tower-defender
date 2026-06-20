@@ -219,9 +219,9 @@ export function resolveCardToEntityType(
     return resolveCardToEntityType(unitConfigId.slice(0, -'_card'.length));
   }
 
-  // 8种机关类型
+  // 机关类型
   const TRAP_IDS = [
-    'spike_trap', 'bear_trap', 'tar_pit', 'boulder',
+    'spike_trap', 'bear_trap', 'tar_pit', 'boulder', 'bomb',
     'fan', 'water_pit', 'boxing_glove', 'mechanical_arm',
   ];
   if (TRAP_IDS.includes(unitConfigId)) {
@@ -233,7 +233,6 @@ export function resolveCardToEntityType(
     'fireball',
     'arrow_rain',
     'blizzard',
-    'bomb',
     'earthquake',
     'gold_rush',
     'upgrade_shield_guard',

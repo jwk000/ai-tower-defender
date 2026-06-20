@@ -1,12 +1,13 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
-  Position, Health, Trap, GridOccupant, Layer, LayerVal, DamageTypeVal,
+  Position, Health, Trap, GridOccupant, Layer, LayerVal, DamageTypeVal, ExplosionEffect, Visual, ShapeVal,
   Boss, Stunned, Slowed, TrapTypeVal, UnitTag,
 } from '../core/components.js';
 import { applyDamageToTarget } from '../utils/damageUtils.js';
 import { RenderSystem } from './RenderSystem.js';
 import type { MapConfig } from '../types/index.js';
 import { TileType } from '../types/index.js';
+import { Sound } from '../utils/Sound.js';
 
 const trapQuery = defineQuery([Trap, Position, GridOccupant]);
 const damageableQuery = defineQuery([Position, Health]);
@@ -36,6 +37,7 @@ function getEnemyGridPos(
  *   1 BearTrap    — reusable stun + damage, boss immune, cooldown-gated
  *   2 TarPit      — persistent configured slow on same tile
  *   3 Boulder     — has HP, blocks path, destroyed when HP≤0
+ *   4 Bomb        — arms when stepped on, explodes after delay in a 3×3 ground area
  */
 export class TrapSystem implements System {
   readonly name = 'TrapSystem';
@@ -54,8 +56,8 @@ export class TrapSystem implements System {
     for (const trapId of traps) {
       const trapType = Trap.trapType[trapId] ?? TrapTypeVal.SpikeTrap;
 
-      // Tick cooldown timer for all traps
-      if (Trap.cooldownTimer[trapId]! > 0) {
+      // Tick cooldown timer for reusable traps. Bomb uses this field as fuse timer.
+      if (trapType !== TrapTypeVal.Bomb && Trap.cooldownTimer[trapId]! > 0) {
         Trap.cooldownTimer[trapId] = Math.max(0, Trap.cooldownTimer[trapId]! - dt);
       }
 
@@ -80,6 +82,10 @@ export class TrapSystem implements System {
 
         case TrapTypeVal.Boulder:
           this.tickBoulder(world, trapId);
+          break;
+
+        case TrapTypeVal.Bomb:
+          this.tickBomb(world, trapId, damageableEntities, ox, oy, dt);
           break;
 
         default:
@@ -243,6 +249,63 @@ export class TrapSystem implements System {
   }
 
   // ============================================================
+  // Bomb (4) — path trap, arms on ground enemy crossing, explodes after delay
+  // ============================================================
+  private tickBomb(
+    world: TowerWorld,
+    trapId: number,
+    damageableEntities: readonly number[],
+    ox: number,
+    oy: number,
+    dt: number,
+  ): void {
+    const triggerCount = Trap.triggerCount[trapId] ?? 0;
+    const armed = triggerCount > 0;
+
+    if (!armed) {
+      const trapRow = GridOccupant.row[trapId]!;
+      const trapCol = GridOccupant.col[trapId]!;
+
+      for (const enemyId of damageableEntities) {
+        if (!TrapSystem.isTrapTarget(world, enemyId)) continue;
+        if ((Layer.value[enemyId] ?? LayerVal.Ground) !== LayerVal.Ground) continue;
+
+        const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
+        if (pos.row !== trapRow || pos.col !== trapCol) continue;
+
+        Trap.triggerCount[trapId] = 1;
+        Trap.cooldownTimer[trapId] = Trap.slowDuration[trapId] || 1.0;
+        Trap.animTimer[trapId] = Trap.cooldownTimer[trapId]!;
+        return;
+      }
+
+      return;
+    }
+
+    Trap.cooldownTimer[trapId] = Math.max(0, (Trap.cooldownTimer[trapId] ?? 0) - dt);
+    Trap.animTimer[trapId] = Trap.cooldownTimer[trapId]!;
+    if ((Trap.cooldownTimer[trapId] ?? 0) > TRAP_COOLDOWN_EPSILON) return;
+
+    const trapRow = GridOccupant.row[trapId]!;
+    const trapCol = GridOccupant.col[trapId]!;
+    const damage = Trap.damage[trapId] ?? 90;
+
+    for (const enemyId of damageableEntities) {
+      if (!TrapSystem.isTrapTarget(world, enemyId)) continue;
+      if ((Layer.value[enemyId] ?? LayerVal.Ground) !== LayerVal.Ground) continue;
+
+      const pos = getEnemyGridPos(enemyId, ox, oy, this.tileSize);
+      if (Math.abs(pos.row - trapRow) > 1 || Math.abs(pos.col - trapCol) > 1) continue;
+
+      applyDamageToTarget(world, enemyId, damage, DamageTypeVal.Physical);
+    }
+
+    this.createBombExplosion(world, Position.x[trapId]!, Position.y[trapId]!, Trap.radius[trapId] || this.tileSize * 3);
+    Sound.play('skill_bomb');
+    world.destroyEntity(trapId);
+  }
+
+  // ============================================================
   // Shared helpers
   // ============================================================
 
@@ -259,6 +322,29 @@ export class TrapSystem implements System {
   private static isTrapTarget(world: TowerWorld, entityId: number): boolean {
     if (hasComponent(world.world, Trap, entityId)) return false;
     return hasComponent(world.world, UnitTag, entityId) && UnitTag.isEnemy[entityId] === 1;
+  }
+
+  private createBombExplosion(world: TowerWorld, x: number, y: number, radius: number): void {
+    const eid = world.createEntity();
+    world.addComponent(eid, Position, { x, y });
+    world.addComponent(eid, Visual, {
+      shape: ShapeVal.Circle,
+      colorR: 255,
+      colorG: 120,
+      colorB: 16,
+      size: 0,
+      alpha: 1,
+      outline: 0,
+    });
+    world.addComponent(eid, ExplosionEffect, {
+      duration: 0.5,
+      elapsed: 0,
+      radius: 0,
+      maxRadius: radius,
+      colorR: 255,
+      colorG: 120,
+      colorB: 16,
+    });
   }
 
   /**
