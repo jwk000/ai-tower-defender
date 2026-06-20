@@ -85,6 +85,9 @@ export function injectTowerConfigsFromRegistry(): number {
     const lightningStormDamage = (special['lightningStormDamage'] as number) ?? 0;
     const slowPercent = (special['slowPercent'] as number) ?? 0;
     const slowMaxStacks = (special['slowMaxStacks'] as number) ?? 1;
+    const slowDuration = (special['slowDuration'] as number) ?? 0;
+    const freezeDuration = (special['freezeDuration'] as number) ?? 0;
+    const freezeChance = (special['freezeChance'] as number) ?? 0;
     const dotDamage = (special['dotDamage'] as number) ?? 0;
     const dotDuration = (special['dotDuration'] as number) ?? 0;
     const cantTargetFlying = special['cantTargetFlying'] === true;
@@ -139,6 +142,9 @@ export function injectTowerConfigsFromRegistry(): number {
     if (lightningStormDamage > 0) cfg.lightningStormDamage = lightningStormDamage;
     if (slowPercent > 0) cfg.slowPercent = slowPercent;
     if (slowMaxStacks > 1) cfg.slowMaxStacks = slowMaxStacks;
+    if (slowDuration > 0) cfg.slowDuration = slowDuration;
+    if (freezeDuration > 0) cfg.freezeDuration = freezeDuration;
+    if (freezeChance > 0) cfg.freezeChance = freezeChance;
     if (dotDamage > 0) cfg.dotDamage = dotDamage;
     if (dotDuration > 0) cfg.dotDuration = dotDuration;
     if (cantTargetFlying) cfg.cantTargetFlying = true;

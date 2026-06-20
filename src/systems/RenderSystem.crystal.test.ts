@@ -146,6 +146,7 @@ function makeBoulderTrap(world: TowerWorld): number {
     stunDuration: 0,
     damage: 0,
     slowPercent: 0,
+    slowDuration: 0,
   });
   world.addComponent(eid, Layer, { value: LayerVal.Ground });
   world.addComponent(eid, Visual, {
@@ -198,6 +199,16 @@ function makeProjectile(
     colorG: opts.colorG,
     colorB: opts.colorB,
     size: opts.size,
+    splashRadius: 0,
+    stunDuration: 0,
+    slowPercent: 0,
+    slowMaxStacks: 0,
+    slowDuration: 0,
+    freezeDuration: 0,
+    freezeChance: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
     sourceTowerType: opts.sourceTowerType,
     dirX: opts.dirX ?? 0,
     dirY: opts.dirY ?? 0,

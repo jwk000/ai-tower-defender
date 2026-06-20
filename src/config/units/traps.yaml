@@ -96,6 +96,7 @@ tar_pit:
   trap:
     type: TarPit
     slowPercent: 50
+    slowDuration: 5.0
     radius: 32
 
   visual:

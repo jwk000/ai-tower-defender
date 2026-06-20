@@ -40,6 +40,7 @@ export function injectTrapConfigsFromRegistry(): number {
     if (trap?.damage) cfg.damage = trap.damage as number;
     if (trap?.bossImmune) cfg.bossImmune = trap.bossImmune as boolean;
     if (trap?.slowPercent) cfg.slowPercent = trap.slowPercent as number;
+    if (trap?.slowDuration) cfg.slowDuration = trap.slowDuration as number;
     if (trap?.killChance) cfg.killChance = trap.killChance as number;
     if (trap?.pushDistance) cfg.pushDistance = trap.pushDistance as number;
     if (trap?.pullDistance) cfg.pullDistance = trap.pullDistance as number;

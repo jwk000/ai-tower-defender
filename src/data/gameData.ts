@@ -291,7 +291,10 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
     damageType: 'magic',
     slowPercent: 20,
     slowMaxStacks: 5,
-    // L2: ATK=15 + 30% 冰冻 1s; L3: ATK=20 + 40% 冰冻 + ATK-20%/3s
+    slowDuration: 5.0,
+    freezeDuration: 2.0,
+    freezeChance: 40,
+    // L3: ATK=20 + 40% 冰冻 2s
     upgradeCosts: [40, 380],
     upgradeAtkBonus: [3, 11],
     upgradeRangeBonus: [20, 40],
@@ -1141,6 +1144,7 @@ export const TRAP_CONFIGS: Record<string, TrapConfig> = {
     outline: false,
     layer: 'AboveGrid',
     slowPercent: 50,
+    slowDuration: 5.0,
   },
   boulder: {
     type: 'Boulder',

@@ -11,7 +11,7 @@
 import { TowerWorld, type System, defineQuery, hasComponent } from '../core/World.js';
 import {
   Position, Projectile, Health, Visual,
-  Stunned, ExplosionEffect, BloodParticle, FadingMark,
+  Stunned, Frozen, ExplosionEffect, BloodParticle, FadingMark,
   UnitTag, Boss, ShapeVal, DamageTypeVal,
   TargetingMark, Layer, LayerVal, Faction, FactionVal,
   Tower, Poisoned, Attack,
@@ -377,6 +377,9 @@ export class ProjectileSystem implements System {
     const stunDuration = Projectile.stunDuration[eid]!;
     const slowPercent = Projectile.slowPercent[eid]!;
     const slowMaxStacks = Projectile.slowMaxStacks[eid] as number;
+    const slowDuration = Projectile.slowDuration[eid]!;
+    const freezeDuration = Projectile.freezeDuration[eid]!;
+    const freezeChance = Projectile.freezeChance[eid]!;
     const chainCount = Projectile.chainCount[eid] as number;
     const chainRange = Projectile.chainRange[eid]!;
     const chainDecay = Projectile.chainDecay[eid]!;
@@ -392,7 +395,7 @@ export class ProjectileSystem implements System {
       Sound.play('cannon_hit');
     }
 
-    // -- Ice: slow debuff (BuffSystem handles stacking → freeze) --
+    // -- Ice: slow debuff + L3 freeze chance --
     if (slowPercent > 0) {
       if (isAlive(targetId) && canProjectileHitTarget(world, sourceId, targetId, isMissile) && !hasComponent(world.world, Stunned, targetId)) {
         const buff: BuffData = {
@@ -400,7 +403,7 @@ export class ProjectileSystem implements System {
           attribute: 'speed',
           value: -slowPercent,       // negative = percent reduction
           isPercent: true,
-          duration: 3.0,
+          duration: slowDuration > 0 ? slowDuration : 5.0,
           stacks: 1,
           maxStacks: slowMaxStacks,
           sourceId,
@@ -408,6 +411,14 @@ export class ProjectileSystem implements System {
           removeOnSourceDeath: false,
         };
         addBuff(world, targetId, buff);
+        if (
+          freezeDuration > 0
+          && freezeChance > 0
+          && (Tower.level[sourceId] ?? 0) >= 3
+          && Math.random() * 100 < freezeChance
+        ) {
+          world.addComponent(targetId, Frozen, { timer: freezeDuration });
+        }
       }
       Sound.play('ice_hit');
     }

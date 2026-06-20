@@ -256,7 +256,9 @@ export interface TowerConfig {
   stunDuration?: number;
   slowPercent?: number;
   slowMaxStacks?: number;
+  slowDuration?: number;
   freezeDuration?: number;
+  freezeChance?: number;
   chainCount?: number;
   chainCountByLevel?: number[];
   chainDecay?: number;
@@ -489,6 +491,7 @@ export interface TrapConfig {
   damage?: number;
   bossImmune?: boolean;
   slowPercent?: number;
+  slowDuration?: number;
   killChance?: number;
   pushDistance?: number;
   pullDistance?: number;

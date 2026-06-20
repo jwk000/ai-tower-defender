@@ -34,7 +34,7 @@ function makeTrap(
   world: TowerWorld,
   row: number,
   col: number,
-  overrides: { layer?: number; trapType?: number; direction?: number; hp?: number; cooldown?: number; damagePerSecond?: number; maxTriggers?: number; stunDuration?: number; damage?: number; slowPercent?: number } = {},
+  overrides: { layer?: number; trapType?: number; direction?: number; hp?: number; cooldown?: number; damagePerSecond?: number; maxTriggers?: number; stunDuration?: number; damage?: number; slowPercent?: number; slowDuration?: number } = {},
 ): number {
   const eid = world.createEntity();
   const ox = RenderSystem.sceneOffsetX;
@@ -55,6 +55,7 @@ function makeTrap(
     stunDuration: overrides.stunDuration ?? 0,
     damage: overrides.damage ?? 0,
     slowPercent: overrides.slowPercent ?? 50,
+    slowDuration: overrides.slowDuration ?? 5,
   });
   world.addComponent(eid, Layer, { value: overrides.layer ?? LayerVal.AboveGrid });
 
@@ -232,7 +233,7 @@ describe('TrapSystem — SpikeTrap (地刺)', () => {
     world.addComponent(eid, Trap, {
       damagePerSecond: 100, radius: TILE * 0.5, cooldown: 0, cooldownTimer: 0,
       animTimer: 0, animDuration: 0.4, triggerCount: 0, maxTriggers: 0,
-      trapType: TrapTypeVal.SpikeTrap, direction: 0, slowPercent: 0,
+      trapType: TrapTypeVal.SpikeTrap, direction: 0, slowPercent: 0, slowDuration: 0,
     });
     const ground = makeEnemy(world, 5, 5, { layer: LayerVal.Ground });
     const flying = makeEnemy(world, 5, 5, { layer: LayerVal.LowAir });
@@ -377,6 +378,7 @@ describe('TrapSystem — TarPit (焦油坑)', () => {
     system.update(world, 0.016);
     expect(hasComponent(world.world, Slowed, enemy)).toBe(true);
     expect(Slowed.percent[enemy]).toBe(50);
+    expect(Slowed.timer[enemy]).toBe(5);
   });
 
   it('减速比例读取 Trap 配置，避免运行时硬编码', () => {
@@ -384,6 +386,13 @@ describe('TrapSystem — TarPit (焦油坑)', () => {
     const enemy = makeEnemy(world, 5, 5);
     system.update(world, 0.016);
     expect(Slowed.percent[enemy]).toBe(35);
+  });
+
+  it('减速持续时间读取 Trap 配置', () => {
+    makeTrap(world, 5, 5, { trapType: TrapTypeVal.TarPit, slowDuration: 4 });
+    const enemy = makeEnemy(world, 5, 5);
+    system.update(world, 0.016);
+    expect(Slowed.timer[enemy]).toBe(4);
   });
 
   it('不同格敌人不受影响', () => {
@@ -464,7 +473,7 @@ describe('TrapSystem — 默认行为', () => {
     world.addComponent(eid, Trap, {
       damagePerSecond: 100, radius: TILE * 0.5, cooldown: 0, cooldownTimer: 0,
       animTimer: 0, animDuration: 0.4, triggerCount: 0, maxTriggers: 0,
-      trapType: 0, direction: 0, slowPercent: 0, // explicitly 0 (SpikeTrap default)
+      trapType: 0, direction: 0, slowPercent: 0, slowDuration: 0, // explicitly 0 (SpikeTrap default)
     });
     world.addComponent(eid, Layer, { value: LayerVal.AboveGrid });
     const enemy = makeEnemy(world, 5, 5);

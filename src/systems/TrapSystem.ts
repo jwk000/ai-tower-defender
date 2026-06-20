@@ -205,6 +205,7 @@ export class TrapSystem implements System {
     const trapCol = GridOccupant.col[trapId]!;
     const trapLayer = Layer.value[trapId] ?? LayerVal.AboveGrid;
     const slowPercent = Trap.slowPercent[trapId] ?? 20;
+    const slowDuration = Trap.slowDuration[trapId] ?? 0.3;
     let anyTriggered = false;
 
     for (const enemyId of damageableEntities) {
@@ -219,7 +220,7 @@ export class TrapSystem implements System {
       // Refresh each frame while on tile so the slow expires shortly after leaving.
       world.addComponent(enemyId, Slowed, {
         percent: slowPercent,
-        timer: 0.3,
+        timer: slowDuration,
         stacks: 1,
         maxStacks: 1,
       });

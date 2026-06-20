@@ -7,14 +7,15 @@
  * - Bug 2: 导弹/炮塔的 splash AOE 只能伤害敌方单位（UnitTag.isEnemy === 1），
  *   不能伤害友军塔、生产建筑、陷阱等己方实体，也不能伤害发射源塔自身。
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { addEntity, addComponent, hasComponent } from 'bitecs';
 import type { World as BitecsWorld } from 'bitecs';
 import { TowerWorld } from '../core/World.js';
 import {
   Position, Projectile, Health, UnitTag, Layer, LayerVal, Faction, FactionVal,
-  TargetingMark, Visual, DamageTypeVal, Attack, Poisoned,
+  TargetingMark, Visual, DamageTypeVal, Attack, Poisoned, Tower, Frozen,
 } from '../core/components.js';
+import { getBuffs } from './BuffSystem.js';
 import { ProjectileSystem } from './ProjectileSystem.js';
 import { computeMissileParabola } from './AttackSystem.js';
 import { MAP_01 } from '../data/gameData.js';
@@ -72,6 +73,14 @@ function makeMissile(
     size: 10,
     splashRadius,
     stunDuration: 0.4,
+    slowPercent: 0,
+    slowMaxStacks: 0,
+    slowDuration: 0,
+    freezeDuration: 0,
+    freezeChance: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
     sourceTowerType: MISSILE_TOWER_TYPE,
     targetX,
     targetY,
@@ -113,6 +122,14 @@ function makeDotProjectile(
     size: 10,
     splashRadius: 0,
     stunDuration: 0,
+    slowPercent: 0,
+    slowMaxStacks: 0,
+    slowDuration: 0,
+    freezeDuration: 0,
+    freezeChance: 0,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
     sourceTowerType,
     targetX,
     targetY,
@@ -156,7 +173,9 @@ function makeBallistaProjectile(
     stunDuration: 0,
     slowPercent: 0,
     slowMaxStacks: 0,
+    slowDuration: 0,
     freezeDuration: 0,
+    freezeChance: 0,
     chainCount: 0,
     chainRange: 0,
     chainDecay: 0,
@@ -183,7 +202,7 @@ function makeEnemy(world: TowerWorld, x: number, y: number, hp: number = 200, la
   return id;
 }
 
-function makeAlliedTower(world: TowerWorld, x: number, y: number, hp: number = 500): number {
+function makeAlliedTower(world: TowerWorld, x: number, y: number, hp: number = 500, level: number = 1): number {
   const w = world.world;
   const id = addEntity(w);
   addComp(w, id, Position, { x, y });
@@ -204,8 +223,62 @@ function makeAlliedTower(world: TowerWorld, x: number, y: number, hp: number = 5
     isRanged: 1,
     canTargetLowAir: 0,
   });
+  addComp(w, id, Tower, { towerType: 0, level, totalInvested: 0 });
   return id;
 }
+
+function makeIceProjectile(
+  world: TowerWorld,
+  fromX: number,
+  fromY: number,
+  targetId: number,
+  sourceId: number,
+  freezeChance: number,
+): number {
+  const w = world.world;
+  const id = addEntity(w);
+  addComp(w, id, Position, { x: fromX, y: fromY });
+  addComp(w, id, Projectile, {
+    speed: 600,
+    damage: 1,
+    damageType: DamageTypeVal.Magic,
+    targetId,
+    sourceId,
+    fromX,
+    fromY,
+    shape: 1,
+    colorR: 129,
+    colorG: 212,
+    colorB: 250,
+    size: 10,
+    splashRadius: 0,
+    stunDuration: 0,
+    slowPercent: 20,
+    slowMaxStacks: 5,
+    slowDuration: 5,
+    freezeDuration: 2,
+    freezeChance,
+    chainCount: 0,
+    chainRange: 0,
+    chainDecay: 0,
+    sourceTowerType: 2,
+    targetX: fromX,
+    targetY: fromY,
+    flightTime: 0,
+    totalTime: 0,
+    vyInitial: 0,
+  });
+  addComp(w, id, Visual, {
+    shape: 1, colorR: 129, colorG: 212, colorB: 250,
+    size: 10, alpha: 1, outline: 0, hitFlashTimer: 0, idlePhase: 0,
+  });
+  addComp(w, id, Layer, { value: LayerVal.Ground });
+  return id;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('ProjectileSystem — Missile parabolic trajectory', () => {
   it('Bug 1: 目标在塔北方（tty < towerY）→ 导弹不应在首帧立即命中塔位置', () => {
@@ -501,5 +574,56 @@ describe('ProjectileSystem — DOT visual type', () => {
 
     expect(hasComponent(world.world, Poisoned, enemy)).toBe(true);
     expect(Poisoned.dotType[enemy]).toBe(0);
+  });
+});
+
+describe('ProjectileSystem — Ice tower slow and freeze', () => {
+  function runUntilProjectileHits(world: TowerWorld, sys: ProjectileSystem): void {
+    for (let i = 0; i < 60; i++) {
+      sys.update(world, 1 / 60);
+      world.cleanupDeadEntities();
+    }
+  }
+
+  it('冰塔命中后减速持续 5 秒', () => {
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+    const tower = makeAlliedTower(world, 100, 100, 500, 1);
+    const enemy = makeEnemy(world, 120, 100);
+
+    makeIceProjectile(world, 100, 100, enemy, tower, 0);
+    runUntilProjectileHits(world, sys);
+
+    const slow = getBuffs(enemy).find((buff) => buff.id === 'ice_slow');
+    expect(slow?.value).toBe(-20);
+    expect(slow?.duration).toBe(5);
+    expect(hasComponent(world.world, Frozen, enemy)).toBe(false);
+  });
+
+  it('冰塔 3 级后命中时按概率冰冻敌人 2 秒', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+    const tower = makeAlliedTower(world, 100, 100, 500, 3);
+    const enemy = makeEnemy(world, 120, 100);
+
+    makeIceProjectile(world, 100, 100, enemy, tower, 40);
+    runUntilProjectileHits(world, sys);
+
+    expect(hasComponent(world.world, Frozen, enemy)).toBe(true);
+    expect(Frozen.timer[enemy]).toBe(2);
+  });
+
+  it('冰塔 2 级不会触发冰冻概率', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const world = new TowerWorld();
+    const sys = new ProjectileSystem(MAP_01);
+    const tower = makeAlliedTower(world, 100, 100, 500, 2);
+    const enemy = makeEnemy(world, 120, 100);
+
+    makeIceProjectile(world, 100, 100, enemy, tower, 100);
+    runUntilProjectileHits(world, sys);
+
+    expect(hasComponent(world.world, Frozen, enemy)).toBe(false);
   });
 });

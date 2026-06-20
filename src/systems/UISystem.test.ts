@@ -444,6 +444,7 @@ describe('UISystem UI 层级', () => {
       stunDuration: 0,
       damage: 0,
       slowPercent: 0,
+      slowDuration: 0,
     });
 
     ui.selectedTrapEntityId = trapId;

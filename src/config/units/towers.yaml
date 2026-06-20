@@ -165,8 +165,9 @@ ice_tower:
     special:
       slowPercent: 20
       slowMaxStacks: 5
-      slowDuration: 3.0
-      freezeDuration: 1.0
+      slowDuration: 5.0
+      freezeDuration: 2.0
+      freezeChance: 40
 
   lifecycle:
     onDeath:

@@ -250,7 +250,9 @@ export const Projectile = defineComponent({
   stunDuration: Types.f32,
   slowPercent: Types.f32,
   slowMaxStacks: Types.ui8,
+  slowDuration: Types.f32,
   freezeDuration: Types.f32,
+  freezeChance: Types.f32,
   chainCount: Types.ui8,
   chainRange: Types.f32,
   chainDecay: Types.f32,
@@ -366,6 +368,7 @@ export const Trap = defineComponent({
   stunDuration: Types.f32, // 眩晕持续时间（BearTrap专用）
   damage: Types.f32,       // 一次性伤害（BearTrap专用）
   slowPercent: Types.f32,  // 减速比例百分比（TarPit专用）
+  slowDuration: Types.f32, // 减速离开触发格后的持续时间（TarPit专用）
 });
 
 /** Boss属性 */
