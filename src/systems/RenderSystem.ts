@@ -45,7 +45,6 @@ import {
   DeathEffect,
   DisintegrateEffect,
 } from '../core/components.js';
-import { isAdjacentToPath } from '../utils/grid.js';
 import { getTileTexturePath } from '../utils/pathTileTexture.js';
 import { objectiveArtPath, objectiveFxArtPath, unitArtPath } from '../utils/artAssets.js';
 import { getLoadedImageFrame, type LoadedArtFrame } from '../utils/imageCache.js';
@@ -320,8 +319,6 @@ export class RenderSystem implements System {
       [TileType.Spawn]: '#b86b1e',
       [TileType.Base]: '#1866a8',
     };
-    const emptyAdjacentColor = '#6b7d5e';
-
     for (let r = 0; r < map.rows; r++) {
       for (let c = 0; c < map.cols; c++) {
         const tile = map.tiles[r]![c]!;
@@ -334,11 +331,10 @@ export class RenderSystem implements System {
 
         switch (tile) {
           case TileType.Empty: {
-            const adjacent = isAdjacentToPath(r, c, map);
             if (tc[TileType.Empty]) {
               color = tc[TileType.Empty]!;
             } else {
-              color = adjacent ? emptyAdjacentColor : defaults[TileType.Empty]!;
+              color = defaults[TileType.Empty]!;
             }
             break;
           }
@@ -361,16 +357,6 @@ export class RenderSystem implements System {
           z: 0,
         });
 
-        if (tile === TileType.Empty && isAdjacentToPath(r, c, map) && !tc[TileType.Empty]) {
-          this.renderer.push({
-            shape: 'rect', x, y, size: ts - 2,
-            color: '#5c7e5c',
-            alpha: 0.2,
-            stroke: '#709470',
-            strokeWidth: 1,
-            z: 0,
-          });
-        }
       }
     }
 

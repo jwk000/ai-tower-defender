@@ -57,12 +57,23 @@ describe('BuildSystem v4.1 — UnitFactory 委托 + Faction 标记', () => {
     buildSystem.update(world, 0);
   });
 
-  it('placeTower (Arrow @ row1,col0 邻接 row0 path) 放置成功', () => {
+  it('placeTower (Arrow @ row1,col0 空地) 放置成功', () => {
     buildSystem.startDrag('tower', { towerType: TowerType.Arrow });
     const pxX = 0 * 64 + 32;
     const pxY = 1 * 64 + 32;
     const result = buildSystem.tryDrop(pxX, pxY);
     expect(result).not.toBe(false);
+  });
+
+  it('塔可以放在不邻接路径的任意空地', () => {
+    buildSystem.startDrag('tower', { towerType: TowerType.Arrow });
+    const result = buildSystem.tryDrop(2 * 64 + 32, 2 * 64 + 32);
+    expect(result).not.toBe(false);
+  });
+
+  it('塔不能放在路径格上', () => {
+    buildSystem.startDrag('tower', { towerType: TowerType.Arrow });
+    expect(buildSystem.tryDrop(1 * 64 + 32, 0 * 64 + 32)).toBe(false);
   });
 
   it('placeTrap (path tile @ row0,col1) 放置成功', () => {

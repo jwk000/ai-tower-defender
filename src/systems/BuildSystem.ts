@@ -25,7 +25,6 @@ import {
 } from '../types/index.js';
 import { TOWER_CONFIGS, TRAP_CONFIGS } from '../data/gameData.js';
 import { RenderSystem } from './RenderSystem.js';
-import { isAdjacentToPath } from '../utils/grid.js';
 import { UnitFactory, TOWER_TYPE_ID } from './UnitFactory.js';
 
 // ============================================================
@@ -207,14 +206,9 @@ export class BuildSystem implements System {
         return false;
       }
     } else {
-      // 塔/建筑必须放在空地 + 毗邻路径；士兵由 main.ts spawnUnitAt 处理路径放置
+      // 塔/建筑必须放在任意未占用空地；士兵由 main.ts spawnUnitAt 处理路径放置
       if (tile !== TileType.Empty) {
         this.onPlacementDenied?.('只能放在空地上', cx, cy);
-        this.cancelDrag();
-        return false;
-      }
-      if (!isAdjacentToPath(row, col, this.map)) {
-        this.onPlacementDenied?.('必须毗邻路径', cx, cy);
         this.cancelDrag();
         return false;
       }
