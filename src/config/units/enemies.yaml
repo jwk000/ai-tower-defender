@@ -3584,8 +3584,8 @@ abyss_lord:
   reward: { gold: 400 }
   visual: { shape: circle, color: "#1a0033", size: 162, outline: true }
   behavior: { targetSelection: nearest, attackMode: single_target, movementMode: follow_path, special: { canAttackBuildings: true } }
-  boss: { bossType: AbyssLord, annihilateInterval: 5.0, annihilateRadius: 150, healRatio: 0.02 }
-  skills: [{ id: dark_devour, name: "黑暗吞噬", cooldown: 5, range: 150, value: 2, duration: 0, description: "吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%" }]
+  boss: { bossType: AbyssLord, annihilateInterval: 5.0, annihilateRadius: 150, healRatio: 0 }
+  skills: [{ id: dark_devour, name: "黑暗吞噬", cooldown: 5, range: 150, value: 0, duration: 0, description: "吞噬Boss周围150px内所有非Boss单位，不再恢复自身HP" }]
 
   lifecycle:
     onCreate: [{ type: hp_bar_boss }, { type: play_sound, sound: SFX_BOSS_SPAWN }]

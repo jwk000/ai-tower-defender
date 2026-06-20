@@ -819,7 +819,6 @@ const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
   const bx = Position.x[bossEid] ?? 0;
   const by = Position.y[bossEid] ?? 0;
   const all = allPositionedQuery(world.world);
-  let devoured = 0;
   for (const eid of all) {
     if (eid === bossEid) continue;
     if ((Health.current[eid] ?? 0) <= 0) continue;
@@ -830,14 +829,7 @@ const handleDarkDevour: SkillHandler = (world, bossEid, skill, _phase) => {
     if (dx * dx + dy * dy <= skill.range * skill.range) {
       Health.current[eid] = 0;
       world.destroyEntity(eid);
-      devoured++;
     }
-  }
-  if (devoured > 0) {
-    Health.current[bossEid] = Math.min(
-      Health.max[bossEid] ?? Health.current[bossEid] ?? 0,
-      (Health.current[bossEid] ?? 0) + (Health.max[bossEid] ?? 0) * (skill.value / 100) * devoured,
-    );
   }
   createSkillParticles(world, bx, by, EnemySkillParticleEffectVal.DarkDevour, { r: 80, g: 0, b: 140 }, skill.range, 0.9);
   Sound.play('boss_devour_impact');

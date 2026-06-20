@@ -298,7 +298,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(commands.every((cmd) => cmd.shape === 'circle' || cmd.shape === 'rect')).toBe(true);
   });
 
-  it('深渊领主通过YAML技能黑暗吞噬吞噬150px内非Boss单位并回血', () => {
+  it('深渊领主通过YAML技能黑暗吞噬吞噬150px内非Boss单位且不回血', () => {
     registerSkillConfig({
       id: 'test_abyss_lord',
       name: '测试深渊领主',
@@ -315,9 +315,9 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
           name: '黑暗吞噬',
           cooldown: 5,
           range: 150,
-          value: 2,
+          value: 0,
           duration: 0,
-          description: '吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%',
+          description: '吞噬Boss周围150px内所有非Boss单位，不再恢复自身HP',
         },
       ],
     } as unknown as UnitConfig);
@@ -340,7 +340,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(Health.current[farEnemy]).toBe(100);
     expect(Health.current[otherBoss]).toBe(3000);
     expect(Health.current[crystal]).toBe(500);
-    expect(Health.current[boss]).toBe(2120);
+    expect(Health.current[boss]).toBe(2000);
     expect(skillParticleQuery(world.world).length).toBeGreaterThan(0);
   });
 
@@ -365,9 +365,9 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
           name: '黑暗吞噬',
           cooldown: 5,
           range: 150,
-          value: 2,
+          value: 0,
           duration: 0,
-          description: '吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%',
+          description: '吞噬Boss周围150px内所有非Boss单位，不再恢复自身HP',
         },
       ],
     } as unknown as UnitConfig);
@@ -379,7 +379,7 @@ describe('EnemySkillSystem — 精英技能与视觉效果', () => {
     expect(announcementMock.show).toHaveBeenCalledWith(
       world,
       '黑暗吞噬',
-      '吞噬Boss周围150px内所有非Boss单位，每吞噬1个单位恢复自身HP上限2%',
+      '吞噬Boss周围150px内所有非Boss单位，不再恢复自身HP',
     );
   });
 
