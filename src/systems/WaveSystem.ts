@@ -159,6 +159,8 @@ export class WaveSystem implements System {
   private bossReinforcementGroups: WaveEnemyGroup[] = [];
   private bossReinforcementInterval: number = DEFAULT_BOSS_REINFORCEMENT_INTERVAL;
   private bossReinforcementMaxAliveNonBoss: number = DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS;
+  private finalBossSpawnedInWave: boolean = false;
+  private finalBossTypesInWave: number[] = [];
 
   /** Tracks last integer-second value of countdown for tick sound */
   private lastCountdownInt: number = 0;
@@ -251,6 +253,8 @@ export class WaveSystem implements System {
     this.isBossWave = false;
     this.bossReinforcementTimer = 0;
     this.bossReinforcementGroups = [];
+    this.finalBossSpawnedInWave = false;
+    this.finalBossTypesInWave = [];
   }
 
   /** Start auto-countdown before next wave. Call on phase transitions. */
@@ -290,6 +294,8 @@ export class WaveSystem implements System {
     this.eliteEnemyType = null;
     this.waveSpawnPointIndex = undefined;
     this.spawnDistributionCounter = 0;
+    this.finalBossSpawnedInWave = false;
+    this.finalBossTypesInWave = [];
 
     this.startWave();
     this.spawnTimer = 0;
@@ -329,6 +335,7 @@ export class WaveSystem implements System {
     this.waveActive = true;
     this.waveElapsed = 0; // v5.0: reset fixed-interval timer
     this.setupBossReinforcements(wave);
+    this.setupFinalBossTracking(wave);
 
     // v4.0: reset elite tracking & spawn point
     this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
@@ -359,6 +366,7 @@ export class WaveSystem implements System {
     this.waveActive = true;
     this.waveElapsed = 0; // v5.0: reset fixed-interval timer
     this.setupBossReinforcements(wave);
+    this.setupFinalBossTracking(wave);
 
     // v4.0: reset elite tracking & spawn point
     this.resetEliteTracking(wave.enemies.map((g) => g.enemyType));
@@ -404,6 +412,21 @@ export class WaveSystem implements System {
       0,
       wave.bossReinforcements?.maxAliveNonBoss ?? DEFAULT_BOSS_REINFORCEMENT_MAX_ALIVE_NON_BOSS,
     );
+  }
+
+  private setupFinalBossTracking(wave: WaveConfig): void {
+    this.finalBossSpawnedInWave = false;
+    this.finalBossTypesInWave = [];
+    if (!this.isCurrentFinalWave()) return;
+
+    for (const group of wave.enemies) {
+      const config = ENEMY_CONFIGS[group.enemyType];
+      if (config?.isBoss !== true) continue;
+      const bossType = resolveBossType(config.bossType, config.type);
+      if (!this.finalBossTypesInWave.includes(bossType)) {
+        this.finalBossTypesInWave.push(bossType);
+      }
+    }
   }
 
   update(world: TowerWorld, dt: number): void {
@@ -472,12 +495,16 @@ export class WaveSystem implements System {
 
     // v5.0: fixed-interval wave spawning. Non-final waves advance after the
     // configured interval once all queued enemies are out, so survivors can
-    // carry over without dropping unspawned enemies. Final wave must wait for
-    // both full spawn and full clear.
+    // carry over without dropping unspawned enemies. Final victory is tied to
+    // the configured final Boss death, not to clearing every enemy.
     // Use epsilon comparison to avoid floating-point imprecision edge cases.
-    if (this.waveElapsed >= this.waveInterval - 0.001) {
-      const isFinalWave = !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
-      if (this.isCurrentWaveFullySpawned() && (!isFinalWave || !this.hasAliveEnemies())) {
+    if (this.isCurrentFinalWave()) {
+      if (this.isFinalBossDefeated()) {
+        this.finishWave();
+        return;
+      }
+    } else if (this.waveElapsed >= this.waveInterval - 0.001) {
+      if (this.isCurrentWaveFullySpawned()) {
         this.finishWave();
       }
     }
@@ -611,6 +638,20 @@ export class WaveSystem implements System {
     return false;
   }
 
+  private isFinalBossDefeated(): boolean {
+    if (!this.finalBossSpawnedInWave || this.finalBossTypesInWave.length === 0) return false;
+
+    const bosses = aliveBossQuery(this.world.world);
+    for (const eid of bosses) {
+      if (UnitTag.isEnemy[eid] !== 1) continue;
+      if (!this.finalBossTypesInWave.includes(Boss.bossType[eid]!)) continue;
+      if (Health.current[eid]! > 0 || this.isPendingGiantSlimeSplit(eid)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private countAliveNonBossEnemies(): number {
     let count = 0;
     const enemies = aliveEnemyQuery(this.world.world);
@@ -627,6 +668,10 @@ export class WaveSystem implements System {
     return this.spawnTimer <= 0
       && this.spawnQueue.length === 0
       && this.spawnedInWave >= this.totalInWave;
+  }
+
+  private isCurrentFinalWave(): boolean {
+    return !this.isEndless && this.currentWaveIndex >= this.waves.length - 1;
   }
 
   private spawnEnemy(type: string, options?: SpawnEnemyOptions): number {
@@ -754,13 +799,17 @@ export class WaveSystem implements System {
 
     // Boss component
     if (config.isBoss) {
+      const bossType = resolveBossType(config.bossType, config.type);
       this.world.addComponent(eid, Boss, {
-        bossType: resolveBossType(config.bossType, config.type),
+        bossType,
         phase: 1,
         phase2HpRatio: config.bossPhase2HpRatio ?? 0.5,
         splitCount: config.splitCount ?? 0,
         selfDestructTimer: -1, // inactive
       });
+      if (this.isCurrentFinalWave() && this.finalBossTypesInWave.includes(bossType)) {
+        this.finalBossSpawnedInWave = true;
+      }
       this.spawnBossIntroEffect(eid, config.name, x, y);
     }
 

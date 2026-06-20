@@ -605,7 +605,7 @@ describe('WaveSystem v4.0 — elite enemy spawning', () => {
     expect(world.getDisplayName(liveNonBossEnemies[0]!)).toBe('疯狂野猪');
   });
 
-  it('Boss 死亡后停止补怪，最后一波仍可进入胜利', () => {
+  it('最终 Boss 死亡后停止补怪并进入胜利', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
@@ -770,7 +770,7 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     RenderSystem.sceneOffsetY = 0;
   });
 
-  it('onWaveReward callback fires with correct gold amount', () => {
+  it('onWaveReward callback fires with correct gold amount after a non-final wave', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
@@ -778,12 +778,19 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
 
     let rewardGold = 0;
-    const waves: WaveConfig[] = [{
-      waveNumber: 1,
-      spawnDelay: 0,
-      enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
-      reward: 75,
-    }];
+    const waves: WaveConfig[] = [
+      {
+        waveNumber: 1,
+        spawnDelay: 0,
+        enemies: [{ enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 }],
+        reward: 75,
+      },
+      {
+        waveNumber: 2,
+        spawnDelay: 0,
+        enemies: [{ enemyType: EnemyType.AbyssLord, count: 1, spawnInterval: 0 }],
+      },
+    ];
 
     const ws = new WaveSystem(world, map, waves, getPhase, setPhase, undefined, undefined, (gold) => {
       rewardGold = gold;
@@ -805,8 +812,8 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     }
 
     // After 11 × 0.1 = 1.1s, waveInterval (clamped to 1) has elapsed.
-    // finishWave should have transitioned phase and fired reward callback.
-    expect(phase).toBe(GamePhase.Victory);
+    // Non-final wave completion should enter wave break and fire reward callback.
+    expect(phase).toBe(GamePhase.WaveBreak);
     expect(rewardGold).toBe(75);
   });
 
@@ -884,7 +891,7 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     expect(enemyQuery(world.world).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('最后一波出怪结束后，仍有存活敌人时不能直接胜利', () => {
+  it('最后一波出怪结束后，最终 Boss 存活时不能直接胜利', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
@@ -922,13 +929,21 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     expect(bossQuery(world.world).length).toBe(0);
   });
 
-  it('最后一波出怪结束且所有敌人死亡后才判定胜利', () => {
+  it('最后一波非 Boss 敌人死亡但最终 Boss 存活时不能判定胜利', () => {
     const world = new TowerWorld();
     const { pathGraph, spawns } = migrateEnemyPathToGraph({
       enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
     });
     const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
-    const waves = makeSingleWave();
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [
+        { enemyType: EnemyType.AbyssLord, count: 1, spawnInterval: 0 },
+        { enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 },
+      ],
+    }];
     const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
     ws.setWaveInterval(1);
     ws.startWave();
@@ -936,9 +951,37 @@ describe('WaveSystem v4.0 — wave rewards', () => {
     for (let i = 0; i < 5; i++) ws.update(world, 0.1);
     const enemies = enemyQuery(world.world);
     for (const eid of enemies) {
-      Health.current[eid] = 0;
+      if (!hasComponent(world.world, Boss, eid)) Health.current[eid] = 0;
     }
     ws.update(world, 1.0);
+
+    expect(phase).toBe(GamePhase.Battle);
+  });
+
+  it('最终 Boss 真正死亡后判定胜利，即使仍有非 Boss 敌人存活', () => {
+    const world = new TowerWorld();
+    const { pathGraph, spawns } = migrateEnemyPathToGraph({
+      enemyPath: [{ row: 3, col: 5 }, { row: 3, col: 9 }],
+    });
+    const map: MapConfig = { ...makeBaseMap(), pathGraph, spawns };
+    const waves: WaveConfig[] = [{
+      waveNumber: 1,
+      spawnDelay: 0,
+      isBossWave: true,
+      enemies: [
+        { enemyType: EnemyType.AbyssLord, count: 1, spawnInterval: 0 },
+        { enemyType: EnemyType.Goblin, count: 1, spawnInterval: 0 },
+      ],
+    }];
+    const ws = new WaveSystem(world, map, waves, getPhase, setPhase);
+    ws.setWaveInterval(1);
+    ws.startWave();
+
+    for (let i = 0; i < 5; i++) ws.update(world, 0.1);
+    const [boss] = bossQuery(world.world);
+    expect(boss).toBeDefined();
+    Health.current[boss!] = 0;
+    ws.update(world, 0.1);
 
     expect(phase).toBe(GamePhase.Victory);
   });
