@@ -671,13 +671,12 @@ export class MovementSystem implements System {
     const posX = Position.x[eid]!;
     const posY = Position.y[eid]!;
     const forcedTarget = this.getTauntTarget(world, eid, posX, posY, attackRange);
-    const lockedTarget = forcedTarget ?? this.getBossLockedDefenderTarget(world, eid);
 
-    // Tick cooldown. 被嘲讽敌人和 Boss 锁定塔/士兵时，即使冷却中也要停在原地盯住目标。
+    // Tick cooldown. 被嘲讽敌人会停在原地盯住目标；Boss 不再因为上次目标而强制停步拆塔。
     const cooldownTimer = Attack.cooldownTimer[eid] ?? 0;
     if (cooldownTimer > 0) {
       Attack.cooldownTimer[eid] = cooldownTimer - dt;
-      const heldTarget = lockedTarget ?? contactTarget;
+      const heldTarget = forcedTarget ?? contactTarget;
       if (heldTarget !== null) {
         Attack.targetId[eid] = heldTarget;
         this.faceTarget(eid, heldTarget, posX);
@@ -687,7 +686,7 @@ export class MovementSystem implements System {
     }
 
     // Find nearest player unit (soldier or tower) within range
-    let nearestTarget: number | null = lockedTarget ?? contactTarget;
+    let nearestTarget: number | null = forcedTarget ?? contactTarget;
     let nearestDist = attackRange;
 
     // Check soldiers
@@ -752,8 +751,7 @@ export class MovementSystem implements System {
         this.spawnEnemyProjectile(world, eid, nearestTarget, posX, posY, damage);
       } else {
         // 近战：立即伤害 + 刀光特效
-        const effectiveDamage = this.getEnemyAttackDamage(world, eid, nearestTarget, damage);
-        applyDamageToTarget(world, nearestTarget, effectiveDamage, DamageTypeVal.Physical);
+        applyDamageToTarget(world, nearestTarget, damage, DamageTypeVal.Physical);
 
         // Hit flash on target
         if (Visual.hitFlashTimer[nearestTarget] !== undefined) {
@@ -778,19 +776,6 @@ export class MovementSystem implements System {
 
   private isTankEnemy(eid: number): boolean {
     return UnitTag.unitTypeNum[eid] === TANK_ENEMY_TYPE_NUM;
-  }
-
-  private getBossLockedDefenderTarget(world: TowerWorld, eid: number): number | null {
-    if (!hasComponent(world.world, Boss, eid)) return null;
-
-    const targetId = Attack.targetId[eid] ?? 0;
-    if (targetId === 0 || !entityExists(world.world, targetId)) return null;
-    if ((Health.current[targetId] ?? 0) <= 0) return null;
-
-    if (hasComponent(world.world, Tower, targetId) || hasComponent(world.world, Soldier, targetId)) {
-      return targetId;
-    }
-    return null;
   }
 
   private findBlockingBoulder(
@@ -901,16 +886,6 @@ export class MovementSystem implements System {
     } else if (targetX < posX) {
       Visual.facing[eid] = -1;
     }
-  }
-
-  private getEnemyAttackDamage(world: TowerWorld, enemyId: number, targetId: number, baseDamage: number): number {
-    if (!hasComponent(world.world, Boss, enemyId)) return baseDamage;
-    if (!hasComponent(world.world, Tower, targetId)) return baseDamage;
-
-    const towerMaxHp = Health.max[targetId] ?? 0;
-    if (towerMaxHp <= 0) return baseDamage;
-
-    return Math.max(baseDamage, Math.ceil(towerMaxHp / 3));
   }
 
   /**

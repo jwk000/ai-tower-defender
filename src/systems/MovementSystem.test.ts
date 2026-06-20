@@ -523,7 +523,7 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
     expect(Health.current[tower], '塔不应因敌人到达基地而掉血').toBe(towerHp0);
   });
 
-  it('Boss 普攻塔时停步并保证约3次可摧毁一座塔', () => {
+  it('Boss 普攻塔时不再套用拆塔伤害下限', () => {
     const tower = makeTower(world, 300);
     const boss = world.createEntity();
     world.addComponent(boss, Position, { x: 90, y: 100 });
@@ -559,7 +559,7 @@ describe('MovementSystem — 基地伤害（onReachEnd）', () => {
 
     system.update(world, 0.016);
 
-    expect(Health.current[tower]).toBe(200);
+    expect(Health.current[tower]).toBe(280);
     expect(Visual.attackAnimTimer[boss]).toBeCloseTo(0.9);
     expect(Movement.currentSpeed[boss]).toBe(0);
   });
@@ -829,7 +829,7 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Attack.cooldownTimer[enemy]).toBeCloseTo(1);
   });
 
-  it('虫族女王遇到塔后必须锁定攻击该塔直到杀死', () => {
+  it('虫族女王冷却结束后按最近我方单位重新选择目标，不再强制拆塔', () => {
     const tower = makeTower(world, 100);
     Position.x[tower] = 46;
     Position.y[tower] = TILE / 2;
@@ -840,52 +840,35 @@ describe('MovementSystem — 巨石阻挡', () => {
 
     const closerSoldier = makeSoldier(world, 20, TILE / 2, 100);
     Attack.cooldownTimer[queen] = 0;
+    Visual.attackAnimTimer[queen] = 0;
     system.update(world, 0.1);
     const projectiles = projectileQuery(world.world);
     const latestProjectile = projectiles[projectiles.length - 1]!;
 
-    expect(Attack.targetId[queen]).toBe(tower);
-    expect(Health.current[tower]).toBe(firstHp);
-    expect(Projectile.targetId[latestProjectile]).toBe(tower);
-    expect(Health.current[closerSoldier]).toBe(100);
-
-    Health.current[tower] = 0;
-    Attack.cooldownTimer[queen] = 0;
-    Visual.attackAnimTimer[queen] = 0;
-    system.update(world, 0.1);
-
     expect(Attack.targetId[queen]).toBe(closerSoldier);
+    expect(Health.current[tower]).toBe(firstHp);
+    expect(Projectile.targetId[latestProjectile]).toBe(closerSoldier);
+    expect(Health.current[closerSoldier]).toBe(100);
   });
 
-  it('虫族女王遇到我方士兵后必须锁定攻击该兵直到杀死', () => {
+  it('虫族女王冷却中不会因为旧士兵目标继续发动攻击', () => {
     const soldier = makeSoldier(world, 46, TILE / 2, 100);
     const queen = makeQueenWorm(world);
 
     system.update(world, 0.1);
-    const firstHp = Health.current[soldier];
+    const projectileCount = projectileQuery(world.world).length;
 
     const closerTower = makeTower(world, 100);
     Position.x[closerTower] = 20;
     Position.y[closerTower] = TILE / 2;
-    Attack.cooldownTimer[queen] = 0;
     system.update(world, 0.1);
-    const projectiles = projectileQuery(world.world);
-    const latestProjectile = projectiles[projectiles.length - 1]!;
 
     expect(Attack.targetId[queen]).toBe(soldier);
-    expect(Health.current[soldier]).toBe(firstHp);
-    expect(Projectile.targetId[latestProjectile]).toBe(soldier);
+    expect(projectileQuery(world.world).length).toBe(projectileCount);
     expect(Health.current[closerTower]).toBe(100);
-
-    Health.current[soldier] = 0;
-    Attack.cooldownTimer[queen] = 0;
-    Visual.attackAnimTimer[queen] = 0;
-    system.update(world, 0.1);
-
-    expect(Attack.targetId[queen]).toBe(closerTower);
   });
 
-  it('所有Boss遇到我方单位后必须锁定攻击，且机关不抢占该锁定目标', () => {
+  it('所有Boss只在普攻冷却结束时攻击我方单位，机关不抢占普攻目标', () => {
     const soldier = makeSoldier(world, 46, TILE / 2, 100);
     const boss = makeGenericBoss(world);
 
@@ -907,13 +890,6 @@ describe('MovementSystem — 巨石阻挡', () => {
     expect(Attack.targetId[boss]).toBe(soldier);
     expect(Projectile.targetId[secondProjectile]).toBe(soldier);
     expect(Health.current[closerBoulder]).toBe(200);
-
-    Health.current[soldier] = 0;
-    Attack.cooldownTimer[boss] = 0;
-    Visual.attackAnimTimer[boss] = 0;
-    system.update(world, 0.1);
-
-    expect(Attack.targetId[boss]).toBe(closerBoulder);
   });
 
   it('巨石被破坏后，地面敌人可以继续前进', () => {
