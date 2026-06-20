@@ -365,6 +365,18 @@ describe('HandSystem — 手牌管理', () => {
       expect(handSystem.playCard(100)).toBeNull();
     });
 
+    it('指定 expectedCardId 时，槽位不是同一张卡则不移除也不补牌', () => {
+      handSystem.initialize(makeTestPool());
+      const handBefore = handSystem.getHand();
+      const originalCard = handBefore[0]!;
+
+      const playedId = handSystem.playCard(0, 'card_not_in_this_slot');
+
+      expect(playedId).toBeNull();
+      expect(handSystem.getHand()[0]?.id).toBe(originalCard.id);
+      expect(handSystem.getHand().map((card) => card?.id)).toEqual(handBefore.map((card) => card?.id));
+    });
+
     it('出牌后自动补牌，所有槽位非空，原打出槽位被新牌填充', () => {
       const pool = makeTestPool();
       handSystem.initialize(pool);

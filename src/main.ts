@@ -132,6 +132,7 @@ interface PendingCardDrag {
   startX: number;
   startY: number;
   cardIndex: number;
+  cardId: string;
   resolved: ResolvedCardEntity;
 }
 
@@ -990,6 +991,7 @@ class TowerDefenderGame extends Game {
                 startX: e.x,
                 startY: e.y,
                 cardIndex: cardIdx,
+                cardId: card.cardId,
                 resolved,
               };
               return;
@@ -1095,9 +1097,11 @@ class TowerDefenderGame extends Game {
         }
         console.log('[CardDrag] entityType:', ds.entityType, 'cardIndex:', ds.cardIndex);
         if (ds.entityType === 'unit') {
-          // v5.0: 金币由 spawnUnitAt 在校验通过后扣除，此处仅做检查
-          const handCards = this.handSystem.getHand();
-          const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+          const handCard = this.getDraggedHandCard(ds.cardIndex, ds.cardId);
+          if (handCard === null) {
+            this.buildSystem.cancelDrag();
+            return;
+          }
           if (handCard && this.economy.gold < handCard.goldCost) {
             this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
             Sound.play('build_deny');
@@ -1106,9 +1110,17 @@ class TowerDefenderGame extends Game {
           }
           const spawnResult = this.spawnUnitAt(e.x, e.y);
           console.log('[CardDrag] spawnUnitAt result:', spawnResult);
-          if (spawnResult && ds.cardIndex !== undefined) {
-            console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
-            this.handSystem.playCard(ds.cardIndex);
+          if (spawnResult !== false) {
+            if (handCard) this.economy.spendGold(handCard.goldCost);
+            Sound.play('build_place');
+            this.uiSystem.selectedEntityId = spawnResult;
+            this.uiSystem.selectedEntityType = 'unit';
+            if (handCard && ds.cardIndex !== undefined) {
+              console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
+              this.handSystem.playCard(ds.cardIndex, ds.cardId);
+            }
+          } else {
+            Sound.play('build_deny');
           }
           this.buildSystem.cancelDrag();
         } else if (ds.entityType === 'spell') {
@@ -1127,8 +1139,11 @@ class TowerDefenderGame extends Game {
               return;
             }
             // v5.0: 校验通过后再扣金币
-            const handCards = this.handSystem.getHand();
-            const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+            const handCard = this.getDraggedHandCard(ds.cardIndex, ds.cardId);
+            if (handCard === null) {
+              this.buildSystem.cancelDrag();
+              return;
+            }
             if (handCard && this.economy.gold < handCard.goldCost) {
               this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
               Sound.play('build_deny');
@@ -1138,7 +1153,7 @@ class TowerDefenderGame extends Game {
             const executed = this.executeSpellAt(spellId, e.x, e.y);
             if (executed && handCard) this.economy.spendGold(handCard.goldCost);
             if (executed && ds.cardIndex !== undefined) {
-              this.handSystem.playCard(ds.cardIndex);
+              this.handSystem.playCard(ds.cardIndex, ds.cardId);
             }
             if (executed) Sound.play('build_place');
           }
@@ -1146,8 +1161,11 @@ class TowerDefenderGame extends Game {
         } else {
           console.log('[CardDrag] Calling tryDrop...');
           // v5.0: 金币在校验通过后扣除，此处仅做检查
-          const handCards = this.handSystem.getHand();
-          const handCard = ds.cardIndex !== undefined ? handCards[ds.cardIndex] : null;
+          const handCard = this.getDraggedHandCard(ds.cardIndex, ds.cardId);
+          if (handCard === null) {
+            this.buildSystem.cancelDrag();
+            return;
+          }
           if (handCard && this.economy.gold < handCard.goldCost) {
             this.floatingTextSystem.show(this.world, e.x, e.y, '金币不足');
             Sound.play('build_deny');
@@ -1170,7 +1188,7 @@ class TowerDefenderGame extends Game {
             // 从手牌中移除已使用的卡牌
             if (ds.cardIndex !== undefined) {
               console.log('[CardDrag] Calling playCard with index:', ds.cardIndex);
-              this.handSystem.playCard(ds.cardIndex);
+              this.handSystem.playCard(ds.cardIndex, ds.cardId);
             }
           } else if (result === false) {
             Sound.play('build_deny');
@@ -1583,6 +1601,7 @@ class TowerDefenderGame extends Game {
       this.buildSystem.startDrag('spell', {
         spellCardId: resolved.spellCardId,
         cardIndex: pending.cardIndex,
+        cardId: pending.cardId,
       });
       return;
     }
@@ -1592,7 +1611,15 @@ class TowerDefenderGame extends Game {
       unitType: 'unitType' in resolved ? resolved.unitType : undefined,
       trapTypeId: 'trapTypeId' in resolved ? resolved.trapTypeId : undefined,
       cardIndex: pending.cardIndex,
+      cardId: pending.cardId,
     });
+  }
+
+  private getDraggedHandCard(cardIndex: number | undefined, cardId: string | undefined) {
+    if (cardIndex === undefined && cardId === undefined) return undefined;
+    if (cardIndex === undefined || cardId === undefined) return null;
+    const handCard = this.handSystem.getHand()[cardIndex] ?? null;
+    return handCard?.id === cardId ? handCard : null;
   }
 
   private tryExecuteHandSpell(spellCardId: string, cardIndex: number, x: number, y: number): boolean {
@@ -1610,7 +1637,7 @@ class TowerDefenderGame extends Game {
     }
 
     this.economy.spendGold(handCard.goldCost);
-    this.handSystem.playCard(cardIndex);
+    this.handSystem.playCard(cardIndex, handCard.id);
     Sound.play('build_place');
     return true;
   }
@@ -1768,7 +1795,7 @@ class TowerDefenderGame extends Game {
   // spawnUnitAt — bitecs version
   // ================================================================
 
-  private spawnUnitAt(px: number, py: number): boolean {
+  private spawnUnitAt(px: number, py: number): number | false {
     const dragUnitType = this.buildSystem.dragState?.unitType;
     if (!dragUnitType) return false;
 
@@ -1800,14 +1827,6 @@ class TowerDefenderGame extends Game {
       return false;
     }
 
-    // v4.0: population system removed — no canDeployUnit/deployUnit
-    if (!this.economy.spendGold(config.cost)) {
-      this.floatingTextSystem.show(this.world, centerX, centerY, '金币不足');
-      return false;
-    }
-
-    Sound.play('build_place');
-
     const skillCfg = SKILL_CONFIGS[config.skillId];
     const energyCost = skillCfg ? skillCfg.energyCost : 0;
     const cooldown = skillCfg ? skillCfg.cooldown : 0;
@@ -1832,7 +1851,7 @@ class TowerDefenderGame extends Game {
     // P1-#11: register for refund tracking
     this.economy.registerBuild(id, config.cost);
 
-    return true;
+    return id;
   }
 
   // ================================================================

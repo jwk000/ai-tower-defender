@@ -207,7 +207,7 @@ export class HandSystem implements System {
    * 触发 onCardPlayed 回调。
    * @returns 被打出卡牌的 cardId，若该位置为空则返回 null
    */
-  playCard(index: number): string | null {
+  playCard(index: number, expectedCardId?: string): string | null {
     console.log('[HandSystem] playCard called with index:', index, 'hand:', this.hand);
     if (index < 0 || index >= MAX_HAND_SIZE) {
       console.log('[HandSystem] playCard: invalid index');
@@ -216,6 +216,10 @@ export class HandSystem implements System {
     const card = this.hand[index];
     if (!card) {
       console.log('[HandSystem] playCard: no card at index', index);
+      return null;
+    }
+    if (expectedCardId !== undefined && card.id !== expectedCardId) {
+      console.log('[HandSystem] playCard: card mismatch', { expectedCardId, actualCardId: card.id, index });
       return null;
     }
 

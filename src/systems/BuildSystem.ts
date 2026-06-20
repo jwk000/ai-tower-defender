@@ -43,6 +43,8 @@ export interface DragState {
   spellCardId?: string;
   /** 手牌中的卡牌索引（用于放置后移除卡牌） */
   cardIndex?: number;
+  /** 起拖时的卡牌 ID，用于避免手牌槽位变化后误消费其它卡 */
+  cardId?: string;
 }
 
 // ============================================================
@@ -141,6 +143,7 @@ export class BuildSystem implements System {
       trapTypeId?: string;
       spellCardId?: string;
       cardIndex?: number;
+      cardId?: string;
     },
   ): void {
     this.dragState = {
@@ -151,6 +154,7 @@ export class BuildSystem implements System {
       trapTypeId: opts?.trapTypeId ?? 'spike_trap',
       spellCardId: opts?.spellCardId,
       cardIndex: opts?.cardIndex,
+      cardId: opts?.cardId,
     };
   }
 
